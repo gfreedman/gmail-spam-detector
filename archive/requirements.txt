@@ -1,0 +1,2 @@
+# Requirements for Spam Detector Test Suite
+PyPDF2>=3.0.0

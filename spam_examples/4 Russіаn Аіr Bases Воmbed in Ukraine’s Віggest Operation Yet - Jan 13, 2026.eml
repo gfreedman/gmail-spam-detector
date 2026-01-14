@@ -1,0 +1,410 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:2b92:b0:1b0:f2cc:f19c with SMTP id l18csp1237705rdc;
+        Tue, 13 Jan 2026 09:36:53 -0800 (PST)
+X-Google-Smtp-Source: AGHT+IFRXd5X31d3U6q4BWbiOVvtXVcGPrBu6sa21HIDJriDr3MKKEmbLZvCtSQYxwU2l35p5jwD
+X-Received: by 2002:a05:622a:283:b0:4eb:a3fb:2864 with SMTP id d75a77b69052e-4ffb4a9c4ecmr293535531cf.69.1768325813266;
+        Tue, 13 Jan 2026 09:36:53 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1768325813; cv=none;
+        d=google.com; s=arc-20240605;
+        b=HufhOlKbIzF+rLy73RQZqFJK3j2cM1HPBQZ/RGnjoTpmcjxLEv9xYtzQKS0WtBYOIR
+         +aJGWwDmrXagybtzPbonAhnsJpa0oDYDfEhGfNxWZho4xYWCLbW4Srt9mffUKZWIdu3N
+         npXVhIveK0AenL4X6/++HuBTSYl1w/6WBZ1hDwV3TeI2MTzp4A9NzxlSpJZ745BfSVbQ
+         VVGwMk+/yfYr8EhxnZF9i5fsb3vhC6Jr/x438djSq3FZDZfes+9gdGe9k0EPkPQudJx6
+         khhS0SxRs/Ff/ahNWeMS70O/1cQR6GDZuWvlhh/IIqRwV8I0G0sz4CWJw8MttxIpICRa
+         yqWA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=Sf7gWE0TTEUPNsfx8VX6mTcVUyaZbyIa18MMEpekWB8=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=E2DysQzYSa6dFBt7GSTIS7Sfwht05PTAcTKnxaNh+jYSp4i/iMHyz9dHwdIvaHa4dD
+         9lFin6MNCcnWluiZpOlh/rJtV+hfzyORm0BK0UT96oNjFpZ31DxyERjX1SeOttuZ/Wui
+         ZqGdWwqvEtAAYZLW87J+GxmKs6yK5yFyfC5SXYmiTQComnxvoiKskRn5GS/PX1AvrCi1
+         RrNZrd+swvbvAL3oVfUYIUctMLprL3+BNVu5a1GOG5UJ1+i972e8eqbBtemH8S5SL+pY
+         We4dlmoPWOGjo05cDRWQapQQSrEODagHQxSNvMHWtV7OypP8fBKkngTX1NhSId1DJ0sJ
+         FqfQ==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@api.americanprofitinsight.com header.s=uzd2rk6krm52o6l4lhyly437alt3az5y header.b=vAbK7RND;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=R2qgEuyy;
+       spf=pass (google.com: domain of 0100019bb86e8ddf-b070efc8-b5f9-4248-8a43-b4c9638d3310-000000@amazonses.com designates 54.240.79.3 as permitted sender) smtp.mailfrom=0100019bb86e8ddf-b070efc8-b5f9-4248-8a43-b4c9638d3310-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=americanprofitinsight.com
+Return-Path: <0100019bb86e8ddf-b070efc8-b5f9-4248-8a43-b4c9638d3310-000000@amazonses.com>
+Received: from a79-3.smtp-out.amazonses.com (a79-3.smtp-out.amazonses.com. [54.240.79.3])
+        by mx.google.com with ESMTPS id d75a77b69052e-4ffb03b7130si211758791cf.474.2026.01.13.09.36.52
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 13 Jan 2026 09:36:53 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019bb86e8ddf-b070efc8-b5f9-4248-8a43-b4c9638d3310-000000@amazonses.com designates 54.240.79.3 as permitted sender) client-ip=54.240.79.3;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@api.americanprofitinsight.com header.s=uzd2rk6krm52o6l4lhyly437alt3az5y header.b=vAbK7RND;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=R2qgEuyy;
+       spf=pass (google.com: domain of 0100019bb86e8ddf-b070efc8-b5f9-4248-8a43-b4c9638d3310-000000@amazonses.com designates 54.240.79.3 as permitted sender) smtp.mailfrom=0100019bb86e8ddf-b070efc8-b5f9-4248-8a43-b4c9638d3310-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=americanprofitinsight.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=uzd2rk6krm52o6l4lhyly437alt3az5y;
+	d=api.americanprofitinsight.com; t=1768325811;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=zn3iqjbZWh5094cx+c+sZc5BapkIljXM4BahuHBUsBg=;
+	b=vAbK7RNDcHeS/in3GBR8kXeKCsJBOnrhKUebs3E6N4XK6WhPVIg67ww+XqtvyYLu
+	j1T77Si6lkqXqXjEwQNTd9ZT/vzPDtW+QyOYEewE3cJSffyAoRQRIyxAFWQ20m3luy9
+	uW+hzgj4zdoTgPw5qc8PMYLBozCWfSHu7L1zm1Env9rww7M+dXE5DXI6HnzU7md3pEj
+	DFPyjZRXHumnBjknF1HavS9JaEp7ASS2Z4enLsIM4EPo07cLwJjLrBYNzV/E0Pqb7r/
+	AYxjO5dGigR5K23PYULvqYExydikGJsqck4vyW+Teq6XkCMkR+9hMhU8eLkgrNy+qdl
+	hAs7B7CTXA==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1768325811;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=zn3iqjbZWh5094cx+c+sZc5BapkIljXM4BahuHBUsBg=;
+	b=R2qgEuyyV4MlGCCdz4B6n/y6tLeKz+IXseazLIX9R8FHP0fwgu+RXxFuBoBS4GxH
+	HYEoul2IY721CIAFu2VG3FJlB1JHxQSZA/VnLCSxJ0+gDKJt/N+n9qDlpFFxGNDk7ja
+	U/wzpi95++aYusjQpK++Msyp73ahTbxv3Jn8Wpxg=
+Date: Tue, 13 Jan 2026 17:36:51 +0000
+From: "40 Bombers Destroyed | David Payne @ API" <news@api.americanprofitinsight.com>
+Reply-To: support@americanprofitinsight.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019bb86e8ddf-b070efc8-b5f9-4248-8a43-b4c9638d3310-000000@email.amazonses.com>
+Subject: =?UTF-8?Q?4_Russ=D1=96=D0=B0n_=D0=90=D1=96r_Bases?=
+ =?UTF-8?Q?_=D0=92=D0=BEmbed_in_Ukraine=E2=80=99?=
+ =?UTF-8?Q?s_=D0=92=D1=96ggest_Operation_Yet_-_Jan_13,_2026?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_21673_1788527470.1768325811665"
+X-Campaign-ID: 16459482
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=900dd9aa9e97472eb9b75def3c13522b&_s=7119bf0d43e84b7aa2f1d7465b125c6e&_t=FRpP9urIqp7xBPNt2sJz0cPTBpvybO9Ll4IieF3Rf4sBJ_1GQqI8fv904zqnNc2pTEa7qsnfySDyJNwqmO-JE3-CZ3iHC1MMCOCiflvTS9-bWPehL9nLFIMTsz4UGmWA8CdD9DC1UaAiNQe-umX8mA%3D%3D>,<mailto:unsubscribe+16459482+21419678@unsubscribe.iterable.com>
+X-Feedback-ID: 21419678:16459482:123771:iterable
+X-Message-ID: 7119bf0d43e84b7aa2f1d7465b125c6e
+X-SES-Outgoing: 2026.01.13-54.240.79.3
+
+------=_Part_21673_1788527470.1768325811665
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Template wrapper Ukraine=E2=80=99s =E2=80=9CSecret Weapon=E2=80=9D Against =
+Russia=20
+
+
+
+ <https://americanprofitinsight.com/>=20
+
+
+
+
+
+ For the first time in the entire conflict - a coordinated strike on Russia=
+'s=20
+most protected facilities deep inside its territory.
+
+Four strategic air bases. Dozens of damaged airplanes. Drones went through =
+all=20
+the air defenses.
+
+=20
+<https://trk.americanprofitinsight.com/667ef271f745d20001130090?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3DB&product=3DBTUA621OS27>
+This is not a raid. This is a new era of warfare.
+
+Find out how Ukraine conducted the most daring operation against the Russia=
+n=20
+war machine.
+
+The name of the mission is already known. The consequences are irreversible=
+.
+
+Watch the whole showdown - click now.=20
+<https://trk.americanprofitinsight.com/667ef271f745d20001130090?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3DB&product=3DBTUA621OS27>
+
+Simmy Adelman, Editor
+Behind the Markets=20
+
+
+ <>=20
+A note from API editor David Payne  Sometimes, colleagues share special off=
+ers=20
+with us that we think our readers should be made aware of. Left is one such=
+=20
+special opportunity that we believe deserves your attention.=20
+
+
+ This email was sent to you by American Profit Insight (API) on behalf of=
+=20
+Event Horizon LLC
+
+ 435 N Dupont Hwy, Dover, DE 19901, United States=20
+
+ Copyright =C2=A9 2026 All Rights Reserved.=20
+
+ Privacy Policy  <https://americanprofitinsight.com/privacy-policy/>=20
+ Unsubscribe =20
+<https://links.api.americanprofitinsight.com/e/encryptedUnsubscribe?_r=3D90=
+0dd9aa9e97472eb9b75def3c13522b&_s=3D7119bf0d43e84b7aa2f1d7465b125c6e&_t=3DF=
+RpP9urIqp7xBPNt2sJz0cPTBpvybO9Ll4IieF3Rf4sBJ_1GQqI8fv904zqnNc2pTEa7qsnfySDy=
+JNwqmO-JE3-CZ3iHC1MMCOCiflvTS9-bWPehL9nLFIMTsz4UGmWA8CdD9DC1UaAiNQe-umX8mA%=
+3D%3D>
+ Terms & Conditions  <https://americanprofitinsight.com/terms-conditions/>=
+=20
+
+------=_Part_21673_1788527470.1768325811665
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html> <html lang=3D"en" xmlns=3D"http://www.w3.org/1999/xhtml" xm=
+lns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:schemas-microsoft-co=
+m:office:office"> <head> <meta charset=3D"utf-8"> <meta name=3D"viewport" c=
+ontent=3D"width=3Ddevice-width"> <meta http-equiv=3D"X-UA-Compatible" conte=
+nt=3D"IE=3Dedge"> <meta name=3D"x-apple-disable-message-reformatting"> <!--=
+ Disable auto-scale in iOS 10 Mail entirely --> <meta name=3D"format-detect=
+ion" content=3D"telephone=3Dno,address=3Dno,email=3Dno,date=3Dno,url=3Dno">=
+ <!-- Tell iOS not to automatically link certain text strings. --> <meta na=
+me=3D"color-scheme" content=3D"light"> <meta name=3D"supported-color-scheme=
+s" content=3D"light"> <title>Template wrapper</title> <style>@media(max-wid=
+th:599px){.block{display:block!important;width:100%!important}.mt{margin-to=
+p:1rem}.desktop-divider{display:none!important}.editors-note-photo-mobile{d=
+isplay:inline-block!important;width:50%!important}.editors-note-text-mobile=
+{display:inline-block!important;width:50%!important}.mobile-divider{width:1=
+00%!important;height:auto!important;max-width:100%!important}.header{backgr=
+ound-position:top center!important;padding:9% 30px 20px 30px!important}.hea=
+der img{width:90%!important}.footer-buttons .button-link{padding-left:15px!=
+important;padding-right:15px!important;min-width:90px!important;font-size:1=
+1px!important}.footer-buttons .lst-btn{float:none!important}.footer-buttons=
+ .first-btn{float:left}.footer-buttons .second-btn{float:right}}@media(pref=
+ers-color-scheme:dark){.wrapper{background-color:#2b2b2b!important}.table-c=
+ontainer{background-color:#1a1a1a!important}.copy-text table{background-col=
+or:#1a1a1a!important}.copy-text td,.copy-text span,.copy-text b,.copy-text =
+strong,.copy-text i,.copy-text em,.copy-text sup,.copy-text p,.copy-text di=
+v,.copy-text h1,.copy-text h2,.copy-text h3,.copy-text h4,.copy-text ul,.co=
+py-text li,.copy-text ol{color:#fff!important}.editors-note-text{color:#fff=
+!important}.editors-note-text span{color:#cfcfcf!important}.footer-text{col=
+or:#fff!important}.footer-text a{color:#fff!important}}</style> <!-- Deskto=
+p Outlook chokes on web font references and defaults to Times New Roman, so=
+ we force a safe fallback font. --> <!--[if mso]><style>*{font-family:sans-=
+serif!important}</style><![endif]--> <!-- Web Font / @font-face : BEGIN -->=
+ <style>@import url('https://fonts.googleapis.com/css2?family=3DRoboto:wght=
+@400;500;700;900&display=3Dswap');@import url('https://use.typekit.net/zph3=
+dop.css');</style> <!-- Web Font / @font-face : END --> <!-- Makes backgrou=
+nd images in 72ppi Outlook render at correct size. --> <!--[if gte mso 9]><=
+xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:Offi=
+ceDocumentSettings></xml><![endif]--> </head> <body style=3D"-webkit-font-s=
+moothing: antialiased; -ms-text-size-adjust: 100%; -webkit-text-size-adjust=
+: 100%; margin: 0; padding: 0;"><span style=3D"color:transparent;visibility=
+:hidden;display:none;opacity:0;height:0;width:0;font-size:0;">Ukraine=E2=80=
+=99s =E2=80=9CSecret Weapon=E2=80=9D Against Russia</span><img src=3D"https=
+://links.api.americanprofitinsight.com/e/eo?_t=3D900dd9aa9e97472eb9b75def3c=
+13522b&amp;_m=3D7119bf0d43e84b7aa2f1d7465b125c6e&amp;_e=3DFRpP9urIqp7xBPNt2=
+sJz0cPTBpvybO9Ll4IieF3Rf4sBJ_1GQqI8fv904zqnNc2pTEa7qsnfySDyJNwqmO-JE3-CZ3iH=
+C1MMCOCiflvTS9_6gm4GXToV_8ZRryGWwXdzppDcVu8XMj_2m_MNaKB1m9sp4jn13-6tNqjOZu5=
+ykOI%3D" style=3D"border:0;width:1px;height:1px;border-width:0px!important;=
+display:none!important;line-height:0!important;" width=3D"1" height=3D"1"/>=
+ <table role=3D"presentation" border=3D"0" cellpadding=3D"0" cellspacing=3D=
+"0" class=3D"body" style=3D"width: 100%;"> <tr> <td align=3D"center" valign=
+=3D"top"> <!--[if mso | IE]><table align=3D"center" border=3D"0" cellpaddin=
+g=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"max-width:1000px; =
+width:100%" bgcolor=3D"#DEDEDE"><tr><td style=3D"line-height:0px;font-size:=
+0px;mso-line-height-rule:exactly;"><![endif]--> <table align=3D"center" rol=
+e=3D"presentation" cellpadding=3D"0" cellspacing=3D"0" class=3D"wrapper" wi=
+dth=3D"100%" style=3D"max-width: 1000px; width: 100%; background-image: url=
+('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9=
+b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3c13522b/editor_images/W=
+ordsFromAmerica_BG.png'); background-size: cover; background-repeat: no-rep=
+eat; background-position: center;"> <tr> <td class=3D"desktop-divider" heig=
+ht=3D"40"></td> </tr> <tr> <td align=3D"center" valign=3D"top"> <!--[if mso=
+ | IE]><table role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" wid=
+th=3D"600" align=3D"center" style=3D"width: 600px;"><tr><td><![endif]--> <t=
+able bgcolor=3D"#ffffff" role=3D"presentation" cellspacing=3D"0" cellpaddin=
+g=3D"0" class=3D"table-container" width=3D"600" align=3D"center" style=3D"m=
+ax-width: 600px; width: 100%;"> <tr> <td class=3D"header" style=3D"backgrou=
+nd-image: url('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrato=
+rs/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3c13522b/ed=
+itor_images/WordsFromAmerica_Header.png'); background-size: 100%; backgroun=
+d-repeat: no-repeat; background-position: center; padding: 60px 50px 20px 3=
+0px;"> <!--[if mso | IE]><table bgcolor=3D"#202020" role=3D"presentation" c=
+ellspacing=3D"0" cellpadding=3D"0" width=3D"600" align=3D"center" style=3D"=
+width: 100%;"><tr><td align=3D"center" style=3D"text-align: center;"><![end=
+if]--> <a href=3D"https://links.api.americanprofitinsight.com/u/click?_t=3D=
+900dd9aa9e97472eb9b75def3c13522b&_m=3D7119bf0d43e84b7aa2f1d7465b125c6e&_e=
+=3DVpz-kCCEfCnJg6lLCujVR4Q2G--erMxdtt_MXPOpt6Qo10ETN5hTyanUA5756FMMd8lhWfBK=
+9PIX9E0otUvmdtpD9QZWdOo7Q4MPQmWLdHYzVbG1VaDwpD-ugpx6SO8kzsXiK3YHWrud3HLjWUd=
+0736KoOmvLqrrEotuTwXquKfAp9sDPFPw8mNLzvUTOBLGF23urmP0bKlnKNNCE1UyizNIPP9D2a=
+j7UH-rVMfwHwPrsgANzu0F2uOT3wmq0yw2moSzTgeEppC0eJB0vqWJ4MfLnoaF2V1rGN-93ptP7=
+NssKI0QHUFymehrkWyIqmBR7wNnJsKqQqEqywF5uDEBB2B_2AeOUUog3plsaNh0zME%3D" styl=
+e=3D"font-weight: 900; text-decoration: none;"> <img src=3D"https://d15k2d1=
+1r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c54=
+2cff6dd6a/900dd9aa9e97472eb9b75def3c13522b/editor_images/Group%201.png" alt=
+=3D"American Profit Insight" width=3D"448" height=3D"112" style=3D"height: =
+auto; border: 0; -ms-interpolation-mode: bicubic; width: 448px;"> </a> <!--=
+[if mso | IE]></td></tr></table><![endif]--> </td> </tr> <!-- COLUMN CONTEN=
+T --> <tr> <td class=3D"content" style=3D"padding: 10px 15px;"> <table cell=
+padding=3D"0" cellspacing=3D"0" border=3D"0" role=3D"presentation" style=3D=
+"width: 100%" width=3D"100%" class=3D"two-column-wrapper"> <tr> <!-- LEFT C=
+OLUMN --> <td class=3D"block text mobile-width copy-text" align=3D"left" va=
+lign=3D"top" style=3D"font-weight: normal; line-height: 1.5; text-align: le=
+ft; font-size: 16px; vertical-align: top; width: 70%; display: table-cell;"=
+ width=3D"50%"> <!-- COPY HERE --> <table width=3D"100%" border=3D"0" cellp=
+adding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"max-width: 10=
+0%; font-family: 'Verdana', Arial, Helvetica, sans-serif"> <tbody> <tr> <td=
+ align=3D"center" valign=3D"top" style=3D"font-family: 'Verdana', Arial, He=
+lvetica, sans-serif"> <table class=3D"primary-table-limit content-table" bg=
+color=3D"#FFFFFF" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"=
+presentation" width=3D"100%" style=3D"max-width: 600px; font-family: 'Verda=
+na', Arial, Helvetica, sans-serif"> <tbody> <tr> <td class=3D"content-verti=
+cal-space" align=3D"center" style=3D"padding-left: 20px; padding-right: 20p=
+x; font-family: 'Verdana', Arial, Helvetica, sans-serif"> <table class=3D"c=
+ontent-inner-table" border=3D"0" cellspacing=3D"0" role=3D"presentation" ce=
+llpadding=3D"0" width=3D"100%" style=3D"width: 100%; font-family: 'Verdana'=
+, Arial, Helvetica, sans-serif"> <tbody> <tr> <td height=3D"16" width=3D"10=
+0%" style=3D"max-width: 100%; font-family: 'Verdana', Arial, Helvetica, san=
+s-serif" class=3D"md-horizontal-space"></td> </tr> <tr> <td style=3D" font-=
+style: normal; font-weight: normal; line-height: 1.5; text-align: left; col=
+or: #000000; padding-top: 14px; padding-bottom: 14px; font-family: 'Verdana=
+', Arial, Helvetica, sans-serif; font-size: 18px; "> <span style=3D" font-s=
+tyle: normal; font-weight: normal; line-height: 1.5; text-align: left; colo=
+r: #000000; font-family: 'Verdana', Arial, Helvetica, sans-serif; font-size=
+: 18px; "> For the first time in the entire conflict - a coordinated strike=
+ on Russia's most protected facilities deep inside its territory.<br><br>Fo=
+ur strategic air bases. Dozens of damaged airplanes. Drones went through al=
+l the air defenses.<br><table role=3D"presentation" cellpadding=3D"0" cells=
+pacing=3D"0" align=3D"center" width=3D"100%"> <tbody><tr> <td align=3D"cent=
+er" style=3D"padding-top: 15px; padding-bottom: 15px"> <a href=3D"https://l=
+inks.api.americanprofitinsight.com/u/click?_t=3D900dd9aa9e97472eb9b75def3c1=
+3522b&_m=3D7119bf0d43e84b7aa2f1d7465b125c6e&_e=3DVpz-kCCEfCnJg6lLCujVR-c-FF=
+L8goZDmmtQb48rSTegEgufbeq4L09DQhOPRUS8jhl2yzL-EwhkzBt7U3XvSNXkH0C17Hh3MvEFI=
+T16xdUP-Z6t6BJdt865el508GMFrHxO9s7ceVfKHuZyEAERkVTqq4kfYfnNkVFKOqYO9S8cK6g2=
+HTNgrOeGQf-cC23UNcjQdmK4eCgNKndj0ebdFBQgB68SBzBbDOMQeMH-YqvtDTZvu3hdg8D_fst=
+U1ILys4fZ9mYaoYEa1KuJ3GgY5OGTFDO5e00F0lC59PbFE0fBosnIF8Tx8szd78BGxAKFenbm65=
+eJLSZZPGWb2o3b-o7bnkWIc5GVGJYxOFhmlPeXDdEBg7qzofVurJ_WJnkXEKsxOGY4PDhNyUsMj=
+BU1znn4sYMHv0QvAioyd8k650bpvR2BVeRPrqEXUhhdcQUCGgGxaRm-sAfY17xX-3NRMdRVa9wk=
+Pj5F44nNqKEiobARw6qKwBaKoL4UlhpPw7h_SCURF5yZx6F6jqnaZFYJ1DPYAWQq8PaGCMQZrsN=
+LrpDTd14JkSnGIIcxNsAm_SFXveQGq5LIinXCIWLBV2frz5cpcHgygvvSc2Shpb2kK_iZP95V1n=
+JaN9z9IL9D5aa3" style=3D"font-weight: 900; text-decoration: none;"> <img wi=
+dth=3D"500" src=3D"https://library.iterable.com/1940/9440/949458d9b9f54efb8=
+47ec5f82c8fc774-btua621os27-mfmf.png" alt=3D"Image" style=3D"width: 100%; h=
+eight: auto; border: 0; max-width: 500px;"> </a> </td> </tr> </tbody></tabl=
+e>This is not a raid. This is a new era of warfare.<br><br>Find out how Ukr=
+aine conducted the most daring operation against the Russian war machine.<b=
+r><br>The name of the mission is already known. The consequences are irreve=
+rsible.<br><br><a href=3D"https://links.api.americanprofitinsight.com/u/cli=
+ck?_t=3D900dd9aa9e97472eb9b75def3c13522b&_m=3D7119bf0d43e84b7aa2f1d7465b125=
+c6e&_e=3DVpz-kCCEfCnJg6lLCujVR-c-FFL8goZDmmtQb48rSTegEgufbeq4L09DQhOPRUS8jh=
+l2yzL-EwhkzBt7U3XvSNXkH0C17Hh3MvEFIT16xdUP-Z6t6BJdt865el508GMFrHxO9s7ceVfKH=
+uZyEAERkVTqq4kfYfnNkVFKOqYO9S8cK6g2HTNgrOeGQf-cC23UNcjQdmK4eCgNKndj0ebdFC54=
+wUV3RaH78pe7-pcCzyPJg4aHoy6WegPVPA9znAHVxp4xBThZxi40g6a0qA0CR7-rRb0I-AvEtDc=
+XYqjeoDYU81iuh1_VOT3WWSnMTY6urW2C0YpTBXXefsx2CmC1qy3ob2GIpt5tCaoBbn4HhDSRCB=
+lPVDK3Ox-DNd_UFyViBbTmV8i1hQ_D3TKCF0b89Vii0sKznsj15apVhQP2WFWnD9cHd7cOTKzS2=
+ELwZfieHDT5V1tXXQRfRLfL6z6ZUuQelYT794yhC6ByjyVikE4I9yyf179jCKmOZnIwiHnNzupQ=
+AXtrHGcpTn9QcdswScS5NrVIaJJSp6W74Mcyy_y-6z4glu-NGyhIxgKUX4qGEDTa3Ouh_bMFrry=
+U2e-_EZO_6dYnsJOFaRSgJnHWSDwHcw-tL0kcMdm0MXnlkqzZ" style=3D" text-decoratio=
+n: underline; font-weight: 700; color: #0000ee; font-family: 'Verdana', Ari=
+al, Helvetica, sans-serif; ">Watch the whole showdown - click now.</a><br><=
+br><b>Simmy Adelman, Editor</b><br><em>Behind the Markets</em></span> </td>=
+ </tr> <tr> <td height=3D"16" width=3D"100%" style=3D"max-width: 100%; font=
+-family: 'Verdana', Arial, Helvetica, sans-serif" class=3D"md-horizontal-sp=
+ace"></td> </tr> </tbody> </table> </td> </tr> </tbody> </table> </td> </tr=
+> </tbody> </table> <!-- END COPY --> </td> <!-- RIGHT COLUMN --> <td class=
+=3D"block right-column" style=3D"width: 30%; display: table-cell;" align=3D=
+"left" valign=3D"top" width=3D"30%"> <table role=3D"presentation" cellspaci=
+ng=3D"0" cellpadding=3D"0" width=3D"100%"> <tr> <td class=3D"editors-note-b=
+g" style=3D"background-image: url('https://d15k2d11r6t6rl.cloudfront.net/pu=
+blic/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472=
+eb9b75def3c13522b/editor_images/WordsFromAmerica_Editors.png'); background-=
+size: cover; background-repeat: no-repeat; background-position: center; lin=
+e-height: 0;"> <table role=3D"presentation" cellspacing=3D"0" cellpadding=
+=3D"0" width=3D"100%"> <tr class=3D"editors-note-photo-mobile"> <td class=
+=3D"editors-note-photo"> <a href=3D"urlhere" style=3D"font-weight: 900; tex=
+t-decoration: none;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.net/pub=
+lic/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472e=
+b9b75def3c13522b/editor_images/WordsFromAmerica_man.jpg" alt=3D"Editors Not=
+e Photo" width=3D"172" height=3D"194" style=3D"width: 100%; height: auto; b=
+order: 0; -ms-interpolation-mode: bicubic;"> </a> </td> </tr> <tr class=3D"=
+editors-note-text-mobile"> <td class=3D"editors-note-text" style=3D"padding=
+: 0 10px 20px 10px; font-family: 'mokoko', serif; font-size: 11px; font-wei=
+ght: 400; line-height: 15px; letter-spacing: 0em; text-align: left;"> <span=
+ style=3D"color: #393939; font-family: 'mokoko', serif; font-size: 12px; fo=
+nt-style: normal; font-weight: 900; line-height: 140%;">A note from API edi=
+tor David Payne </span> Sometimes, colleagues share special offers with us =
+that we think our readers should be made aware of. Left is one such special=
+ opportunity that we believe deserves your attention. </td> </tr> </table> =
+</td> </tr> <tr> <td height=3D"15"></td> </tr> <tr> <td class=3D"footer-bg"=
+ style=3D"padding: 20px; background-image: url('https://d15k2d11r6t6rl.clou=
+dfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/90=
+0dd9aa9e97472eb9b75def3c13522b/editor_images/WordsFromAmerica_Footer%20%281=
+%29.png'); background-size: cover; background-repeat: no-repeat; background=
+-position: center;"> <table role=3D"presentation" cellspacing=3D"0" cellpad=
+ding=3D"0" width=3D"100%"> <tr> <td class=3D"footer-text" style=3D"font-fam=
+ily: 'Mokoko', serif; font-size: 12px; font-weight: 400; line-height: 18px;=
+ letter-spacing: 0em; text-align: left; color: #474747;"> <!-- TEXT IN FOOT=
+ER --> This email was sent to you by American Profit Insight (API) on behal=
+f of Event Horizon LLC <br><br> 435 N Dupont Hwy, Dover, DE 19901, United S=
+tates <br><br> Copyright &#169; 2026 All Rights Reserved. </td> </tr> <tr> =
+<td class=3D"footer-buttons" style=3D"padding: 15px 0; text-align: center;"=
+> <!-- FOOTER BUTTONS --> <table role=3D"presentation" cellspacing=3D"0" ce=
+llpadding=3D"0" align=3D"left" style=3D"padding-top: 15px;" class=3D"first-=
+btn"> <tr> <td align=3D"center" class=3D"button" style=3D"text-align: cente=
+r;"> <div> <!--[if mso]><v:roundrect xmlns:v=3D"urn:schemas-microsoft-com:v=
+ml" xmlns:w=3D"urn:schemas-microsoft-com:office:word" href=3D"urlhere" styl=
+e=3D"height:50px;v-text-anchor:middle;width:140px;" arcsize=3D"10%" stroke=
+=3D"f" fillcolor=3D"#404040"> <w:anchorlock/> <center><![endif]--> <a href=
+=3D"https://links.api.americanprofitinsight.com/u/click?_t=3D900dd9aa9e9747=
+2eb9b75def3c13522b&_m=3D7119bf0d43e84b7aa2f1d7465b125c6e&_e=3DVpz-kCCEfCnJg=
+6lLCujVR4Q2G--erMxdtt_MXPOpt6T7aP4jsFfE0D3uEowtro_PRa4_6tMlKqDJf0nkj7FpV-TT=
+lQWlq4tWlu57RWhNOO5O_ePwzHG2Hd8wEJTNM1iyCPH5WCOM06TwqAtF4AG1Yt3BxEkJH_-wuhE=
+Bf4vFdICJkZyZ0wHqLaZsKqnxNnF_fbrwKlBrggxXFzaYKGjBHQTblIheM-wTv6uG1-msx0Igks=
+4-a-qoawhrlrns_aUyM69Cy6AGOGL81e-bbXoq_8H3g0uP9oS3dIhUaZCoRqoXH-smtJ_rzZ-LI=
+IVThxLpVRqCz5gk1awVpZR0ugDZBg%3D%3D" class=3D"button-link" style=3D"text-de=
+coration: none; display: inline-block; padding-top: 15px; padding-bottom: 1=
+5px; -webkit-text-size-adjust: none; font-weight: 700; background-color: #4=
+04040; border-radius: 0; color: #fff; font-family: 'Mokoko', serif; font-si=
+ze: 12px; line-height: 150%; padding-left: 10px; padding-right: 10px; text-=
+align: center; background: #404040; font-style: normal; min-width: 130px;">=
+ Privacy Policy </a> <!--[if mso]></center> </v:roundrect><![endif]--> </di=
+v> </td> </tr> </table> <table role=3D"presentation" cellspacing=3D"0" cell=
+padding=3D"0" align=3D"right" style=3D"padding-top: 15px;" class=3D"second-=
+btn"> <tr> <td align=3D"center" class=3D"button" style=3D"text-align: cente=
+r;"> <div> <!--[if mso]><v:roundrect xmlns:v=3D"urn:schemas-microsoft-com:v=
+ml" xmlns:w=3D"urn:schemas-microsoft-com:office:word" href=3D"urlhere" styl=
+e=3D"height:50px;v-text-anchor:middle;width:140px;" arcsize=3D"10%" stroke=
+=3D"f" fillcolor=3D"#404040"> <w:anchorlock/> <center><![endif]--> <a href=
+=3D"https://links.api.americanprofitinsight.com/e/encryptedUnsubscribe?_r=
+=3D900dd9aa9e97472eb9b75def3c13522b&_s=3D7119bf0d43e84b7aa2f1d7465b125c6e&_=
+t=3DFRpP9urIqp7xBPNt2sJz0cPTBpvybO9Ll4IieF3Rf4sBJ_1GQqI8fv904zqnNc2pTEa7qsn=
+fySDyJNwqmO-JE3-CZ3iHC1MMCOCiflvTS9-bWPehL9nLFIMTsz4UGmWA8CdD9DC1UaAiNQe-um=
+X8mA%3D%3D" class=3D"button-link" style=3D"text-decoration: none; display: =
+inline-block; padding-top: 15px; padding-bottom: 15px; -webkit-text-size-ad=
+just: none; font-weight: 700; background-color: #404040; border-radius: 0; =
+color: #fff; font-family: 'Mokoko', serif; font-size: 12px; line-height: 15=
+0%; padding-left: 10px; padding-right: 10px; text-align: center; background=
+: #404040; font-style: normal; min-width: 130px;"> Unsubscribe </a> <!--[if=
+ mso]></center> </v:roundrect><![endif]--> </div> </td> </tr> </table> <tab=
+le role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" align=3D"cente=
+r" style=3D"padding-top: 15px;" class=3D"btn-wrapper"> <tr> <td align=3D"ce=
+nter" class=3D"button" style=3D"text-align: center;"> <div> <!--[if mso]><v=
+:roundrect xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:w=3D"urn:schemas=
+-microsoft-com:office:word" href=3D"urlhere" style=3D"height:50px;v-text-an=
+chor:middle;width:140px;" arcsize=3D"10%" stroke=3D"f" fillcolor=3D"#404040=
+"> <w:anchorlock/> <center><![endif]--> <a href=3D"https://links.api.americ=
+anprofitinsight.com/u/click?_t=3D900dd9aa9e97472eb9b75def3c13522b&_m=3D7119=
+bf0d43e84b7aa2f1d7465b125c6e&_e=3DVpz-kCCEfCnJg6lLCujVR4Q2G--erMxdtt_MXPOpt=
+6S-E81wbmLAlPJFNuelcLXLv7KMiVFU4QoIpZest8x9v_6KeDBsJ0ZJNl-eDtMMfIBkcoivdvi4=
+JEpRoD8zq_H6NalrgfGbQxPDbPnf7LIcbRc848FAHNzJC154y2BHpV2NTguHVnZ4EZ3Jf1sjokl=
+TRjD_cZaXUMkFpci99MJZcl9dBW65Q0bf_fY3rlz_-yUByWi4hCvB5vS9YVIOT-gSwvL6wrEhX-=
+s_nYkNi4onrPLjyd1WD4-CG48PJTb5lZI7KLeCkaTReenONXLQV6wUEEK68RN6nbvBQJeKz6Fh9=
+Y7T-RUxY0F2c240LYd80vo%3D" class=3D"button-link" style=3D"text-decoration: =
+none; display: inline-block; padding-top: 15px; padding-bottom: 15px; -webk=
+it-text-size-adjust: none; font-weight: 700; background-color: #404040; bor=
+der-radius: 0; color: #fff; font-family: 'Mokoko', serif; font-size: 12px; =
+line-height: 150%; padding-left: 10px; padding-right: 10px; text-align: cen=
+ter; background: #404040; font-style: normal; min-width: 130px;"> Terms & C=
+onditions </a> <!--[if mso]></center> </v:roundrect><![endif]--> </div> </t=
+d> </tr> </table> </td> </tr> </table> </td> </tr> </table> </td> </tr> </t=
+able> </td> </tr> <!-- COLUMN CONTENT END --> <tr> <td class=3D"lst-divider=
+" style=3D"padding: 20px;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.n=
+et/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e=
+97472eb9b75def3c13522b/editor_images/Group%201025.png" alt=3D"American Prof=
+it Insight" width=3D"560" height=3D"55" style=3D"width: 100%; height: auto;=
+ border: 0; -ms-interpolation-mode: bicubic;"> </td> </tr> </table> <!--[if=
+ mso | IE]></td></tr></table><![endif]--> </td> </tr> </table> <!--[if mso =
+| IE]></td></tr></table><![endif]--> </td> </tr> </table> </body> </html>
+------=_Part_21673_1788527470.1768325811665--

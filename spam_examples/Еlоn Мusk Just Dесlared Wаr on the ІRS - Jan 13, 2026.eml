@@ -1,0 +1,518 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:2b92:b0:1b0:f2cc:f19c with SMTP id l18csp1033673rdc;
+        Tue, 13 Jan 2026 04:27:32 -0800 (PST)
+X-Google-Smtp-Source: AGHT+IE6qzO0taGJvE3IfbfxUtnapgWnkiEOG9SvXMamxyVmQjNnt6cA4uwYdLle8/ar6GRUr6ob
+X-Received: by 2002:a05:622a:40f:b0:4f1:abb3:7571 with SMTP id d75a77b69052e-4ffb4933e39mr290778791cf.33.1768307252458;
+        Tue, 13 Jan 2026 04:27:32 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1768307252; cv=none;
+        d=google.com; s=arc-20240605;
+        b=gUt7CexkSkd2aE91LJsABJrVnAQNqbjKcTkHZMe8V1B707o8fWh+ICFGJDwdqZyAxA
+         kRqwn0Nf9a61NeGFiLzwv7t7oOE/9+j7gsXcQpXYVnXqWXCp+OK9VhMSD94wbYUQAZHP
+         TTeczHpRec48vOXru2Zmb/50/fPGnUiyEfiL3ziTYH0VqmedD1jFUeQNIx6EUXcOSFwY
+         pBtVKGmlWk3axQAtjZy/qliuMuTipnuXzHMWROnQ4H0O0Mpgv6swT6cYgNRmbvUKU9X0
+         00hxpetsnZ8ZA1KTUXID2NQAfABdpwbVcF9omMSNoafnUcgxPD7ePxGHruYtM3e+SsHo
+         1+BQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=xP5wM630jP+xNWh2hQ7Je2Z9ovV3IM2pOIJBcBch2gs=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=X9dZwW9oMHeP3KcbQNMw3+STitRpHMeM2ioRGnIwiygIrl+exvZ809FYJHJSc7SkIw
+         9mx+epSJhLZ7Y4Mzzeu2WxTM2yhW9gRFE4lvmzrSfgpI6C8g0sv0GBUOmxtesm+3VZKu
+         BPh/SsEn0O1ExzIN2+82P4S8PyOG0Uz4FCwNf/Hx/8X51XRjZNXVh1JESHDoYu4EXkEi
+         VnRjPngwpWcLDANN2/Tn8oT/KnYLKxQEZbk/XBnPezFTlG1rKD2XMVQav7Xz7XJ/SCgj
+         FnQ5jj2AcBgDCAQY+0CT+OUzcIPf2TlP6M8eQ1aG6l0kty4eu80cQSmgwXB5SqsKPLaJ
+         qzcw==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@api.americanprofitinsight.com header.s=uzd2rk6krm52o6l4lhyly437alt3az5y header.b="VbP/E2dL";
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=BcEh8MIk;
+       spf=pass (google.com: domain of 0100019bb7535b17-b11646a6-fdb0-4bff-b9d3-598ae253cd15-000000@amazonses.com designates 23.251.255.237 as permitted sender) smtp.mailfrom=0100019bb7535b17-b11646a6-fdb0-4bff-b9d3-598ae253cd15-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=americanprofitinsight.com
+Return-Path: <0100019bb7535b17-b11646a6-fdb0-4bff-b9d3-598ae253cd15-000000@amazonses.com>
+Received: from e255-237.smtp-out.amazonses.com (e255-237.smtp-out.amazonses.com. [23.251.255.237])
+        by mx.google.com with ESMTPS id d75a77b69052e-4ffa8e75f7bsi225354281cf.212.2026.01.13.04.27.32
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 13 Jan 2026 04:27:32 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019bb7535b17-b11646a6-fdb0-4bff-b9d3-598ae253cd15-000000@amazonses.com designates 23.251.255.237 as permitted sender) client-ip=23.251.255.237;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@api.americanprofitinsight.com header.s=uzd2rk6krm52o6l4lhyly437alt3az5y header.b="VbP/E2dL";
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=BcEh8MIk;
+       spf=pass (google.com: domain of 0100019bb7535b17-b11646a6-fdb0-4bff-b9d3-598ae253cd15-000000@amazonses.com designates 23.251.255.237 as permitted sender) smtp.mailfrom=0100019bb7535b17-b11646a6-fdb0-4bff-b9d3-598ae253cd15-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=americanprofitinsight.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=uzd2rk6krm52o6l4lhyly437alt3az5y;
+	d=api.americanprofitinsight.com; t=1768307252;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=dm7lt5l5y68T3g0/VohMy2zdbbByDnyGnftt/q1UDCk=;
+	b=VbP/E2dLDPB9IwHrClFU50yVkYDOpuNIPVu3OzKvkfPNpag46QxaILltAlLyM1XC
+	0j5E9+3oyrMVIowQqaY5wNWPx7A6+VYZTVRw2hBqA/AIy/XSwXoh6iuhXW+m4MWTceq
+	cOEbK8xfguIe10Y46Ba81t4G+YZBI0OqEUb2dnbwZnxfE8XaT+j/axCXqq9+ips9MEh
+	xI1JM412RxHQErF0Hxh/wRRooC2tZf9G5wlxrdxlANDgeA8NqkCputEvXOGGk8OsJQO
+	trddQL931nQzs2piM6vE+fg1nCZ8+m5Nn70y0gK1Q5qgBkEOKlxny3O3X9wo9iKjBDX
+	4Z28n8ppMw==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1768307252;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=dm7lt5l5y68T3g0/VohMy2zdbbByDnyGnftt/q1UDCk=;
+	b=BcEh8MIk3idLhS2wXFZpjtNZY+yg+zZxUX+0Xz5y5IBvknQnzTTq6uC5QZFPdyOu
+	VO6oxsFDU6wQ0wX1j/Ssurj4tYypFz4rp/koOaz91Z1vNX/eT33rvl1Tg1EJi3JUVIR
+	TBxQ5KtmgdScmJ4UKvyFdz/1l3/SXX0mnRZkrEbU=
+Date: Tue, 13 Jan 2026 12:27:31 +0000
+From: "David Payne @ API" <news@api.americanprofitinsight.com>
+Reply-To: support@americanprofitinsight.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019bb7535b17-b11646a6-fdb0-4bff-b9d3-598ae253cd15-000000@email.amazonses.com>
+Subject: =?UTF-8?Q?=D0=95l=D0=BEn_=D0=9Cusk_Just_D=D0=B5=D1=81lared_W=D0=B0?=
+ =?UTF-8?Q?r_on_the_=D0=86RS_-_Jan_13,_2026?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_3997_1467364829.1768307251981"
+X-Campaign-ID: 16453565
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=900dd9aa9e97472eb9b75def3c13522b&_s=2bbab2e31a504ad0b64db378617ebcd5&_t=c18anwH2qctRl1RwStLj1zlUNtXdo4zfOit7PmupnSfo5-6Pr1glad5k7m_h8uivtJwd-MLe659Mx1JTnxMxhHhIkSLAn4gnWxf4zQVzkLnhOkDtvXBk-Brv4t6_5GwRETtfVlqARa1MS2enfHpAYQ%3D%3D>,<mailto:unsubscribe+16453565+21412384@unsubscribe.iterable.com>
+X-Feedback-ID: 21412384:16453565:123771:iterable
+X-Message-ID: 2bbab2e31a504ad0b64db378617ebcd5
+X-SES-Outgoing: 2026.01.13-23.251.255.237
+
+------=_Part_3997_1467364829.1768307251981
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Template wrapper Elon Just Sabotaged the System=20
+
+
+
+ <https://americanprofitinsight.com/>=20
+
+
+
+
+
+Elon Musk Just Declared War on the IRS. Your 401(k) Is Caught in the Crossf=
+ire.
+
+=20
+<https://trk.americanprofitinsight.com/682da4d255f6e436d12ada6e?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3DB&product=3DSSEW607>
+Elon Musk just did what no one else dared.
+
+ He challenged the IRS head-on =E2=80=94 and took out over 6,700 federal en=
+forcers in=20
+one sweep.
+
+ This isn=E2=80=99t a publicity stunt.=20
+
+ It=E2=80=99s the start of a financial shakeup that could unravel the retir=
+ement=20
+system millions rely on.
+
+ Why?=20
+
+ Because the IRS is more than a tax collector =E2=80=94 it=E2=80=99s the ga=
+tekeeper of your=20
+money.
+
+ And now that gate is cracked wide open.=20
+
+ But here=E2=80=99s what they=E2=80=99re not telling you on CNBC=E2=80=A6=
+=20
+
+Before Musk disrupted the system, Trump quietly left behind a legal IRS=20
+backdoor=20
+<https://trk.americanprofitinsight.com/682da4d255f6e436d12ada6e?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3DB&product=3DSSEW607>
+. A loophole designed to help Americans move their retirement savings out o=
+f=20
+government-controlled accounts =E2=80=94before things implode.=20
+
+ It=E2=80=99s real. It=E2=80=99s legal. And it=E2=80=99s still active.=20
+
+ Here=E2=80=99s what you need to know:=20
+
+ Here's a way to shift your IRA or 401(k) into a tax-advantaged, penalty-fr=
+ee=20
+vehicle that isn=E2=80=99t tied to Wall Street or federal policy changes.
+
+ It=E2=80=99s outlined in the 2025 Wealth Preservation Guide =E2=80=94 now =
+available for free.=20
+
+ * No taxes=20
+ * No penalties=20
+ * No IRS strings  Just a smarter move while the window is still open.=20
+
+Click here to claim your free guide now.=20
+<https://trk.americanprofitinsight.com/682da4d255f6e436d12ada6e?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3DB&product=3DSSEW607>
+
+ Because Elon=E2=80=99s not waiting. Neither should you.=20
+
+P.S.=20
+ If Musk just fired the agents=E2=80=A6 who=E2=80=99s guarding your money?=
+=20
+
+ Get the guide. Shield your future. While it=E2=80=99s still legal. =20
+<https://trk.americanprofitinsight.com/682da4d255f6e436d12ada6e?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3DB&product=3DSSEW607>
+
+
+ <>=20
+A note from API editor David Payne  Sometimes, colleagues share special off=
+ers=20
+with us that we think our readers should be made aware of. Left is one such=
+=20
+special opportunity that we believe deserves your attention.=20
+
+
+ This email was sent to you by American Profit Insight (API) on behalf of=
+=20
+Event Horizon LLC
+
+ 435 N Dupont Hwy, Dover, DE 19901, United States=20
+
+ This is an advertisement. If you no longer wish to receive promotional=20
+messages from this advertiser, please unsubscribehere=20
+<https://trk.americanprofitinsight.com/682da59928dd1655e011bb33?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3Dunsub>
+. Or write to: 5005 Lyndon B. Johnson Fwy. Suite 350 Dallas, TX 75244
+
+ Copyright =C2=A9 2026 All Rights Reserved.=20
+
+ Privacy Policy  <https://americanprofitinsight.com/privacy-policy/>=20
+ Unsubscribe =20
+<https://links.api.americanprofitinsight.com/e/encryptedUnsubscribe?_r=3D90=
+0dd9aa9e97472eb9b75def3c13522b&_s=3D2bbab2e31a504ad0b64db378617ebcd5&_t=3Dc=
+18anwH2qctRl1RwStLj1zlUNtXdo4zfOit7PmupnSfo5-6Pr1glad5k7m_h8uivtJwd-MLe659M=
+x1JTnxMxhHhIkSLAn4gnWxf4zQVzkLnhOkDtvXBk-Brv4t6_5GwRETtfVlqARa1MS2enfHpAYQ%=
+3D%3D>
+ Terms & Conditions  <https://americanprofitinsight.com/terms-conditions/>=
+=20
+
+------=_Part_3997_1467364829.1768307251981
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html> <html lang=3D"en" xmlns=3D"http://www.w3.org/1999/xhtml" xm=
+lns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:schemas-microsoft-co=
+m:office:office"> <head> <meta charset=3D"utf-8"> <meta name=3D"viewport" c=
+ontent=3D"width=3Ddevice-width"> <meta http-equiv=3D"X-UA-Compatible" conte=
+nt=3D"IE=3Dedge"> <meta name=3D"x-apple-disable-message-reformatting"> <!--=
+ Disable auto-scale in iOS 10 Mail entirely --> <meta name=3D"format-detect=
+ion" content=3D"telephone=3Dno,address=3Dno,email=3Dno,date=3Dno,url=3Dno">=
+ <!-- Tell iOS not to automatically link certain text strings. --> <meta na=
+me=3D"color-scheme" content=3D"light"> <meta name=3D"supported-color-scheme=
+s" content=3D"light"> <title>Template wrapper</title> <style>@media(max-wid=
+th:599px){.block{display:block!important;width:100%!important}.mt{margin-to=
+p:1rem}.desktop-divider{display:none!important}.editors-note-photo-mobile{d=
+isplay:inline-block!important;width:50%!important}.editors-note-text-mobile=
+{display:inline-block!important;width:50%!important}.mobile-divider{width:1=
+00%!important;height:auto!important;max-width:100%!important}.header{backgr=
+ound-position:top center!important;padding:9% 30px 20px 30px!important}.hea=
+der img{width:90%!important}.footer-buttons .button-link{padding-left:15px!=
+important;padding-right:15px!important;min-width:90px!important;font-size:1=
+1px!important}.footer-buttons .lst-btn{float:none!important}.footer-buttons=
+ .first-btn{float:left}.footer-buttons .second-btn{float:right}}@media(pref=
+ers-color-scheme:dark){.wrapper{background-color:#2b2b2b!important}.table-c=
+ontainer{background-color:#1a1a1a!important}.copy-text table{background-col=
+or:#1a1a1a!important}.copy-text td,.copy-text span,.copy-text b,.copy-text =
+strong,.copy-text i,.copy-text em,.copy-text sup,.copy-text p,.copy-text di=
+v,.copy-text h1,.copy-text h2,.copy-text h3,.copy-text h4,.copy-text ul,.co=
+py-text li,.copy-text ol{color:#fff!important}.editors-note-text{color:#fff=
+!important}.editors-note-text span{color:#cfcfcf!important}.footer-text{col=
+or:#fff!important}.footer-text a{color:#fff!important}}</style> <!-- Deskto=
+p Outlook chokes on web font references and defaults to Times New Roman, so=
+ we force a safe fallback font. --> <!--[if mso]><style>*{font-family:sans-=
+serif!important}</style><![endif]--> <!-- Web Font / @font-face : BEGIN -->=
+ <style>@import url('https://fonts.googleapis.com/css2?family=3DRoboto:wght=
+@400;500;700;900&display=3Dswap');@import url('https://use.typekit.net/zph3=
+dop.css');</style> <!-- Web Font / @font-face : END --> <!-- Makes backgrou=
+nd images in 72ppi Outlook render at correct size. --> <!--[if gte mso 9]><=
+xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:Offi=
+ceDocumentSettings></xml><![endif]--> </head> <body style=3D"-webkit-font-s=
+moothing: antialiased; -ms-text-size-adjust: 100%; -webkit-text-size-adjust=
+: 100%; margin: 0; padding: 0;"><span style=3D"color:transparent;visibility=
+:hidden;display:none;opacity:0;height:0;width:0;font-size:0;">Elon Just Sab=
+otaged the System</span><img src=3D"https://links.api.americanprofitinsight=
+.com/e/eo?_t=3D900dd9aa9e97472eb9b75def3c13522b&amp;_m=3D2bbab2e31a504ad0b6=
+4db378617ebcd5&amp;_e=3Dc18anwH2qctRl1RwStLj1zlUNtXdo4zfOit7PmupnSfo5-6Pr1g=
+lad5k7m_h8uivtJwd-MLe659Mx1JTnxMxhHhIkSLAn4gnWxf4zQVzkLlV_4RmBVa1wuAnMda6Qr=
+uC5OD0DzZb5ARSI25X5PfZJ8JDVMQR3OiCKStpp8HZMLE%3D" style=3D"border:0;width:1=
+px;height:1px;border-width:0px!important;display:none!important;line-height=
+:0!important;" width=3D"1" height=3D"1"/> <table role=3D"presentation" bord=
+er=3D"0" cellpadding=3D"0" cellspacing=3D"0" class=3D"body" style=3D"width:=
+ 100%;"> <tr> <td align=3D"center" valign=3D"top"> <!--[if mso | IE]><table=
+ align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"=
+presentation" style=3D"max-width:1000px; width:100%" bgcolor=3D"#DEDEDE"><t=
+r><td style=3D"line-height:0px;font-size:0px;mso-line-height-rule:exactly;"=
+><![endif]--> <table align=3D"center" role=3D"presentation" cellpadding=3D"=
+0" cellspacing=3D"0" class=3D"wrapper" width=3D"100%" style=3D"max-width: 1=
+000px; width: 100%; background-image: url('https://d15k2d11r6t6rl.cloudfron=
+t.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9a=
+a9e97472eb9b75def3c13522b/editor_images/WordsFromAmerica_BG.png'); backgrou=
+nd-size: cover; background-repeat: no-repeat; background-position: center;"=
+> <tr> <td class=3D"desktop-divider" height=3D"40"></td> </tr> <tr> <td ali=
+gn=3D"center" valign=3D"top"> <!--[if mso | IE]><table role=3D"presentation=
+" cellspacing=3D"0" cellpadding=3D"0" width=3D"600" align=3D"center" style=
+=3D"width: 600px;"><tr><td><![endif]--> <table bgcolor=3D"#ffffff" role=3D"=
+presentation" cellspacing=3D"0" cellpadding=3D"0" class=3D"table-container"=
+ width=3D"600" align=3D"center" style=3D"max-width: 600px; width: 100%;"> <=
+tr> <td class=3D"header" style=3D"background-image: url('https://d15k2d11r6=
+t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cf=
+f6dd6a/900dd9aa9e97472eb9b75def3c13522b/editor_images/WordsFromAmerica_Head=
+er.png'); background-size: 100%; background-repeat: no-repeat; background-p=
+osition: center; padding: 60px 50px 20px 30px;"> <!--[if mso | IE]><table b=
+gcolor=3D"#202020" role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0=
+" width=3D"600" align=3D"center" style=3D"width: 100%;"><tr><td align=3D"ce=
+nter" style=3D"text-align: center;"><![endif]--> <a href=3D"https://links.a=
+pi.americanprofitinsight.com/u/click?_t=3D900dd9aa9e97472eb9b75def3c13522b&=
+_m=3D2bbab2e31a504ad0b64db378617ebcd5&_e=3Di4XfAJW8-kLJxlE6jouAdztwejW3dcwD=
+6AltDfHKe5WEz_JOS5F1_Rx3HU3jeZfJwfGoMFF9PZmE0q0kunBx63YDIGIUFL-0rTZA8fZE1uF=
+Uvtyz1mejtUf2gV9e8pFYYe2GjH1C_L3VH012E-ZOHMaHS21iRXw1HZKM_24VwplRDqXB3LkiNy=
+ZHQAUH9k6TcKDtSPmaxBA9KkQLpZtnfLe3fvFhDgJjwa8cucNUjX0i-4N4tOV3t2msFScU9Rw3d=
+_ZISMD7h-ItFVOjL5vJao1qpzVyMHPi16x9kdGUOtKAmI6nr7gPSOTX8QgHH1VVxad83dPGfvB-=
+kAup-9fYgYvuwdIiBG6xsWrTI0e2RsE%3D" style=3D"font-weight: 900; text-decorat=
+ion: none;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users=
+/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3=
+c13522b/editor_images/Group%201.png" alt=3D"American Profit Insight" width=
+=3D"448" height=3D"112" style=3D"height: auto; border: 0; -ms-interpolation=
+-mode: bicubic; width: 448px;"> </a> <!--[if mso | IE]></td></tr></table><!=
+[endif]--> </td> </tr> <!-- COLUMN CONTENT --> <tr> <td class=3D"content" s=
+tyle=3D"padding: 10px 15px;"> <table cellpadding=3D"0" cellspacing=3D"0" bo=
+rder=3D"0" role=3D"presentation" style=3D"width: 100%" width=3D"100%" class=
+=3D"two-column-wrapper"> <tr> <!-- LEFT COLUMN --> <td class=3D"block text =
+mobile-width copy-text" align=3D"left" valign=3D"top" style=3D"font-weight:=
+ normal; line-height: 1.5; text-align: left; font-size: 16px; vertical-alig=
+n: top; width: 70%; display: table-cell;" width=3D"50%"> <!-- COPY HERE -->=
+ <table width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" style=3D"max-width: 100%; font-family: 'Verdana', Arial,=
+ Helvetica, sans-serif"> <tbody> <tr> <td align=3D"center" valign=3D"top" s=
+tyle=3D"font-family: 'Verdana', Arial, Helvetica, sans-serif"> <table class=
+=3D"primary-table-limit content-table" bgcolor=3D"#FFFFFF" border=3D"0" cel=
+lspacing=3D"0" cellpadding=3D"0" role=3D"presentation" width=3D"100%" style=
+=3D"max-width: 600px; font-family: 'Verdana', Arial, Helvetica, sans-serif"=
+> <tbody> <tr> <td class=3D"content-vertical-space" align=3D"center" style=
+=3D"padding-left: 20px; padding-right: 20px; font-family: 'Verdana', Arial,=
+ Helvetica, sans-serif"> <table class=3D"content-inner-table" border=3D"0" =
+cellspacing=3D"0" role=3D"presentation" cellpadding=3D"0" width=3D"100%" st=
+yle=3D"width: 100%; font-family: 'Verdana', Arial, Helvetica, sans-serif"> =
+<tbody> <tr> <td height=3D"16" width=3D"100%" style=3D"max-width: 100%; fon=
+t-family: 'Verdana', Arial, Helvetica, sans-serif" class=3D"md-horizontal-s=
+pace"></td> </tr> <tr> <td style=3D" font-style: normal; font-weight: norma=
+l; line-height: 1.5; text-align: left; color: #000000; padding-top: 14px; p=
+adding-bottom: 14px; font-family: 'Verdana', Arial, Helvetica, sans-serif; =
+font-size: 18px; "> <span style=3D" font-style: normal; font-weight: normal=
+; line-height: 1.5; text-align: left; color: #000000; font-family: 'Verdana=
+', Arial, Helvetica, sans-serif; font-size: 18px; "> <b>Elon Musk Just Decl=
+ared War on the IRS. Your 401(k) Is Caught in the Crossfire.</b> <br><table=
+ role=3D"presentation" cellpadding=3D"0" cellspacing=3D"0" align=3D"center"=
+ width=3D"100%"> <tbody><tr> <td align=3D"center" style=3D"padding-top: 15p=
+x; padding-bottom: 15px"> <a href=3D"https://links.api.americanprofitinsigh=
+t.com/u/click?_t=3D900dd9aa9e97472eb9b75def3c13522b&_m=3D2bbab2e31a504ad0b6=
+4db378617ebcd5&_e=3Di4XfAJW8-kLJxlE6jouAd6055NjcetfK3_ItCMbSIespHtn2cl7SBlM=
+gfQoPVLdz_Twywmvw4CNjpoO8QzRVHhiLEgnCIfMfL6BHD4L0bKgR5BrYfgeNYVhI9e5NX3WdeZ=
+wJkB93eE16p68rIg9rxAZ1NJs35as_2usdxSdplKioeS5NigiK9j42FlMbAnbzcfxAtl8sPdexq=
+30UCNUXpEoOJEoX7-Kgjjk9FR9hv_k1p9HzXg2hencN5bt39eD4AEEsfWSYGu2rcXGvqS725wXP=
+FBPV9ysoJB4zMVighwzwNOBBu2CNSBS8Uwsz27pbTwoU0O7hrA0VVm524xzRQWrJuNwMKaTdgz2=
+Af3LlpQnQFdJ1f7ccqqH0BCVKD6BlrY7ztg4WFTJdi_6lAqR4nlZAVjFbWuvnrYkZT4lo6zb1UQ=
+xCqELSX1seVBI2m_fx_fOB9lAx-oCNxwxMXCzp3N24XG_YjFsg89udNA7QZ2khHPh69NvqYe-A2=
+r6T3QAYCADXfP1rfRBw1HIDFPBu4k0unB0QhWxMFGIi9G5gM8Mw6YeBvCRNGvqyDu_CwOG9EM0v=
+JtjRPs70B629MAgWjvzSgT2TpyilzONazwJMNa4%3D" style=3D"font-weight: 900; text=
+-decoration: none;"> <img width=3D"500" src=3D"https://d15k2d11r6t6rl.cloud=
+front.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900=
+dd9aa9e97472eb9b75def3c13522b/editor_images/aHR0cDovL2ltYWdlLm1jLm1ldGF2ZXJ=
+zZWNhcGl0YWxpc3RzLmNvbS9saWIvZmUyZjExNzM3MTY0MDQ3NDczMTE3MC9tLzEvNTEzZjRlMz=
+YtN2U0Ni00Y2ZkLTg0ZWYtMjczMjdkZmMzNzA2LnBuZw-1-2.png" alt=3D"Image" style=
+=3D"width: 100%; height: auto; border: 0; max-width: 500px;"> </a> </td> </=
+tr> </tbody></table>Elon Musk just did what no one else dared. <br><br> He =
+challenged the IRS head-on =E2=80=94 and took out over<b> 6,700 federal enf=
+orcers</b> in one sweep. <br><br> This isn=E2=80=99t a publicity stunt. <br=
+><br> It=E2=80=99s the start of a financial shakeup that could unravel the =
+retirement system millions rely on. <br><br> Why? <br><br> Because the IRS =
+is more than a tax collector =E2=80=94 it=E2=80=99s the gatekeeper of your =
+money. <br><br> And now that gate is cracked wide open. <br><br> But here=
+=E2=80=99s what they=E2=80=99re not telling you on CNBC=E2=80=A6 <br><br> <=
+b>Before Musk disrupted the system, </b><a href=3D"https://links.api.americ=
+anprofitinsight.com/u/click?_t=3D900dd9aa9e97472eb9b75def3c13522b&_m=3D2bba=
+b2e31a504ad0b64db378617ebcd5&_e=3Di4XfAJW8-kLJxlE6jouAd6055NjcetfK3_ItCMbSI=
+espHtn2cl7SBlMgfQoPVLdz_Twywmvw4CNjpoO8QzRVHhiLEgnCIfMfL6BHD4L0bKgR5BrYfgeN=
+YVhI9e5NX3WdeZwJkB93eE16p68rIg9rxAZ1NJs35as_2usdxSdplKioeS5NigiK9j42FlMbAnb=
+zy8ceFt7J_56ciY4HJ4lf5e7WMgF8Aj47oPtZWb4H1TDLVEUkeP2PFOUrfktpZJHS6u1rk_POqV=
+nyTRzMZBuU3uSAPBFqK00Wa9z2tY8bmU3HVWS0-RlAygq--iSFdwT2gzgZVcFTyAaI3fvvVBYoB=
+q5wc-kOeDzZhs3fn5JdKNjcE9ALWYRo5sccTtpRehLRIIki8h6b0uJbasUJXShtPw-vH2FRXuxX=
+qT-Adm-tqDPwrWHDjxwSktoFI2Mdj9l6QP1FWzhXsRUnW5u7SC04N35esoUr4g_o_4AQ4PgiwsR=
+tWk28F-pJzcmWP_eS90sv461XN2czKMyvkUdpck23r20x2MFnY3q8Km8pbAEi4GgyULVGI6Lmmp=
+VR2cC6CWaX-5eK_HOQI6Z3wrpMekwKKTvJ0FeXn9Sy1C8TgTGhxSM%3D" style=3D" text-de=
+coration: underline; font-weight: 700; color: #0000ee; font-family: 'Verdan=
+a', Arial, Helvetica, sans-serif; ">Trump quietly left behind a legal IRS b=
+ackdoor</a><b>.</b> A loophole designed to help Americans move their retire=
+ment savings out of government-controlled accounts =E2=80=94 <em>before thi=
+ngs implode</em>. <br><br> It=E2=80=99s real. It=E2=80=99s legal. And it=E2=
+=80=99s still active. <br><br> Here=E2=80=99s what you need to know: <br><b=
+r> Here's a way to shift your IRA or 401(k) into a tax-advantaged, penalty-=
+free vehicle that isn=E2=80=99t tied to Wall Street or federal policy chang=
+es. <br><br> It=E2=80=99s outlined in the 2025 Wealth Preservation Guide =
+=E2=80=94 now available for free. <br> <ul> <li>No taxes</li> <li>No penalt=
+ies</li> <li>No IRS strings</li> </ul> Just a smarter move while the window=
+ is still open. <br><br> <a href=3D"https://links.api.americanprofitinsight=
+.com/u/click?_t=3D900dd9aa9e97472eb9b75def3c13522b&_m=3D2bbab2e31a504ad0b64=
+db378617ebcd5&_e=3Di4XfAJW8-kLJxlE6jouAd6055NjcetfK3_ItCMbSIespHtn2cl7SBlMg=
+fQoPVLdz_Twywmvw4CNjpoO8QzRVHhiLEgnCIfMfL6BHD4L0bKgR5BrYfgeNYVhI9e5NX3WdeZw=
+JkB93eE16p68rIg9rxAZ1NJs35as_2usdxSdplKioeS5NigiK9j42FlMbAnbz718vK8XI4rCBLQ=
+EmFotVkOOiolbovt4Au5MpsFkBHUVeI_QRbspFmN54p0huhiSIo0u_2a7sclRE8AL2oXq9oPoxm=
+BtYL2t2QZFxOhUHHMC7kFRZ3S496iAmcgTuegWPVxvAVE1F-APhhqKsTAqPLDKGNKNxUdZG9aMe=
+VwMFL6rcfXYf4mShjiaAzgE1ND5z9ww_2VFgKOYQlU9_PoqT816f-wMRI79CFXTfJDdTd9TmQkW=
+ZSsl6EUCAh_kVtsscGk-izKT5pJgWSXGotpVoEuV_SJREnUtGFej7-fFlXD5rBe7e0bmYCTIveS=
+a-nh0i5rbvgks1cKCoF5UCcLThV78yclwZN2G3ynGfFekWkPzpXLn8JRdj7I2CHRAd6wV8tdFhD=
+vAS4q7H5Tb8PeJYGeH4MjPHn3M0pw32YijcNpM%3D" style=3D" text-decoration: under=
+line; font-weight: 700; color: #0000ee; font-family: 'Verdana', Arial, Helv=
+etica, sans-serif; ">Click here to claim your free guide now.</a> <br><br> =
+Because Elon=E2=80=99s not waiting. Neither should you. <br><br> <b>P.S.</b=
+> <br> If Musk just fired the agents=E2=80=A6<b> who=E2=80=99s guarding you=
+r money?</b> </span> </td> </tr> <tr> <td align=3D"center" style=3D" paddin=
+g-top: 14px; padding-bottom: 14px; font-family: 'Verdana', Arial, Helvetica=
+, sans-serif; "> <table cellpadding=3D"0" cellspacing=3D"0" role=3D"present=
+ation" style=3D"font-family: 'Verdana', Arial, Helvetica, sans-serif"> <tbo=
+dy> <tr> <td height=3D"51" align=3D"center" style=3D" border-radius: 10px; =
+font-style: normal; line-height: 1.5; text-align: center; font-weight: bold=
+; color: #ffffff; padding: 3px 5px; background-color: #28b628; font-family:=
+ 'Verdana', Arial, Helvetica, sans-serif; font-size: 18px; " bgcolor=3D"#28=
+b628"> <a href=3D"https://links.api.americanprofitinsight.com/u/click?_t=3D=
+900dd9aa9e97472eb9b75def3c13522b&_m=3D2bbab2e31a504ad0b64db378617ebcd5&_e=
+=3Di4XfAJW8-kLJxlE6jouAd6055NjcetfK3_ItCMbSIespHtn2cl7SBlMgfQoPVLdz_Twywmvw=
+4CNjpoO8QzRVHhiLEgnCIfMfL6BHD4L0bKgR5BrYfgeNYVhI9e5NX3WdeZwJkB93eE16p68rIg9=
+rxAZ1NJs35as_2usdxSdplKioeS5NigiK9j42FlMbAnbzMsF8CjfHJS4rH8pJDxvci4_xwGvU6g=
+XpoGuj8el8QC0hvMfU7WOXMd0qHuczR2Swat_Roawzk8mlBlb320n0QzJhW1mqTnzEgfz7foHcg=
+oacVt9gDUrt1k-AgYiXFlK9bTrSdHdXmhEmnstxA2If_5FT_3eftROncQIycfYXagZ8IBSoyB4U=
+8H0ON1nbTSikSnL1bIfHQcd9Gf-5_r03J6WfkkWCEcKOl7bOAluoprjcwfjmqqeDNJGgHa4spBW=
+9RkDlAcS12qgktaBgXKieMEKHlgqCRQgHzHeshiA7stSjteXCfs9iKLb4CKLmm5pt3rrqGPlBcq=
+xOXWHGulwfnQJNZlJvENe5xWWJkeZiTGt8CopY22Nbdqc-eQVNRVu8ipGjR8WXUNBMHIGVidAK-=
+XkKMURXZw-Qp8fj7CFyRPQ%3D" target=3D"_blank" style=3D" font-weight: bold; t=
+ext-decoration: none; color: #ffffff; padding: 9px 15px; display: block; fo=
+nt-style: normal; line-height: 1.5; text-align: center; background-color: #=
+28b628; border-radius: 10px; font-family: 'Verdana', Arial, Helvetica, sans=
+-serif; font-size: 18px; "> Get the guide. Shield your future. While it=E2=
+=80=99s still legal. </a> </td> </tr> </tbody> </table> </td> </tr> <tr> <t=
+d height=3D"16" width=3D"100%" style=3D"max-width: 100%; font-family: 'Verd=
+ana', Arial, Helvetica, sans-serif" class=3D"md-horizontal-space"></td> </t=
+r> </tbody> </table> </td> </tr> </tbody> </table> </td> </tr> </tbody> </t=
+able> <!-- END COPY --> </td> <!-- RIGHT COLUMN --> <td class=3D"block righ=
+t-column" style=3D"width: 30%; display: table-cell;" align=3D"left" valign=
+=3D"top" width=3D"30%"> <table role=3D"presentation" cellspacing=3D"0" cell=
+padding=3D"0" width=3D"100%"> <tr> <td class=3D"editors-note-bg" style=3D"b=
+ackground-image: url('https://d15k2d11r6t6rl.cloudfront.net/public/users/In=
+tegrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3c13=
+522b/editor_images/WordsFromAmerica_Editors.png'); background-size: cover; =
+background-repeat: no-repeat; background-position: center; line-height: 0;"=
+> <table role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" width=3D=
+"100%"> <tr class=3D"editors-note-photo-mobile"> <td class=3D"editors-note-=
+photo"> <a href=3D"urlhere" style=3D"font-weight: 900; text-decoration: non=
+e;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integra=
+tors/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3c13522b/=
+editor_images/WordsFromAmerica_man.jpg" alt=3D"Editors Note Photo" width=3D=
+"172" height=3D"194" style=3D"width: 100%; height: auto; border: 0; -ms-int=
+erpolation-mode: bicubic;"> </a> </td> </tr> <tr class=3D"editors-note-text=
+-mobile"> <td class=3D"editors-note-text" style=3D"padding: 0 10px 20px 10p=
+x; font-family: 'mokoko', serif; font-size: 11px; font-weight: 400; line-he=
+ight: 15px; letter-spacing: 0em; text-align: left;"> <span style=3D"color: =
+#393939; font-family: 'mokoko', serif; font-size: 12px; font-style: normal;=
+ font-weight: 900; line-height: 140%;">A note from API editor David Payne <=
+/span> Sometimes, colleagues share special offers with us that we think our=
+ readers should be made aware of. Left is one such special opportunity that=
+ we believe deserves your attention. </td> </tr> </table> </td> </tr> <tr> =
+<td height=3D"15"></td> </tr> <tr> <td class=3D"footer-bg" style=3D"padding=
+: 20px; background-image: url('https://d15k2d11r6t6rl.cloudfront.net/public=
+/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b=
+75def3c13522b/editor_images/WordsFromAmerica_Footer%20%281%29.png'); backgr=
+ound-size: cover; background-repeat: no-repeat; background-position: center=
+;"> <table role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" width=
+=3D"100%"> <tr> <td class=3D"footer-text" style=3D"font-family: 'Mokoko', s=
+erif; font-size: 12px; font-weight: 400; line-height: 18px; letter-spacing:=
+ 0em; text-align: left; color: #474747;"> <!-- TEXT IN FOOTER --> This emai=
+l was sent to you by American Profit Insight (API) on behalf of Event Horiz=
+on LLC <br><br> 435 N Dupont Hwy, Dover, DE 19901, United States <br><br> T=
+his is an advertisement. If you no longer wish to receive promotional messa=
+ges from this advertiser, please unsubscribe <a href=3D"https://links.api.a=
+mericanprofitinsight.com/u/click?_t=3D900dd9aa9e97472eb9b75def3c13522b&_m=
+=3D2bbab2e31a504ad0b64db378617ebcd5&_e=3Di4XfAJW8-kLJxlE6jouAd6055NjcetfK3_=
+ItCMbSIespHtn2cl7SBlMgfQoPVLdzWHd6lOm-yOwBJkgzSDyhDMGbYC6bVMGm_ESu18nKFaBCF=
+FmBX0r3rH8M4y_XTt6kLN7ChiMjX-wfdxhVP_0vrv2RMwR0IZhPiLqPeVPBwra5qsbPCvQ_rDhS=
+ysACBmUcgRkAr5uRMdxRepk0xWaNUPRH3rrqAFG_zz9wMsI0qNMpyBz3_FP3BGxdr44Ud8JXC62=
+Tdw0F9nSBtb5roWeEoMyETNAf6NnjkXQMFZq-DHX7bFV22vMP2vG_c5bZNgu3Z91gyNkl4NqiWD=
+5BEO4Mox2npHxNmIxB2WtAVi6T2b_kuIGD4gf5qqVfqHJnGv0s2hSu5qztQ2HZBVrh-MZW3FNke=
+bwxQUP8ink2KEU-9HSjI7gvJH-i_zK1k6VyJ-QK5yeXHw8pdxiINjdqrSzoAv32QiI8f1t5Ebla=
+2LnnvCaCk4MCWwJF55290oXHvL5AsrRFkSpMc06cLAlyF_HoLGhCcJwzQsbKC1m9LDYw-QqirOb=
+MGFm2OgO_InvPB0jPcQXJGxsd5izX65SbmJlhsQ%3D%3D">here</a>. Or write to: 5005 =
+Lyndon B. Johnson Fwy. Suite 350 Dallas, TX 75244 <br><br> Copyright &#169;=
+ 2026 All Rights Reserved. </td> </tr> <tr> <td class=3D"footer-buttons" st=
+yle=3D"padding: 15px 0; text-align: center;"> <!-- FOOTER BUTTONS --> <tabl=
+e role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" align=3D"left" =
+style=3D"padding-top: 15px;" class=3D"first-btn"> <tr> <td align=3D"center"=
+ class=3D"button" style=3D"text-align: center;"> <div> <!--[if mso]><v:roun=
+drect xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:w=3D"urn:schemas-micr=
+osoft-com:office:word" href=3D"urlhere" style=3D"height:50px;v-text-anchor:=
+middle;width:140px;" arcsize=3D"10%" stroke=3D"f" fillcolor=3D"#404040"> <w=
+:anchorlock/> <center><![endif]--> <a href=3D"https://links.api.americanpro=
+fitinsight.com/u/click?_t=3D900dd9aa9e97472eb9b75def3c13522b&_m=3D2bbab2e31=
+a504ad0b64db378617ebcd5&_e=3Di4XfAJW8-kLJxlE6jouAdztwejW3dcwD6AltDfHKe5VCOk=
+5MvahmbeB1_JLmd9P8YMAMpHfO9fLf66d05PVFagZVyMt8nQjNMnPKc4Rw7gJq21mbqLz2XqS-z=
+Q33L2s1uZO2-g32BRLKkVAOUxzm_yjiq8fQXPc_CICYqK-1byXQKuUc3AiaqbjMxsn0ptzLtb5Y=
+GiGWUnmZwB4341PNACFMukb86Su4iNMu682SSgQH3IAURCcHkysmdQ2-sDnNx4P3FDDMHIH7VvN=
+5ua-jWPnZGQtUlkmftGiSzWIqFZ4nNKWchsbaSZhJGWzdPTUmyV8MAKpMgaP8A-IL-gnNwQ%3D%=
+3D" class=3D"button-link" style=3D"text-decoration: none; display: inline-b=
+lock; padding-top: 15px; padding-bottom: 15px; -webkit-text-size-adjust: no=
+ne; font-weight: 700; background-color: #404040; border-radius: 0; color: #=
+fff; font-family: 'Mokoko', serif; font-size: 12px; line-height: 150%; padd=
+ing-left: 10px; padding-right: 10px; text-align: center; background: #40404=
+0; font-style: normal; min-width: 130px;"> Privacy Policy </a> <!--[if mso]=
+></center> </v:roundrect><![endif]--> </div> </td> </tr> </table> <table ro=
+le=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" align=3D"right" sty=
+le=3D"padding-top: 15px;" class=3D"second-btn"> <tr> <td align=3D"center" c=
+lass=3D"button" style=3D"text-align: center;"> <div> <!--[if mso]><v:roundr=
+ect xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:w=3D"urn:schemas-micros=
+oft-com:office:word" href=3D"urlhere" style=3D"height:50px;v-text-anchor:mi=
+ddle;width:140px;" arcsize=3D"10%" stroke=3D"f" fillcolor=3D"#404040"> <w:a=
+nchorlock/> <center><![endif]--> <a href=3D"https://links.api.americanprofi=
+tinsight.com/e/encryptedUnsubscribe?_r=3D900dd9aa9e97472eb9b75def3c13522b&_=
+s=3D2bbab2e31a504ad0b64db378617ebcd5&_t=3Dc18anwH2qctRl1RwStLj1zlUNtXdo4zfO=
+it7PmupnSfo5-6Pr1glad5k7m_h8uivtJwd-MLe659Mx1JTnxMxhHhIkSLAn4gnWxf4zQVzkLnh=
+OkDtvXBk-Brv4t6_5GwRETtfVlqARa1MS2enfHpAYQ%3D%3D" class=3D"button-link" sty=
+le=3D"text-decoration: none; display: inline-block; padding-top: 15px; padd=
+ing-bottom: 15px; -webkit-text-size-adjust: none; font-weight: 700; backgro=
+und-color: #404040; border-radius: 0; color: #fff; font-family: 'Mokoko', s=
+erif; font-size: 12px; line-height: 150%; padding-left: 10px; padding-right=
+: 10px; text-align: center; background: #404040; font-style: normal; min-wi=
+dth: 130px;"> Unsubscribe </a> <!--[if mso]></center> </v:roundrect><![endi=
+f]--> </div> </td> </tr> </table> <table role=3D"presentation" cellspacing=
+=3D"0" cellpadding=3D"0" align=3D"center" style=3D"padding-top: 15px;" clas=
+s=3D"btn-wrapper"> <tr> <td align=3D"center" class=3D"button" style=3D"text=
+-align: center;"> <div> <!--[if mso]><v:roundrect xmlns:v=3D"urn:schemas-mi=
+crosoft-com:vml" xmlns:w=3D"urn:schemas-microsoft-com:office:word" href=3D"=
+urlhere" style=3D"height:50px;v-text-anchor:middle;width:140px;" arcsize=3D=
+"10%" stroke=3D"f" fillcolor=3D"#404040"> <w:anchorlock/> <center><![endif]=
+--> <a href=3D"https://links.api.americanprofitinsight.com/u/click?_t=3D900=
+dd9aa9e97472eb9b75def3c13522b&_m=3D2bbab2e31a504ad0b64db378617ebcd5&_e=3Di4=
+XfAJW8-kLJxlE6jouAdztwejW3dcwD6AltDfHKe5UQCE5CIhQSwveQrnOtKygziNe9zHXzknuWf=
+tkdIeuZ8c0Wu1kM0IcrcYzkiabjOzuynkj5HEvrx-pSdBejQ1MGJ8K6wPcILqBDSPTDadhP5zAW=
+6xsGHAfvF90jnG-_HqLWu8_uRLRxVpwHw5eJgOY3ZKzsKOjiFAt68pbRgEa5fkZAXXzq5R6mAgx=
+HmIH87PsNXkj9GWTqO3gH_ljSZytLEqFgVoRDfBHd8B0daGx99Fi5dgfiWClpiZQTQHh_LuMdc_=
+i-AMCWOYk24kc1FhFZvLuLnIKLroFXkXmAIBxEZ8GsxaCl3wCc7-b8g8kf8EM%3D" class=3D"=
+button-link" style=3D"text-decoration: none; display: inline-block; padding=
+-top: 15px; padding-bottom: 15px; -webkit-text-size-adjust: none; font-weig=
+ht: 700; background-color: #404040; border-radius: 0; color: #fff; font-fam=
+ily: 'Mokoko', serif; font-size: 12px; line-height: 150%; padding-left: 10p=
+x; padding-right: 10px; text-align: center; background: #404040; font-style=
+: normal; min-width: 130px;"> Terms & Conditions </a> <!--[if mso]></center=
+> </v:roundrect><![endif]--> </div> </td> </tr> </table> </td> </tr> </tabl=
+e> </td> </tr> </table> </td> </tr> </table> </td> </tr> <!-- COLUMN CONTEN=
+T END --> <tr> <td class=3D"lst-divider" style=3D"padding: 20px;"> <img src=
+=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713=
+-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3c13522b/editor_images=
+/Group%201025.png" alt=3D"American Profit Insight" width=3D"560" height=3D"=
+55" style=3D"width: 100%; height: auto; border: 0; -ms-interpolation-mode: =
+bicubic;"> </td> </tr> </table> <!--[if mso | IE]></td></tr></table><![endi=
+f]--> </td> </tr> </table> <!--[if mso | IE]></td></tr></table><![endif]-->=
+ </td> </tr> </table> </body> </html>
+------=_Part_3997_1467364829.1768307251981--

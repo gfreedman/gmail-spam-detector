@@ -1,0 +1,449 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:3c0b:b0:1b0:cd59:8568 with SMTP id nf11csp91017rdb;
+        Wed, 7 Jan 2026 17:00:18 -0800 (PST)
+X-Google-Smtp-Source: AGHT+IEvZt5z1SfrcMevhsFx5q2Sp2nzyHLLBlph8xx0kzEcP8HLPSm2xAcqVWEd8V2/SzLLBMjw
+X-Received: by 2002:ac8:5902:0:b0:4eb:a2ec:6e3e with SMTP id d75a77b69052e-4ffa84fb9edmr116592461cf.28.1767834018075;
+        Wed, 07 Jan 2026 17:00:18 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1767834018; cv=none;
+        d=google.com; s=arc-20240605;
+        b=Nu//3LS3Ov9nDNrmz58/as+ltPRI3M/Ia3yeueP3VlJt7FRyzEf7H9FeleaIK+xwjz
+         jutKg/bGANA8lCCMLLrFpGhhr06xHfLGU2QUiBks6s2ElsR3ZVioq8F9N8VtSd83lLJv
+         aZu6B5+vB7WXmhhKuwEE8WH0YOvb080Xu9Ev6WUpSdLGBvdP0BhYYlZmzvGYvEXQ20qu
+         0CMr6xb05+rHUj7JTCzIogRg2GiuKUxnYNGh0iz2J1isCWADAPHNsQglFywc2ot3hz8I
+         xflG+wrRxhbD4UDkzGRwR5hjJ3Q2W87eye0roI9+Q8GqW2DDgorGTpo29lCtRreZ8gVw
+         2Ucg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=nB4w6OJHAbbaTbd3AD6atmCwqq+MoUCMY4u2zGi3MIk=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=dp9TRpOhqg/PDsebPBUQUVxT2PUe+iMlQeZm+unnMD79ZQkOvaDVvKkQ73UeOzM4PL
+         UoHUIf3rPjNhZ6kG3vcPD+FNHsRZB6dzK+ofVeoZjP0avzFc/Tk7ej75kgF2AYbf7v6R
+         eXlZ+ScnxCghngG4FOpMH2dDt0OR/avaXwrPkspzrv9umABjNZNpsoWruhBi0mBCXHe4
+         14//KjI1PSoHZw1PR/CBS0WfVLfEq6/7JXCy5KaOef6z90Yncuzlvj4K0xeZb3WaKuo8
+         vo4LrdWBlvaggLTYNcyr5HDQwdrBpKDam1jIUlYz/zGNocmgmnwaZxJ5RSEzum4ThAWn
+         lRrQ==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@f.financeinsiderpro.com header.s=x2k5kdjxxaewtwxheqdrqqqnxug7cghk header.b=KLRfSoCl;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=AAinw2pp;
+       spf=pass (google.com: domain of 0100019b9b1e5df9-b3b27e03-4981-40fa-a1f5-b3f7b71b245e-000000@amazonses.com designates 54.240.79.197 as permitted sender) smtp.mailfrom=0100019b9b1e5df9-b3b27e03-4981-40fa-a1f5-b3f7b71b245e-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=financeinsiderpro.com
+Return-Path: <0100019b9b1e5df9-b3b27e03-4981-40fa-a1f5-b3f7b71b245e-000000@amazonses.com>
+Received: from a79-197.smtp-out.amazonses.com (a79-197.smtp-out.amazonses.com. [54.240.79.197])
+        by mx.google.com with ESMTPS id 6a1803df08f44-89077210494si76253576d6.410.2026.01.07.17.00.17
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 07 Jan 2026 17:00:18 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019b9b1e5df9-b3b27e03-4981-40fa-a1f5-b3f7b71b245e-000000@amazonses.com designates 54.240.79.197 as permitted sender) client-ip=54.240.79.197;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@f.financeinsiderpro.com header.s=x2k5kdjxxaewtwxheqdrqqqnxug7cghk header.b=KLRfSoCl;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=AAinw2pp;
+       spf=pass (google.com: domain of 0100019b9b1e5df9-b3b27e03-4981-40fa-a1f5-b3f7b71b245e-000000@amazonses.com designates 54.240.79.197 as permitted sender) smtp.mailfrom=0100019b9b1e5df9-b3b27e03-4981-40fa-a1f5-b3f7b71b245e-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=financeinsiderpro.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=x2k5kdjxxaewtwxheqdrqqqnxug7cghk; d=f.financeinsiderpro.com;
+	t=1767834017;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=nB4w6OJHAbbaTbd3AD6atmCwqq+MoUCMY4u2zGi3MIk=;
+	b=KLRfSoClW4z563JfYnypU18kQHxtdzLkRH/lVpe9/XlvrPSJ0RTqqdtV2CvMIvzq
+	v26W9xVxUmJIi0+PZFTEjCzYsMJ8uf5etprdkfAqgENnpudK9DoJfZkX4PZHE7C3dmR
+	Ujeq+4CcdFzDOSKxgicXw17tFYjJsDbZGYjF1CXT3lLZriJgxhbuxPn/ipnXw+6QHZ7
+	oZMFb2iRkbKY9XXfC06P7sOryDlOVVVJb9zk4bm+w9g+D11cUBWDNspQR6CZgtPXkJ3
+	w2LkJR250C3lncStThIINf7y1BR9lyT8pcl33TwW3m18GSa+sfxUjW4T1ZRPC6jW4CD
+	1GHcmPIYiA==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1767834017;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=nB4w6OJHAbbaTbd3AD6atmCwqq+MoUCMY4u2zGi3MIk=;
+	b=AAinw2ppZuT1CdKWcDRHvIAqn4NkL3RGoJ5zR5iygDiTRJU6ZO+y4uue3z0tf70k
+	p+72CADXEnW9p9QEFm6gHBPuYDuDXZRCHdycU7a8bEAb0QnuZ74wce/YiEqC0/zAzfj
+	xTqkUKj4NjvYkSTUW2G1X6sPChyWyHJ5ysh8QcGQ=
+Date: Thu, 8 Jan 2026 01:00:17 +0000
+From: Still Under $1 || Robert Jacobs at FI <robertjacobs@F.FinanceInsiderPro.com>
+Reply-To: support@financeinsiderpro.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019b9b1e5df9-b3b27e03-4981-40fa-a1f5-b3f7b71b245e-000000@email.amazonses.com>
+Subject: =?UTF-8?Q?Meet_the_ChatGPT_of_Audience_Intelli?=
+ =?UTF-8?Q?gence=E2=80=94And_It=E2=80=99s_Still_Under_$1_a_Share?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_9987_1277933549.1767834017104"
+X-Campaign-ID: 16380655
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=1c4be19c62cc4a88bab88766467a72b3&_s=77551332a8c04e1d80bb244ad52dfbcf&_t=A4fUSCuRSwFZcGLYKgj--nXPuqu-S_LaULkWcNbwJrWpvxHAfuQFL3kcd6oe7GS_4r3_zwd48CgKUhgavMGQOS7H4P76ZfobLgtUPiryCJSTI5nKmyWT7DpW4VLnV1TC7AeS8pbNVhusk85wjNeqmA%3D%3D>,<mailto:unsubscribe+16380655+21316375@unsubscribe.iterable.com>
+X-Feedback-ID: 21316375:16380655:126278:iterable
+X-Message-ID: 77551332a8c04e1d80bb244ad52dfbcf
+X-SES-Outgoing: 2026.01.08-54.240.79.197
+
+------=_Part_9987_1277933549.1767834017104
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Last Ca=E2=85=BC=E2=85=BC Before the Surge =EF=BC=8450M+ raised. 10,000+ in=
+vestors. Valuation up 4,900=EF=BC=85=20
+in 4 years*. Shares are just =EF=BC=840.85. Nasdaq ticker =EF=BC=84RADI res=
+erved. Backed by=20
+Adobe, Google, Meta, Amazon insiders. 225+ M&A d=D0=B5a=E2=85=BCs executed =
+by leadership.
+
+
+
+ <https://financeinsiderpro.com/>
+
+=E2=80=8A
+
+
+
+
+ Last Ca=E2=85=BC=E2=85=BC Before the Surge=20
+ =EF=BC=8450M+ raised. 10,000+ investors. Valuation up 4,900=EF=BC=85 in 4 =
+years*. Shares are=20
+just =EF=BC=840.85.
+
+ Nasdaq ticker =EF=BC=84RADI reserved. Backed by Adobe, Google, Meta, Amazo=
+n insiders.=20
+225+ M&A d=D0=B5a=E2=85=BCs executed by leadership.=20
+
+=20
+<https://tracking.financeinsiderpro.com/ORILG/geoff.c.freedman@gmail.com/fi=
+p-hnl/B/00288_14>
+ A who=E2=80=99s-who roster of Fortune 1000 clients and agency partners rec=
+urring=20
+seven-figure partnerships in place.
+
+ Fa=D1=95t Company ca=E2=85=BC=E2=85=BCs RAD Intel =E2=80=9CA groundbreakin=
+g step for the Creator Economy.=E2=80=9D=20
+=D0=85a=E2=85=BC=D0=B5s contra=CF=B2ts are already 2.5X in 2025 vs. 2024.=
+=20
+
+=20
+<https://tracking.financeinsiderpro.com/ORILG/geoff.c.freedman@gmail.com/fi=
+p-hnl/B/00288_14>
+ Industry consolidation is red-hot: 240 AI d=D0=B5a=E2=85=BCs worth =EF=BC=
+=8455B in 6 months.=20
+AdTech market: =EF=BC=84795B in 2025. Companies scaling AI expect 60=EF=BC=
+=85 higher revenue=20
+growth over the next 3 years.
+
+ This is the layer powering tomorrow=E2=80=99s mark=D0=B5t=D1=96ng giants =
+=E2=80=94 and your last =CF=B2han=CF=B2=D0=B5=20
+to g=D0=B5t in at this pr=D1=96=CF=B2=D0=B5. Secure your a=E2=85=BC=E2=85=
+=BCocation, diversify your exposure, and=20
+participate in RAD Intel=E2=80=99s upside while the w=D1=96ndow is still =
+=CE=BFp=D0=B5n.
+
+=EF=BC=840.85 w=CE=BFn=E2=80=99t last.=20
+=20
+<https://tracking.financeinsiderpro.com/ORILG/geoff.c.freedman@gmail.com/fi=
+p-hnl/B/00288_14>
+=20
+<https://tracking.financeinsiderpro.com/ORILG/geoff.c.freedman@gmail.com/fi=
+p-hnl/B/00288_14>
+ Disclaimer: This is a paid advertisement for RAD Intel made pursuant to=20
+Regulation A+ =CE=BFffering and involves risk, including the possible loss =
+of=20
+principal. The valuation is set by the Company and th=D0=B5r=D0=B5 is curre=
+ntly no public=20
+market for the Company's Common Stock. =CE=A1=E2=85=BC=D0=B5a=D1=95=D0=B5 r=
+ead the =CE=BFffering circular and=20
+related risks atinvest.radintel.ai <https://invest.radintel.ai>.=20
+
+
+=E2=80=8A
+ <https://financeinsiderpro.com/>
+
+This email was sent by Finance Insider Pro, a part of TerraTrance=20
+Technologies, LLC.
+
+ Reach out to us by replying button or by direct email to=20
+support@financeinsiderpro.com <mailto:support@financeinsiderpro.com>
+
+Reproduction or distribution of texts, images or information in any forms i=
+s=20
+forbidden without written permission from TerraTrance Technologies, LLC.
+
+200 Broadway Blvd NE, Albuquerque, NM 87102=20
+
+=C2=A9 2026 Finance Insider Pro. All Rights Reserved.
+
+Privacy Policy <https://financeinsiderpro.com/privacy-policy/> | Terms and=
+=20
+Conditions <https://financeinsiderpro.com/terms-conditions/> | Unsubscribe=
+=20
+<https://links.f.financeinsiderpro.com/e/encryptedUnsubscribe?_r=3D1c4be19c=
+62cc4a88bab88766467a72b3&_s=3D77551332a8c04e1d80bb244ad52dfbcf&_t=3DA4fUSCu=
+RSwFZcGLYKgj--nXPuqu-S_LaULkWcNbwJrWpvxHAfuQFL3kcd6oe7GS_4r3_zwd48CgKUhgavM=
+GQOS7H4P76ZfobLgtUPiryCJSTI5nKmyWT7DpW4VLnV1TC7AeS8pbNVhusk85wjNeqmA%3D%3D>
+
+------=_Part_9987_1277933549.1767834017104
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en"><head><title></title><m=
+eta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8"><met=
+a name=3D"viewport" content=3D"width=3Ddevice-width,initial-scale=3D1"><!--=
+[if mso]><xml><w:WordDocument xmlns:w=3D"urn:schemas-microsoft-com:office:w=
+ord"><w:DontUseAdvancedTypographyReadingMail/></w:WordDocument> <o:OfficeDo=
+cumentSettings><o:PixelsPerInch>96</o:PixelsPerInch><o:AllowPNG/></o:Office=
+DocumentSettings></xml><![endif]--><style>*{box-sizing:border-box}body{marg=
+in:0;padding:0}a[x-apple-data-detectors]{color:inherit!important;text-decor=
+ation:inherit!important}#MessageViewBody a{color:inherit;text-decoration:no=
+ne}p{line-height:inherit}.desktop_hide,.desktop_hide table{mso-hide:all;dis=
+play:none;max-height:0;overflow:hidden}.image_block img+div{display:none}su=
+b,sup{font-size:75%;line-height:0}@media(max-width:620px){.mobile_hide{disp=
+lay:none}.row-content{width:100%!important}.stack .column{width:100%;displa=
+y:block}.mobile_hide{min-height:0;max-height:0;max-width:0;overflow:hidden;=
+font-size:0}.desktop_hide,.desktop_hide table{display:table!important;max-h=
+eight:none!important}}</style><!--[if mso ]><style>sup,sub{font-size:100%!i=
+mportant}sup{mso-text-raise:10%}sub{mso-text-raise:-10%}</style><![endif]--=
+></head><body class=3D"body" style=3D"background-color:#fff;margin:0;paddin=
+g:0;-webkit-text-size-adjust:none;text-size-adjust:none"><span style=3D"col=
+or:transparent;visibility:hidden;display:none;opacity:0;height:0;width:0;fo=
+nt-size:0;">Last Ca=E2=85=BC=E2=85=BC Before the Surge =EF=BC=8450M+ raised=
+. 10,000+ investors. Valuation up 4,900=EF=BC=85 in 4 years*. Shares are ju=
+st =EF=BC=840.85. Nasdaq ticker =EF=BC=84RADI reserved. Backed by Adobe, Go=
+ogle, Meta, Amazon insiders. 225+ M&A d=D0=B5a=E2=85=BCs executed by leader=
+ship.</span><img src=3D"https://links.f.financeinsiderpro.com/e/eo?_t=3D1c4=
+be19c62cc4a88bab88766467a72b3&amp;_m=3D77551332a8c04e1d80bb244ad52dfbcf&amp=
+;_e=3DA4fUSCuRSwFZcGLYKgj--nXPuqu-S_LaULkWcNbwJrWpvxHAfuQFL3kcd6oe7GS_4r3_z=
+wd48CgKUhgavMGQOS7H4P76ZfobLgtUPiryCJTBHJHWwKAL58IE7rNww-AzCNTgQ5nKJjG_FV3v=
+kAefchVI6eOCO_2wcKwO8HuvDVo%3D" style=3D"border:0;width:1px;height:1px;bord=
+er-width:0px!important;display:none!important;line-height:0!important;" wid=
+th=3D"1" height=3D"1"/><table class=3D"nl-container" width=3D"100%" border=
+=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"m=
+so-table-lspace:0;mso-table-rspace:0;background-color:#fff"><tbody><tr><td>=
+<table class=3D"row row-1" align=3D"center" width=3D"100%" border=3D"0" cel=
+lpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-l=
+space:0;mso-table-rspace:0"><tbody><tr><td><table class=3D"row-content stac=
+k" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspace:0;color:#000=
+;width:600px;margin:0 auto" width=3D"600"><tbody><tr><td class=3D"column co=
+lumn-1" width=3D"100%" style=3D"mso-table-lspace:0;mso-table-rspace:0;font-=
+weight:400;text-align:left;padding-bottom:5px;padding-top:5px;vertical-alig=
+n:top"><table class=3D"image_block block-1" width=3D"100%" border=3D"0" cel=
+lpadding=3D"10" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-=
+lspace:0;mso-table-rspace:0"><tr><td class=3D"pad"><div class=3D"alignment"=
+ align=3D"center"><div style=3D"max-width:240px"><a href=3D"https://links.f=
+.financeinsiderpro.com/u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3&_m=3D7=
+7551332a8c04e1d80bb244ad52dfbcf&_e=3DNQZ-n2bDRLwiaT03Pn9ZJdhJzpX_8JFexdUtPm=
+mU9-DgFCRqxhcMfcUpVG-4UVWdqFkysTij4aRemsoKYl6dqaDm8hm79rsB-LHXW7CSy7DjOvvei=
+fDRA6-IyH6l86yFOezx7bJ7pfZjEvlwZdEaXRdzIxz8uxS_2AaBn_2SzK8Ojpf_Qrdt6QGBqKAJ=
+0VFBxDyvgVKr0ll8V3nFSxRulHHYUv708ajkAqqNdHcFGGGHAH8jtEInpvpebpcHWAvpm_L0mKy=
+BJH5xzpgNiWoXoMgdcd29ivOq5FFhKkfgFSvqvkSqJPXcIky-MSrtL8yTYeTbWEzQoK05Hx1xFU=
+WPBxUebXaugbrv3EJOlVdZEeE%3D" target=3D"_blank"><img src=3D"https://d15k2d1=
+1r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c54=
+2cff6dd6a/1c4be19c62cc4a88bab88766467a72b3/finance_insider_pro.png" style=
+=3D"display:block;height:auto;border:0;width:100%" width=3D"240" alt=3D"Log=
+o FIP" title=3D"Logo FIP" height=3D"auto"></a></div></div></td></tr></table=
+><table class=3D"divider_block block-2" width=3D"100%" border=3D"0" cellpad=
+ding=3D"10" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-lspa=
+ce:0;mso-table-rspace:0"><tr><td class=3D"pad"><div class=3D"alignment" ali=
+gn=3D"center"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" width=3D"45%" style=3D"mso-table-lspace:0;mso-table-rspac=
+e:0"><tr><td class=3D"divider_inner" style=3D"font-size:1px;line-height:1px=
+;border-top:3px dotted #bbb"><span style=3D"word-break: break-word;">&#8202=
+;</span></td></tr></table></div></td></tr></table><table class=3D"html_bloc=
+k block-3" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" =
+role=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><=
+td class=3D"pad"><div style=3D"font-family:Arial,'Helvetica Neue',Helvetica=
+,sans-serif;text-align:center" align=3D"center"><table width=3D"100%" borde=
+r=3D"0" cellpadding=3D"0" cellspacing=3D"0" style=3D"font-family: 'Tahoma',=
+ Arial, Helvetica, sans-serif; max-width: 600px"> <tbody style=3D"max-width=
+: 600px"> <tr> <td align=3D"center" valign=3D"top" style=3D"font-family: 'T=
+ahoma', Arial, Helvetica, sans-serif; max-width: 600px"> <table class=3D"ma=
+in-table" bgcolor=3D"#FFFFFF" border=3D"0" cellspacing=3D"0" cellpadding=3D=
+"0" width=3D"100%" style=3D"font-family: 'Tahoma', Arial, Helvetica, sans-s=
+erif; max-width: 600px"> <tbody style=3D"max-width: 600px"> <tr> <td class=
+=3D"content-wrapper" align=3D"center" style=3D" padding-left: 21px; padding=
+-right: 21px; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-widt=
+h: 600px; "> <table class=3D"inner-content-wrapper" border=3D"0" cellspacin=
+g=3D"0" cellpadding=3D"0" width=3D"100%" style=3D"width: 100%; font-family:=
+ 'Tahoma', Arial, Helvetica, sans-serif; max-width: 600px"> <tbody style=3D=
+"max-width: 600px"> <tr> <td height=3D"15" width=3D"100%" style=3D"font-fam=
+ily: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 600px" class=3D"spa=
+ce-between-sections"></td> </tr> <tr> <td style=3D" font-style: normal; fon=
+t-weight: bold; line-height: 1.5; text-align: left; color: #000000; padding=
+-top: 15px; padding-bottom: 15px; font-family: 'Tahoma', Arial, Helvetica, =
+sans-serif; font-size: 20px; max-width: 600px; "> <strong style=3D" font-fa=
+mily: 'Roboto', Arial, Helvetica, sans-serif; font-size: 22px; font-style: =
+normal; font-weight: bold; line-height: 1.5; text-align: left; color: #0000=
+00; "> Last Ca=E2=85=BC=E2=85=BC Before the Surge </strong> </td> </tr> <tr=
+> <td style=3D" font-style: normal; font-weight: normal; line-height: 1.5; =
+text-align: left; color: #000000; padding-top: 15px; padding-bottom: 15px; =
+font-family: 'Tahoma', Arial, Helvetica, sans-serif; font-size: 20px; max-w=
+idth: 600px; "> <div style=3D" font-style: normal; font-weight: normal; lin=
+e-height: 1.5; text-align: left; color: #000000; font-family: 'Tahoma', Ari=
+al, Helvetica, sans-serif; font-size: 20px; max-width: 600px; "> =EF=BC=845=
+0M+ raised. 10,000+ investors. Valuation up 4,900=EF=BC=85 in 4 years*. Sha=
+res are just =EF=BC=840.85. <br/><br/> Nasdaq ticker =EF=BC=84RADI reserved=
+. Backed by Adobe, Google, Meta, Amazon insiders. 225+ M&A d=D0=B5a=E2=85=
+=BCs executed by leadership.</div><div style=3D" font-style: normal; font-w=
+eight: normal; line-height: 1.5; text-align: left; color: #000000; font-fam=
+ily: 'Tahoma', Arial, Helvetica, sans-serif; font-size: 20px; max-width: 60=
+0px; ">=C2=A0 <br/><table cellpadding=3D"0" cellspacing=3D"0" align=3D"cent=
+er" width=3D"100%"> <tbody><tr> <td align=3D"center" style=3D"padding-top: =
+15px; padding-bottom: 15px"> <a href=3D"https://links.f.financeinsiderpro.c=
+om/u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3&_m=3D77551332a8c04e1d80bb2=
+44ad52dfbcf&_e=3DNQZ-n2bDRLwiaT03Pn9ZJVBNIiPSujQMHItGQFLU4E18rAkZZs-nIKefA_=
+t65cqJZpxQlauOkrJdaq2voGsmKr-QEHCQidIaFOmRcqt38cTcFrKF631uNi42-b-N8WWi3jj8r=
+uUvRb1A3kuKym4GONo-3_taowa0_ljYk259H1uT9bSTuYImFQ5_f6Xz3-WX82vmx6PuGRVRSjEb=
+jRaWFFgFDs_IB423NNHSpzr1HiIXoQht4vl42BJtK3fpg-D8uyG80yhu87UFqsL3GUNY4IVNUDO=
+xQqzn9q0xvqEFPvehJgksS89g2Nc3NrGBsvE1m902rnUOp8pIxuOdnYP2-t9wDaf2jvLDPddcBQ=
+h4LBO_27DrKrf2Aqq-lFQwk_ZtWmaPSP-WvMqLd1LqYfuWhOkU0bRVuZRzztz1DEp2jgR8EjdEL=
+M4vz_rtDAnDv_gYx_Bxn6zxdKazHScim5C3mkw4JbDCHH6RJQL4FkENgxrfE82acT34TEmIzf44=
+po4v" style=3D"font-weight: 900; text-decoration: none;"> <img width=3D"500=
+" src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669=
+d5713-9b6a-46bb-bd7e-c542cff6dd6a/1c4be19c62cc4a88bab88766467a72b3/editor_i=
+mages/32rge_1.png" alt=3D"Image" style=3D"width: 100%; height: auto; border=
+: 0; max-width: 500px;"/> </a> </td> </tr> </tbody></table><br/> A who=E2=
+=80=99s-who roster of Fortune 1000 clients and agency partners recurring se=
+ven-figure partnerships in place. <br/><br/> Fa=D1=95t Company ca=E2=85=BC=
+=E2=85=BCs RAD Intel =E2=80=9CA groundbreaking step for the Creator Economy=
+.=E2=80=9D =D0=85a=E2=85=BC=D0=B5s contra=CF=B2ts are already 2.5X in 2025 =
+vs. 2024.</div><div style=3D" font-style: normal; font-weight: normal; line=
+-height: 1.5; text-align: left; color: #000000; font-family: 'Tahoma', Aria=
+l, Helvetica, sans-serif; font-size: 20px; max-width: 600px; ">=C2=A0 <br/>=
+<table cellpadding=3D"0" cellspacing=3D"0" align=3D"center" width=3D"100%">=
+ <tbody><tr> <td align=3D"center" style=3D"padding-top: 15px; padding-botto=
+m: 15px"> <a href=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c4=
+be19c62cc4a88bab88766467a72b3&_m=3D77551332a8c04e1d80bb244ad52dfbcf&_e=3DNQ=
+Z-n2bDRLwiaT03Pn9ZJVBNIiPSujQMHItGQFLU4E18rAkZZs-nIKefA_t65cqJZpxQlauOkrJda=
+q2voGsmKr-QEHCQidIaFOmRcqt38cTcFrKF631uNi42-b-N8WWi3jj8ruUvRb1A3kuKym4GOFFY=
+SuEagLu_RJ8hj9CYZycIAs99slbpcUta9dIWlrzD01za_FQy-hlL8YpC2PaGWdV9HiYtdjhk1tt=
+FoNzzyOUACaVU0G9cWwdnMAQ_Jeg5EVdExOOnTdB_VUBfHJwhMV97nWT19j_fpL7rKcE-JKuWFv=
+ecNP_F3MM9q8L7jD8SXUhvzquahCTt8cMZ6WGt-YYE7Jani5WkI_Ay3Bj9il1JTkrpnd5So_EPo=
+sbPXU5vyITNMqxgntnU2sg0I-sm5sQfwwvqRzB9UhgdHtiEXtIq0C10fodXHVGpOsINuiZxhMO5=
+m48zhOWogIsQGGJvd-G3HLUzvCNoGeynG0xrwXxvBUXph-I_ip4bK9NKJat2" style=3D"font=
+-weight: 900; text-decoration: none;"> <img width=3D"500" src=3D"https://d1=
+5k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7=
+e-c542cff6dd6a/1c4be19c62cc4a88bab88766467a72b3/editor_images/fw32_5.png" a=
+lt=3D"Image" style=3D"width: 100%; height: auto; border: 0; max-width: 500p=
+x;"/> </a> </td> </tr> </tbody></table><br/> Industry consolidation is red-=
+hot: 240 AI d=D0=B5a=E2=85=BCs worth =EF=BC=8455B in 6 months. AdTech marke=
+t: =EF=BC=84795B in 2025. Companies scaling AI expect 60=EF=BC=85 higher re=
+venue growth over the next 3 years. <br/><br/> This is the layer powering t=
+omorrow=E2=80=99s mark=D0=B5t=D1=96ng giants =E2=80=94 and your last =CF=B2=
+han=CF=B2=D0=B5 to g=D0=B5t in at this pr=D1=96=CF=B2=D0=B5. Secure your a=
+=E2=85=BC=E2=85=BCocation, diversify your exposure, and participate in RAD =
+Intel=E2=80=99s upside while the w=D1=96ndow is still =CE=BFp=D0=B5n. <br/>=
+<br/> <a href=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c4be19=
+c62cc4a88bab88766467a72b3&_m=3D77551332a8c04e1d80bb244ad52dfbcf&_e=3DNQZ-n2=
+bDRLwiaT03Pn9ZJVBNIiPSujQMHItGQFLU4E18rAkZZs-nIKefA_t65cqJZpxQlauOkrJdaq2vo=
+GsmKr-QEHCQidIaFOmRcqt38cTcFrKF631uNi42-b-N8WWi3jj8ruUvRb1A3kuKym4GOIojpm11=
+oLGk_dNGlS1Doq45zbBuMGukL3VLToNsWjGY81cj70gTxZErFXgJl2d2TAJgkMyBMOjfXF3mnu4=
+do-B1WC2BTSXuMkltm4jVcwKuXld1js8coUeILegyjTYmcMd_PjkwIIPiHZ_UEqjZr2g3XRH2Hg=
+5ZK3tQrmVDBU2BFSLK9jJWVMMVAkS2pkDBsUpjUiE7WJR3NArfWGavjhKyXIeer2Rqvscikkjn8=
+GeygSEoNsAASA-M578To382xr1faKkYPlb19Gpiaw9gHgmVBOu9arWigmlaHXm_J1l5wcUhsBHV=
+ATp27Xy9XZkArrYoQ8_VUMTE4HrOAyowOHeOsYPC78jnE_W0sZtOzQBQ" style=3D" text-de=
+coration: underline; font-weight: 700; font-family: 'Tahoma', Arial, Helvet=
+ica, sans-serif; color: #2f75b5; ">=EF=BC=840.85 w=CE=BFn=E2=80=99t last.<t=
+able cellpadding=3D"0" cellspacing=3D"0" align=3D"center" width=3D"100%"> <=
+tbody><tr> <td align=3D"center" style=3D"padding-top: 15px; padding-bottom:=
+ 15px"> <a href=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c4be=
+19c62cc4a88bab88766467a72b3&_m=3D77551332a8c04e1d80bb244ad52dfbcf&_e=3DNQZ-=
+n2bDRLwiaT03Pn9ZJVBNIiPSujQMHItGQFLU4E18rAkZZs-nIKefA_t65cqJZpxQlauOkrJdaq2=
+voGsmKr-QEHCQidIaFOmRcqt38cTcFrKF631uNi42-b-N8WWi3jj8ruUvRb1A3kuKym4GOK6zof=
+dA8G7QGi2OttwTMnvGFh6ER_u2IXOq8DWN8NIM9k2uLhhgyP8XzRKRMo1lCyF9UmN-CPguTkKOj=
+PZ6_vjlVjxRR0FnpGW0VhO8vkhrJ5OtZdL1IYtCeXEDCK-xwoQimpkQ1sc-1xVXz2PHubZCVURw=
+whdQ3W0zitkr3Ut6arD27SuuI9tR2Hmqd9x-Fq1juj-JQ0LVI--XRB2QFWpHm2nSKzBUrZ24w2i=
+MS5_K7geh5jmv_6U5F7bKaUml-nzOM-3wMaXNhDwmgiWO4fdR3CpBMGgFM8sBpAalda5ByE_V7D=
+L4pPFsipSlNe7DnSMAfhAAdPt64q8BchcWnLA9M2rMLBf1wJHl0gnnJN1-" style=3D"font-w=
+eight: 900; text-decoration: none;"> <img width=3D"400" src=3D"https://d15k=
+2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-=
+c542cff6dd6a/1c4be19c62cc4a88bab88766467a72b3/editor_images/76ytg.png" alt=
+=3D"Image" style=3D"width: 100%; height: auto; border: 0; max-width: 400px;=
+"/> </a> </td> </tr> </tbody></table></a> </div> </td> </tr> <tr> <td style=
+=3D" font-size: 12px; font-style: normal; font-weight: normal; line-height:=
+ 1.5; text-align: left; color: #000000; padding-top: 15px; padding-bottom: =
+15px; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 600px=
+; "> <div style=3D" font-size: 12px; font-style: normal; font-weight: norma=
+l; line-height: 1.5; text-align: left; color: #000000; font-family: 'Tahoma=
+', Arial, Helvetica, sans-serif; max-width: 600px; "> Disclaimer: This is a=
+ paid advertisement for RAD Intel made pursuant to Regulation A+ =CE=BFffer=
+ing and involves risk, including the possible loss of principal. The valuat=
+ion is set by the Company and th=D0=B5r=D0=B5 is currently no public market=
+ for the Company's Common Stock. =CE=A1=E2=85=BC=D0=B5a=D1=95=D0=B5 read th=
+e =CE=BFffering circular and related risks at <a href=3D"https://links.f.fi=
+nanceinsiderpro.com/u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3&_m=3D7755=
+1332a8c04e1d80bb244ad52dfbcf&_e=3DNQZ-n2bDRLwiaT03Pn9ZJeD8kS5zCSYiOZfNEBNFH=
+YxeFrPEvd-mGmGnoWM-d9qUq1eDKii5Xi-9jh6pza_Lc83G6D_YHDSyFX7wIi9SGU-6MOZcj_FZ=
+Ku6xtxCKyrq9UXKbP0beJmuNgnjPN4fFOTsyTs9AuHEziMmQmWMmtkhjgmmAvcpuo5hZZQDXRbK=
+YgeAjFwf8zUsLuB1oz3fxG5eZGzepW3e849v-XqFMELLWbO_s10Ysbtq8cyRlUWicw0h8jzmUiL=
+HBHcZ2K3rPPf1NoIxdbUZYLEMOtDXzZr11RNfHVYreW6YcfeN32J38qL1BfluJuo76e-0lacdLZ=
+Q%3D%3D" style=3D" text-decoration: underline; font-weight: 700; font-famil=
+y: 'Tahoma', Arial, Helvetica, sans-serif; color: #2f75b5; ">invest.radinte=
+l.ai</a>. </div> </td> </tr> <tr> <td height=3D"15" width=3D"100%" style=3D=
+"font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 600px" cla=
+ss=3D"space-between-sections"></td> </tr> </tbody> </table> </td> </tr> </t=
+body> </table> </td> </tr> </tbody> </table> </div></td></tr></table><table=
+ class=3D"divider_block block-4" width=3D"100%" border=3D"0" cellpadding=3D=
+"10" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-lspace:0;ms=
+o-table-rspace:0"><tr><td class=3D"pad"><div class=3D"alignment" align=3D"c=
+enter"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pres=
+entation" width=3D"45%" style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr=
+><td class=3D"divider_inner" style=3D"font-size:1px;line-height:1px;border-=
+top:3px dotted #bbb"><span style=3D"word-break: break-word;">&#8202;</span>=
+</td></tr></table></div></td></tr></table><table class=3D"image_block block=
+-5" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D=
+"presentation" style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td clas=
+s=3D"pad" style=3D"padding-bottom:20px;padding-left:10px;padding-right:10px=
+;padding-top:10px;width:100%"><div class=3D"alignment" align=3D"center"><di=
+v style=3D"max-width:210px"><a href=3D"https://links.f.financeinsiderpro.co=
+m/u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3&_m=3D77551332a8c04e1d80bb24=
+4ad52dfbcf&_e=3DNQZ-n2bDRLwiaT03Pn9ZJdhJzpX_8JFexdUtPmmU9-DgFCRqxhcMfcUpVG-=
+4UVWdwMZ9LWU1CK1AOrT67XdQKygzThIxXA-6C1NQy2PAFoQQbH5tY_crnUBaPyR4p8v-M8PRpA=
+6JSe2FgqgCY4Au4lL5Shw8h8dkrHWYPvGDouubi4nog9J5cyNhmG9Pa2zohxZ96dzuJL7Ujl8-r=
+4ihYvUWo5tbaxpDB3jyxnGvN16oCEVkZHDlW2xR6f0hwp1vcdc60yqMNUL0MBuRuEH59dFG6cgB=
+TBRak_JHRpv2oFjgxHVa6JNr8GaUz6WLOSlQeZiE8YQ1BrYBkoItUJfLvGvm04xIni-yh0ax0DX=
+lElI%3D" target=3D"_blank"><img src=3D"https://d15k2d11r6t6rl.cloudfront.ne=
+t/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/1c4be19c62c=
+c4a88bab88766467a72b3/finance_insider_pro.png" style=3D"display:block;heigh=
+t:auto;border:0;width:100%" width=3D"210" alt=3D"Logo FIP" title=3D"Logo FI=
+P" height=3D"auto"></a></div></div></td></tr></table><table class=3D"headin=
+g_block block-6" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspace:0=
+"><tr><td class=3D"pad" style=3D"text-align:center;width:100%"><h1 style=3D=
+"margin:0;color:#555;direction:ltr;font-family:Tahoma,Verdana,Segoe,sans-se=
+rif;font-size:14px;font-weight:400;letter-spacing:normal;line-height:1.2;te=
+xt-align:center;margin-top:0;margin-bottom:0;mso-line-height-alt:17px"><spa=
+n class=3D"tinyMce-placeholder" style=3D"word-break: break-word;">This emai=
+l was sent by <strong>Finance Insider Pro</strong>, a part of TerraTrance T=
+echnologies, LLC.<br><br> Reach out to us by replying button or by direct e=
+mail to <strong><a href=3D"mailto:support@financeinsiderpro.com" target=3D"=
+_blank" title=3D"support@financeinsiderpro.com" style=3D"text-decoration: u=
+nderline; color: #555555;" rel=3D"noopener">support@financeinsiderpro.com</=
+a></strong><br><br>Reproduction or distribution of texts, images or informa=
+tion in any forms is forbidden without written permission from TerraTrance =
+Technologies, LLC.<br><br>200 Broadway Blvd NE, Albuquerque, NM 87102 <br><=
+br>=C2=A9 2026 Finance Insider Pro. All Rights Reserved.<br><br><strong><u>=
+<a href=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c4be19c62cc4=
+a88bab88766467a72b3&_m=3D77551332a8c04e1d80bb244ad52dfbcf&_e=3DNQZ-n2bDRLwi=
+aT03Pn9ZJdhJzpX_8JFexdUtPmmU9-A0ppNwSn90g_CHdymhZFtOhLu0KPTY2702GW3d2AXoohY=
+jqf_-8DdjE7VhJH3hyPXPnUzBgWsZ4xz3g2fy2eis1_Lm2QFHCvKi6Kb379oOba3yKuk5v3txqb=
+QDODlQtQuVVTDZWDEnKyLFSdB1isOg6xGvGEcExq4DPt31lpSjQP40lwlkzRFE2vJKBHu9PALsz=
+od1JbrdQyzzxU9ZUbPkc0tO9apbWmyxlyCWMOi0BYd4vzXjifXfHz_H89PTDrkQNuxTlXy0N_I0=
+udXFzn8OXetV12AYjdoWBK7Y4o7X1GjOrdYIpMBeivSDq5G1vC22L1qYUSlLFbFqw1azLsSQAFf=
+t7mqs3myQVXUjVlgE1g%3D%3D" target=3D"_blank" style=3D"text-decoration: unde=
+rline; color: #555555;" rel=3D"noopener">Privacy Policy</a></u> | </strong>=
+<strong><a href=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c4be=
+19c62cc4a88bab88766467a72b3&_m=3D77551332a8c04e1d80bb244ad52dfbcf&_e=3DNQZ-=
+n2bDRLwiaT03Pn9ZJdhJzpX_8JFexdUtPmmU9-CneJm-qO73kWz9qRtE04UUR7wG2BCfq3COYFl=
+JrZeUqC1vX6cbDw4LCCe_My30iCj7KoIqO1NJ_-YJs5UVHF0H63hIZXTxwE6eCk2yR-CzoP6qgj=
+0ten7kL60Hw_nTTHCwvhKZGpKg4iJ14jdTVNJQztxThgCNs1iFft6PpbFPYUm8ya7IQ26JzMeuB=
+etZGYFtBHuEMqBJFZgG6i6khWM7P2PH9g7KFNDTFKzhpRGB8njo-EiFLxdb2yHhF_ht13klKVyT=
+3-o1jXbnrOa5FdXVZQKUaqGgvWdUpGNXUnKT9ZNMw3CHyZnyDCa0sHJ2p5N__eH1IL3nd1xU6fT=
+eBZO7w6flupfZdIcufb-Ldw551w%3D%3D" target=3D"_blank" style=3D"text-decorati=
+on: underline; color: #555555;" rel=3D"noopener">Terms and Conditions</a> |=
+ <a href=3D"https://links.f.financeinsiderpro.com/e/encryptedUnsubscribe?_r=
+=3D1c4be19c62cc4a88bab88766467a72b3&_s=3D77551332a8c04e1d80bb244ad52dfbcf&_=
+t=3DA4fUSCuRSwFZcGLYKgj--nXPuqu-S_LaULkWcNbwJrWpvxHAfuQFL3kcd6oe7GS_4r3_zwd=
+48CgKUhgavMGQOS7H4P76ZfobLgtUPiryCJSTI5nKmyWT7DpW4VLnV1TC7AeS8pbNVhusk85wjN=
+eqmA%3D%3D" target=3D"_blank" rel=3D"noopener" style=3D"color: #555555;">Un=
+subscribe</a></strong></span></h1> </td></tr></table></td></tr></tbody></ta=
+ble></td></tr></tbody></table></td></tr></tbody></table><!-- End --></body>=
+</html>
+------=_Part_9987_1277933549.1767834017104--

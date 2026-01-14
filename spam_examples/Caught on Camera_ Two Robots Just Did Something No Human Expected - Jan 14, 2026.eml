@@ -1,0 +1,451 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:2b92:b0:1b0:f2cc:f19c with SMTP id l18csp1470619rdc;
+        Tue, 13 Jan 2026 17:37:02 -0800 (PST)
+X-Received: by 2002:a05:622a:14f:b0:4eb:a6c9:e839 with SMTP id d75a77b69052e-5014a950a39mr4790601cf.47.1768354622182;
+        Tue, 13 Jan 2026 17:37:02 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1768354622; cv=none;
+        d=google.com; s=arc-20240605;
+        b=asYAzYqkugdb8JQi1qNhSZZEI6LQNC4qA0LHikEag0fxtHX/J7a3eDF34mAlBQOCIy
+         ppoyNByYYOA5YEf0snFZLWiEVcdmWncQDA9tyzhlPfc0Kf4glod+DByAQkVD0M3bmblY
+         dpGWr5kvtx8KukFNgTSAplFV22rARLx15eGRHVXLa6H/o4hmIdrIWS38jZygqufptdJQ
+         NG8KzSYUX/oThwFpwy/tdB7XI7MUyscQ2g76UbkKbrIRv8zSnJohTqeK6VhGV+2f+0wl
+         WLMo80WoqtT9Tal4utsmWwRY3r/ebTA+uJ273B7NepW89emdZ0evp4orUAj+x4+Aguv3
+         7qvA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=ApzRQfKyzH1gW35LsZPFNyowcGtB+oeSdrN+ecumd2A=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=kxF7+sBqHbV9WdddumlWhr0C8+u403XNAL5fAjQqZw5pBxGEBG/Bf1kx/YdapfRfyZ
+         013/FKEwYHVz5Oq0dElUS2f2LQJM1KE0ZFK5dSA9hczmcgJooiOM9niNKC5pw8plPqnN
+         pfy+xA4HrlOERT4+qdjC7MtAsYVazaoxpfE2jtNG99J7yDGJqpgm7p275WM6AaK4d8UL
+         HfeVPPaVP4AfPj0fj7GumNOMDJJb02wN2STKnw/f3qR+NK6NKthab2iW54+IMsbnJHhv
+         KGjuHfuIko2XYY4kaG2dTXnTW/zGjkU117dipPUwSPBq7VwvMWGHt8ZWoNYokaIpwjW9
+         GtNQ==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@api.americanprofitinsight.com header.s=uzd2rk6krm52o6l4lhyly437alt3az5y header.b=osfKAt5Z;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=JiwfdDGB;
+       spf=pass (google.com: domain of 0100019bba26290c-1a1e5087-9ab9-4314-9381-e80df1adcf52-000000@amazonses.com designates 54.240.79.168 as permitted sender) smtp.mailfrom=0100019bba26290c-1a1e5087-9ab9-4314-9381-e80df1adcf52-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=americanprofitinsight.com
+Return-Path: <0100019bba26290c-1a1e5087-9ab9-4314-9381-e80df1adcf52-000000@amazonses.com>
+Received: from a79-168.smtp-out.amazonses.com (a79-168.smtp-out.amazonses.com. [54.240.79.168])
+        by mx.google.com with ESMTPS id d75a77b69052e-50148e136f5si8065911cf.126.2026.01.13.17.37.01
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 13 Jan 2026 17:37:02 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019bba26290c-1a1e5087-9ab9-4314-9381-e80df1adcf52-000000@amazonses.com designates 54.240.79.168 as permitted sender) client-ip=54.240.79.168;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@api.americanprofitinsight.com header.s=uzd2rk6krm52o6l4lhyly437alt3az5y header.b=osfKAt5Z;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=JiwfdDGB;
+       spf=pass (google.com: domain of 0100019bba26290c-1a1e5087-9ab9-4314-9381-e80df1adcf52-000000@amazonses.com designates 54.240.79.168 as permitted sender) smtp.mailfrom=0100019bba26290c-1a1e5087-9ab9-4314-9381-e80df1adcf52-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=americanprofitinsight.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=uzd2rk6krm52o6l4lhyly437alt3az5y;
+	d=api.americanprofitinsight.com; t=1768354621;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=8qYhqlN0SH3e3GhdSkVZqJdxoVC3g0+x1Yp+t6F3XIE=;
+	b=osfKAt5ZVjgqAVOJcbEwziiHOEvYmPazJVdM+Beeqpw6meGZEvDmMkwDt+Aq3EXA
+	B5OzHIqZAoTERyipXWtg8ArG5TJMhCHkeHNSE5yPfoEhgMSoxcD+88TQ86ZoyE5jXFY
+	kMAnKB495kpcDf8pEK+sUUiI0sxWKEeibHFEEhT4vSM1u9xlGvVjLtZSh2Js0iFQd1c
+	GeWIwxnqhk/jMlVufSC8wmqdS9yJOaH+8vNqaa3FoenpNdXgixvN/Tds0nU6LBtorrH
+	hziE5pDteTSVi+HzWlqyhnlWmtD5mFyRCiiy/vRSqw19/IwKNsGSbM0vteGmP5CogHa
+	ics0WyEUOA==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1768354621;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=8qYhqlN0SH3e3GhdSkVZqJdxoVC3g0+x1Yp+t6F3XIE=;
+	b=JiwfdDGBs7AwZbgaYZMYPQBKL9ZTHfeQ+AWBIy9vAmKMg0xmQ+OZv9s5RLTo+6yq
+	as6aLYxZ0VXwWCSyEckQnpKuic/5K6MQ/fmBgzijbqH/WtHlwbb41Fr5bp+fIQWDyiX
+	M77mTW5aNaIhb/z/3aStR4WhSLIUyLc2FNrCbaio=
+Date: Wed, 14 Jan 2026 01:37:01 +0000
+From: "David Payne @ API" <news@api.americanprofitinsight.com>
+Reply-To: support@americanprofitinsight.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019bba26290c-1a1e5087-9ab9-4314-9381-e80df1adcf52-000000@email.amazonses.com>
+Subject: Caught on Camera: Two Robots Just Did Something No Human Expected -
+ Jan 14, 2026
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_4270_358054560.1768354621697"
+X-Campaign-ID: 16459553
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=900dd9aa9e97472eb9b75def3c13522b&_s=89f73398518246b7817ef8cee2f9f4d7&_t=c0JkttG3BeKoVlFIoVD-Nnykoxfd9VN25SkmXWC_n1yvpbQS266ckzf_TPhhzwjbCyKT_IggwoeJ7ulru8qEWmPDFL_QJKFr7TEI0oZ0nG1eftayBod2JNs1l7Ch-QKCl9y8GWDzPDxtd9CTaE5i5Q%3D%3D>,<mailto:unsubscribe+16459553+21419755@unsubscribe.iterable.com>
+X-Feedback-ID: 21419755:16459553:123771:iterable
+X-Message-ID: 89f73398518246b7817ef8cee2f9f4d7
+X-SES-Outgoing: 2026.01.14-54.240.79.168
+
+------=_Part_4270_358054560.1768354621697
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Template wrapper This factory footage has analysts whispering behind closed=
+=20
+doors=20
+
+
+
+ <https://americanprofitinsight.com/>=20
+
+
+
+
+
+ Take another look at the image:=20
+=20
+<https://trk.americanprofitinsight.com/691471af1124ee073c0d41b4?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3DB&product=3DBTAI624>
+Two NVIDIA robots, positioned side by side, suddenly begin mirroring each=
+=20
+other=E2=80=99s movements with near-perfect timing.
+
+That level of coordination isn=E2=80=99t scripted behavior =E2=80=94 it poi=
+nts to shared=20
+real-time decision processing .=20
+<https://trk.americanprofitinsight.com/691471af1124ee073c0d41b4?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3DB&product=3DBTAI624>
+
+Robots don=E2=80=99t sync like this unless they=E2=80=99re running the same=
+ advanced CPU=20
+architecture behind NVIDIA=E2=80=99s Blackwell and THOR platforms =E2=80=94=
+ technology supplied=20
+bya tiny, little-known company Wall Street is quietly accumulating.=20
+<https://trk.americanprofitinsight.com/691471af1124ee073c0d41b4?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3DB&product=3DBTAI624>
+
+NVIDIA is pushing physical AI faster than anyone expected.
+And the company powering the =E2=80=9CAI brain=E2=80=9D inside these machin=
+es could be the=20
+biggest beneficiary.
+
+Before NVIDIA=E2=80=99s next announcement makes this public:
+
+Get the =E2=80=9CSecret Supplier=E2=80=9D briefing now =E2=80=94 while you=
+=E2=80=99re still early.=20
+<https://trk.americanprofitinsight.com/691471af1124ee073c0d41b4?email=3Dgeo=
+ff.c.freedman@gmail.com&domain=3D122API&type=3DB&product=3DBTAI624>
+
+
+ <>=20
+A note from API editor David Payne  Sometimes, colleagues share special off=
+ers=20
+with us that we think our readers should be made aware of. Left is one such=
+=20
+special opportunity that we believe deserves your attention.=20
+
+
+ This email was sent to you by American Profit Insight (API) on behalf of=
+=20
+Event Horizon LLC
+
+ 435 N Dupont Hwy, Dover, DE 19901, United States=20
+
+ Copyright =C2=A9 2026 All Rights Reserved.=20
+
+ Privacy Policy  <https://americanprofitinsight.com/privacy-policy/>=20
+ Unsubscribe =20
+<https://links.api.americanprofitinsight.com/e/encryptedUnsubscribe?_r=3D90=
+0dd9aa9e97472eb9b75def3c13522b&_s=3D89f73398518246b7817ef8cee2f9f4d7&_t=3Dc=
+0JkttG3BeKoVlFIoVD-Nnykoxfd9VN25SkmXWC_n1yvpbQS266ckzf_TPhhzwjbCyKT_IggwoeJ=
+7ulru8qEWmPDFL_QJKFr7TEI0oZ0nG1eftayBod2JNs1l7Ch-QKCl9y8GWDzPDxtd9CTaE5i5Q%=
+3D%3D>
+ Terms & Conditions  <https://americanprofitinsight.com/terms-conditions/>=
+=20
+
+------=_Part_4270_358054560.1768354621697
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html> <html lang=3D"en" xmlns=3D"http://www.w3.org/1999/xhtml" xm=
+lns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:schemas-microsoft-co=
+m:office:office"> <head> <meta charset=3D"utf-8"> <meta name=3D"viewport" c=
+ontent=3D"width=3Ddevice-width"> <meta http-equiv=3D"X-UA-Compatible" conte=
+nt=3D"IE=3Dedge"> <meta name=3D"x-apple-disable-message-reformatting"> <!--=
+ Disable auto-scale in iOS 10 Mail entirely --> <meta name=3D"format-detect=
+ion" content=3D"telephone=3Dno,address=3Dno,email=3Dno,date=3Dno,url=3Dno">=
+ <!-- Tell iOS not to automatically link certain text strings. --> <meta na=
+me=3D"color-scheme" content=3D"light"> <meta name=3D"supported-color-scheme=
+s" content=3D"light"> <title>Template wrapper</title> <style>@media(max-wid=
+th:599px){.block{display:block!important;width:100%!important}.mt{margin-to=
+p:1rem}.desktop-divider{display:none!important}.editors-note-photo-mobile{d=
+isplay:inline-block!important;width:50%!important}.editors-note-text-mobile=
+{display:inline-block!important;width:50%!important}.mobile-divider{width:1=
+00%!important;height:auto!important;max-width:100%!important}.header{backgr=
+ound-position:top center!important;padding:9% 30px 20px 30px!important}.hea=
+der img{width:90%!important}.footer-buttons .button-link{padding-left:15px!=
+important;padding-right:15px!important;min-width:90px!important;font-size:1=
+1px!important}.footer-buttons .lst-btn{float:none!important}.footer-buttons=
+ .first-btn{float:left}.footer-buttons .second-btn{float:right}}@media(pref=
+ers-color-scheme:dark){.wrapper{background-color:#2b2b2b!important}.table-c=
+ontainer{background-color:#1a1a1a!important}.copy-text table{background-col=
+or:#1a1a1a!important}.copy-text td,.copy-text span,.copy-text b,.copy-text =
+strong,.copy-text i,.copy-text em,.copy-text sup,.copy-text p,.copy-text di=
+v,.copy-text h1,.copy-text h2,.copy-text h3,.copy-text h4,.copy-text ul,.co=
+py-text li,.copy-text ol{color:#fff!important}.editors-note-text{color:#fff=
+!important}.editors-note-text span{color:#cfcfcf!important}.footer-text{col=
+or:#fff!important}.footer-text a{color:#fff!important}}</style> <!-- Deskto=
+p Outlook chokes on web font references and defaults to Times New Roman, so=
+ we force a safe fallback font. --> <!--[if mso]><style>*{font-family:sans-=
+serif!important}</style><![endif]--> <!-- Web Font / @font-face : BEGIN -->=
+ <style>@import url('https://fonts.googleapis.com/css2?family=3DRoboto:wght=
+@400;500;700;900&display=3Dswap');@import url('https://use.typekit.net/zph3=
+dop.css');</style> <!-- Web Font / @font-face : END --> <!-- Makes backgrou=
+nd images in 72ppi Outlook render at correct size. --> <!--[if gte mso 9]><=
+xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:Offi=
+ceDocumentSettings></xml><![endif]--> </head> <body style=3D"-webkit-font-s=
+moothing: antialiased; -ms-text-size-adjust: 100%; -webkit-text-size-adjust=
+: 100%; margin: 0; padding: 0;"><span style=3D"color:transparent;visibility=
+:hidden;display:none;opacity:0;height:0;width:0;font-size:0;">This factory =
+footage has analysts whispering behind closed doors</span><img src=3D"https=
+://links.api.americanprofitinsight.com/e/eo?_t=3D900dd9aa9e97472eb9b75def3c=
+13522b&amp;_m=3D89f73398518246b7817ef8cee2f9f4d7&amp;_e=3Dc0JkttG3BeKoVlFIo=
+VD-Nnykoxfd9VN25SkmXWC_n1yvpbQS266ckzf_TPhhzwjbCyKT_IggwoeJ7ulru8qEWmPDFL_Q=
+JKFr7TEI0oZ0nG2bjVML0lHIbzKaWauHjU3tPX1FlppbLMGxwgkU4FCORpsT6YnxYiQA81kW2pq=
+LiB8%3D" style=3D"border:0;width:1px;height:1px;border-width:0px!important;=
+display:none!important;line-height:0!important;" width=3D"1" height=3D"1"/>=
+ <table role=3D"presentation" border=3D"0" cellpadding=3D"0" cellspacing=3D=
+"0" class=3D"body" style=3D"width: 100%;"> <tr> <td align=3D"center" valign=
+=3D"top"> <!--[if mso | IE]><table align=3D"center" border=3D"0" cellpaddin=
+g=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"max-width:1000px; =
+width:100%" bgcolor=3D"#DEDEDE"><tr><td style=3D"line-height:0px;font-size:=
+0px;mso-line-height-rule:exactly;"><![endif]--> <table align=3D"center" rol=
+e=3D"presentation" cellpadding=3D"0" cellspacing=3D"0" class=3D"wrapper" wi=
+dth=3D"100%" style=3D"max-width: 1000px; width: 100%; background-image: url=
+('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9=
+b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3c13522b/editor_images/W=
+ordsFromAmerica_BG.png'); background-size: cover; background-repeat: no-rep=
+eat; background-position: center;"> <tr> <td class=3D"desktop-divider" heig=
+ht=3D"40"></td> </tr> <tr> <td align=3D"center" valign=3D"top"> <!--[if mso=
+ | IE]><table role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" wid=
+th=3D"600" align=3D"center" style=3D"width: 600px;"><tr><td><![endif]--> <t=
+able bgcolor=3D"#ffffff" role=3D"presentation" cellspacing=3D"0" cellpaddin=
+g=3D"0" class=3D"table-container" width=3D"600" align=3D"center" style=3D"m=
+ax-width: 600px; width: 100%;"> <tr> <td class=3D"header" style=3D"backgrou=
+nd-image: url('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrato=
+rs/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3c13522b/ed=
+itor_images/WordsFromAmerica_Header.png'); background-size: 100%; backgroun=
+d-repeat: no-repeat; background-position: center; padding: 60px 50px 20px 3=
+0px;"> <!--[if mso | IE]><table bgcolor=3D"#202020" role=3D"presentation" c=
+ellspacing=3D"0" cellpadding=3D"0" width=3D"600" align=3D"center" style=3D"=
+width: 100%;"><tr><td align=3D"center" style=3D"text-align: center;"><![end=
+if]--> <a href=3D"https://links.api.americanprofitinsight.com/u/click?_t=3D=
+900dd9aa9e97472eb9b75def3c13522b&_m=3D89f73398518246b7817ef8cee2f9f4d7&_e=
+=3D1JI2qUt56sxQKTF6XWIVBuq3Mr1rCESsw7qw_3aqRHiytIoCYoZoyRGkoiapDePtr085oklT=
+xjgUzUlebiFirZHPuBzJxSkH-IvCegqHtz7d6SqvgyTE9fYgO1YZIb-AP-g6Q3MXctilpsQvgKO=
+rQQNEwx87SlyYbZqHKpcLkYt4av6W5QbBSPsym07Kfokf9KsGyOci4xH8p_Fw07KTdpWu9asSc0=
+f_pHHUU5ayzvXlmeapsfIIJqsMi8AB3nyugjxEQKeLhbuo9tVp54XMSscUctJlgVm-5lbM3SHcL=
+s_il4LdKoOsZTTnnF0K0IuZPuadeBNrC81QTw0t5iRuYZl1roGlZSTdQTL7vvybWNU%3D" styl=
+e=3D"font-weight: 900; text-decoration: none;"> <img src=3D"https://d15k2d1=
+1r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c54=
+2cff6dd6a/900dd9aa9e97472eb9b75def3c13522b/editor_images/Group%201.png" alt=
+=3D"American Profit Insight" width=3D"448" height=3D"112" style=3D"height: =
+auto; border: 0; -ms-interpolation-mode: bicubic; width: 448px;"> </a> <!--=
+[if mso | IE]></td></tr></table><![endif]--> </td> </tr> <!-- COLUMN CONTEN=
+T --> <tr> <td class=3D"content" style=3D"padding: 10px 15px;"> <table cell=
+padding=3D"0" cellspacing=3D"0" border=3D"0" role=3D"presentation" style=3D=
+"width: 100%" width=3D"100%" class=3D"two-column-wrapper"> <tr> <!-- LEFT C=
+OLUMN --> <td class=3D"block text mobile-width copy-text" align=3D"left" va=
+lign=3D"top" style=3D"font-weight: normal; line-height: 1.5; text-align: le=
+ft; font-size: 16px; vertical-align: top; width: 70%; display: table-cell;"=
+ width=3D"50%"> <!-- COPY HERE --> <table width=3D"100%" border=3D"0" cellp=
+adding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"max-width: 10=
+0%; font-family: 'Verdana', Arial, Helvetica, sans-serif"> <tbody> <tr> <td=
+ align=3D"center" valign=3D"top" style=3D"font-family: 'Verdana', Arial, He=
+lvetica, sans-serif"> <table class=3D"primary-table-limit content-table" bg=
+color=3D"#FFFFFF" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"=
+presentation" width=3D"100%" style=3D"max-width: 600px; font-family: 'Verda=
+na', Arial, Helvetica, sans-serif"> <tbody> <tr> <td class=3D"content-verti=
+cal-space" align=3D"center" style=3D"padding-left: 20px; padding-right: 20p=
+x; font-family: 'Verdana', Arial, Helvetica, sans-serif"> <table class=3D"c=
+ontent-inner-table" border=3D"0" cellspacing=3D"0" role=3D"presentation" ce=
+llpadding=3D"0" width=3D"100%" style=3D"width: 100%; font-family: 'Verdana'=
+, Arial, Helvetica, sans-serif"> <tbody> <tr> <td height=3D"16" width=3D"10=
+0%" style=3D"max-width: 100%; font-family: 'Verdana', Arial, Helvetica, san=
+s-serif" class=3D"md-horizontal-space"></td> </tr> <tr> <td style=3D" font-=
+style: normal; font-weight: normal; line-height: 1.5; text-align: left; col=
+or: #000000; padding-top: 14px; padding-bottom: 14px; font-family: 'Verdana=
+', Arial, Helvetica, sans-serif; font-size: 18px; "> <span style=3D" font-s=
+tyle: normal; font-weight: normal; line-height: 1.5; text-align: left; colo=
+r: #000000; font-family: 'Verdana', Arial, Helvetica, sans-serif; font-size=
+: 18px; "> Take another look at the image:</span> </td> </tr> <tr> <td clas=
+s=3D"img-bg-block" align=3D"center" style=3D" padding-top: 14px; padding-bo=
+ttom: 14px; font-family: 'Verdana', Arial, Helvetica, sans-serif; "> <a hre=
+f=3D"https://links.api.americanprofitinsight.com/u/click?_t=3D900dd9aa9e974=
+72eb9b75def3c13522b&_m=3D89f73398518246b7817ef8cee2f9f4d7&_e=3D1JI2qUt56sxQ=
+KTF6XWIVBu0oxLs219GaMusGCuWTUoN_U48i4ZwSng2tjKoyK1bpfKDqXYIM-TtKTDFeXCiAzeJ=
+jPxAfUqTyqYqCyWzQg8bw3W98DwK36I319DRkhOlFVjnXQS1E5hZ_1eMtrXx1D4GXHOfcB5x1x3=
+Yb7nS3AGIukgf-grKP_he8_JiMbutQi8BydilxfaxKys5WMGAitTkKJSbwRunuX1G3EeU_JfTDg=
+59jPsBiZ8zGsrZ_8DWTbuRQoQnbeLO404xKqiRSfTO67yY6gxOAnaR79TEYE4Btk3_sOfV49q-C=
+pg5pxICO3rqZzvL8DVhcnZtjtg-pLjn0nE3jfjaJ_w1-uhqrls0gkh9JjUhPAEY_EbTB8IKAS0z=
+mwfIBEHC6zFfN46eJDUlwC3ayo1QMTs2LXFcZIUEYrGutrBH41MtBFJ9dMtymBKfwI9H5aqZ9B0=
+tlWptc8qsYX0PN_pJ0Eb7ze1Pz6uRyfl-FEKf_88r1dqdgcZx4RMR0I_ND8FBjqd4MKShbZDkiP=
+QcCoa6r6pDxGcU29Z4KRCkU4r_duztGW7F4abZ6WJk4aY1KPyAGscRctaylUFKrSnpiRMJRryeA=
+JHz38rE%3D" target=3D"_blank" style=3D"font-family: 'Verdana', Arial, Helve=
+tica, sans-serif"> <img alt=3D"Video preview" height=3D"auto" src=3D"https:=
+//library.iterable.com/1940/11771/6f2e73a5e8504d2399cc9eede0124898-btai624-=
+lkf-2.jpg" style=3D" border: 0; display: block; outline: none; text-decorat=
+ion: none; height: auto; width: 100%; max-width: 560px; font-size: 13px; " =
+width=3D"560"> </a> </td> </tr> <tr> <td style=3D" font-style: normal; font=
+-weight: normal; line-height: 1.5; text-align: left; color: #000000; paddin=
+g-top: 14px; padding-bottom: 14px; font-family: 'Verdana', Arial, Helvetica=
+, sans-serif; font-size: 18px; "> <span style=3D" font-style: normal; font-=
+weight: normal; line-height: 1.5; text-align: left; color: #000000; font-fa=
+mily: 'Verdana', Arial, Helvetica, sans-serif; font-size: 18px; ">Two NVIDI=
+A robots, positioned side by side, suddenly begin mirroring each other=E2=
+=80=99s movements with near-perfect timing.<br><br>That level of coordinati=
+on isn=E2=80=99t scripted behavior =E2=80=94 it points to <a href=3D"https:=
+//links.api.americanprofitinsight.com/u/click?_t=3D900dd9aa9e97472eb9b75def=
+3c13522b&_m=3D89f73398518246b7817ef8cee2f9f4d7&_e=3D1JI2qUt56sxQKTF6XWIVBu0=
+oxLs219GaMusGCuWTUoN_U48i4ZwSng2tjKoyK1bpfKDqXYIM-TtKTDFeXCiAzeJjPxAfUqTyqY=
+qCyWzQg8bw3W98DwK36I319DRkhOlFVjnXQS1E5hZ_1eMtrXx1D4GXHOfcB5x1x3Yb7nS3AGIuk=
+gf-grKP_he8_JiMbutQcjR2XVbmbheTZSOWM9BD8In_GbEd6OxHTQvx6qmAQWdJNPjYmERSdEEr=
+aSODp5o9MIsSBgeu727TKUU3uisozSrb6BBVeUDBkjvhLIRzH69rp81RIJJ1pMPF4qsZNBFQaph=
+ABM99pP7H1IG15F54P0moCruV-Wa-OHvc7LpsxpNn7zqcCYSy5bEid4Xph_HImuKx3M81xRrrof=
+axXQJAYzDf4fUdeBRQEYiQug_VihZoIahVki2I0adHPe-Muel_fH79EsjP3ARUMhEJ4O78DuN73=
+_KMsls-vOKQDLMK2ZUuBDDy2JKRKYr4mEeBiaXXz84I2nU6eTO5h6NIA0wXjkBf6037pYcKraNo=
+MWjn1Iv2v0EVCMUSh1f83kYLdJdZ9CaB4eKTzv0sg_KK8sFKC_kSEydm964XxR6Rf0_7De0%3D"=
+ style=3D" text-decoration: underline; font-weight: 700; color: #0000ee; fo=
+nt-family: 'Verdana', Arial, Helvetica, sans-serif; ">shared real-time deci=
+sion processing .</a><br><br>Robots don=E2=80=99t sync like this unless the=
+y=E2=80=99re running the same advanced CPU architecture behind NVIDIA=E2=80=
+=99s Blackwell and THOR platforms =E2=80=94 technology supplied by <a href=
+=3D"https://links.api.americanprofitinsight.com/u/click?_t=3D900dd9aa9e9747=
+2eb9b75def3c13522b&_m=3D89f73398518246b7817ef8cee2f9f4d7&_e=3D1JI2qUt56sxQK=
+TF6XWIVBu0oxLs219GaMusGCuWTUoN_U48i4ZwSng2tjKoyK1bpfKDqXYIM-TtKTDFeXCiAzeJj=
+PxAfUqTyqYqCyWzQg8bw3W98DwK36I319DRkhOlFVjnXQS1E5hZ_1eMtrXx1D4GXHOfcB5x1x3Y=
+b7nS3AGIukgf-grKP_he8_JiMbutQ09FJvGxjeONL636WQDc9hfxfSTlfF_tZqiiwrvHvVhNIlu=
+EWOIooFOIcNfiRdS7oTLh5DusUEFYK3G5IgKY3dWd-q5YUv5b2OqrR1tXkpumXufUJqQT74ka2t=
+dESpn8Nh1w18NPH0g50-prfz-OAoLEvwIxYUZmeQ-mq9yxzlvg4JMnXI7BpjdwlFAouurMi86KB=
+QQTxYlPztMs_MG2alWtCOswGJoZyhqbA7a95_QoCG332gaQUhUmeo2V706vMBg5LVUATEr_7Gpa=
+cdUz7nO-z93qPJhrNij_KAineshKDdkVTEkAKHdPJdq5y2oaJWPePCWFDqEGaQ-fo6hjJ1CJkWb=
+P0cPZKBVisgq1E1en-7kx0kHwx-vlH2vv7J4V3FJaFnJT-dydk15lvJo2uuEE_q7oMLkryIe1FG=
+2_10os%3D" style=3D" text-decoration: underline; font-weight: 700; color: #=
+0000ee; font-family: 'Verdana', Arial, Helvetica, sans-serif; ">a <em>tiny,=
+ little-known company</em> Wall Street is quietly accumulating.</a><br><br>=
+NVIDIA is pushing physical AI faster than anyone expected.<br>And the compa=
+ny powering the =E2=80=9CAI brain=E2=80=9D inside these machines could be t=
+he biggest beneficiary.<br><br>Before NVIDIA=E2=80=99s next announcement ma=
+kes this public:<br><br><a href=3D"https://links.api.americanprofitinsight.=
+com/u/click?_t=3D900dd9aa9e97472eb9b75def3c13522b&_m=3D89f73398518246b7817e=
+f8cee2f9f4d7&_e=3D1JI2qUt56sxQKTF6XWIVBu0oxLs219GaMusGCuWTUoN_U48i4ZwSng2tj=
+KoyK1bpfKDqXYIM-TtKTDFeXCiAzeJjPxAfUqTyqYqCyWzQg8bw3W98DwK36I319DRkhOlFVjnX=
+QS1E5hZ_1eMtrXx1D4GXHOfcB5x1x3Yb7nS3AGIukgf-grKP_he8_JiMbutQnVD8o8XcJAaxJOz=
+E_fyBXuFqbtQOkCGulr7Az6nO6C1oquxlbbVRIR1apB0Wsy7un-b6hX69WPwPr7PVly2v4-GcK0=
+ZDEpMdIZ8hlKPdgOz3yJo_bZ7UGFgURJ0sV1CRcVgvfKkssXXTV_IcLQsvyMb4C1mUOrUWOnaD-=
+BQg4tLM5s4Spc-0l4oxGHkTcRlErBfrxZNpoYsCWID5dxXixx2f0VTnXmAv06p4waErWS-abAwB=
+mgHIzbw4fKvPp_9o8AzdOK59SPMlxFqG97hB2q7Qw8cYS3Xnwjpbalw84phaBfCM2jAAqX1nzWA=
+gJXElqQul2fZ9crvuuAVRfIrsW_JScIrjunTgbffx1GkHKu-b0DzeGzDVhkypfrAmYFTuifvzDG=
+ab4c-e0X0DDzSXxyd9E5yjr9rb5CwkrHVf8v8%3D" style=3D" text-decoration: underl=
+ine; font-weight: 700; color: #0000ee; font-family: 'Verdana', Arial, Helve=
+tica, sans-serif; ">Get the =E2=80=9CSecret Supplier=E2=80=9D briefing now =
+=E2=80=94 while you=E2=80=99re still early.</a></span> </td> </tr> <tr> <td=
+ height=3D"16" width=3D"100%" style=3D"max-width: 100%; font-family: 'Verda=
+na', Arial, Helvetica, sans-serif" class=3D"md-horizontal-space"></td> </tr=
+> </tbody> </table> </td> </tr> </tbody> </table> </td> </tr> </tbody> </ta=
+ble> <!-- END COPY --> </td> <!-- RIGHT COLUMN --> <td class=3D"block right=
+-column" style=3D"width: 30%; display: table-cell;" align=3D"left" valign=
+=3D"top" width=3D"30%"> <table role=3D"presentation" cellspacing=3D"0" cell=
+padding=3D"0" width=3D"100%"> <tr> <td class=3D"editors-note-bg" style=3D"b=
+ackground-image: url('https://d15k2d11r6t6rl.cloudfront.net/public/users/In=
+tegrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3c13=
+522b/editor_images/WordsFromAmerica_Editors.png'); background-size: cover; =
+background-repeat: no-repeat; background-position: center; line-height: 0;"=
+> <table role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" width=3D=
+"100%"> <tr class=3D"editors-note-photo-mobile"> <td class=3D"editors-note-=
+photo"> <a href=3D"urlhere" style=3D"font-weight: 900; text-decoration: non=
+e;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integra=
+tors/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3c13522b/=
+editor_images/WordsFromAmerica_man.jpg" alt=3D"Editors Note Photo" width=3D=
+"172" height=3D"194" style=3D"width: 100%; height: auto; border: 0; -ms-int=
+erpolation-mode: bicubic;"> </a> </td> </tr> <tr class=3D"editors-note-text=
+-mobile"> <td class=3D"editors-note-text" style=3D"padding: 0 10px 20px 10p=
+x; font-family: 'mokoko', serif; font-size: 11px; font-weight: 400; line-he=
+ight: 15px; letter-spacing: 0em; text-align: left;"> <span style=3D"color: =
+#393939; font-family: 'mokoko', serif; font-size: 12px; font-style: normal;=
+ font-weight: 900; line-height: 140%;">A note from API editor David Payne <=
+/span> Sometimes, colleagues share special offers with us that we think our=
+ readers should be made aware of. Left is one such special opportunity that=
+ we believe deserves your attention. </td> </tr> </table> </td> </tr> <tr> =
+<td height=3D"15"></td> </tr> <tr> <td class=3D"footer-bg" style=3D"padding=
+: 20px; background-image: url('https://d15k2d11r6t6rl.cloudfront.net/public=
+/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b=
+75def3c13522b/editor_images/WordsFromAmerica_Footer%20%281%29.png'); backgr=
+ound-size: cover; background-repeat: no-repeat; background-position: center=
+;"> <table role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" width=
+=3D"100%"> <tr> <td class=3D"footer-text" style=3D"font-family: 'Mokoko', s=
+erif; font-size: 12px; font-weight: 400; line-height: 18px; letter-spacing:=
+ 0em; text-align: left; color: #474747;"> <!-- TEXT IN FOOTER --> This emai=
+l was sent to you by American Profit Insight (API) on behalf of Event Horiz=
+on LLC <br><br> 435 N Dupont Hwy, Dover, DE 19901, United States <br><br> C=
+opyright &#169; 2026 All Rights Reserved. </td> </tr> <tr> <td class=3D"foo=
+ter-buttons" style=3D"padding: 15px 0; text-align: center;"> <!-- FOOTER BU=
+TTONS --> <table role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" =
+align=3D"left" style=3D"padding-top: 15px;" class=3D"first-btn"> <tr> <td a=
+lign=3D"center" class=3D"button" style=3D"text-align: center;"> <div> <!--[=
+if mso]><v:roundrect xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:w=3D"u=
+rn:schemas-microsoft-com:office:word" href=3D"urlhere" style=3D"height:50px=
+;v-text-anchor:middle;width:140px;" arcsize=3D"10%" stroke=3D"f" fillcolor=
+=3D"#404040"> <w:anchorlock/> <center><![endif]--> <a href=3D"https://links=
+.api.americanprofitinsight.com/u/click?_t=3D900dd9aa9e97472eb9b75def3c13522=
+b&_m=3D89f73398518246b7817ef8cee2f9f4d7&_e=3D1JI2qUt56sxQKTF6XWIVBuq3Mr1rCE=
+Ssw7qw_3aqRHi6QGxMjS9bGPSUhBpcDy78NaLYJ3oQZSxrRjYav0-N7IGtoLipSo8nJaOJS2q0z=
+y4_xZu2O2DrrEggLX2S5NjbZVQ4QQgIdJ_u7OPEa29xVt-OnImf_aLqoQSKWujBmVQPpveUlZ8O=
+XCPbyE9cBhSRbPmBUL9TRPh0Gl4vrRJGwuuOu6WLg0YCW2JQPnGrpoOIcUDPoGsgqK3ojuzAGkH=
+YmSVt1Q4yk1T6RTkKAo8PdYkIelBgqEWyLtIrSpAzGLGWU8-T6uw2iUv5wwXLKD9HkKq0bApHmY=
+BX6WKrtGZ7Ig%3D%3D" class=3D"button-link" style=3D"text-decoration: none; d=
+isplay: inline-block; padding-top: 15px; padding-bottom: 15px; -webkit-text=
+-size-adjust: none; font-weight: 700; background-color: #404040; border-rad=
+ius: 0; color: #fff; font-family: 'Mokoko', serif; font-size: 12px; line-he=
+ight: 150%; padding-left: 10px; padding-right: 10px; text-align: center; ba=
+ckground: #404040; font-style: normal; min-width: 130px;"> Privacy Policy <=
+/a> <!--[if mso]></center> </v:roundrect><![endif]--> </div> </td> </tr> </=
+table> <table role=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" ali=
+gn=3D"right" style=3D"padding-top: 15px;" class=3D"second-btn"> <tr> <td al=
+ign=3D"center" class=3D"button" style=3D"text-align: center;"> <div> <!--[i=
+f mso]><v:roundrect xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:w=3D"ur=
+n:schemas-microsoft-com:office:word" href=3D"urlhere" style=3D"height:50px;=
+v-text-anchor:middle;width:140px;" arcsize=3D"10%" stroke=3D"f" fillcolor=
+=3D"#404040"> <w:anchorlock/> <center><![endif]--> <a href=3D"https://links=
+.api.americanprofitinsight.com/e/encryptedUnsubscribe?_r=3D900dd9aa9e97472e=
+b9b75def3c13522b&_s=3D89f73398518246b7817ef8cee2f9f4d7&_t=3Dc0JkttG3BeKoVlF=
+IoVD-Nnykoxfd9VN25SkmXWC_n1yvpbQS266ckzf_TPhhzwjbCyKT_IggwoeJ7ulru8qEWmPDFL=
+_QJKFr7TEI0oZ0nG1eftayBod2JNs1l7Ch-QKCl9y8GWDzPDxtd9CTaE5i5Q%3D%3D" class=
+=3D"button-link" style=3D"text-decoration: none; display: inline-block; pad=
+ding-top: 15px; padding-bottom: 15px; -webkit-text-size-adjust: none; font-=
+weight: 700; background-color: #404040; border-radius: 0; color: #fff; font=
+-family: 'Mokoko', serif; font-size: 12px; line-height: 150%; padding-left:=
+ 10px; padding-right: 10px; text-align: center; background: #404040; font-s=
+tyle: normal; min-width: 130px;"> Unsubscribe </a> <!--[if mso]></center> <=
+/v:roundrect><![endif]--> </div> </td> </tr> </table> <table role=3D"presen=
+tation" cellspacing=3D"0" cellpadding=3D"0" align=3D"center" style=3D"paddi=
+ng-top: 15px;" class=3D"btn-wrapper"> <tr> <td align=3D"center" class=3D"bu=
+tton" style=3D"text-align: center;"> <div> <!--[if mso]><v:roundrect xmlns:=
+v=3D"urn:schemas-microsoft-com:vml" xmlns:w=3D"urn:schemas-microsoft-com:of=
+fice:word" href=3D"urlhere" style=3D"height:50px;v-text-anchor:middle;width=
+:140px;" arcsize=3D"10%" stroke=3D"f" fillcolor=3D"#404040"> <w:anchorlock/=
+> <center><![endif]--> <a href=3D"https://links.api.americanprofitinsight.c=
+om/u/click?_t=3D900dd9aa9e97472eb9b75def3c13522b&_m=3D89f73398518246b7817ef=
+8cee2f9f4d7&_e=3D1JI2qUt56sxQKTF6XWIVBuq3Mr1rCESsw7qw_3aqRHjgsvhTnkridJgS3T=
+_HoK6WAFOvKU5P3zNlroXid2ryZrYwahlIJq95hZQXpKsIHNhYNKqplkQm4R2e-uTl9-k_ApaHE=
+a99OBCSkAGDFQ6H2Xr4USzFSkMW2sF0PQIkt9IlEAUM9ClPth57iD7un9UdkcYj1FFNeTwKTcXK=
+pEC6nbqK1yaH_EGJv3t8yGnAfpPsiCFiBsXK5n93ccEqYtYtX84nXNwWGzMd3yMHlwpsPxVB077=
+xhE5MBOPAUJiw_-GPBT_2myCALnWfs5e38hJhueEK0AP_q4u5WtMZR5-b3xCyKRC3BYoE68b3Px=
+3o-4o%3D" class=3D"button-link" style=3D"text-decoration: none; display: in=
+line-block; padding-top: 15px; padding-bottom: 15px; -webkit-text-size-adju=
+st: none; font-weight: 700; background-color: #404040; border-radius: 0; co=
+lor: #fff; font-family: 'Mokoko', serif; font-size: 12px; line-height: 150%=
+; padding-left: 10px; padding-right: 10px; text-align: center; background: =
+#404040; font-style: normal; min-width: 130px;"> Terms & Conditions </a> <!=
+--[if mso]></center> </v:roundrect><![endif]--> </div> </td> </tr> </table>=
+ </td> </tr> </table> </td> </tr> </table> </td> </tr> </table> </td> </tr>=
+ <!-- COLUMN CONTENT END --> <tr> <td class=3D"lst-divider" style=3D"paddin=
+g: 20px;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/I=
+ntegrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/900dd9aa9e97472eb9b75def3c1=
+3522b/editor_images/Group%201025.png" alt=3D"American Profit Insight" width=
+=3D"560" height=3D"55" style=3D"width: 100%; height: auto; border: 0; -ms-i=
+nterpolation-mode: bicubic;"> </td> </tr> </table> <!--[if mso | IE]></td><=
+/tr></table><![endif]--> </td> </tr> </table> <!--[if mso | IE]></td></tr><=
+/table><![endif]--> </td> </tr> </table> </body> </html>
+------=_Part_4270_358054560.1768354621697--

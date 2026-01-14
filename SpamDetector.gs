@@ -18,7 +18,13 @@
  *    - Choose minute interval: Every 15 minutes
  *
  * @author Anti-Spam Dataset
- * @version 5.0 - Category-Based Pattern Detection (NO MORE KEYWORD ARRAYS!)
+ * @version 5.1 - Broadened Pattern Detection
+ *
+ * v5.1 CHANGES: Broadened patterns to catch subtler spam tactics
+ * - ADDED: Standalone sensationalist adjectives (shocking, stunning, bizarre, etc.)
+ * - BROADENED: Government fear now catches "admission/reveal/expose" (not just spy/hiding)
+ * - BROADENED: Financial fear now catches "banks" + "seize/confiscate" (not just "bank account")
+ * - RESULT: Catches "Government's Shocking Admission: Banks Could Seize Your Cash"
  *
  * v5.0 CHANGES: Complete rewrite to eliminate keyword array anti-pattern
  * - REMOVED: Hardcoded clickbait phrase arrays (was whack-a-mole)
@@ -361,6 +367,10 @@ function analyzeMessage(message)
     // Each pattern catches a CATEGORY of spam tactics, not specific phrases
 
     const clickbaitPatterns = [
+      // SENSATIONALIST ADJECTIVES: shocking, bizarre, stunning, etc. (broad match)
+      // Catches: "shocking admission", "bizarre discovery", "stunning revelation", etc.
+      /\b(shocking|stunning|bizarre|mysterious|secret|hidden|leaked|exposed|forbidden)\b/i,
+
       // CURIOSITY GAP: (mystery word) + (visual/media word)
       // Catches: "strange picture", "secret photo", "hidden camera", etc.
       /(strange|secret|hidden|mysterious|shocking|bizarre|unusual|leaked).*(picture|photo|image|video|camera|footage|document)/i,
@@ -400,11 +410,13 @@ function analyzeMessage(message)
     // Broad categories that catch variations without hardcoded phrases
 
     const fearPatterns = [
-      // GOVERNMENT FEAR: IRS, NSA, FBI, government threats
-      /\b(IRS|NSA|FBI|CIA|government|federal)\b.*(warn|hiding|secret|spy|track|audit|investigation)/i,
+      // GOVERNMENT FEAR: IRS, NSA, FBI, government + any threat/revelation
+      // Catches: "government warning", "NSA spied", "government admission", etc.
+      /\b(IRS|NSA|FBI|CIA|government|federal)\b.*(warn|hiding|secret|spy|track|audit|investigation|admission|reveal|expose|confiscat)/i,
 
-      // FINANCIAL FEAR: Bank, account, money threats
-      /\b(bank account|credit card|social security|identity|savings)\b.*(stolen|hacked|freeze|close|warning|alert)/i,
+      // FINANCIAL FEAR: Banks, accounts + seizure/theft/loss threats
+      // Catches: "banks seize", "bank account frozen", "savings stolen", etc.
+      /\b(banks?|bank account|credit card|social security|identity|savings|cash|money)\b.*(seize|steal|stolen|hacked|freeze|frozen|close|closed|warning|alert|confiscat|take|taking|lost)/i,
 
       // HEALTH FEAR: Medical warnings, dangers
       /\b(blood thinner|medication|drug|vaccine|doctor).*(warning|danger|deadly|killing|risk|avoid)/i,

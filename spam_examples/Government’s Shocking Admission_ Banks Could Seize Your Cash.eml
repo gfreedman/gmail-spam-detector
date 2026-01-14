@@ -1,0 +1,1145 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:d193:b0:1b0:f2cc:f19c with SMTP id ba19csp360237rdb;
+        Wed, 14 Jan 2026 10:34:50 -0800 (PST)
+X-Received: by 2002:a05:6214:234a:b0:884:5e18:e91a with SMTP id 6a1803df08f44-892742ff148mr45832886d6.2.1768415690097;
+        Wed, 14 Jan 2026 10:34:50 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1768415690; cv=none;
+        d=google.com; s=arc-20240605;
+        b=RvnQdNYtWJqAuBVWkIEPD8860AfykMDSQ1Pv0SXMRO3upKFdsIIcHMwL2++HuztbZK
+         /CtNUObLj9JaJhEdhPqUrWw7Vve0xRA5N/PrP42H0COEhMR/EPZWKdIdfyZ3yZKaA04M
+         gpgDxpi19BaTpCLP7ljJQ60ZMshUncZbtfdqik69L4LScc7GsckaCGM4oDbBW+USkPLm
+         pVoHFxK440sWnX8k7iccNiD7/YC3kQL+wmPdS+C8QEMWqpISkCaYKvbNE7h8E7VohjYP
+         gNbV5uTZQNJ6XsgcvCy9x4UfPpiB12By/39QRtBxvDvwWfY2aX6QoO4OQu7lD3GPe/rI
+         VMUQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=nSbRg8w1eQL65PcDSColC81ru5iBF2CXW0oBxpGZXmA=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=J2AWZxc4cBDTWlY6NU001VNTzBJisCW5HeBdYAQ7xbSGUgv/ZReXGwfT7K8mdgrf8m
+         wY/eYdXszJhiRZh+A0kuaijcVaRJXjADCnDDBS6seJgr8h7u8Crho3MH2/ymuyWG2QEX
+         DwZpLWUiVb/3Zw7v+Isy4oUiklzCgSBgrSPzIgF3q46FduXQ/3P5oxZcdxm+Ns8YhKGU
+         v8Dt1vJSK+qeYHIyZSV/7BSeTvlKGU/K4+7QelKxi58hCnYooPC3qLPzc8Ec2JYGqD9l
+         8BB1OE5k8BksXyDyAh4AVSu91cCKKIeo+wP0pXa9l5b/sG8ymMYr63JcZ0TADdv0p3uq
+         9sjg==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@info.investorbusinesstalk.com header.s=nvxr2ifnst5fi5f6t73mzeqwi2yy7btb header.b=f67EM6sX;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b="Mbly/jPg";
+       spf=pass (google.com: domain of 0100019bbdc9fb59-fdbecb5a-3e7f-459c-ad8f-b615ce569140-000000@amazonses.com designates 23.251.255.200 as permitted sender) smtp.mailfrom=0100019bbdc9fb59-fdbecb5a-3e7f-459c-ad8f-b615ce569140-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=info.investorbusinesstalk.com
+Return-Path: <0100019bbdc9fb59-fdbecb5a-3e7f-459c-ad8f-b615ce569140-000000@amazonses.com>
+Received: from e255-200.smtp-out.amazonses.com (e255-200.smtp-out.amazonses.com. [23.251.255.200])
+        by mx.google.com with ESMTPS id 6a1803df08f44-890770a356asi311706086d6.104.2026.01.14.10.34.49
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 14 Jan 2026 10:34:50 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019bbdc9fb59-fdbecb5a-3e7f-459c-ad8f-b615ce569140-000000@amazonses.com designates 23.251.255.200 as permitted sender) client-ip=23.251.255.200;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@info.investorbusinesstalk.com header.s=nvxr2ifnst5fi5f6t73mzeqwi2yy7btb header.b=f67EM6sX;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b="Mbly/jPg";
+       spf=pass (google.com: domain of 0100019bbdc9fb59-fdbecb5a-3e7f-459c-ad8f-b615ce569140-000000@amazonses.com designates 23.251.255.200 as permitted sender) smtp.mailfrom=0100019bbdc9fb59-fdbecb5a-3e7f-459c-ad8f-b615ce569140-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=info.investorbusinesstalk.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=nvxr2ifnst5fi5f6t73mzeqwi2yy7btb;
+	d=info.investorbusinesstalk.com; t=1768415689;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=5BHEEvPXoU/M9XB2jAJtbWwV7GkeNkP/FalC2gbnTtk=;
+	b=f67EM6sX92JduAPHVjYlC/3nYDWBXSmnZfiQVafmZci54VMUsWjgDzYXsaQxYWhe
+	EPXiOQh1nal/WBgutq+5aDkv1DPly9vSEkL3vggvFySLj3rYhNaczfHShsVN66kL4hX
+	nKWZILE5UTFxdiwCfVZrj50cBnELHn/8Gi8Dp67oqhaWoCLGCeh2U83igMbXVJ1sLVH
+	NlYU+hm2l/ozTWYMinWDqAoIsJhbRNLF16krmml96Q+W8pEptMArioIz9jD3x7/3wA0
+	jn7g/ScJMVbiTyqI7i/cedL3aT/EeTtqcQHSaZpxOdBdZKCrF4m7mOUQgjP9XLgt3+O
+	C6UvpiNDdg==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1768415689;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=5BHEEvPXoU/M9XB2jAJtbWwV7GkeNkP/FalC2gbnTtk=;
+	b=Mbly/jPgterG+w9kFuwHRn2BEU6kIBa3mqJUMbbqFgtTnrJYEVpI7pGHdP/2nt/2
+	VTC68UBj/mqlHaJPEqkEvoYhzBDjOOhf+2sg4L9elxO8xiqkf7kgLrQbdSDzXuRj0mY
+	abzMzysoQg9pDPVetQoc1kmmpDGzxjt3Q7es1MoM=
+Date: Wed, 14 Jan 2026 18:34:49 +0000
+From: "Government Confiscation, Logan Brooks || IBT" <take@info.investorbusinesstalk.com>
+Reply-To: support@investorbusinesstalk.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019bbdc9fb59-fdbecb5a-3e7f-459c-ad8f-b615ce569140-000000@email.amazonses.com>
+Subject: =?UTF-8?Q?Government=E2=80=99s_Shocking_Admissio?=
+ =?UTF-8?Q?n:_Banks_Could_Seize_Your_Cash?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_90478_1434168768.1768415689548"
+X-Campaign-ID: 16469130
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=cc08ed21751440caab542fdd9964df60&_s=4fdc2d543da74c569b51d0c0053e2d93&_t=BVQK4Q42XkaqJmx2vEuYuzMOAfDiQ9HDHcYkUkDqJX5sSWWZkUi2EEZbHKU0H2sNeNQQ2cZFNARgnan1S1XyqEmVgYRRU5qZyZ8GuwXiTJHOTq_WTFnvhhe38jtBgeKq0Jio_hZXj6pLVmIdEWM1ew%3D%3D>,<mailto:unsubscribe+16469130+21432882@unsubscribe.iterable.com>
+X-Feedback-ID: 21432882:16469130:121850:iterable
+X-Message-ID: 4fdc2d543da74c569b51d0c0053e2d93
+X-SES-Outgoing: 2026.01.14-23.251.255.200
+
+------=_Part_90478_1434168768.1768415689548
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+If you have money sitting in a U.S. bank, click here now and see why you mu=
+st=20
+move it before the next collapse. The FDIC recently admitted banks are hidi=
+ng=20
+hundreds of billions in losses=E2=80=A6=20
+
+
+
+ <https://investorbusinesstalk.com>=20
+
+
+
+
+ If you have money sitting in a U.S. bank, click here now and see why you m=
+ust=20
+move it before the next collapse.=20
+<https://tracking.investorbusinesstalk.com/04feaa47-387a-438b-9505-f094e8eb=
+f3e6?email=3Dgeoff.c.freedman@gmail.com&domain=3D577IBT&type=3DB&copy=3DIMG=
+2006_606>
+
+ The FDIC recently admitted banks are hiding hundreds of billions in losses=
+=E2=80=A6=20
+=20
+<https://tracking.investorbusinesstalk.com/04feaa47-387a-438b-9505-f094e8eb=
+f3e6?email=3Dgeoff.c.freedman@gmail.com&domain=3D577IBT&type=3DB&copy=3DIMG=
+2006_606>
+ And experts warn accounts could be frozen overnight.=20
+
+ Now a shocking new report reveals how to protect your savings=E2=80=94befo=
+re it=E2=80=99s too=20
+late.=20
+
+Claim Your FREE Guide Here!=20
+<https://tracking.investorbusinesstalk.com/04feaa47-387a-438b-9505-f094e8eb=
+f3e6?email=3Dgeoff.c.freedman@gmail.com&domain=3D577IBT&type=3DB&copy=3DIMG=
+2006_606>
+ =E2=80=8A=20
+
+An alphabet is a standardized set of basic written graphemes (called letter=
+s)=20
+representing phonemes, units of sounds that distinguish words, of certain=
+=20
+spoken languages.[1] Not =D0=B0ll writing systems represent language in thi=
+s way; in=20
+a syllabary, each character represents a syllable, and logographic systems =
+use=20
+characters to represent words, morphemes, or other semantic units.[2][3] Th=
+e=20
+Egyptians have created the first alphabet in a technical sense.[4] The shor=
+t=20
+uniliteral signs are used to write pronunciation guides for logograms, or a=
+=20
+character that represents a word, or morpheme, and later on, being used to=
+=20
+write foreign words.[5] This was used up to the 5th century AD.[6] The firs=
+t=20
+fully phonemic script, the Proto-Sinaitic script, which developed into the=
+=20
+Phoenician alphabet, is considered to be the first alphabet and is the ance=
+stor=20
+of most modern alphabets, abjads, and abugidas, including Arabic, Cyrillic,=
+=20
+Greek, Hebrew, Latin, and possibly Brahmic.[7][8] It was created by=20
+Semitic-speaking workers and slaves in the Sinai Peninsula in modern-day Eg=
+ypt,=20
+by selecting a small number of hieroglyphs commonly seen in their Egyptian=
+=20
+surroundings to describe the sounds, as opposed to the semantic values of t=
+he=20
+Canaanite languages.[9][10] The Phoenician alphabet with corresponding Lati=
+n=20
+letters Peter T. Daniels distinguishes an abugida, a set of graphemes that=
+=20
+represent consonantal base letters that diacritics modify to represent vowe=
+ls,=20
+like in Devanagari and other South Asian scripts, an abjad, in which letter=
+s=20
+predominantly or exclusively represent consonants such as the original=20
+Phoenician, Hebrew or Arabic, and an alphabet, a set of graphemes that=20
+represent both consonants and vowels. In this narrow sense of the word, the=
+=20
+first true alphabet was the Greek alphabet,[11][12] which was based on the=
+=20
+earlier Phoenician abjad. Alphabets are usually associated with a standard=
+=20
+ordering of letters. This makes them useful for purposes of collation, whic=
+h=20
+allows words to be sorted in a specific =D0=BErder, commonly known as the=
+=20
+alphabetical =D0=BErder. It also means that their letters can be used as an=
+=20
+alternative method of "numbering" ordered items, in such contexts as number=
+ed=20
+lists and number placements. There are also names for letters in some=20
+languages. This is known as acrophony; It is present in some modern scripts=
+,=20
+such as Greek, and many Semitic scripts, such as Arabic, Hebrew, and Syriac=
+. It=20
+was used in some ancient alphabets, such as in Phoenician. However, this sy=
+stem=20
+is not present in =D0=B0ll languages, such as the Latin alphabet, which add=
+s a vowel=20
+after a character for each letter. Some systems also used to have this syst=
+em=20
+but later on abandoned it for a system similar to Latin, such as Cyrillic.=
+=20
+Etymology The English word alphabet came into Middle English from the Late=
+=20
+Latin word alphabetum, which in turn originated in the Greek, =E1=BC=80=CE=
+=BB=CF=86=CE=AC=CE=B2=CE=B7=CF=84=CE=BF=CF=82=20
+(alph=C3=A1b=C4=93tos); it was made from the first two letters of the Greek=
+ alphabet,=20
+alpha (=CE=B1) and beta (=CE=B2).[13] The names for the Greek letters, in t=
+urn, came from=20
+the first two letters of the Phoenician alphabet: aleph, the word for ox, a=
+nd=20
+bet, the word for house.[14] History Main article: History of the alphabet=
+=20
+Ancient Near Eastern alphabets The Ancient Egyptian writing system had a se=
+t of=20
+some 24 hieroglyphs that are called uniliterals,[15] which are glyphs that=
+=20
+provide one sound.[16] These glyphs were used as pronunciation guides for=
+=20
+logograms, to write grammatical inflections, and, later, to transcribe l=D0=
+=BEan=20
+words and foreign names.[5] The script was used a fair amount in the 4th=20
+century CE.[17] However, after pagan temples were closed down, it was forgo=
+tten=20
+in the 5th century until the discovery of the Rosetta Stone.[6] There was a=
+lso=20
+the Cuneiform script. The script was used to write several ancient language=
+s.=20
+However, it was primarily used to write Sumerian.[18] The last known use of=
+ the=20
+Cuneiform script was in 75 CE, after which the script fell out of use.[19] =
+In=20
+the Middle Bronze Age, an apparently "alphabetic" system known as the=20
+Proto-Sinaitic script appeared in Egyptian turquoise mines in the Sinai=20
+peninsula dated c. 15th century BCE, apparently left by Canaanite workers. =
+In=20
+1999, John and Deborah Darnell, American Egyptologists, discovered an earli=
+er=20
+version of this first alphabet at the Wadi el-Hol valley in Egypt. The scri=
+pt=20
+dated to c. 1800 BCE and shows evidence of having been adapted from specifi=
+c=20
+forms of Egyptian hieroglyphs that could be dated to c. 2000 BCE, strongly=
+=20
+suggesting that the first alphabet had developed about that time.[20] The=
+=20
+script was based on letter appearances and names, believed to be based on=
+=20
+Egyptian hieroglyphs.[7] This script had no characters representing vowels.=
+=20
+Originally, it probably was a syllabary=E2=80=94a script where syllables ar=
+e=20
+represented with characters=E2=80=94with symbols that were not needed being=
+ removed.=20
+The b=D0=B5st-attested Bronze Age alphabet is Ugaritic, invented in Ugarit =
+(Syria)=20
+before the 15th century BCE. This was an alphabetic cuneiform script with 3=
+0=20
+signs, including three that indicate the following vowel. This script was n=
+ot=20
+used after the destruction of Ugarit in 1178 BCE.[21] A specimen of=20
+Proto-Sinaitic script, one of the earliest (if not the very first) phonemic=
+=20
+scripts The Proto-Sinaitic script eventually developed into the Phoenician=
+=20
+alphabet, conventionally called "Proto-Canaanite" before c. 1050 BCE.[8] Th=
+e=20
+oldest text in Phoenician script is an inscription on the sarcophagus of Ki=
+ng=20
+Ahiram c. 1000 BCE. This script is the parent script of =D0=B0ll western al=
+phabets.=20
+By the tenth century BCE, two other forms distinguish themselves, Canaanite=
+ and=20
+Aramaic. The Aramaic gave rise to the Hebrew script.[22] The South Arabian=
+=20
+alphabet, a sister script to the Phoenician alphabet, is the script from wh=
+ich=20
+the Ge'ez alphabet, an abugida, a writing system where consonant-vowel=20
+sequences are written as units, which was used around the horn of Africa,=
+=20
+descended. Vowel-less alphabets are called abjads, currently exemplified in=
+=20
+others such as Arabic, Hebrew, and Syriac. The omission of vowels was not=
+=20
+always a satisfactory solut=D1=96on due to the need of preserving sacred te=
+xts.=20
+"Weak" consonants are used to indicate vowels. These letters have a dual=20
+function since they can also be used as pure consonants.[23][24] The=20
+Proto-Sinaitic script and the Ugaritic script were the first scripts with a=
+=20
+l=D1=96mited number of signs instead of using many different signs for word=
+s, in=20
+contrast to the other widely used writing systems at the time, Cuneiform,=
+=20
+Egyptian hieroglyphs, and Linear B. The Phoenician script was probably the=
+=20
+first phonemic script,[7][8] and it contained =D0=BEnly about two dozen dis=
+tinct=20
+letters, making it a script simple enough for traders to learn. Another=20
+advantage of the Phoenician alphabet was that it could write different=20
+languages since it recorded words phonemically.[25] The Phoenician script w=
+as=20
+spread across the Mediterranean by the Phoenicians.[8] The Greek Alphabet w=
+as=20
+the first alphabet in which vowels have independent letter forms separate f=
+rom=20
+those of consonants. The Greeks chose letters representing sounds that did =
+not=20
+exist in Phoenician to represent vowels. The syllabical Linear B, a script =
+that=20
+was used by the Mycenaean Greeks from the 16th century BCE, had 87 symbols,=
+=20
+including five vowels. In its early years, there were many variants of the=
+=20
+Greek alphabet, causing many different alphabets to evolve from it.[26]=20
+European alphabets The Greek alphabet, in Euboean f=D0=BErm, was carried ov=
+er by=20
+Greek colonists to the Italian peninsula circa 800-600 BCE giving rise to m=
+any=20
+different alphabets used to write the Italic languages, like the Etruscan=
+=20
+alphabet.[27] One of these became the Latin alphabet, which spread across=
+=20
+Europe as the Romans expanded their republic. After the fall of the Western=
+=20
+Roman Empire, the alphabet survived in intellectual and religious works. It=
+=20
+came to be used for the descendant languages of Latin (the Romance language=
+s)=20
+and most of the other languages of western and central Europe. T=D0=BEday, =
+it is the=20
+most widely used script in the world.[28] The Etruscan alphabet remained ne=
+arly=20
+unchanged for several hundred years. =D0=9Enly evolving once the Etruscan l=
+anguage=20
+changed itself. The letters used for non-existent phonemes were dropped.[29=
+]=20
+Afterwards, however, the alphabet went through many different changes. The=
+=20
+final classical f=D0=BErm of Etruscan contained 20 letters. Four of them ar=
+e vowels=20
+(a, e, i, and u). Six fewer letters than the earlier forms. The script in i=
+ts=20
+classical f=D0=BErm was used until the 1st century CE. The Etruscan languag=
+e itself=20
+was not used in imperial Rome, but the script was used for religious texts.=
+[30]=20
+Some adaptations of the Latin alphabet have ligatures, a combination of two=
+=20
+letters make one, such as =C3=A6 in Danish and Icelandic and =C8=A2 in Algo=
+nquian;=20
+borrowings from other alphabets, such as the thorn =C3=BE in Old English an=
+d=20
+Icelandic, which came from the Futhark runes;[31] and modified existing=20
+letters, such as the eth =C3=B0 of Old English and Icelandic, which is a mo=
+dified d.=20
+Other alphabets =D0=BEnly use a subset of the Latin alphabet, such as Hawai=
+ian and=20
+Italian, which uses the letters j, k, x, y, and w =D0=BEnly in foreign word=
+s.[32]=20
+Another notable script is Elder Futhark, believed to have evolved out of on=
+e of=20
+the Old Italic alphabets. Elder Futhark gave rise to other alphabets known=
+=20
+collectively as the Runic alphabets. The Runic alphabets were used for Germ=
+anic=20
+languages from 100 CE to the late Middle Ages, being engraved on stone and=
+=20
+jewelry, although inscriptions found on bone and wood occasionally appear.=
+=20
+These alphabets have since been replaced with the Latin alphabet. The excep=
+tion=20
+was for decorative use, where the runes remained in use until the 20th=20
+century.[33] A photo of the Old Hungarian script. The Old Hungarian script =
+was=20
+the writing system of the Hungarians. It was in use during the entire histo=
+ry=20
+of Hungary, albeit not as an official writing system. From the 19th century=
+, it=20
+once again became more and more popular.[34] The Glagolitic alphabet was th=
+e=20
+initial script of the liturgical language Old Church Slavonic and became,=
+=20
+together with the Greek uncial script, the basis of the Cyrillic script.=20
+Cyrillic is one of the most widely used modern alphabetic scripts and is=20
+notable for its use in Slavic languages and also for other languages within=
+ the=20
+former Soviet Union. Cyrillic alphabets include Serbian, Macedonian, Bulgar=
+ian,=20
+Russian, Belarusian, and Ukrainian. The Glagolitic alphabet is believed to =
+have=20
+been created by Saints Cyril and Methodius, while the Cyrillic alphabet was=
+=20
+created by Clement of Ohrid, their disciple. They feature many letters that=
+=20
+appear to have been borrowed from or influenced by Greek and Hebrew.[35] As=
+ian=20
+alphabets Beyond the logographic Chinese writing, many phonetic scripts exi=
+st=20
+in Asia. The Arabic alphabet, Hebrew alphabet, Syriac alphabet, and other=
+=20
+abjads of the Middle East are developments of the Aramaic alphabet.[36][37]=
+=20
+Most alphabetic scripts of India and Eastern Asia descend from the Brahmi=
+=20
+script, believed to be a descendant of Aramaic.[38] Hangul In Korea, Sejong=
+ the=20
+Gr=D0=B5at created the Hangul alphabet in 1443 CE.[39] Hangul is a unique a=
+lphabet:=20
+it is a featural alphabet, where the design of many of the letters comes fr=
+om a=20
+sound's place of articulation, like P looking like the widened mouth and L=
+=20
+looking like the tongue pulled in.[40] The creation of Hangul was planned b=
+y=20
+the government of the day,[41] and it places individual letters in syllable=
+=20
+clusters with equal dimensions, in the same way as Chinese characters. This=
+=20
+change allows for mixed-script writing, where one syllable always takes up =
+one=20
+type space no matter how many letters g=D0=B5t stacked into building that o=
+ne=20
+sound-block.[42] Zhuyin Zhuyin, sometimes referred to as Bopomofo, is a=20
+semi-syllabary. It transcribes Mandarin phonetically in the Republic of Chi=
+na.=20
+After the later establishment of the People's Republic of China and its=20
+adoption of Hanyu Pinyin, the use of Zhuyin t=D0=BEday is lim=D1=96ted. How=
+ever, it is=20
+still widely used in Taiwan. Zhuyin developed from a f=D0=BErm of Chinese s=
+horthand=20
+based on Chinese characters in the early 1900s and has elements of both an=
+=20
+alphabet and a syllabary. Like an alphabet, the phonemes of syllable initia=
+ls=20
+are represented by individual symbols, but like a syllabary, the phonemes o=
+f=20
+the syllable finals are not; each possible final (excluding the medial glid=
+e)=20
+has its own character, an example being luan written as =E3=84=8C=E3=84=A8=
+=E3=84=A2 (l-u-an). The last=20
+symbol =E3=84=A2 takes place as the entire final -an. While Zhuyin is not a=
+ mainstream=20
+writing system, it is still often used in ways similar to a romanization=20
+system, for aiding pronunciation and as an input method for Chinese charact=
+ers=20
+on computers and cellphones.[43] Romanization European alphabets, especiall=
+y=20
+Latin and Cyrillic, have been adapted for many languages of Asia. Arabic is=
+=20
+also widely used, sometimes as an abjad, as with Urdu and Persian, and=20
+sometimes as a complete alphabet, as with Kurdish and Uyghur.[44][45] Types=
+=20
+Predominant national and selected regional or minority scripts Alphabetic=
+=20
+[L]ogographic and [S]yllabic Abjad Abugida Latin Cyrillic Greek Armenian=20
+Georgian Hangul Hanzi [L] Kana [S] / Kanji [L] Arabic Hebrew North Indic So=
+uth=20
+Indic Ethiopic Thaana Canadian syllabic History of the alphabet vte The ter=
+m=20
+"alphabet" is used by linguists and paleographers in both a wide and a narr=
+ow=20
+sense. In a broader sense, an alphabet is a segmental script at the phoneme=
+=20
+level=E2=80=94that is, it has separate glyphs for individual sounds and not=
+ for larger=20
+units such as syllables or words. In the narrower sense, some scholars=20
+distinguish "true" alphabets from two other types of segmental script, abja=
+ds,=20
+and abugidas. These three differ in how they treat vowels. Abjads have lett=
+ers=20
+for consonants and leve most vowels unexpressed. Abugidas are also=20
+consonant-based but indicate vowels with diacritics, a systematic graphic=
+=20
+modification of the consonants.[46] The earliest known alphabet using this=
+=20
+sense is the Wadi el-Hol script, believed to be an abjad. Its successor,=20
+Phoenician, is the ancestor of modern alphabets, including Arabic, Greek, L=
+atin=20
+(via the Old Italic alphabet), Cyrillic (via the Greek alphabet), and Hebre=
+w=20
+(via Aramaic).[47][48] A Venn diagram showing the Greek (left), Cyrillic=20
+(bottom) and Latin (right) alphabets, which share many of the same letters,=
+=20
+although they have different pronunciations Examples of present-day abjads =
+are=20
+the Arabic and Hebrew scripts;[49] true alphabets include Latin, Cyrillic, =
+and=20
+Korean Hangul; and abugidas, used to write Tigrinya, Amharic, Hindi, and Th=
+ai.=20
+The Canadian Aboriginal syllabics are also an abugida, rather than a syllab=
+ary,=20
+as their nam=D0=B5 would imply, because each glyph stands for a consonant a=
+nd is=20
+modified by rotation to represent the following vowel. In a true syllabary,=
+=20
+each consonant-vowel combination gets represented by a separate glyph.[50] =
+=D0=90ll=20
+three types may be augmented with syllabic glyphs. Ugaritic, for example, i=
+s=20
+essentially an abjad but has syllabic letters for /=CA=94a, =CA=94i, =CA=94=
+u/[51][52] These=20
+are the =D0=BEnly times that vowels are indicated. Coptic has a letter for =
+/ti/.[53]=20
+Devanagari is typically an abugida augmented with dedicated letters for ini=
+tial=20
+vowels, though some traditions use =E0=A4=85 as a zero consonant as the gra=
+phic base=20
+for such vowels.[54][55] The boundaries between the three types of segmenta=
+l=20
+scripts are not always clear-cut. For example, Sorani Kurdish is written in=
+ the=20
+Arabic script, which, when used for other languages, is an abjad.[56] In=20
+Kurdish, writing the vowels is mandatory, and whole letters are used, so th=
+e=20
+script is a true alphabet. Other languages may use a Semitic abjad with for=
+ced=20
+vowel diacritics, effectively making them abugidas. On the other hand, the=
+=20
+Phagspa script of the Mongol Empire was based closely on the Tibetan abugid=
+a,=20
+but vowel marks are written after the preceding consonant rather than as=20
+diacritic marks. Although short a is not written, as in the Indic abugidas,=
+ The=20
+source of the term "abugida," namely the Ge'ez abugida n=D0=BEw used for Am=
+haric and=20
+Tigrinya, has assimilated into their consonant modifications. It is no long=
+er=20
+systematic and must be learned as a syllabary rather than as a segmental=20
+script. Even more extreme, the Pahlavi abjad eventually became logographic.=
+[57]
+
+
+
+This =D0=B5ditorial email with educational n=D0=B5ws was sent to=20
+geoff.c.freedman@gmail.com.Investor Business Talk sending this newsletter o=
+n=20
+behalf of Platoon Marketing LLC.
+
+
+
+
+Feel fr=D0=B5=D0=B5 to email us support@investorbusinesstalk.com
+
+Unsubs=D1=81ribe=20
+<https://links.info.investorbusinesstalk.com/e/encryptedUnsubscribe?_r=3Dcc=
+08ed21751440caab542fdd9964df60&_s=3D4fdc2d543da74c569b51d0c0053e2d93&_t=3DB=
+VQK4Q42XkaqJmx2vEuYuzMOAfDiQ9HDHcYkUkDqJX5sSWWZkUi2EEZbHKU0H2sNeNQQ2cZFNARg=
+nan1S1XyqEmVgYRRU5qZyZ8GuwXiTJHOTq_WTFnvhhe38jtBgeKq0Jio_hZXj6pLVmIdEWM1ew%=
+3D%3D>
+to sto=D1=80 receiving m=D0=B0rketing communication from us.
+
+74 E Glenwood Ave Smyrna, DE 19977
+
+=C2=A9 2026 Investor Business Talk. =D0=90ll rights reserved.
+
+ <https://investorbusinesstalk.com>=20
+Privacy Policy  <https://investorbusinesstalk.com/privacy-policy/>=20
+Unsubscribe =20
+<https://links.info.investorbusinesstalk.com/e/encryptedUnsubscribe?_r=3Dcc=
+08ed21751440caab542fdd9964df60&_s=3D4fdc2d543da74c569b51d0c0053e2d93&_t=3DB=
+VQK4Q42XkaqJmx2vEuYuzMOAfDiQ9HDHcYkUkDqJX5sSWWZkUi2EEZbHKU0H2sNeNQQ2cZFNARg=
+nan1S1XyqEmVgYRRU5qZyZ8GuwXiTJHOTq_WTFnvhhe38jtBgeKq0Jio_hZXj6pLVmIdEWM1ew%=
+3D%3D>
+This email was sent to geoff.c.freedman@gmail.com=20
+<mailto:geoff.c.freedman@gmail.com>. Don't want to receive these emails any=
+more?
+Unsubscribe=20
+<https://links.info.investorbusinesstalk.com/e/encryptedUnsubscribe?_r=3Dcc=
+08ed21751440caab542fdd9964df60&_s=3D4fdc2d543da74c569b51d0c0053e2d93&_t=3DB=
+VQK4Q42XkaqJmx2vEuYuzMOAfDiQ9HDHcYkUkDqJX5sSWWZkUi2EEZbHKU0H2sNeNQQ2cZFNARg=
+nan1S1XyqEmVgYRRU5qZyZ8GuwXiTJHOTq_WTFnvhhe38jtBgeKq0Jio_hZXj6pLVmIdEWM1ew%=
+3D%3D>
+investor business talk,=20
+------=_Part_90478_1434168768.1768415689548
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html> <html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"=
+urn:schemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: b=
+order-box;"> <head> <title></title> <meta http-equiv=3D"Content-Type" conte=
+nt=3D"text/html; charset=3Dutf-8"/> <meta name=3D"viewport" content=3D"widt=
+h=3Ddevice-width,initial-scale=3D1"/><!--[if mso]><xml><w:WordDocument xmln=
+s:w=3D"urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyR=
+eadingMail/></w:WordDocument> <o:OfficeDocumentSettings><o:PixelsPerInch>96=
+</o:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]--=
+> <style>*{box-sizing:border-box}body{margin:0;padding:0}a[x-apple-data-det=
+ectors]{color:inherit!important;text-decoration:inherit!important}#MessageV=
+iewBody a{color:inherit;text-decoration:none}p{line-height:inherit}.desktop=
+_hide,.desktop_hide table{mso-hide:all;display:none;max-height:0;overflow:h=
+idden}.image_block img+div{display:none}sub,sup{font-size:75%;line-height:0=
+}@media(max-width:620px){.mobile_hide{display:none}.row-content{width:100%!=
+important}.stack .column{width:100%;display:block}.mobile_hide{min-height:0=
+;max-height:0;max-width:0;overflow:hidden;font-size:0}.desktop_hide,.deskto=
+p_hide table{display:table!important;max-height:none!important}}</style><!-=
+-[if mso ]><style>sup,sub{font-size:100%!important}sup{mso-text-raise:10%}s=
+ub{mso-text-raise:-10%}</style><![endif]--> </head> <body class=3D"body" st=
+yle=3D"box-sizing: border-box; background-color: #fff; margin: 0; padding: =
+0; -webkit-text-size-adjust: none; text-size-adjust: none;"> <span style=3D=
+"color:transparent;visibility:hidden;display:none;opacity:0;height:0;width:=
+0;font-size:0;">If you have money sitting in a U.S. bank, click here now an=
+d see why you must move it before the next collapse. The FDIC recently admi=
+tted banks are hiding hundreds of billions in losses=E2=80=A6</span><img sr=
+c=3D"https://links.info.investorbusinesstalk.com/e/eo?_t=3Dcc08ed21751440ca=
+ab542fdd9964df60&amp;_m=3D4fdc2d543da74c569b51d0c0053e2d93&amp;_e=3DBVQK4Q4=
+2XkaqJmx2vEuYuzMOAfDiQ9HDHcYkUkDqJX5sSWWZkUi2EEZbHKU0H2sNeNQQ2cZFNARgnan1S1=
+XyqEmVgYRRU5qZyZ8GuwXiTJHnSzA83QSUSnmY2-qf2gOkVUKwCBEEpYsMTiJO8pW4roHHkRm8B=
+gqCGlsBKtFpY_A%3D" style=3D"border:0;width:1px;height:1px;border-width:0px!=
+important;display:none!important;line-height:0!important;" width=3D"1" heig=
+ht=3D"1"/> <table class=3D"nl-container" width=3D"100%" border=3D"0" cellpa=
+dding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: bo=
+rder-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color: #fff;=
+" bgcolor=3D"#fff"> <tbody style=3D"box-sizing: border-box;"> <tr style=3D"=
+box-sizing: border-box;"> <td style=3D"box-sizing: border-box;"> <table cla=
+ss=3D"row row-1" align=3D"center" width=3D"100%" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-=
+box; mso-table-lspace: 0; mso-table-rspace: 0; background-color: #81988c;" =
+bgcolor=3D"#81988c"> <tbody style=3D"box-sizing: border-box;"> <tr style=3D=
+"box-sizing: border-box;"> <td style=3D"box-sizing: border-box;"> <table cl=
+ass=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=3D"0" c=
+ellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso=
+-table-lspace: 0; mso-table-rspace: 0; background-color: #fff; color: #000;=
+ width: 600px; margin: 0 auto;" width=3D"600" bgcolor=3D"#fff"> <tbody styl=
+e=3D"box-sizing: border-box;"> <tr style=3D"box-sizing: border-box;"> <td c=
+lass=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-box; ms=
+o-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left;=
+ vertical-align: top;" align=3D"left" valign=3D"top"> <table class=3D"image=
+_block block-1" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lsp=
+ace: 0; mso-table-rspace: 0;"> <tbody> <tr style=3D"box-sizing: border-box;=
+"> <td class=3D"pad" style=3D"box-sizing: border-box; width: 100%;" width=
+=3D"100%"> <div class=3D"alignment" align=3D"center" style=3D"box-sizing: b=
+order-box;"> <div style=3D"box-sizing: border-box; max-width: 600px;"> <a h=
+ref=3D"https://links.info.investorbusinesstalk.com/u/click?_t=3Dcc08ed21751=
+440caab542fdd9964df60&_m=3D4fdc2d543da74c569b51d0c0053e2d93&_e=3DPpgcO3KQPB=
+KQFXQqH2CZVCOX8SDgRkcaLTyJKEeTGP-cZqSlI0U6hRbcFeNono0f3_E6novSR3thhobwTJZg2=
+LxqvphQhBfgm_2XQoHihPMHz5_179IFCypBYDrT8E2SHvJ1JQC6W4SVl8jA7-QkM1eF7u9YfbE3=
+lsIXAPC9U1FKdmtQuI9oZWRzCmAotXQ7slkdtDuK3EDzL9AL51JIod57i9ddXC4hfYosqd1OG9l=
+YBddKfHPo6729x8ynrQPvVqp6jipipJdv0FVkzdiwf05Mm3uzU7f-KvhVUWPeOjmoxPUURmPzw_=
+kgaJpd9Xm2oTjlxMl8XxPig4D7eziQ_JyYAc7iY0xRvgGW0i6GPPQ%3D" target=3D"_blank"=
+ style=3D"box-sizing: border-box;"><img src=3D"https://d15k2d11r6t6rl.cloud=
+front.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/cc0=
+8ed21751440caab542fdd9964df60/Head.png" style=3D"box-sizing: border-box; di=
+splay: block; height: auto; border: 0; width: 100%;" width=3D"600" alt=3D"L=
+ogo IBT" title=3D"Logo IBT" height=3D"auto"/></a> </div> </div></td> </tr> =
+</tbody> </table> <table class=3D"html_block block-2" width=3D"100%" border=
+=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"b=
+ox-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"> <tbody> =
+<tr style=3D"box-sizing: border-box;"> <td class=3D"pad" style=3D"box-sizin=
+g: border-box;"> <div style=3D"box-sizing: border-box; font-family: Arial,'=
+Helvetica Neue',Helvetica,sans-serif; text-align: center;" align=3D"center"=
+> <table width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" ro=
+le=3D"presentation" style=3D"box-sizing: border-box; max-width: 100%; font-=
+family: 'Verdana', Arial, Helvetica, sans-serif;"> <tbody style=3D"box-sizi=
+ng: border-box;"> <tr style=3D"box-sizing: border-box;"> <td align=3D"cente=
+r" valign=3D"top" style=3D"box-sizing: border-box; font-family: 'Verdana', =
+Arial, Helvetica, sans-serif;"> <table class=3D"primary-table-limit content=
+-table" bgcolor=3D"#FFFFFF" border=3D"0" cellspacing=3D"0" cellpadding=3D"0=
+" role=3D"presentation" width=3D"100%" style=3D"box-sizing: border-box; max=
+-width: 600px; font-family: 'Verdana', Arial, Helvetica, sans-serif;"> <tbo=
+dy style=3D"box-sizing: border-box;"> <tr style=3D"box-sizing: border-box;"=
+> <td class=3D"content-vertical-space" align=3D"center" style=3D"box-sizing=
+: border-box; padding-left: 20px; padding-right: 20px; font-family: 'Verdan=
+a', Arial, Helvetica, sans-serif;"> <table class=3D"content-inner-table" bo=
+rder=3D"0" cellspacing=3D"0" role=3D"presentation" cellpadding=3D"0" width=
+=3D"100%" style=3D"box-sizing: border-box; width: 100%; font-family: 'Verda=
+na', Arial, Helvetica, sans-serif;"> <tbody style=3D"box-sizing: border-box=
+;"> <tr style=3D"box-sizing: border-box;"> <td height=3D"16" width=3D"100%"=
+ style=3D"box-sizing: border-box; max-width: 100%; font-family: 'Verdana', =
+Arial, Helvetica, sans-serif;" class=3D"md-horizontal-space"></td> </tr> <t=
+r style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border-box; f=
+ont-style: normal; font-weight: normal; line-height: 1.5; text-align: left;=
+ color: #000000; padding-top: 14px; padding-bottom: 14px; font-family: 'Ver=
+dana', Arial, Helvetica, sans-serif; font-size: 20px;" align=3D"left"><span=
+ style=3D"box-sizing: border-box; font-style: normal; font-weight: normal; =
+line-height: 1.5; text-align: left; color: #000000; font-family: 'Verdana',=
+ Arial, Helvetica, sans-serif; font-size: 20px;"> If you have money sitting=
+ in a U.S. bank, <a href=3D"https://links.info.investorbusinesstalk.com/u/c=
+lick?_t=3Dcc08ed21751440caab542fdd9964df60&_m=3D4fdc2d543da74c569b51d0c0053=
+e2d93&_e=3DPpgcO3KQPBKQFXQqH2CZVIkdRyo5McLuiTZbrDes_F6o95fVrnyPX6x1k0Mb1NCq=
+PHBKKwCgClu-0YrF6yGMrdcjeuLY6x20d6jVjWpeyYOaSxZj9zHxqCLIvYNIhGSN0OS8mUBsHgz=
+w-oDdzXp79QfD_Djj6OHUEo6qVmbxdy5odlTTZm3baILxu_T6TrI8BBWK5Nvp0MNAoZjUAVwy9_=
+Pdq0onzryki94JhhMI-Oq9dZQ2CSNNE5djOC-LX07oysSbhzeRsVl74rjHU0QHK7MaL8oIVep-o=
+hqbXcXAiHdub1c6XcM-fHb_i4ZmyfCskRYLCAmQUncsxnS-yuhj6Ro6rLxCX9YHoLH49jadVKpJ=
+jUCOhZ-LGVWWxXwcci1DwrijTa7iqVILJ_oZlch3J-FzLFkbPxNREnjTqf5UEoaRmLTf-cKMqdi=
+2tY2jFSp3AuVYxBrxQNKFi8IJcIZxtJNt3pDPyz1I8xcy0vqIU-E5BO-LhA1SKfZH3X7QMgAJV5=
+pfCILYFBGw_sGba9ctT7Q4c4P1AZfO4lh35pLb8SU4sfPB5a_0D4duYWrUBNoJ3lhw5qNMxnvIT=
+tDht6w473VAbJ4p2SKVwXOtEyq7JnrMTeG3gHz3VNwTnsunDwyS_qoxaWbeOSRDNzg77rgMPKcJ=
+-e_sM8sePIY98KFcZSc%3D" style=3D"box-sizing: border-box; text-decoration: u=
+nderline; font-weight: 700; font-family: 'Verdana', Arial, Helvetica, sans-=
+serif; color: #3562ff;">click here now and see why you must move it before =
+the next collapse.</a> <br style=3D"box-sizing: border-box;"/><br style=3D"=
+box-sizing: border-box;"/> The FDIC recently admitted banks are hiding <b s=
+tyle=3D"box-sizing: border-box;">hundreds of billions in losses</b>=E2=80=
+=A6 </span></td> </tr> <tr style=3D"box-sizing: border-box;"> <td class=3D"=
+img-bg-block" align=3D"center" style=3D"box-sizing: border-box; padding-top=
+: 14px; padding-bottom: 14px; font-family: 'Verdana', Arial, Helvetica, san=
+s-serif;"><a href=3D"https://links.info.investorbusinesstalk.com/u/click?_t=
+=3Dcc08ed21751440caab542fdd9964df60&_m=3D4fdc2d543da74c569b51d0c0053e2d93&_=
+e=3DPpgcO3KQPBKQFXQqH2CZVIkdRyo5McLuiTZbrDes_F6o95fVrnyPX6x1k0Mb1NCqPHBKKwC=
+gClu-0YrF6yGMrdcjeuLY6x20d6jVjWpeyYOaSxZj9zHxqCLIvYNIhGSN0OS8mUBsHgzw-oDdzX=
+p79QfD_Djj6OHUEo6qVmbxdy5odlTTZm3baILxu_T6TrI8BBWK5Nvp0MNAoZjUAVwy94Vt63sAZ=
+ZJj95hyMEnK41MQQynXP4rK--wfezcUGCUe9BE6nsqRlZLplJNZO1g9uJd1fT8pSk1aaaCXSv5x=
+1ypJ3AkZDJqrpxpTyKSmnckbzqVZa4-StMuz36hIrMCUwV2PACEeOvg4kSLq2k2lGiyMJx2P9UJ=
+SQn94whRMBbqEvCNSvsEzNVYdLXxj9FC2QCGINwlTFyE2cjcY5-eKWrMEiqW4J4L3ReIgdSJNb2=
+-56c3OHtgcPp0FBfpur1YuK9Ky2uy_TLH3x5GzH9PkfBBi5of7SS0dARBH_CKhLHz2Gj85dEIJ-=
+-KHFPPIAkm8Al7hNS-OMJbJOSdogCrDwOP8loZQ0nEpNlyVCCxZSOOxDo1Ew2ll4KBPd3a5Hgro=
+wBtVJdnmwI-fV02S7qudN4u0BFIulgNa-7r6XBYUCFP-_eXq3fI2kBVVmuES4OBLGqLJW9IKnK5=
+tSJquNzjkqmo%3D" target=3D"_blank" style=3D"box-sizing: border-box; font-fa=
+mily: 'Verdana', Arial, Helvetica, sans-serif;"> <img alt=3D"Burning 100 do=
+llar bill" height=3D"auto" src=3D"https://d15k2d11r6t6rl.cloudfront.net/pub=
+lic/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/cc08ed21751440ca=
+ab542fdd9964df60/PSMRD606.png" style=3D"box-sizing: border-box; border: 0; =
+display: block; outline: none; text-decoration: none; height: auto; width: =
+100%; max-width: 560px; font-size: 13px;" width=3D"560"/> </a></td> </tr> <=
+tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border-box; =
+font-style: normal; font-weight: normal; line-height: 1.5; text-align: left=
+; color: #000000; padding-top: 14px; padding-bottom: 14px; font-family: 'Ve=
+rdana', Arial, Helvetica, sans-serif; font-size: 20px;" align=3D"left"><spa=
+n style=3D"box-sizing: border-box; font-style: normal; font-weight: normal;=
+ line-height: 1.5; text-align: left; color: #000000; font-family: 'Verdana'=
+, Arial, Helvetica, sans-serif; font-size: 20px;"> And experts warn account=
+s could be <b style=3D"box-sizing: border-box;">frozen overnight.</b> <br s=
+tyle=3D"box-sizing: border-box;"/><br style=3D"box-sizing: border-box;"/> N=
+ow a shocking new report reveals how to protect your savings=E2=80=94<em st=
+yle=3D"box-sizing: border-box;">before it=E2=80=99s too late.</em> <br styl=
+e=3D"box-sizing: border-box;"/><br style=3D"box-sizing: border-box;"/><a hr=
+ef=3D"https://links.info.investorbusinesstalk.com/u/click?_t=3Dcc08ed217514=
+40caab542fdd9964df60&_m=3D4fdc2d543da74c569b51d0c0053e2d93&_e=3DPpgcO3KQPBK=
+QFXQqH2CZVIkdRyo5McLuiTZbrDes_F6o95fVrnyPX6x1k0Mb1NCqPHBKKwCgClu-0YrF6yGMrd=
+cjeuLY6x20d6jVjWpeyYOaSxZj9zHxqCLIvYNIhGSN0OS8mUBsHgzw-oDdzXp79QfD_Djj6OHUE=
+o6qVmbxdy5odlTTZm3baILxu_T6TrI8BBWK5Nvp0MNAoZjUAVwy946mGBv-lWfLnbprD1ucjjcK=
+4fRF-1j2Hij9sSY5np6kLj8lwR1mBqzFqnzt7cSy9pPW2tvTdKI345zNm8fA_W_gRDrK_qtnT0u=
+3S1-v2qjLyKFDtiRvmtk2GyptYsLYqcXeiKJe42yev_NR08mCpAy3RqfuLbIq0YJFjHY16LNXbN=
+zMAhXx6wnZn1LuWJrPyx555paTznza1is8fllkWTGjt4tSsKuMYJ_TdBOJP2xkQeklSkelX8SGG=
+kapu82XoP6QVXGhUXjieOG-spU6Vc7KwtIqhatHCPpJ8efP8YSj_TkymAfg8p5VQNWA8es6uIfg=
+xdbpbvW1uDqxnOJuyugWMJtTA4Y-85B00xrUsEOOC08_z4_uwifReuKlNd-ZEoKZY8k8M3kRRw1=
+I0vIJ9D0B4Dfo8x4kqfv5zn2noDmPYaiEm4FdF_4jwlysltBiffdJ6B6C5dAANclHCyurBdY%3D=
+" style=3D"box-sizing: border-box; text-decoration: underline; font-weight:=
+ 700; font-family: 'Verdana', Arial, Helvetica, sans-serif; color: #3562ff;=
+">Claim Your FREE Guide Here!</a> </span></td> </tr> <tr style=3D"box-sizin=
+g: border-box;"> <td height=3D"16" width=3D"100%" style=3D"box-sizing: bord=
+er-box; max-width: 100%; font-family: 'Verdana', Arial, Helvetica, sans-ser=
+if;" class=3D"md-horizontal-space"></td> </tr> </tbody> </table></td> </tr>=
+ </tbody> </table></td> </tr> </tbody> </table> </div></td> </tr> </tbody> =
+</table> <div class=3D"spacer_block block-3" style=3D"box-sizing: border-bo=
+x; height: 10px; line-height: 10px; font-size: 1px;"> =E2=80=8A </div> <tab=
+le class=3D"html_block block-4" width=3D"100%" border=3D"0" cellpadding=3D"=
+0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box;=
+ mso-table-lspace: 0; mso-table-rspace: 0;"> <tbody> <tr style=3D"box-sizin=
+g: border-box;"> <td class=3D"pad" style=3D"box-sizing: border-box;"> <div =
+style=3D"box-sizing: border-box; font-family: Arial,'Helvetica Neue',Helvet=
+ica,sans-serif; text-align: center;" align=3D"center"> <div style=3D"box-si=
+zing: border-box; display: none; width: 0px; max-height: 0px; overflow: hid=
+den; mso-hide: all; height: 0; font-size: 0; max-height: 0; line-height: 0;=
+ margin: 0 auto;"> <p style=3D"box-sizing: border-box; line-height: inherit=
+;">An alphabet is a standardized set of basic written graphemes (called let=
+ters) representing phonemes, units of sounds that distinguish words, of cer=
+tain spoken languages.[1] Not =D0=B0ll writing systems represent language i=
+n this way; in a syllabary, each character represents a syllable, and logog=
+raphic systems use characters to represent words, morphemes, or other seman=
+tic units.[2][3] The Egyptians have created the first alphabet in a technic=
+al sense.[4] The short uniliteral signs are used to write pronunciation gui=
+des for logograms, or a character that represents a word, or morpheme, and =
+later on, being used to write foreign words.[5] This was used up to the 5th=
+ century AD.[6] The first fully phonemic script, the Proto-Sinaitic script,=
+ which developed into the Phoenician alphabet, is considered to be the firs=
+t alphabet and is the ancestor of most modern alphabets, abjads, and abugid=
+as, including Arabic, Cyrillic, Greek, Hebrew, Latin, and possibly Brahmic.=
+[7][8] It was created by Semitic-speaking workers and slaves in the Sinai P=
+eninsula in modern-day Egypt, by selecting a small number of hieroglyphs co=
+mmonly seen in their Egyptian surroundings to describe the sounds, as oppos=
+ed to the semantic values of the Canaanite languages.[9][10] The Phoenician=
+ alphabet with corresponding Latin letters Peter T. Daniels distinguishes a=
+n abugida, a set of graphemes that represent consonantal base letters that =
+diacritics modify to represent vowels, like in Devanagari and other South A=
+sian scripts, an abjad, in which letters predominantly or exclusively repre=
+sent consonants such as the original Phoenician, Hebrew or Arabic, and an a=
+lphabet, a set of graphemes that represent both consonants and vowels. In t=
+his narrow sense of the word, the first true alphabet was the Greek alphabe=
+t,[11][12] which was based on the earlier Phoenician abjad. Alphabets are u=
+sually associated with a standard ordering of letters. This makes them usef=
+ul for purposes of collation, which allows words to be sorted in a specific=
+ =D0=BErder, commonly known as the alphabetical =D0=BErder. It also means t=
+hat their letters can be used as an alternative method of "numbering" order=
+ed items, in such contexts as numbered lists and number placements. There a=
+re also names for letters in some languages. This is known as acrophony; It=
+ is present in some modern scripts, such as Greek, and many Semitic scripts=
+, such as Arabic, Hebrew, and Syriac. It was used in some ancient alphabets=
+, such as in Phoenician. However, this system is not present in =D0=B0ll la=
+nguages, such as the Latin alphabet, which adds a vowel after a character f=
+or each letter. Some systems also used to have this system but later on aba=
+ndoned it for a system similar to Latin, such as Cyrillic. Etymology The En=
+glish word alphabet came into Middle English from the Late Latin word alpha=
+betum, which in turn originated in the Greek, =E1=BC=80=CE=BB=CF=86=CE=AC=
+=CE=B2=CE=B7=CF=84=CE=BF=CF=82 (alph=C3=A1b=C4=93tos); it was made from the=
+ first two letters of the Greek alphabet, alpha (=CE=B1) and beta (=CE=B2).=
+[13] The names for the Greek letters, in turn, came from the first two lett=
+ers of the Phoenician alphabet: aleph, the word for ox, and bet, the word f=
+or house.[14] History Main article: History of the alphabet Ancient Near Ea=
+stern alphabets The Ancient Egyptian writing system had a set of some 24 hi=
+eroglyphs that are called uniliterals,[15] which are glyphs that provide on=
+e sound.[16] These glyphs were used as pronunciation guides for logograms, =
+to write grammatical inflections, and, later, to transcribe l=D0=BEan words=
+ and foreign names.[5] The script was used a fair amount in the 4th century=
+ CE.[17] However, after pagan temples were closed down, it was forgotten in=
+ the 5th century until the discovery of the Rosetta Stone.[6] There was als=
+o the Cuneiform script. The script was used to write several ancient langua=
+ges. However, it was primarily used to write Sumerian.[18] The last known u=
+se of the Cuneiform script was in 75 CE, after which the script fell out of=
+ use.[19] In the Middle Bronze Age, an apparently "alphabetic" system known=
+ as the Proto-Sinaitic script appeared in Egyptian turquoise mines in the S=
+inai peninsula dated c. 15th century BCE, apparently left by Canaanite work=
+ers. In 1999, John and Deborah Darnell, American Egyptologists, discovered =
+an earlier version of this first alphabet at the Wadi el-Hol valley in Egyp=
+t. The script dated to c. 1800 BCE and shows evidence of having been adapte=
+d from specific forms of Egyptian hieroglyphs that could be dated to c. 200=
+0 BCE, strongly suggesting that the first alphabet had developed about that=
+ time.[20] The script was based on letter appearances and names, believed t=
+o be based on Egyptian hieroglyphs.[7] This script had no characters repres=
+enting vowels. Originally, it probably was a syllabary=E2=80=94a script whe=
+re syllables are represented with characters=E2=80=94with symbols that were=
+ not needed being removed. The b=D0=B5st-attested Bronze Age alphabet is Ug=
+aritic, invented in Ugarit (Syria) before the 15th century BCE. This was an=
+ alphabetic cuneiform script with 30 signs, including three that indicate t=
+he following vowel. This script was not used after the destruction of Ugari=
+t in 1178 BCE.[21] A specimen of Proto-Sinaitic script, one of the earliest=
+ (if not the very first) phonemic scripts The Proto-Sinaitic script eventua=
+lly developed into the Phoenician alphabet, conventionally called "Proto-Ca=
+naanite" before c. 1050 BCE.[8] The oldest text in Phoenician script is an =
+inscription on the sarcophagus of King Ahiram c. 1000 BCE. This script is t=
+he parent script of =D0=B0ll western alphabets. By the tenth century BCE, t=
+wo other forms distinguish themselves, Canaanite and Aramaic. The Aramaic g=
+ave rise to the Hebrew script.[22] The South Arabian alphabet, a sister scr=
+ipt to the Phoenician alphabet, is the script from which the Ge'ez alphabet=
+, an abugida, a writing system where consonant-vowel sequences are written =
+as units, which was used around the horn of Africa, descended. Vowel-less a=
+lphabets are called abjads, currently exemplified in others such as Arabic,=
+ Hebrew, and Syriac. The omission of vowels was not always a satisfactory s=
+olut=D1=96on due to the need of preserving sacred texts. "Weak" consonants =
+are used to indicate vowels. These letters have a dual function since they =
+can also be used as pure consonants.[23][24] The Proto-Sinaitic script and =
+the Ugaritic script were the first scripts with a l=D1=96mited number of si=
+gns instead of using many different signs for words, in contrast to the oth=
+er widely used writing systems at the time, Cuneiform, Egyptian hieroglyphs=
+, and Linear B. The Phoenician script was probably the first phonemic scrip=
+t,[7][8] and it contained =D0=BEnly about two dozen distinct letters, makin=
+g it a script simple enough for traders to learn. Another advantage of the =
+Phoenician alphabet was that it could write different languages since it re=
+corded words phonemically.[25] The Phoenician script was spread across the =
+Mediterranean by the Phoenicians.[8] The Greek Alphabet was the first alpha=
+bet in which vowels have independent letter forms separate from those of co=
+nsonants. The Greeks chose letters representing sounds that did not exist i=
+n Phoenician to represent vowels. The syllabical Linear B, a script that wa=
+s used by the Mycenaean Greeks from the 16th century BCE, had 87 symbols, i=
+ncluding five vowels. In its early years, there were many variants of the G=
+reek alphabet, causing many different alphabets to evolve from it.[26] Euro=
+pean alphabets The Greek alphabet, in Euboean f=D0=BErm, was carried over b=
+y Greek colonists to the Italian peninsula circa 800-600 BCE giving rise to=
+ many different alphabets used to write the Italic languages, like the Etru=
+scan alphabet.[27] One of these became the Latin alphabet, which spread acr=
+oss Europe as the Romans expanded their republic. After the fall of the Wes=
+tern Roman Empire, the alphabet survived in intellectual and religious work=
+s. It came to be used for the descendant languages of Latin (the Romance la=
+nguages) and most of the other languages of western and central Europe. T=
+=D0=BEday, it is the most widely used script in the world.[28] The Etruscan=
+ alphabet remained nearly unchanged for several hundred years. =D0=9Enly ev=
+olving once the Etruscan language changed itself. The letters used for non-=
+existent phonemes were dropped.[29] Afterwards, however, the alphabet went =
+through many different changes. The final classical f=D0=BErm of Etruscan c=
+ontained 20 letters. Four of them are vowels (a, e, i, and u). Six fewer le=
+tters than the earlier forms. The script in its classical f=D0=BErm was use=
+d until the 1st century CE. The Etruscan language itself was not used in im=
+perial Rome, but the script was used for religious texts.[30] Some adaptati=
+ons of the Latin alphabet have ligatures, a combination of two letters make=
+ one, such as =C3=A6 in Danish and Icelandic and =C8=A2 in Algonquian; borr=
+owings from other alphabets, such as the thorn =C3=BE in Old English and Ic=
+elandic, which came from the Futhark runes;[31] and modified existing lette=
+rs, such as the eth =C3=B0 of Old English and Icelandic, which is a modifie=
+d d. Other alphabets =D0=BEnly use a subset of the Latin alphabet, such as =
+Hawaiian and Italian, which uses the letters j, k, x, y, and w =D0=BEnly in=
+ foreign words.[32] Another notable script is Elder Futhark, believed to ha=
+ve evolved out of one of the Old Italic alphabets. Elder Futhark gave rise =
+to other alphabets known collectively as the Runic alphabets. The Runic alp=
+habets were used for Germanic languages from 100 CE to the late Middle Ages=
+, being engraved on stone and jewelry, although inscriptions found on bone =
+and wood occasionally appear. These alphabets have since been replaced with=
+ the Latin alphabet. The exception was for decorative use, where the runes =
+remained in use until the 20th century.[33] A photo of the Old Hungarian sc=
+ript. The Old Hungarian script was the writing system of the Hungarians. It=
+ was in use during the entire history of Hungary, albeit not as an official=
+ writing system. From the 19th century, it once again became more and more =
+popular.[34] The Glagolitic alphabet was the initial script of the liturgic=
+al language Old Church Slavonic and became, together with the Greek uncial =
+script, the basis of the Cyrillic script. Cyrillic is one of the most widel=
+y used modern alphabetic scripts and is notable for its use in Slavic langu=
+ages and also for other languages within the former Soviet Union. Cyrillic =
+alphabets include Serbian, Macedonian, Bulgarian, Russian, Belarusian, and =
+Ukrainian. The Glagolitic alphabet is believed to have been created by Sain=
+ts Cyril and Methodius, while the Cyrillic alphabet was created by Clement =
+of Ohrid, their disciple. They feature many letters that appear to have bee=
+n borrowed from or influenced by Greek and Hebrew.[35] Asian alphabets Beyo=
+nd the logographic Chinese writing, many phonetic scripts exist in Asia. Th=
+e Arabic alphabet, Hebrew alphabet, Syriac alphabet, and other abjads of th=
+e Middle East are developments of the Aramaic alphabet.[36][37] Most alphab=
+etic scripts of India and Eastern Asia descend from the Brahmi script, beli=
+eved to be a descendant of Aramaic.[38] Hangul In Korea, Sejong the Gr=D0=
+=B5at created the Hangul alphabet in 1443 CE.[39] Hangul is a unique alphab=
+et: it is a featural alphabet, where the design of many of the letters come=
+s from a sound's place of articulation, like P looking like the widened mou=
+th and L looking like the tongue pulled in.[40] The creation of Hangul was =
+planned by the government of the day,[41] and it places individual letters =
+in syllable clusters with equal dimensions, in the same way as Chinese char=
+acters. This change allows for mixed-script writing, where one syllable alw=
+ays takes up one type space no matter how many letters g=D0=B5t stacked int=
+o building that one sound-block.[42] Zhuyin Zhuyin, sometimes referred to a=
+s Bopomofo, is a semi-syllabary. It transcribes Mandarin phonetically in th=
+e Republic of China. After the later establishment of the People's Republic=
+ of China and its adoption of Hanyu Pinyin, the use of Zhuyin t=D0=BEday is=
+ lim=D1=96ted. However, it is still widely used in Taiwan. Zhuyin developed=
+ from a f=D0=BErm of Chinese shorthand based on Chinese characters in the e=
+arly 1900s and has elements of both an alphabet and a syllabary. Like an al=
+phabet, the phonemes of syllable initials are represented by individual sym=
+bols, but like a syllabary, the phonemes of the syllable finals are not; ea=
+ch possible final (excluding the medial glide) has its own character, an ex=
+ample being luan written as =E3=84=8C=E3=84=A8=E3=84=A2 (l-u-an). The last =
+symbol =E3=84=A2 takes place as the entire final -an. While Zhuyin is not a=
+ mainstream writing system, it is still often used in ways similar to a rom=
+anization system, for aiding pronunciation and as an input method for Chine=
+se characters on computers and cellphones.[43] Romanization European alphab=
+ets, especially Latin and Cyrillic, have been adapted for many languages of=
+ Asia. Arabic is also widely used, sometimes as an abjad, as with Urdu and =
+Persian, and sometimes as a complete alphabet, as with Kurdish and Uyghur.[=
+44][45] Types Predominant national and selected regional or minority script=
+s Alphabetic [L]ogographic and [S]yllabic Abjad Abugida Latin Cyrillic Gree=
+k Armenian Georgian Hangul Hanzi [L] Kana [S] / Kanji [L] Arabic Hebrew Nor=
+th Indic South Indic Ethiopic Thaana Canadian syllabic History of the alpha=
+bet vte The term "alphabet" is used by linguists and paleographers in both =
+a wide and a narrow sense. In a broader sense, an alphabet is a segmental s=
+cript at the phoneme level=E2=80=94that is, it has separate glyphs for indi=
+vidual sounds and not for larger units such as syllables or words. In the n=
+arrower sense, some scholars distinguish "true" alphabets from two other ty=
+pes of segmental script, abjads, and abugidas. These three differ in how th=
+ey treat vowels. Abjads have letters for consonants and leve most vowels un=
+expressed. Abugidas are also consonant-based but indicate vowels with diacr=
+itics, a systematic graphic modification of the consonants.[46] The earlies=
+t known alphabet using this sense is the Wadi el-Hol script, believed to be=
+ an abjad. Its successor, Phoenician, is the ancestor of modern alphabets, =
+including Arabic, Greek, Latin (via the Old Italic alphabet), Cyrillic (via=
+ the Greek alphabet), and Hebrew (via Aramaic).[47][48] A Venn diagram show=
+ing the Greek (left), Cyrillic (bottom) and Latin (right) alphabets, which =
+share many of the same letters, although they have different pronunciations=
+ Examples of present-day abjads are the Arabic and Hebrew scripts;[49] true=
+ alphabets include Latin, Cyrillic, and Korean Hangul; and abugidas, used t=
+o write Tigrinya, Amharic, Hindi, and Thai. The Canadian Aboriginal syllabi=
+cs are also an abugida, rather than a syllabary, as their nam=D0=B5 would i=
+mply, because each glyph stands for a consonant and is modified by rotation=
+ to represent the following vowel. In a true syllabary, each consonant-vowe=
+l combination gets represented by a separate glyph.[50] =D0=90ll three type=
+s may be augmented with syllabic glyphs. Ugaritic, for example, is essentia=
+lly an abjad but has syllabic letters for /=CA=94a, =CA=94i, =CA=94u/[51][5=
+2] These are the =D0=BEnly times that vowels are indicated. Coptic has a le=
+tter for /ti/.[53] Devanagari is typically an abugida augmented with dedica=
+ted letters for initial vowels, though some traditions use =E0=A4=85 as a z=
+ero consonant as the graphic base for such vowels.[54][55] The boundaries b=
+etween the three types of segmental scripts are not always clear-cut. For e=
+xample, Sorani Kurdish is written in the Arabic script, which, when used fo=
+r other languages, is an abjad.[56] In Kurdish, writing the vowels is manda=
+tory, and whole letters are used, so the script is a true alphabet. Other l=
+anguages may use a Semitic abjad with forced vowel diacritics, effectively =
+making them abugidas. On the other hand, the Phagspa script of the Mongol E=
+mpire was based closely on the Tibetan abugida, but vowel marks are written=
+ after the preceding consonant rather than as diacritic marks. Although sho=
+rt a is not written, as in the Indic abugidas, The source of the term "abug=
+ida," namely the Ge'ez abugida n=D0=BEw used for Amharic and Tigrinya, has =
+assimilated into their consonant modifications. It is no longer systematic =
+and must be learned as a syllabary rather than as a segmental script. Even =
+more extreme, the Pahlavi abjad eventually became logographic.[57]</p> </di=
+v> </div></td> </tr> </tbody> </table> <table class=3D"image_block block-5"=
+ width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pr=
+esentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table=
+-rspace: 0;"> <tbody> <tr style=3D"box-sizing: border-box;"> <td class=3D"p=
+ad" style=3D"box-sizing: border-box; padding-left: 10px; padding-right: 10p=
+x; padding-top: 10px; width: 100%;" width=3D"100%"> <div class=3D"alignment=
+" align=3D"center" style=3D"box-sizing: border-box;"> <div style=3D"box-siz=
+ing: border-box; max-width: 580px;"> <img src=3D"https://d15k2d11r6t6rl.clo=
+udfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/c=
+c08ed21751440caab542fdd9964df60/Group%2028.png" style=3D"box-sizing: border=
+-box; display: block; height: auto; border: 0; width: 100%;" width=3D"580" =
+alt=3D"" title=3D"" height=3D"auto"/> </div> </div></td> </tr> </tbody> </t=
+able> <table class=3D"paragraph_block block-6" width=3D"100%" border=3D"0" =
+cellpadding=3D"20" cellspacing=3D"0" role=3D"presentation" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; word-break: brea=
+k-word;"> <tbody> <tr style=3D"box-sizing: border-box;"> <td class=3D"pad" =
+style=3D"box-sizing: border-box;"> <div style=3D"box-sizing: border-box; co=
+lor: #000; direction: ltr; font-family: Verdana,Geneva,sans-serif; font-siz=
+e: 14px; font-weight: 400; letter-spacing: 0; line-height: 1.2; text-align:=
+ left; mso-line-height-alt: 17px;"> <p style=3D"box-sizing: border-box; lin=
+e-height: inherit; margin: 0;">This =D0=B5ditorial email with educational n=
+=D0=B5ws was sent to geoff.c.freedman@gmail.com. <strong style=3D"box-sizin=
+g: border-box;">Investor Business Talk</strong>&nbsp;sending this newslette=
+r on behalf of Platoon Marketing LLC.</p> </div></td> </tr> </tbody> </tabl=
+e></td> </tr> </tbody> </table></td> </tr> </tbody> </table> <table class=
+=3D"row row-2" align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"=
+0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box;=
+ mso-table-lspace: 0; mso-table-rspace: 0; background-color: #81988c;" bgco=
+lor=3D"#81988c"> <tbody style=3D"box-sizing: border-box;"> <tr style=3D"box=
+-sizing: border-box;"> <td style=3D"box-sizing: border-box;"> <table class=
+=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=3D"0" cell=
+spacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-ta=
+ble-lspace: 0; mso-table-rspace: 0; background-image: url(https://d15k2d11r=
+6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542c=
+ff6dd6a/cc08ed21751440caab542fdd9964df60/FOOTER%20%284%29.png); background-=
+repeat: no-repeat; border-radius: 0; color: #000; width: 600px; margin: 0 a=
+uto;" width=3D"600" background=3D"https://d15k2d11r6t6rl.cloudfront.net/pub=
+lic/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/cc08ed21751440ca=
+ab542fdd9964df60/FOOTER%20%284%29.png"> <tbody style=3D"box-sizing: border-=
+box;"> <tr style=3D"box-sizing: border-box;"> <td class=3D"column column-1"=
+ width=3D"58.333333333333336%" style=3D"box-sizing: border-box; mso-table-l=
+space: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; padding-=
+bottom: 20px; padding-left: 20px; padding-right: 20px; padding-top: 20px; v=
+ertical-align: top;" align=3D"left" valign=3D"top"> <table class=3D"paragra=
+ph_block block-1" width=3D"100%" border=3D"0" cellpadding=3D"10" cellspacin=
+g=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-ls=
+pace: 0; mso-table-rspace: 0; word-break: break-word;"> <tbody> <tr style=
+=3D"box-sizing: border-box;"> <td class=3D"pad" style=3D"box-sizing: border=
+-box;"> <div style=3D"box-sizing: border-box; color: #fff; direction: ltr; =
+font-family: Verdana,Geneva,sans-serif; font-size: 14px; font-weight: 400; =
+letter-spacing: 0; line-height: 1.2; text-align: left; mso-line-height-alt:=
+ 17px;"> <p style=3D"box-sizing: border-box; line-height: inherit; margin: =
+0; margin-bottom: 16px;">Feel fr=D0=B5=D0=B5 to email us<strong style=3D"bo=
+x-sizing: border-box;"> support@investorbusinesstalk.com</strong></p> <p st=
+yle=3D"box-sizing: border-box; line-height: inherit; margin: 0; margin-bott=
+om: 16px;"><strong style=3D"box-sizing: border-box;"><a href=3D"https://lin=
+ks.info.investorbusinesstalk.com/e/encryptedUnsubscribe?_r=3Dcc08ed21751440=
+caab542fdd9964df60&_s=3D4fdc2d543da74c569b51d0c0053e2d93&_t=3DBVQK4Q42XkaqJ=
+mx2vEuYuzMOAfDiQ9HDHcYkUkDqJX5sSWWZkUi2EEZbHKU0H2sNeNQQ2cZFNARgnan1S1XyqEmV=
+gYRRU5qZyZ8GuwXiTJHOTq_WTFnvhhe38jtBgeKq0Jio_hZXj6pLVmIdEWM1ew%3D%3D" targe=
+t=3D"_blank" rel=3D"noopener" style=3D"box-sizing: border-box; text-decorat=
+ion: underline; color: #ffffff;">Unsubs=D1=81ribe</a> </strong>to sto=D1=80=
+ receiving m=D0=B0rketing communication from us.</p> <p style=3D"box-sizing=
+: border-box; line-height: inherit; margin: 0; margin-bottom: 16px;">74 E G=
+lenwood Ave Smyrna, DE 19977</p> <p style=3D"box-sizing: border-box; line-h=
+eight: inherit; margin: 0;"><strong style=3D"box-sizing: border-box;">=C2=
+=A9 </strong>2026 Investor Business Talk. =D0=90ll rights reserved.</p> </d=
+iv></td> </tr> </tbody> </table></td> <td class=3D"column column-2" width=
+=3D"41.666666666666664%" style=3D"box-sizing: border-box; mso-table-lspace:=
+ 0; mso-table-rspace: 0; font-weight: 400; text-align: left; padding-bottom=
+: 20px; padding-left: 10px; padding-right: 20px; padding-top: 20px; vertica=
+l-align: top;" align=3D"left" valign=3D"top"> <table class=3D"image_block b=
+lock-1" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; ms=
+o-table-rspace: 0;"> <tbody> <tr style=3D"box-sizing: border-box;"> <td cla=
+ss=3D"pad" style=3D"box-sizing: border-box; width: 100%;" width=3D"100%"> <=
+div class=3D"alignment" align=3D"center" style=3D"box-sizing: border-box;">=
+ <div style=3D"box-sizing: border-box; max-width: 220px;"> <a href=3D"https=
+://links.info.investorbusinesstalk.com/u/click?_t=3Dcc08ed21751440caab542fd=
+d9964df60&_m=3D4fdc2d543da74c569b51d0c0053e2d93&_e=3DPpgcO3KQPBKQFXQqH2CZVC=
+OX8SDgRkcaLTyJKEeTGP-cZqSlI0U6hRbcFeNono0f2cys6S1FU8eudh326pm-cQNlxKiHOAx-1=
+qiSYoJCgkB8Vq-w93BEJ-5eh7-RVyZ4KEYkzjFTCgVObw7xJZ8bTVgwMuKV-vWUEsVHmtljfStj=
+WFk0o_ePRntggr1vXLZZAVBltCrvlvWJso_QNat2S2PiYiHkmZKkFM1ojQhtl95-KwOviXJU2Yf=
+Bx3yYafN9KJS3o0sa1rdTG2mUJpCBaMsbR_IHpZI80_-QPuxGj4Uzv0yO7-Aeg6S9Qj2RyS9YVF=
+W3nJKB_rgKdzJDv1pAjtlXI4PiqqJh3OTL0R89vIM%3D" target=3D"_blank" style=3D"bo=
+x-sizing: border-box;"><img src=3D"https://d15k2d11r6t6rl.cloudfront.net/pu=
+blic/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/cc08ed21751440c=
+aab542fdd9964df60/Group%201707486482.png" style=3D"box-sizing: border-box; =
+display: block; height: auto; border: 0; width: 100%;" width=3D"220" alt=3D=
+"Logo IBT" title=3D"Logo IBT" height=3D"auto"/></a> </div> </div></td> </tr=
+> </tbody> </table> <table class=3D"button_block block-2" width=3D"100%" bo=
+rder=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"> <tb=
+ody> <tr style=3D"box-sizing: border-box;"> <td class=3D"pad" style=3D"box-=
+sizing: border-box; padding-bottom: 10px; padding-left: 10px; padding-right=
+: 10px; padding-top: 15px; text-align: center;" align=3D"center"> <div clas=
+s=3D"alignment" align=3D"center" style=3D"box-sizing: border-box;"> <a href=
+=3D"https://links.info.investorbusinesstalk.com/u/click?_t=3Dcc08ed21751440=
+caab542fdd9964df60&_m=3D4fdc2d543da74c569b51d0c0053e2d93&_e=3DPpgcO3KQPBKQF=
+XQqH2CZVCOX8SDgRkcaLTyJKEeTGP-PHuDDbVFDe1PQ9SdFbGwxpaHIu9UOFq7xr3uKOCs8s6Kl=
+IlOp8YMXfyZOUs5orIEXeiXa9gDhxbYvtrKmx4hGYQCNUc2tscSrRcr5w7Etz3EN_fHahcfO1Zd=
+oIupYcyzqvX6FnWsVD1on-5j45cm80_Gm5933MW3XBKMklUw30U28BP_1Q2C1teOe-DOdG2mcZV=
+bF-rOsGFesDWAhAM8PWEoSE--GFPnm4Ji3z32ASFZPSTue6Iu2hx6-8mN3532HmKhEFKGLWH5Xx=
+D74F6rVuJxgunr-ZK7SKEEw_xOCd3CW-f6BIUFhHLdlVVtJz_Sebe9ms-md3JnKxbRIrQ3b8Pnr=
+GGPF-2BuHX-2CCh1hw%3D%3D" target=3D"_blank" style=3D"box-sizing: border-box=
+; color: #ffffff; text-decoration: none;"><!--[if mso]><v:roundrect xmlns:v=
+=3D"urn:schemas-microsoft-com:vml" xmlns:w=3D"urn:schemas-microsoft-com:off=
+ice:word" href=3D"https://links.info.investorbusinesstalk.com/u/click?_t=3D=
+cc08ed21751440caab542fdd9964df60&_m=3D4fdc2d543da74c569b51d0c0053e2d93&_e=
+=3DPpgcO3KQPBKQFXQqH2CZVCOX8SDgRkcaLTyJKEeTGP-PHuDDbVFDe1PQ9SdFbGwxpaHIu9UO=
+Fq7xr3uKOCs8s2HIO06hVFW1B4ZFGkMpJJnFrf01EwlWTEvnBgDDgnlT6zNLpTHW6hRO7ismSoh=
+W473Q-isPa3d7ugPiiJ-LuolWPLUYuOvarVZgvSl2g3NDLMtuXxIL06KS8wzVWrjl_Medd9Yeh0=
+SgJoG64k9uTyJNXqVVl9Ya5I-lPLMFTUragOLdL8YAQBlWtRkjcbZPhTGa3aV4hjHvAcdHAGeo0=
+SuuKvba-PHjjUv-dwRuNEG3lBIXdfb0kMy99vyHnvWITD_GNo_4qjzMl1d7wfwshCXqJGqww7ru=
+elXNw5VTd1-SXcAYJzwDwkxbPsviNGyuyw%3D%3D" style=3D"height:38px;width:174px;=
+v-text-anchor:middle;" arcsize=3D"10%" fill=3D"false"> <v:stroke dashstyle=
+=3D"Solid" weight=3D"2px" color=3D"#ffffff"/> <w:anchorlock/> <v:textbox in=
+set=3D"0px,0px,0px,0px"> <center dir=3D"false" style=3D"color:#ffffff;font-=
+family:sans-serif;font-size:14px"><![endif]--> <span class=3D"button" style=
+=3D"box-sizing: border-box; background-color: transparent; mso-shading: tra=
+nsparent; border-bottom: 2px solid #ffffff; border-left: 2px solid #ffffff;=
+ border-radius: 4px; border-right: 2px solid #ffffff; border-top: 2px solid=
+ #ffffff; color: #ffffff; display: inline-block; font-family: Arial, 'Helve=
+tica Neue', Helvetica, sans-serif; font-size: 14px; font-weight: 400; mso-b=
+order-alt: none; padding-bottom: 5px; padding-top: 5px; padding-left: 40px;=
+ padding-right: 40px; text-align: center; width: auto; word-break: keep-all=
+; letter-spacing: normal;"><span style=3D"box-sizing: border-box; word-brea=
+k: break-word; line-height: 28px;"><strong style=3D"box-sizing: border-box;=
+">Privacy Policy</strong></span></span> <!--[if mso]></center></v:textbox><=
+/v:roundrect><![endif]--></a> </div></td> </tr> </tbody> </table> <table cl=
+ass=3D"button_block block-3" width=3D"100%" border=3D"0" cellpadding=3D"0" =
+cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; ms=
+o-table-lspace: 0; mso-table-rspace: 0;"> <tbody> <tr style=3D"box-sizing: =
+border-box;"> <td class=3D"pad" style=3D"box-sizing: border-box; padding-bo=
+ttom: 10px; padding-left: 10px; padding-right: 10px; padding-top: 15px; tex=
+t-align: center;" align=3D"center"> <div class=3D"alignment" align=3D"cente=
+r" style=3D"box-sizing: border-box;"> <a href=3D"https://links.info.investo=
+rbusinesstalk.com/e/encryptedUnsubscribe?_r=3Dcc08ed21751440caab542fdd9964d=
+f60&_s=3D4fdc2d543da74c569b51d0c0053e2d93&_t=3DBVQK4Q42XkaqJmx2vEuYuzMOAfDi=
+Q9HDHcYkUkDqJX5sSWWZkUi2EEZbHKU0H2sNeNQQ2cZFNARgnan1S1XyqEmVgYRRU5qZyZ8GuwX=
+iTJHOTq_WTFnvhhe38jtBgeKq0Jio_hZXj6pLVmIdEWM1ew%3D%3D" target=3D"_blank" st=
+yle=3D"box-sizing: border-box; color: #000000; text-decoration: none;"><!--=
+[if mso]><v:roundrect xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:w=3D"=
+urn:schemas-microsoft-com:office:word" href=3D"https://links.info.investorb=
+usinesstalk.com/e/encryptedUnsubscribe?_r=3Dcc08ed21751440caab542fdd9964df6=
+0&_s=3D4fdc2d543da74c569b51d0c0053e2d93&_t=3DBVQK4Q42XkaqJmx2vEuYuzMOAfDiQ9=
+HDHcYkUkDqJX5sSWWZkUi2EEZbHKU0H2sNeNQQ2cZFNARgnan1S1XyqEmVgYRRU5qZyZ8GuwXiT=
+JHOTq_WTFnvhhe38jtBgeKq0Jio_hZXj6pLVmIdEWM1ew%3D%3D" style=3D"height:38px;w=
+idth:174px;v-text-anchor:middle;" arcsize=3D"10%" fillcolor=3D"#ffffff"> <v=
+:stroke dashstyle=3D"Solid" weight=3D"2px" color=3D"#ffffff"/> <w:anchorloc=
+k/> <v:textbox inset=3D"0px,0px,0px,0px"> <center dir=3D"false" style=3D"co=
+lor:#000000;font-family:sans-serif;font-size:14px"><![endif]--> <span class=
+=3D"button" style=3D"box-sizing: border-box; background-color: #ffffff; mso=
+-shading: transparent; border-bottom: 2px solid #ffffff; border-left: 2px s=
+olid #ffffff; border-radius: 4px; border-right: 2px solid #ffffff; border-t=
+op: 2px solid #ffffff; color: #000000; display: inline-block; font-family: =
+Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size: 14px; font-weigh=
+t: 400; mso-border-alt: none; padding-bottom: 5px; padding-top: 5px; paddin=
+g-left: 45px; padding-right: 45px; text-align: center; width: auto; word-br=
+eak: keep-all; letter-spacing: normal;"><span style=3D"box-sizing: border-b=
+ox; word-break: break-word; line-height: 28px;"><strong style=3D"box-sizing=
+: border-box;">Unsubscribe</strong></span></span> <!--[if mso]></center></v=
+:textbox></v:roundrect><![endif]--></a> </div></td> </tr> </tbody> </table>=
+</td> </tr> </tbody> </table></td> </tr> </tbody> </table></td> </tr> </tbo=
+dy> </table><!-- End --> <table align=3D"center" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0"> <tbody> <tr> <td valign=3D"top"><span style=3D"fo=
+nt-family:Arial;font-size:12px;line-height:20px;color:#8E8E8E;">This email =
+was sent to <a href=3D"mailto:geoff.c.freedman@gmail.com" target=3D"_blank"=
+>geoff.c.freedman@gmail.com</a>. Don't want to receive these emails anymore=
+? <a href=3D"https://links.info.investorbusinesstalk.com/e/encryptedUnsubsc=
+ribe?_r=3Dcc08ed21751440caab542fdd9964df60&_s=3D4fdc2d543da74c569b51d0c0053=
+e2d93&_t=3DBVQK4Q42XkaqJmx2vEuYuzMOAfDiQ9HDHcYkUkDqJX5sSWWZkUi2EEZbHKU0H2sN=
+eNQQ2cZFNARgnan1S1XyqEmVgYRRU5qZyZ8GuwXiTJHOTq_WTFnvhhe38jtBgeKq0Jio_hZXj6p=
+LVmIdEWM1ew%3D%3D" name=3D"unsubscribe" target=3D"_blank"><span style=3D"co=
+lor:#8E8E8E;text-decoration:underline;color:#8e8e8e">Unsubscribe</span></a>=
+</span></td> </tr> <tr> <td valign=3D"top"><span style=3D"font-family:Arial=
+;font-size:12px;line-height:12px;color:#8E8E8E;">investor business talk, </=
+span></td> </tr> </tbody> </table> </body> </html>
+------=_Part_90478_1434168768.1768415689548--

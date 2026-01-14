@@ -18,9 +18,14 @@
  *    - Choose minute interval: Every 15 minutes
  *
  * @author Anti-Spam Dataset
- * @version 4.0 - Pattern-Based Detection (no more scoring anti-patterns!)
+ * @version 4.1 - Enhanced Clickbait Detection
  *
- * KEY CHANGE: Moved from complex scoring to simple pattern detection
+ * v4.1 CHANGES: Added patterns for mystery/curiosity gap and investment language
+ * - Added: "strange/secret/hidden picture" detection (mystery clickbait)
+ * - Added: "market shift/crash/collapse" detection (investment fear-mongering)
+ * - Fixes missed spam with subtle clickbait patterns
+ *
+ * v4.0 CHANGES: Moved from complex scoring to simple pattern detection
  * - Detects bulk email services (Amazon SES, SendGrid)
  * - Detects clickbait/fear-mongering patterns
  * - Requires multiple signals (not just one)
@@ -353,7 +358,9 @@ function analyzeMessage(message)
       /(what|this).*(changes everything|stunned everyone)/i,
       /【.*】/,  // Japanese date brackets
       /💼|📸|⏯️/,  // Sensationalist emoji
-      /\?\?\?|!!!/  // Multiple punctuation
+      /\?\?\?|!!!/,  // Multiple punctuation
+      /(strange|secret|hidden).*(picture|photo|image)/i,  // Mystery/curiosity gap
+      /market (shift|crash|collapse)/i  // Investment fear-mongering
     ];
 
     for (let i = 0; i < clickbaitPatterns.length; i++)

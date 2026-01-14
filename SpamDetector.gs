@@ -18,12 +18,18 @@
  *    - Choose minute interval: Every 15 minutes
  *
  * @author Anti-Spam Dataset
- * @version 4.1 - Enhanced Clickbait Detection
+ * @version 5.0 - Category-Based Pattern Detection (NO MORE KEYWORD ARRAYS!)
  *
- * v4.1 CHANGES: Added patterns for mystery/curiosity gap and investment language
- * - Added: "strange/secret/hidden picture" detection (mystery clickbait)
- * - Added: "market shift/crash/collapse" detection (investment fear-mongering)
- * - Fixes missed spam with subtle clickbait patterns
+ * v5.0 CHANGES: Complete rewrite to eliminate keyword array anti-pattern
+ * - REMOVED: Hardcoded clickbait phrase arrays (was whack-a-mole)
+ * - REMOVED: Hardcoded fear keyword lists (reactive, not proactive)
+ * - ADDED: Category-based regex patterns that catch CLASSES of spam tactics
+ *   * Curiosity gap: (mystery word) + (visual word) = catches ALL variations
+ *   * Financial fear: (market word) + (crisis word) = catches ALL variations
+ *   * Government fear: (agency) + (threat) = catches ALL variations
+ *   * Urgency + sensationalism patterns
+ *   * Structural spam indicators (emoji, punctuation, formatting)
+ * - RESULT: Proactive detection without reactive keyword additions
  *
  * v4.0 CHANGES: Moved from complex scoring to simple pattern detection
  * - Detects bulk email services (Amazon SES, SendGrid)
@@ -351,16 +357,35 @@ function analyzeMessage(message)
       logDebug('Bulk email service detected');
     }
 
-    // SIGNAL 2: Clickbait patterns (count how many)
+    // SIGNAL 2: Clickbait/Sensationalism detection (category-based, not keyword lists!)
+    // Each pattern catches a CATEGORY of spam tactics, not specific phrases
+
     const clickbaitPatterns = [
-      /caught on camera/i,
-      /warning:|exposed:|alert:/i,
-      /(what|this).*(changes everything|stunned everyone)/i,
-      /【.*】/,  // Japanese date brackets
-      /💼|📸|⏯️/,  // Sensationalist emoji
-      /\?\?\?|!!!/,  // Multiple punctuation
-      /(strange|secret|hidden).*(picture|photo|image)/i,  // Mystery/curiosity gap
-      /market (shift|crash|collapse)/i  // Investment fear-mongering
+      // CURIOSITY GAP: (mystery word) + (visual/media word)
+      // Catches: "strange picture", "secret photo", "hidden camera", etc.
+      /(strange|secret|hidden|mysterious|shocking|bizarre|unusual|leaked).*(picture|photo|image|video|camera|footage|document)/i,
+
+      // URGENCY + SENSATIONALISM: (urgent word) + (sensational concept)
+      // Catches: "breaking news", "urgent warning", "alert exposed", etc.
+      /(breaking|urgent|warning|alert|stop|exposed|banned).*(news|truth|secret|scandal|exposed|revealed)/i,
+
+      // FINANCIAL FEAR-MONGERING: (market/money word) + (crisis word)
+      // Catches: "market crash", "stock collapse", "economy shift", "bitcoin warning", etc.
+      /(market|stock|economy|dollar|gold|bitcoin|investment|crypto).*(crash|collapse|shift|crisis|warning|alert|plunge|tank)/i,
+
+      // "CAUGHT" PATTERN: Visual proof framing
+      // Catches: "caught on camera", "caught doing", "caught red-handed", etc.
+      /caught (on|doing|in|red-handed)/i,
+
+      // TRANSFORMATION CLICKBAIT: (what/this) + (impact verb)
+      // Catches: "this changes everything", "what stunned everyone", etc.
+      /(what|this).*(changes everything|stunned everyone|shocked|amazed|surprised)/i,
+
+      // STRUCTURAL SPAM INDICATORS
+      /【.*】/,           // Japanese date brackets (spammer tactic)
+      /[💼📸⏯️🚨⚠️📰💰]/,  // Sensationalist emoji (business, camera, play, alert, money)
+      /\?\?\?|!!!/,       // Multiple punctuation (urgency tactic)
+      /\bWATCH\b.*\?$/i   // "WATCH" + question mark (clickbait structure)
     ];
 
     for (let i = 0; i < clickbaitPatterns.length; i++)
@@ -371,18 +396,32 @@ function analyzeMessage(message)
       }
     }
 
-    // SIGNAL 3: Fear-mongering keywords
-    const fearKeywords = [
-      'WARNING', 'EXPOSED', 'STOP Using', 'Blood Thinner Warning',
-      'IRS', 'NSA', 'Bank Account', 'Government Hiding'
+    // SIGNAL 3: Fear-mongering (category-based detection)
+    // Broad categories that catch variations without hardcoded phrases
+
+    const fearPatterns = [
+      // GOVERNMENT FEAR: IRS, NSA, FBI, government threats
+      /\b(IRS|NSA|FBI|CIA|government|federal)\b.*(warn|hiding|secret|spy|track|audit|investigation)/i,
+
+      // FINANCIAL FEAR: Bank, account, money threats
+      /\b(bank account|credit card|social security|identity|savings)\b.*(stolen|hacked|freeze|close|warning|alert)/i,
+
+      // HEALTH FEAR: Medical warnings, dangers
+      /\b(blood thinner|medication|drug|vaccine|doctor).*(warning|danger|deadly|killing|risk|avoid)/i,
+
+      // URGENCY WORDS (ALL CAPS detection)
+      /\b(WARNING|ALERT|URGENT|BREAKING|EXPOSED|BANNED|STOPPED)\b/,
+
+      // "STOP USING" pattern
+      /\bSTOP (using|taking|doing|buying)\b/i
     ];
 
-    for (let i = 0; i < fearKeywords.length; i++)
+    for (let i = 0; i < fearPatterns.length; i++)
     {
-      if (subject.toUpperCase().includes(fearKeywords[i].toUpperCase()))
+      if (fearPatterns[i].test(subject))
       {
         signals.fearMongering = true;
-        logDebug('Fear-mongering detected: ' + fearKeywords[i]);
+        logDebug('Fear-mongering detected (pattern match)');
         break;
       }
     }

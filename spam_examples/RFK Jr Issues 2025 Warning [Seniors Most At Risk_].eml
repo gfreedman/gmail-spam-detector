@@ -1,0 +1,598 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:d193:b0:1b0:f2cc:f19c with SMTP id ba19csp2787744rdb;
+        Sun, 18 Jan 2026 12:48:43 -0800 (PST)
+X-Received: by 2002:a05:6214:dcf:b0:87c:765:dc6 with SMTP id 6a1803df08f44-8942dbf10bcmr129001206d6.8.1768769323266;
+        Sun, 18 Jan 2026 12:48:43 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1768769323; cv=none;
+        d=google.com; s=arc-20240605;
+        b=e5auZkDWlYkPiGSwl1bECf+f1617Gite4XKEkdhB8Lay0BagERfNyV+5g/7OGYnGAV
+         LsyGP28mcdhkNBYeRAnr0kywT/vwU+ie+Ma7Jc2hRvy52LuFoSFM/xAt7J8nVbcT34Iu
+         lX2FNm496S6qJA6WnpFPn5+9qjiU7nOrd1mzeEWttvXSWQGeyy2LKX3icMCt/VodxltB
+         kwaJvoxiCrZqFpIgMuvNT0Xwi8ee1A+YRWrY1QuNgW2a1Vg9F7qHlO2ol+HLsK71joIY
+         h5ITr/WxaaRiTLcsRprA3Met5uskFZ0TUipHzg0D7xLw64sSuOuB6yRXVXs0yufmA0i+
+         ry4Q==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=x7GOPDdm4uOXJWC3Ba8JTSwqJT+8fMqY3F1XX+yoWf4=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=UaXtQbP1eQ+nrhJPRgpMRtk2vCKXfC9S4lEXf3++kYfR1rcjXhKm2k1lvM2VYJiC4e
+         xUw/E/CGD0g6IDRahoTTPdObyE6jyvOUDxlK9n7Wd/iu5WS33QkOHB1qHdEC2Ad3gFdN
+         J0oXJEcC/3qADKdn/+tDA4cxRuBunMuyOVT/YpflGD76ATFbBjWdUS39rTV79UoF8BBF
+         idcL7JfXRyAi4CS76EYBqxIzg+r09j525yV7+USk6bAAO9DXvQDHvGPdqHYKkIAvdcnM
+         9z0gMCcCAuSFJnzXzzIGoQgOhVxJ08/vKUbZ1/xuDvyEfR1YUEcn6roG8gDvXR5zDB03
+         /V5Q==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@safe.turbotradepro.com header.s=dhv27izgagoq7ezvrdsodh27arn2kavo header.b=ZapO7anV;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=p7welQoq;
+       spf=pass (google.com: domain of 0100019bd2ddfedc-fc138f8b-f22f-429b-b183-216594b131c3-000000@amazonses.com designates 54.240.78.129 as permitted sender) smtp.mailfrom=0100019bd2ddfedc-fc138f8b-f22f-429b-b183-216594b131c3-000000@amazonses.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=turbotradepro.com
+Return-Path: <0100019bd2ddfedc-fc138f8b-f22f-429b-b183-216594b131c3-000000@amazonses.com>
+Received: from a78-129.smtp-out.amazonses.com (a78-129.smtp-out.amazonses.com. [54.240.78.129])
+        by mx.google.com with ESMTPS id 6a1803df08f44-8942e6f682asi81646896d6.783.2026.01.18.12.48.42
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 18 Jan 2026 12:48:43 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019bd2ddfedc-fc138f8b-f22f-429b-b183-216594b131c3-000000@amazonses.com designates 54.240.78.129 as permitted sender) client-ip=54.240.78.129;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@safe.turbotradepro.com header.s=dhv27izgagoq7ezvrdsodh27arn2kavo header.b=ZapO7anV;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=p7welQoq;
+       spf=pass (google.com: domain of 0100019bd2ddfedc-fc138f8b-f22f-429b-b183-216594b131c3-000000@amazonses.com designates 54.240.78.129 as permitted sender) smtp.mailfrom=0100019bd2ddfedc-fc138f8b-f22f-429b-b183-216594b131c3-000000@amazonses.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=turbotradepro.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=dhv27izgagoq7ezvrdsodh27arn2kavo; d=safe.turbotradepro.com;
+	t=1768769322;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=N9ygGG5JDFmqDSCHcLFcbKMGrzdiIsNXroGYN5RIWyM=;
+	b=ZapO7anV7zdXpRZ8w3xJFd7Yi4w5hsj6tMbxBBYUPQCH/Gtj06Pr8dH0qhtTRO61
+	NjSppBfFQmceAtVTJ2UNbDdswdiEm95Q12JYkc4DUiGHvmefsuplxFY0spM+fIQhdvK
+	K3S36EwvL76oKk0Vo4MOTnWHhJOVUzqeqL0HojaGBnbDJMSLtic/z9h3tOgJpFnGZ4W
+	nGl9n9N8O9Gb4nHDB/t9i3AQejjgDJPhI2PPSxK3P96enWWyPWTatuCrDc94HfTSKif
+	0PDu36cTkBS1emRBdaUMlA/CIaRJpv5Hc5he8O8rIiD3zdG5LaD33dXt65pYHyCFRPq
+	jdbQOSxIFQ==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1768769322;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=N9ygGG5JDFmqDSCHcLFcbKMGrzdiIsNXroGYN5RIWyM=;
+	b=p7welQoqv3KGcJRNQSyD1bLxgRNf3t5HYJi0X2ZqBJeUkfv6YufOfn123Jz1yf9I
+	httBlpl2j1OvqlJrglh1r5mJRJxNtvj/Wq02y+RZIph3iMoTOwFUyt4Tfu5N41mXYGN
+	9ZRsmPJGqmPe9LF0oUD1eafod/exkUCMowRf9AIE=
+Date: Sun, 18 Jan 2026 20:48:42 +0000
+From: =?UTF-8?Q?A_terrifying_n=D0=B5w_warning_=7C_Turbo_Trade_Pro?= <seen@safe.turbotradepro.com>
+Reply-To: support@turbotradepro.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019bd2ddfedc-fc138f8b-f22f-429b-b183-216594b131c3-000000@email.amazonses.com>
+Subject: RFK Jr Issues 2025 Warning [Seniors Most At Risk?]
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_4424_367942626.1768769322704"
+X-Campaign-ID: 16527651
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=2784686eb9da47129ed0b358fd305c52&_s=335afc34e25045f8930df44410f5a469&_t=Dqvnaf34CS5g13RrJ_KDXILW_ePpBXYCrEZ44bqwpEBreS4ydFY_gr5foeqK1WWPhGmKZ90V29gVGuJIwVfgkdfSgRpTkM3gPUWgrbRox0XV_ldi_mV2H2C2trxiW2OlzGpgsogrFtnwJTL5cUwORA%3D%3D>,<mailto:unsubscribe+16527651+21508613@unsubscribe.iterable.com>
+X-Feedback-ID: 21508613:16527651:127403:iterable
+X-Message-ID: 335afc34e25045f8930df44410f5a469
+X-SES-Outgoing: 2026.01.18-54.240.78.129
+
+------=_Part_4424_367942626.1768769322704
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Turbo Trade Pro For years liberals have ca=E2=85=BC=E2=85=BCed RFK Jr a QUA=
+CK=E2=80=A6 an ALARMIST=E2=80=A6 and=20
+a CONSPIRACY THEORIST. But n=CE=BFw it appears HE WAS RIGHT about a =D0=A1=
+=CE=9FV=CE=99D lab leak=E2=80=A6=20
+
+
+
+
+
+
+
+ DATE: 01/18/26=20
+ <https://turbotradepro.com/>=20
+
+
+
+
+ For years liberals have ca=E2=85=BC=E2=85=BCed RFK Jr a QUACK=E2=80=A6 an =
+ALARMIST=E2=80=A6 and a CONSPIRACY=20
+THEORIST.=20
+
+=20
+<https://track.turbotradepro.com/695fef9f051698c8595bcf41?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00219_1>
+But n=CE=BFw it appearsHE WAS RIGHT about a =D0=A1=CE=9FV=CE=99D lab leak=
+=E2=80=A6=20
+
+ He was RIGHT about microplastics=E2=80=A6=20
+
+ And he was RIGHT about FDA corruption.=20
+
+ N=CE=BFw, he=E2=80=99s issued a terrifying n=D0=B5w warning=20
+<https://track.turbotradepro.com/695fef9f051698c8595bcf41?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00219_1>
+ that Americans need to hear in 2025.
+
+ =CE=9C=D1=96=E2=85=BC=E2=85=BC=D1=96=CE=BFns are in the crosshairs=E2=80=
+=A6=20
+
+ And if you were born before Jan 1st, 1965, THIS=20
+<https://track.turbotradepro.com/695fef9f051698c8595bcf41?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00219_1>
+ affects you most of a=E2=85=BC=E2=85=BC.
+
+ G=D0=B5t the full fa=CF=B2ts h=D0=B5r=D0=B5=20
+<https://track.turbotradepro.com/695fef9f051698c8595bcf41?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00219_1>
+.
+
+ P.S. Liberals will ca=E2=85=BC=E2=85=BC THIS=20
+<https://track.turbotradepro.com/695fef9f051698c8595bcf41?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00219_1>
+ crazy too, until they seethe data=20
+<https://track.turbotradepro.com/695fef9f051698c8595bcf41?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00219_1>
+. L=D0=B5arn why RFK Jr is warning Americans about this emerging health cri=
+sis=20
+before it=E2=80=99s too late. Watchthis video=20
+<https://track.turbotradepro.com/695fef9f051698c8595bcf41?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00219_1>
+ n=CE=BFw.=20
+
+
+ This ad is sent on behalf of NewMarket Health Publishing, LLC. P.O. Box 91=
+3,=20
+Frederick, MD 21705, USA. If you would like to unsubscribe from receiving=
+=20
+offers from NewMarket Health Publishing, LLC, please clickhere=20
+<https://track.turbotradepro.com/69625463915b17d011643d31?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Ddpf-fil&sub3=3Dunsub>
+.
+
+
+
+
+ This email was sent by Turbo Trade Pro a part of TerraTrance Technologies,=
+ LLC
+
+ Reach out to us by replying button or by direct email to=20
+support@turbotradepro.com <mailto:support@turbotradepro.com>=20
+
+ Reproduction or distribution of texts, images or information in any forms =
+is=20
+forbidden without written permission from TerraTrance Technologies, LLC.
+
+ 200 Broadway Blvd NE, Albuquerque, NM 87102=20
+
+
+
+ Privacy Policy  <https://turbotradepro.com/privacy-policy/>=20
+
+ Terms & Conditions  <https://turbotradepro.com/terms-conditions/>=20
+
+ Unsubscribe =20
+<https://links.safe.turbotradepro.com/e/encryptedUnsubscribe?_r=3D2784686eb=
+9da47129ed0b358fd305c52&_s=3D335afc34e25045f8930df44410f5a469&_t=3DDqvnaf34=
+CS5g13RrJ_KDXILW_ePpBXYCrEZ44bqwpEBreS4ydFY_gr5foeqK1WWPhGmKZ90V29gVGuJIwVf=
+gkdfSgRpTkM3gPUWgrbRox0XV_ldi_mV2H2C2trxiW2OlzGpgsogrFtnwJTL5cUwORA%3D%3D>
+ <https://turbotradepro.com/>=20
+ =C2=A9 2026 Turbo Trade Pro. All Rights Reserved.=20
+
+------=_Part_4424_367942626.1768769322704
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.=
+w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> <html xmlns=3D"http://www.w3=
+.org/1999/xhtml" xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:s=
+chemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: border=
+-box !important;"> <head> <meta http-equiv=3D"Content-Type" content=3D"text=
+/html; charset=3Dutf-8"> <title>Turbo Trade Pro</title> <meta name=3D"viewp=
+ort" content=3D"width=3Ddevice-width, initial-scale=3D1.0"> <meta name=3D"c=
+olor-scheme" content=3D"light dark"> <meta name=3D"supported-color-schemes"=
+ content=3D"light dark"> <link rel=3D"stylesheet" href=3D"https://use.typek=
+it.net/pkh1jju.css"> <style type=3D"text/css">body{width:100%!important;-we=
+bkit-text-size-adjust:100%;-ms-text-size-adjust:100%}*{box-sizing:border-bo=
+x!important}[style*=3D"owners-wide"]{font-family:'owners-wide',sans-serif}.=
+content-bg{background-color:transparent!important}@media screen and (max-wi=
+dth:600px){table.page-table{width:100%!important;max-width:100%!important;m=
+in-width:100%!important}img{background-color:transparent!important}.gap-pad=
+{padding-top:0!important}.heade-date{font-size:12px!important}.td-btn{displ=
+ay:block!important;width:100%!important;max-width:100%!important;min-width:=
+100%!important}}</style> <!--[if (gte mso 9)|(IE)]><style type=3D"text/css"=
+>table{border-collapse:collapse!important}</style><![endif]--> <!--[if (gte=
+ mso 9)|(IE)]><xml> <o:OfficeDocumentSettings> <o:AllowPNG/> <o:PixelsPerIn=
+ch>96</o:PixelsPerInch> </o:OfficeDocumentSettings> </xml><![endif]--> </he=
+ad> <body style=3D"-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 10=
+0%; margin: 0; padding: 0; background-color: #ffffff; box-sizing: border-bo=
+x !important; width: 100% !important;"><span style=3D"color:transparent;vis=
+ibility:hidden;display:none;opacity:0;height:0;width:0;font-size:0;">For ye=
+ars liberals have ca=E2=85=BC=E2=85=BCed RFK Jr a QUACK=E2=80=A6 an ALARMIS=
+T=E2=80=A6 and a CONSPIRACY THEORIST. But n=CE=BFw it appears HE WAS RIGHT =
+about a =D0=A1=CE=9FV=CE=99D lab leak=E2=80=A6</span><img src=3D"https://li=
+nks.safe.turbotradepro.com/e/eo?_t=3D2784686eb9da47129ed0b358fd305c52&amp;_=
+m=3D335afc34e25045f8930df44410f5a469&amp;_e=3DDqvnaf34CS5g13RrJ_KDXILW_ePpB=
+XYCrEZ44bqwpEBreS4ydFY_gr5foeqK1WWPhGmKZ90V29gVGuJIwVfgkdfSgRpTkM3gPUWgrbRo=
+x0UN-S_nI41_Vzd-zkHy6T3FnfD1zzIUJn9tsOuidsJPGvp5kWzw-is5tBwwdOspG5A%3D" sty=
+le=3D"border:0;width:1px;height:1px;border-width:0px!important;display:none=
+!important;line-height:0!important;" width=3D"1" height=3D"1"/> <center sty=
+le=3D"box-sizing: border-box !important;"> <table bgcolor=3D"#ffffff" borde=
+r=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"border-=
+spacing: 0; border-collapse: collapse; background-color: #ffffff; min-width=
+: 100%; box-sizing: border-box !important;"> <tr style=3D"box-sizing: borde=
+r-box !important;"> <td align=3D"center" valign=3D"top" style=3D"box-sizing=
+: border-box !important;"> <table class=3D"page-table" bgcolor=3D"#BEDAA8" =
+border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"bo=
+rder-spacing: 0; border-collapse: collapse; max-width: 1000px; box-sizing: =
+border-box !important;"> <tr style=3D"box-sizing: border-box !important;"> =
+<td class=3D"content-bg" style=3D"background-image: url(https://library.ite=
+rable.com/2346/28606/ae4f1e564d4b4d0e94e18d65b65e8439-bg.png); background-p=
+osition: center top; background-repeat: no-repeat; box-sizing: border-box !=
+important; background-color: transparent !important;" background=3D"https:/=
+/library.iterable.com/2346/28606/ae4f1e564d4b4d0e94e18d65b65e8439-bg.png" b=
+gcolor=3D"transparent !important"> <table border=3D"0" cellpadding=3D"0" ce=
+llspacing=3D"0" width=3D"100%" style=3D"border-spacing: 0; border-collapse:=
+ collapse; min-width: 100%; box-sizing: border-box !important;"> <tr style=
+=3D"box-sizing: border-box !important;"> <td class=3D"gap-pad" style=3D"pad=
+ding-top: 20px; box-sizing: border-box !important;"></td> </tr> <!--[if mso=
+ | IE]><tr> <td align=3D"center"> <table class=3D"page-table" border=3D"0" =
+cellspacing=3D"0" cellpadding=3D"0" width=3D"600" style=3D"width: 600px;max=
+-width: 100%;"><![endif]--> <tr style=3D"box-sizing: border-box !important;=
+"> <td align=3D"center" style=3D"box-sizing: border-box !important;"> <tabl=
+e class=3D"page-table" bgcolor=3D"#ffffff" border=3D"0" cellpadding=3D"0" c=
+ellspacing=3D"0" width=3D"100%" style=3D"border-spacing: 0; border-collapse=
+: separate; max-width: 600px; width: 100%; box-sizing: border-box !importan=
+t;"> <!--- Bottom ---> <tr style=3D"box-sizing: border-box !important;"> <t=
+d style=3D"box-sizing: border-box !important;"> <table border=3D"0" cellpad=
+ding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"border-spacing: 0; bor=
+der-collapse: collapse; min-width: 100%; box-sizing: border-box !important;=
+"> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"box-sizin=
+g: border-box !important;"> <table border=3D"0" cellpadding=3D"0" cellspaci=
+ng=3D"0" width=3D"100%" style=3D"border-spacing: 0; border-collapse: collap=
+se; min-width: 100%; box-sizing: border-box !important;"> <tr style=3D"box-=
+sizing: border-box !important;"> <td align=3D"right" style=3D"box-sizing: b=
+order-box !important;"> <table border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" width=3D"94.885%" style=3D"border-spacing: 0; border-collapse: colla=
+pse; width: 94.885%; box-sizing: border-box !important;"> <tr style=3D"box-=
+sizing: border-box !important;"> <td class=3D"heade-date text-white" style=
+=3D"padding-top: 4px; color: #10414D; font-family: 'owners-wide', Roboto , =
+sans-serif; font-size: 14px; font-style: normal; font-weight: 400; line-hei=
+ght: normal; letter-spacing: 0.56px; text-transform: uppercase; box-sizing:=
+ border-box !important;"> DATE: 01/18/26 </td> </tr> </table> </td> <td wid=
+th=3D"28.335%" valign=3D"bottom" style=3D"width: 28.335%; vertical-align: b=
+ottom; box-sizing: border-box !important;"> <img alt=3D"---" height=3D"auto=
+" width=3D"170" src=3D"https://library.iterable.com/2346/28606/f8b03c6670ed=
+47f8bd835f226b991c79-heade-img.png" style=3D"border: 0 none; width: 100%; h=
+eight: auto; object-fit: contain; object-position: center; font-size: 0; di=
+splay: block; box-sizing: border-box !important;"> </td> </tr> </table> </t=
+d> </tr> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"box=
+-sizing: border-box !important;"> <a href=3D"https://links.safe.turbotradep=
+ro.com/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D335afc34e25045f89=
+30df44410f5a469&_e=3Di8nw2ziqHOjxAXfQfFNBq07sQmTBlSuGsJI_O60ZH2-o77t0anettV=
+TRlU1-c3hhUKyn8UECI9BUn_FhXWbDi7mSwA-4xPktSOhA_PwUnPmTEspspNh1znO0l9_VX3bUH=
+bqGTCI0Zmqw_SSEkjq6XHiqUtAuAmbeD3clUWQd8wZk9kMOmVfeEmUyUiOXdkXyAx9vjZxgYGX1=
+8my3hr87SRaZA-GBR0Mwj0EMFkV3IKvGAk59V9w0QK9ACmwvjeJMO5RS_57XzLm36QRZ77YrHWw=
+eU8vqRWUIgx0ISAlwICvohM2eoEjUzgmWdBRqyrn2aSfzCRjxmG2u3RFzr4YJ0w%3D%3D" styl=
+e=3D"text-decoration: none; box-sizing: border-box !important;" target=3D"_=
+blank"> <img alt=3D"Logo" height=3D"auto" width=3D"600" src=3D"https://libr=
+ary.iterable.com/2346/28606/622a57701e7d46898a0eeeb09729b242-heade.png" sty=
+le=3D"border: 0 none; width: 100%; height: auto; object-fit: contain; objec=
+t-position: center; font-size: 13px; display: block; box-sizing: border-box=
+ !important;"> </a> </td> </tr> </table> </td> </tr> <!--- End Bottom ---> =
+<tr style=3D"box-sizing: border-box !important;"> <td align=3D"center" styl=
+e=3D"box-sizing: border-box !important;"> <!--- Content ---> <table width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"font-family: 'Verdana', Arial, Helvetica, sans-serif; max-wi=
+dth: 600px; box-sizing: border-box !important;"> <tbody style=3D"max-width:=
+ 600px; box-sizing: border-box !important;"> <tr style=3D"box-sizing: borde=
+r-box !important;"> <td align=3D"center" valign=3D"top" style=3D"font-famil=
+y: 'Verdana', Arial, Helvetica, sans-serif; max-width: 600px; box-sizing: b=
+order-box !important;"> <table class=3D"main-table" bgcolor=3D"#FFFFFF" bor=
+der=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" width=
+=3D"100%" style=3D"font-family: 'Verdana', Arial, Helvetica, sans-serif; ma=
+x-width: 600px; box-sizing: border-box !important;"> <tbody style=3D"max-wi=
+dth: 600px; box-sizing: border-box !important;"> <tr style=3D"box-sizing: b=
+order-box !important;"> <td class=3D"content-wrapper" align=3D"center" styl=
+e=3D"padding-left: 21px; padding-right: 21px; font-family: 'Verdana', Arial=
+, Helvetica, sans-serif; max-width: 600px; box-sizing: border-box !importan=
+t;"> <table class=3D"inner-content-wrapper" border=3D"0" cellspacing=3D"0" =
+role=3D"presentation" cellpadding=3D"0" width=3D"100%" style=3D"width: 100%=
+; font-family: 'Verdana', Arial, Helvetica, sans-serif; max-width: 600px; b=
+ox-sizing: border-box !important;"> <tbody style=3D"max-width: 600px; box-s=
+izing: border-box !important;"> <tr style=3D"box-sizing: border-box !import=
+ant;"> <td height=3D"15" width=3D"100%" style=3D"font-family: 'Verdana', Ar=
+ial, Helvetica, sans-serif; max-width: 600px; box-sizing: border-box !impor=
+tant;" class=3D"space-between-sections"></td> </tr> <tr style=3D"box-sizing=
+: border-box !important;"> <td style=3D"font-style: normal; font-weight: no=
+rmal; line-height: 1.5; text-align: left; color: #000000; padding-top: 15px=
+; padding-bottom: 15px; font-family: 'Verdana', Arial, Helvetica, sans-seri=
+f; font-size: 22px; max-width: 600px; box-sizing: border-box !important;" a=
+lign=3D"left"> <div style=3D"font-style: normal; font-weight: normal; line-=
+height: 1.5; text-align: left; color: #000000; font-family: 'Verdana', Aria=
+l, Helvetica, sans-serif; font-size: 22px; max-width: 600px; box-sizing: bo=
+rder-box !important;"> For years liberals have ca=E2=85=BC=E2=85=BCed RFK J=
+r a <b style=3D"font-style: italic; box-sizing: border-box !important;">QUA=
+CK</b>=E2=80=A6 an <b style=3D"font-style: italic; box-sizing: border-box !=
+important;">ALARMIST</b>=E2=80=A6 and a <b style=3D"font-style: italic; box=
+-sizing: border-box !important;">CONSPIRACY THEORIST</b>. <br style=3D"box-=
+sizing: border-box !important;"><table role=3D"presentation" cellpadding=3D=
+"0" cellspacing=3D"0" align=3D"center" width=3D"100%" style=3D"box-sizing: =
+border-box !important;"> <tbody style=3D"box-sizing: border-box !important;=
+"><tr style=3D"box-sizing: border-box !important;"> <td align=3D"center" st=
+yle=3D"padding-top: 15px; padding-bottom: 15px; box-sizing: border-box !imp=
+ortant;"> <a href=3D"https://links.safe.turbotradepro.com/u/click?_t=3D2784=
+686eb9da47129ed0b358fd305c52&_m=3D335afc34e25045f8930df44410f5a469&_e=3Di8n=
+w2ziqHOjxAXfQfFNBq59SZPkWpYLQJZuGAZaHur8lTIJQUDstkd6cshjuxT1idfqEwenpghIqjn=
+PxNcNaojAsakwaB4qX8gLutPurIzlsfLDZfdryCsKEt8jotkQOEEDsfDooC5nZnTKpRglJJtt0U=
+ZVIBLgZw13antMzn1VsNVHzP6T-vg06P_2x5rdRrESjgxDqO8zxgyOgVI995eIxLnNXuiGqUv6r=
+fhh6vDV_bUemgKYgCaBB2CJR8cE689YedMIWKb3ReHbdLhA7Ky8P8e9e_vbfP8-BH2G-WEncyqR=
+xLTcddcqlOYAFHnyQNgx-e_tkln97fE80Qd8ykwMDsbcfDUFjfl-e77pqhi589TQfHq2Bb5R773=
+nfzRHrl42rahkPBbhrZEPzJhWqkimi4Fs0hLEg4M_XXv7RHvlMvvpkAEbQSd0nXhlSwte82pu1_=
+ptwxhW-TqTOwTEvOhrmw5klYk9d5y_gHTHE7bjgowzwdaQYhPtJPgUIexcH1jdx4z0rEzYfuNiN=
+Df4UXUpqJWxwg0Mu7DJ9MHFNwkvjREgL75N9nkx3YzKSJ7fT3kPRdIVCD-g8KSeeQNHmxg%3D%3=
+D" style=3D"font-weight: 900; text-decoration: none; box-sizing: border-box=
+ !important;"> <img width=3D"500" src=3D"https://library.iterable.com/2346/=
+28606/27eb55738a084d7d8388ff434024cec9-ftgyhijkolp.png" alt=3D"Image" style=
+=3D"width: 100%; height: auto; border: 0; max-width: 500px; box-sizing: bor=
+der-box !important;"> </a> </td> </tr> </tbody></table>But n=CE=BFw it appe=
+ars <b style=3D"font-style: italic; box-sizing: border-box !important;">HE =
+WAS RIGHT</b> about a =D0=A1=CE=9FV=CE=99D lab leak=E2=80=A6 <br style=3D"b=
+ox-sizing: border-box !important;"><br style=3D"box-sizing: border-box !imp=
+ortant;"> He was <b style=3D"font-style: italic; box-sizing: border-box !im=
+portant;">RIGHT </b>about microplastics=E2=80=A6 <br style=3D"box-sizing: b=
+order-box !important;"><br style=3D"box-sizing: border-box !important;"> An=
+d he was <b style=3D"font-style: italic; box-sizing: border-box !important;=
+">RIGHT </b>about FDA corruption. <br style=3D"box-sizing: border-box !impo=
+rtant;"><br style=3D"box-sizing: border-box !important;"> N=CE=BFw, he=E2=
+=80=99s issued <a href=3D"https://links.safe.turbotradepro.com/u/click?_t=
+=3D2784686eb9da47129ed0b358fd305c52&_m=3D335afc34e25045f8930df44410f5a469&_=
+e=3Di8nw2ziqHOjxAXfQfFNBq59SZPkWpYLQJZuGAZaHur8lTIJQUDstkd6cshjuxT1idfqEwen=
+pghIqjnPxNcNaojAsakwaB4qX8gLutPurIzlsfLDZfdryCsKEt8jotkQOEEDsfDooC5nZnTKpRg=
+lJJtt0UZVIBLgZw13antMzn1VsNVHzP6T-vg06P_2x5rdR_iRtzMyau2e_R4-lVbQapfJaCpcm7=
+Ton36Mt9SBJIR4ql9lr67PXEoflx0k4bZW4FXq3tQfAIP0PwtRKm3Q9Ry-L39k7Au79dd_OEDk5=
+d96Gy9UpVFgIUNSm3HDj8Yj7CnPenxKiQ6NCecudC0JEc-UHIdT55qIuVsRW_wDuPbJ1LpwJ-ro=
+JRqhk2mb_6IDoJNwSqMRdfydg9jo0C_WLhBz0Upo5SGWj0skYk_gQwMT2lbYM-8yCwNo4QmQL45=
+7j_Ondoh1AulDwK3KhtZcx2FXoTzDidj_2LK5_FsHLHfVZDkZn7kYve7TBMZx-DqCkpS7J5TNuJ=
+Us6d7DPeQaQBHQ8er5nTOJIsfqhNqYJ2zUrpnP2nfj7QTuDWOxPUdn2tIOF_j0shVNFKwXCJcuf=
+vg%3D%3D" style=3D"text-decoration: underline; font-weight: 700; color: #00=
+00ee; font-family: 'Verdana', Arial, Helvetica, sans-serif; box-sizing: bor=
+der-box !important;">a terrifying n=D0=B5w warning</a> that Americans need =
+to hear in 2025. <br style=3D"box-sizing: border-box !important;"><br style=
+=3D"box-sizing: border-box !important;"> =CE=9C=D1=96=E2=85=BC=E2=85=BC=D1=
+=96=CE=BFns are in the crosshairs=E2=80=A6 <br style=3D"box-sizing: border-=
+box !important;"><br style=3D"box-sizing: border-box !important;"> And if y=
+ou were born before Jan 1st, 1965, <a href=3D"https://links.safe.turbotrade=
+pro.com/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D335afc34e25045f8=
+930df44410f5a469&_e=3Di8nw2ziqHOjxAXfQfFNBq59SZPkWpYLQJZuGAZaHur8lTIJQUDstk=
+d6cshjuxT1idfqEwenpghIqjnPxNcNaojAsakwaB4qX8gLutPurIzlsfLDZfdryCsKEt8jotkQO=
+EEDsfDooC5nZnTKpRglJJtt0UZVIBLgZw13antMzn1VsNVHzP6T-vg06P_2x5rdRcz_W5bPBKdn=
+spTLWr-iWArxNL-7G1Rw5utqXnyi8NsRiZP6esURn2FViXhosVKwb5RLkWdxq40qRsCvwgLEL-w=
+J9TZRjaiBwqwgipWLjCH65fBoZRXPykavMW5pHX0BWpafwa5zT9mIxN-yvcN-hNG7mISUBCgJ4T=
+6KpoQY87xa8V3a_vQfyk-QxHIitXJ3G4-0LWCC43_wKWcsQKes3ot1BXCot-zR_V_-n6AzUKhCF=
+U2WgV36SjiRerm83FOVsu4OlmBOR6rCa8xUv9s7cyMZLqADVL8gX04MLvVMhCYNRZMPeSQFBz5j=
+VdqG_EL5a9qf6vpB1lU3ya6SM45ZIfUmRM_Y0NBUM0qK9EnpfgBgqPKE1rA_PPSiv-M7zcyfzZK=
+RgnJMBPx0f83U-XZtI4g%3D%3D" style=3D"text-decoration: underline; font-weigh=
+t: 700; color: #0000ee; font-family: 'Verdana', Arial, Helvetica, sans-seri=
+f; box-sizing: border-box !important;">THIS</a> affects you most of a=E2=85=
+=BC=E2=85=BC. <br style=3D"box-sizing: border-box !important;"><br style=3D=
+"box-sizing: border-box !important;"> G=D0=B5t the full fa=CF=B2ts <a href=
+=3D"https://links.safe.turbotradepro.com/u/click?_t=3D2784686eb9da47129ed0b=
+358fd305c52&_m=3D335afc34e25045f8930df44410f5a469&_e=3Di8nw2ziqHOjxAXfQfFNB=
+q59SZPkWpYLQJZuGAZaHur8lTIJQUDstkd6cshjuxT1idfqEwenpghIqjnPxNcNaojAsakwaB4q=
+X8gLutPurIzlsfLDZfdryCsKEt8jotkQOEEDsfDooC5nZnTKpRglJJtt0UZVIBLgZw13antMzn1=
+VsNVHzP6T-vg06P_2x5rdRWSIA8ryG8mubzuTpJcjuvm4vJ0xukm_MRRSobkdqhzHWO4Da-2dLz=
+RwkrrHlEYWMjOQjTg6TqpSriUkzfj6-ZEr-kRpoAQyHIlqXv21F6wVVZxQdNvlip74GvTn6mc8X=
+Ic6WTfoH-mIut-rIiYE30KNj4zgz-yipe3m-18OsvoLr8qH-K2Vs4sUF06YA86oWhAIZt4RE9mJ=
+C7B3p0i0ZsVnqCbKPb1LnJkolVLRok7CH8QJf9no25nb8wLWT8RvWyv7Q-daSfW6bLVs8cz8xcD=
+C8LUUD809SK_e1Ku6NKJMhiAKAByogplru3-WR-UUaTcKn9e1FwVFNrR7k1Y2qgnKJGnP-jgnQS=
+TW1ocwW_S6_rZEjLZvHf5NjN6bTYIUHLDNhPhxPehGgmhpRbBD5hA%3D%3D" style=3D"text-=
+decoration: underline; font-weight: 700; color: #0000ee; font-family: 'Verd=
+ana', Arial, Helvetica, sans-serif; box-sizing: border-box !important;">h=
+=D0=B5r=D0=B5</a>. <br style=3D"box-sizing: border-box !important;"><br sty=
+le=3D"box-sizing: border-box !important;"> P.S. Liberals will ca=E2=85=BC=
+=E2=85=BC <a href=3D"https://links.safe.turbotradepro.com/u/click?_t=3D2784=
+686eb9da47129ed0b358fd305c52&_m=3D335afc34e25045f8930df44410f5a469&_e=3Di8n=
+w2ziqHOjxAXfQfFNBq59SZPkWpYLQJZuGAZaHur8lTIJQUDstkd6cshjuxT1idfqEwenpghIqjn=
+PxNcNaojAsakwaB4qX8gLutPurIzlsfLDZfdryCsKEt8jotkQOEEDsfDooC5nZnTKpRglJJtt0U=
+ZVIBLgZw13antMzn1VsNVHzP6T-vg06P_2x5rdRCbvVp04Kbsv_tK9iOq9Sn8Hnrk0ssehIiScP=
+BacVyedLDBiVSa0fw0myOZBsfc5lA9bwvuFh5qwxX0tGIZVfO0eBFadJkee6QjU4wnSjD3o2jfZ=
+eS1YiwfX7-M67RbjXq9MysQktbAs36Igje4n4A0Cbx0puiPUyflgf6gj7kXLm6PdMDGXtBUKbXv=
+V9-S-_hDFysPIceoecRseN2r_iVd_2ob-Pm7tRl2gtvGHZCWZP7ZlcTVIWIgrpRUT3essc2ACuJ=
+i9mYHIX5qCcAY7XHJJyRYIgb9ESJJ7CMDgZTnXDqEUmzooHVCQGHCNbzh4RyjXs2XFkVW1DSo0Y=
+XMmFOmKUDkRfzINYz2VN6EEiiRNXb0G3DVG81sx3vCo73Er2PHauVgtNTIqUtOqNqVV24Q%3D%3=
+D" style=3D"text-decoration: underline; font-weight: 700; color: #0000ee; f=
+ont-family: 'Verdana', Arial, Helvetica, sans-serif; box-sizing: border-box=
+ !important;">THIS</a> crazy too, until they see <a href=3D"https://links.s=
+afe.turbotradepro.com/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D33=
+5afc34e25045f8930df44410f5a469&_e=3Di8nw2ziqHOjxAXfQfFNBq59SZPkWpYLQJZuGAZa=
+Hur8lTIJQUDstkd6cshjuxT1idfqEwenpghIqjnPxNcNaojAsakwaB4qX8gLutPurIzlsfLDZfd=
+ryCsKEt8jotkQOEEDsfDooC5nZnTKpRglJJtt0UZVIBLgZw13antMzn1VsNVHzP6T-vg06P_2x5=
+rdRZF8z4XmQD7UpXzCQiynnxqqJmxhkECFpfPMXBCpdefmCCmNdc4npSnVHJGs9xLOle6mB3ZlP=
+3RkkHe8Fz5Luy5W2RSRkzXsk2smLBRmPpK8sNvlVogcn-Jo8CWoLTautur6yCK4Xi8CyjwtmGkO=
+034OAWQTir2UM5eDMjkC8_LT_prfJkHfLvYRYpJDj9Ceesd_65hnUbmGa7wwfio4fPgOYM7-YhD=
+SWpHrTeZxLYlh8QjihW2CWafmpgww9JQt5qQm5gb1yq2f_IyNw3zHxRj_e9we2yn2FIuP6rsTJh=
+2xhYCvaLc75zCUa2TDFTp3njrcu7NFvizh6E8Hrq4wJIzZJDsdh0bFI1i9XKRGAPr_eJeDdLjAY=
+spADnNXAs630Tkh8CqPZtRxJvu-TstuARA%3D%3D" style=3D"text-decoration: underli=
+ne; font-weight: 700; color: #0000ee; font-family: 'Verdana', Arial, Helvet=
+ica, sans-serif; box-sizing: border-box !important;">the data</a>. L=D0=B5a=
+rn why RFK Jr is warning Americans about this emerging health crisis before=
+ it=E2=80=99s too late. Watch <a href=3D"https://links.safe.turbotradepro.c=
+om/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D335afc34e25045f8930df=
+44410f5a469&_e=3Di8nw2ziqHOjxAXfQfFNBq59SZPkWpYLQJZuGAZaHur8lTIJQUDstkd6csh=
+juxT1idfqEwenpghIqjnPxNcNaojAsakwaB4qX8gLutPurIzlsfLDZfdryCsKEt8jotkQOEEDsf=
+DooC5nZnTKpRglJJtt0UZVIBLgZw13antMzn1VsNVHzP6T-vg06P_2x5rdR8ofXrXd98HGgp1dO=
+Z1Y7L6s69Zzu4wtISA3Pxf3g7RIINxsAjzHcha8-DmgQ3G7PTTNgzZp_FzYCXOmHpRVKQhhinFd=
+ToHNSd11msW7EbyUp-cdBad1CfP5Vvt3_HkkjXBmn_ZM1Sqhg9J5GDELzbMgVoI2RcfLVxJybcR=
+pUklV8qtJ-TE0yFaGZJb_Zcj5m20Vy0RPvNLdOxpLr1WorLG8zQQB93ZRN_Zrz0XKo9M9S745jX=
+lpkbxaLak6MTXugBbtwyOvU37RCpFLfXXT08nglEQbonty6cxP3wa9p_NlSkMkrxaRSd-5KwvAe=
+QbD2BPlJDkUvsTpuS-Ox9DDr8nCPSL59CtEKPiAsYm4JqqAvcnHCtbwLhNBgSsDfNxHxGybXeku=
+pMt9kvFcdVHRnKA%3D%3D" style=3D"text-decoration: underline; font-weight: 70=
+0; color: #0000ee; font-family: 'Verdana', Arial, Helvetica, sans-serif; bo=
+x-sizing: border-box !important;">this video</a> n=CE=BFw. </div> </td> </t=
+r> <tr style=3D"box-sizing: border-box !important;"> <td height=3D"15" widt=
+h=3D"100%" style=3D"font-family: 'Verdana', Arial, Helvetica, sans-serif; m=
+ax-width: 600px; box-sizing: border-box !important;" class=3D"space-between=
+-sections"></td> </tr> </tbody> </table> </td> </tr> </tbody> </table> </td=
+> </tr> </tbody> </table> <table role=3D"presentation" cellpadding=3D"0" ce=
+llspacing=3D"0" align=3D"center" style=3D"box-sizing: border-box !important=
+;"> <tbody style=3D"box-sizing: border-box !important;"><tr style=3D"box-si=
+zing: border-box !important;"> <td align=3D"center" style=3D"text-align: ce=
+nter; padding: 0px 20px 20px 20px; box-sizing: border-box !important;"> <p =
+style=3D"color: #000000; font-weight: 400; font-size: 10; font-family: Verd=
+ana; margin: 0; padding: 0; box-sizing: border-box !important;"> This ad is=
+ sent on behalf of NewMarket Health Publishing, LLC. P.O. Box 913, Frederic=
+k, MD 21705, USA. If you would like to unsubscribe from receiving offers fr=
+om NewMarket Health Publishing, LLC, please click <a href=3D"https://links.=
+safe.turbotradepro.com/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D3=
+35afc34e25045f8930df44410f5a469&_e=3Di8nw2ziqHOjxAXfQfFNBq59SZPkWpYLQJZuGAZ=
+aHur9H8agj6PPSx3KB6r6kIUxVZl4uJPTO-a7Bbfbx34MEehx_a1c-zjTI0Ssn7ztFha5VpSXeW=
+5chQLdJzr33gOlPQ8dJIIPcZghaddX4WuPwiFFxW4mNfaQkrlm8bpifkgOf_ocs-vHA5uSAA3n2=
+0ckZEHEi4YhO6DzCp4sQmPxfEP82peTAsCIhzcJ791_8m5JpwUK4cutYOV6bsSKNREdMRyPil8d=
+wqhy7bFTlHCj4MZuOe38frAWg41lMCWKUGIkq8KV0I4zvYoAVYm1cucE5RFfE71-wkVTJQ5z0Tq=
+y6RjF8qNKqBK6Max33cFw0cgAJ8OQ6fGAQ4lAYVoRYxhnyVINszSdNOFrGupKVgQmoLzazioFx5=
+WDiCSTsAzpJV2LYS5HMQ1SRCiki-q02GjXEtHaAY5-h3pNWLMfRjCkA3gMv6FNCmqiCPnunHoWi=
+H2O6DPncye1d59shQHS4WMdNvpxWvqXTRMQIugYvDCwixLYJIQWYiib3UErfrhFtLT23VoSVfJH=
+MWdVIW7kQXjuU" style=3D"font-weight: bold; text-decoration: underline; colo=
+r: #0000ee; font-size: 10; font-family: Verdana; box-sizing: border-box !im=
+portant;">here</a>. </p> </td> </tr> </tbody></table> <!--- End Content ---=
+> </td> </tr> <!--- Line ---> <tr style=3D"box-sizing: border-box !importan=
+t;"> <td style=3D"padding-left: 20px; padding-right: 20px; padding-bottom: =
+32px; box-sizing: border-box !important;"> <table bgcolor=3D"#41A386" borde=
+r=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"border-=
+spacing: 0; border-collapse: collapse; min-width: 100%; background: linear-=
+gradient(91deg, #2A95B2 1.09%, #66BC3D 99.84%); box-sizing: border-box !imp=
+ortant;"> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"pa=
+dding-top: 4px; box-sizing: border-box !important;"></td> </tr> </table> </=
+td> </tr> <!--- End Line ---> <!--- Bottom ---> <tr style=3D"box-sizing: bo=
+rder-box !important;"> <td align=3D"center" style=3D"padding-bottom: 32px; =
+padding-right: 10px; padding-left: 10px; box-sizing: border-box !important;=
+"> <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" s=
+tyle=3D"border-spacing: 0; border-collapse: collapse; width: 100%; max-widt=
+h: 572px; box-sizing: border-box !important;"> <tr style=3D"box-sizing: bor=
+der-box !important;"> <td class=3D"text-white" align=3D"center" style=3D"pa=
+dding-right: 10px; padding-left: 10px; color: #121212; text-align: center; =
+font-family: 'Verdana', Arial, Helvetica, sans-serif; font-size: 14px; font=
+-style: normal; font-weight: 400; line-height: 1.5; box-sizing: border-box =
+!important;"> This email was sent by Turbo Trade Pro a part of TerraTrance =
+Technologies, LLC <br style=3D"box-sizing: border-box !important;"><br styl=
+e=3D"box-sizing: border-box !important;"> Reach out to us by replying butto=
+n or by direct email to <a href=3D"mailto:support@turbotradepro.com" style=
+=3D"color: #65A254; text-align: center; font-family: 'Verdana', Arial, Helv=
+etica, sans-serif; font-size: 14px; font-style: normal; font-weight: 700; l=
+ine-height: 1.5; text-decoration: underline; box-sizing: border-box !import=
+ant;">support@turbotradepro.com</a> <br style=3D"box-sizing: border-box !im=
+portant;"><br style=3D"box-sizing: border-box !important;"> Reproduction or=
+ distribution of texts, images or information in any forms is forbidden wit=
+hout written permission from TerraTrance Technologies, LLC. <br style=3D"bo=
+x-sizing: border-box !important;"><br style=3D"box-sizing: border-box !impo=
+rtant;"> 200 Broadway Blvd NE, Albuquerque, NM 87102 </td> </tr> <tr style=
+=3D"box-sizing: border-box !important;"> <td style=3D"box-sizing: border-bo=
+x !important;"> <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" wid=
+th=3D"100%" style=3D"border-spacing: 0; border-collapse: collapse; min-widt=
+h: 100%; font-size: 0; text-align: center; box-sizing: border-box !importan=
+t;" align=3D"center"> <tr style=3D"box-sizing: border-box !important;"> <td=
+ class=3D"td-btn" width=3D"190" style=3D"display: inline-block; vertical-al=
+ign: top; font-size: 0; width: 190px; box-sizing: border-box !important;" v=
+align=3D"top"> <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" widt=
+h=3D"100%" style=3D"border-spacing: 0; border-collapse: collapse; min-width=
+: 100%; box-sizing: border-box !important;"> <tr style=3D"box-sizing: borde=
+r-box !important;"> <td class=3D"td-btn-pad" style=3D"padding-top: 20px; pa=
+dding-right: 10px; padding-left: 10px; box-sizing: border-box !important;">=
+ <table bgcolor=3D"#41A386" border=3D"0" cellpadding=3D"0" cellspacing=3D"0=
+" width=3D"100%" style=3D"border-spacing: 0; border-collapse: separate; min=
+-width: 100%; background: linear-gradient(91deg, #2A95B2 1.09%, #66BC3D 99.=
+84%); border-radius: 4px; box-sizing: border-box !important;"> <tr style=3D=
+"box-sizing: border-box !important;"> <td class=3D"text-white" height=3D"38=
+" align=3D"center" style=3D"color: #ffffff; font-family: 'Verdana', Arial, =
+Helvetica, sans-serif; font-size: 14px; font-style: normal; font-weight: 70=
+0; line-height: 20px; box-sizing: border-box !important;"> <a class=3D"text=
+-white" href=3D"https://links.safe.turbotradepro.com/u/click?_t=3D2784686eb=
+9da47129ed0b358fd305c52&_m=3D335afc34e25045f8930df44410f5a469&_e=3Di8nw2ziq=
+HOjxAXfQfFNBq07sQmTBlSuGsJI_O60ZH29vYVZM50CHdDQMmH4s-kLVstNmlLwdZzDN6lQTo-q=
+bLZ4b2-iLbPqP1BLG9oSXmbGqE62BPNVjuqgeJBCA7orG-z_0IybmjNL7nYuzXasVH-FfzJ3ch9=
+gwv9m2LDh0oNBBs0fKS-8ID_kvl_w23xk_Oh1ac6-zwUWrxmBksRrqZTG3u_ZjVOwys0CDpRPG0=
+anmJL6RwgTeliPFrAReJfEGzAt874lcfG_lIvyflHAyclHJjxU8qQekW5ZhzbpuxrYtbPSxhhK1=
+5kJoUNQJu41VTYLAPUpNxQaVChimTvRfdI8U0NlO4jM2vAH0IJ8ns17Y3DwGzBFsw6vGtd-2jCz=
+4" style=3D"color: #ffffff; font-family: 'Verdana', Arial, Helvetica, sans-=
+serif; font-size: 14px; font-style: normal; font-weight: 700; line-height: =
+20px; text-decoration: none; display: block; padding: 9px 5px; box-sizing: =
+border-box !important;"> Privacy Policy </a> </td> </tr> </table> </td> </t=
+r> </table> </td> <td class=3D"td-btn" width=3D"190" style=3D"display: inli=
+ne-block; vertical-align: top; font-size: 0; width: 190px; box-sizing: bord=
+er-box !important;" valign=3D"top"> <table border=3D"0" cellpadding=3D"0" c=
+ellspacing=3D"0" width=3D"100%" style=3D"border-spacing: 0; border-collapse=
+: collapse; min-width: 100%; box-sizing: border-box !important;"> <tr style=
+=3D"box-sizing: border-box !important;"> <td class=3D"td-btn-pad" style=3D"=
+padding-top: 20px; padding-right: 10px; padding-left: 10px; box-sizing: bor=
+der-box !important;"> <table bgcolor=3D"#41A386" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"border-spacing: 0; border-=
+collapse: separate; min-width: 100%; background: linear-gradient(91deg, #2A=
+95B2 1.09%, #66BC3D 99.84%); border-radius: 4px; box-sizing: border-box !im=
+portant;"> <tr style=3D"box-sizing: border-box !important;"> <td class=3D"t=
+ext-white" height=3D"38" align=3D"center" style=3D"color: #ffffff; font-fam=
+ily: 'Verdana', Arial, Helvetica, sans-serif; font-size: 14px; font-style: =
+normal; font-weight: 700; line-height: 20px; box-sizing: border-box !import=
+ant;"> <a class=3D"text-white" href=3D"https://links.safe.turbotradepro.com=
+/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D335afc34e25045f8930df44=
+410f5a469&_e=3Di8nw2ziqHOjxAXfQfFNBq07sQmTBlSuGsJI_O60ZH28LQ3SIbz78eAQQpX0u=
+2NVS5nDAAk9m1w8sjXtq6wi16JPlTT9wscMXH_FC13CFQtxf50v_Uax0gkqiDDKbMhKAdH8XOE-=
+77JJwTJlkJFfl03g0_j2r5jY9OhYnk5J18I2QFJOLEE3j2yc2p1Sd7yBi0WtvI0onCFSFHxWq5x=
+3RBVtSeOT_T-Xv4I-S2eYy7225Ql1mDWaChNTjNgYAg-6R1zOKe6_tU1ydO5T7ickpL5GmKgwiA=
+lB9wCSn5qqrHiJALdVtBR-PzdPWwI9S0qJ8EYdhUCNWfathdP-x5MkuLf6NE0vapL5kJ7RufmrB=
+BAL8cX6JbEBDqYIFGTgXjv_m" style=3D"color: #ffffff; font-family: 'Verdana', =
+Arial, Helvetica, sans-serif; font-size: 14px; font-style: normal; font-wei=
+ght: 700; line-height: 20px; text-decoration: none; display: block; padding=
+: 9px 5px; box-sizing: border-box !important;"> Terms & Conditions </a> </t=
+d> </tr> </table> </td> </tr> </table> </td> <td class=3D"td-btn" width=3D"=
+190" style=3D"display: inline-block; vertical-align: top; font-size: 0; wid=
+th: 190px; box-sizing: border-box !important;" valign=3D"top"> <table borde=
+r=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"border-=
+spacing: 0; border-collapse: collapse; min-width: 100%; box-sizing: border-=
+box !important;"> <tr style=3D"box-sizing: border-box !important;"> <td cla=
+ss=3D"td-btn-pad" style=3D"padding-top: 20px; padding-right: 10px; padding-=
+left: 10px; box-sizing: border-box !important;"> <table bgcolor=3D"#5DB550"=
+ border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"b=
+order-spacing: 0; border-collapse: separate; min-width: 100%; background: l=
+inear-gradient(91deg, #66BC3D 1.09%, #2A95B2 99.84%); border-radius: 4px; b=
+ox-sizing: border-box !important;"> <tr style=3D"box-sizing: border-box !im=
+portant;"> <td class=3D"text-white" height=3D"38" align=3D"center" style=3D=
+"color: #ffffff; font-family: 'Verdana', Arial, Helvetica, sans-serif; font=
+-size: 14px; font-style: normal; font-weight: 700; line-height: 20px; box-s=
+izing: border-box !important;"> <a class=3D"text-white" href=3D"https://lin=
+ks.safe.turbotradepro.com/e/encryptedUnsubscribe?_r=3D2784686eb9da47129ed0b=
+358fd305c52&_s=3D335afc34e25045f8930df44410f5a469&_t=3DDqvnaf34CS5g13RrJ_KD=
+XILW_ePpBXYCrEZ44bqwpEBreS4ydFY_gr5foeqK1WWPhGmKZ90V29gVGuJIwVfgkdfSgRpTkM3=
+gPUWgrbRox0XV_ldi_mV2H2C2trxiW2OlzGpgsogrFtnwJTL5cUwORA%3D%3D" style=3D"col=
+or: #ffffff; font-family: 'Verdana', Arial, Helvetica, sans-serif; font-siz=
+e: 14px; font-style: normal; font-weight: 700; line-height: 20px; text-deco=
+ration: none; display: block; padding: 9px 5px; box-sizing: border-box !imp=
+ortant;"> Unsubscribe </a> </td> </tr> </table> </td> </tr> </table> </td> =
+</tr> </table> </td> </tr> <tr style=3D"box-sizing: border-box !important;"=
+> <td align=3D"center" style=3D"padding-top: 24px; padding-right: 10px; pad=
+ding-left: 10px; box-sizing: border-box !important;"> <a href=3D"https://li=
+nks.safe.turbotradepro.com/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=
+=3D335afc34e25045f8930df44410f5a469&_e=3Di8nw2ziqHOjxAXfQfFNBq07sQmTBlSuGsJ=
+I_O60ZH2-o77t0anettVTRlU1-c3hhGgZ3kov4O9xz2PL-f-jD1v2zeMFO_ifUOot5JUfZ7vEHH=
+_i2fW3pdCT8u6dSF4oZs9rfqySqLgj-GxBC2yk7niuZUFLW96jBjOh0M-BrzfbDo0bE0plZ4FlH=
+q1lGx9Wf0Bqqe1lzaovZTP3_ZOEjOFMPEAD3v39qWrc7_aA_o4ki3rVWyMD3rpIB4qVyUofdmYH=
+0ErqqOiuY1hMyaVhmgLHBKjMssrLeLqGW9uBb_Kn5OpKGJnYt9s7FZijLAu_fFdn1mY_U5UP-xR=
+-ZGATDFw%3D%3D" style=3D"text-decoration: none; box-sizing: border-box !imp=
+ortant;" target=3D"_blank"> <img alt=3D"Logo" height=3D"114" width=3D"208" =
+src=3D"https://library.iterable.com/2346/28606/beddba7466d943f1a6959bee656f=
+48f2-logo-2.png" style=3D"border: 0 none; width: 208px; height: 114px; obje=
+ct-fit: contain; object-position: center; font-size: 13px; display: block; =
+box-sizing: border-box !important;"> </a> </td> </tr> <tr style=3D"box-sizi=
+ng: border-box !important;"> <td class=3D"text-white" align=3D"center" styl=
+e=3D"padding-top: 24px; padding-right: 10px; padding-left: 10px; color: #12=
+1212; text-align: center; font-family: 'Verdana', Arial, Helvetica, sans-se=
+rif; font-size: 14px; font-style: normal; font-weight: 400; line-height: no=
+rmal; box-sizing: border-box !important;"> &copy; 2026 Turbo Trade Pro. All=
+ Rights Reserved. </td> </tr> </table> </td> </tr> <!--- End Bottom ---> </=
+table> </td> </tr> <!--[if mso | IE]></table> </td> </tr><![endif]--> <tr s=
+tyle=3D"box-sizing: border-box !important;"> <td class=3D"gap-pad" style=3D=
+"padding-top: 20px; box-sizing: border-box !important;"></td> </tr> </table=
+> </td> </tr> </table> </td> </tr> </table> </center> </body> </html>
+------=_Part_4424_367942626.1768769322704--

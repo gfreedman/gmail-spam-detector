@@ -18,7 +18,17 @@
  *    - Choose minute interval: Every 15 minutes
  *
  * @author Anti-Spam Dataset
- * @version 5.1 - Broadened Pattern Detection
+ * @version 6.0 - Distributed Signal Detection
+ *
+ * v6.0 CHANGES: Fixed critical blindspots that let "RFK Jr Issues 2025 Warning" through
+ * - FIXED: Case-insensitive standalone warning words (Warning, Alert, Urgent)
+ * - ADDED: Square brackets detection [like this?] (not just Japanese 【】)
+ * - ADDED: From field sensationalism check ("terrifying", "alarming" in sender name)
+ * - ADDED: Demographic targeting detection (seniors, elderly, age-based fear)
+ * - ADDED: Celebrity/political name-dropping (RFK, Trump, Musk + warning/reveals)
+ * - ADDED: Year-based urgency (2025/2026 Warning)
+ * - ADDED: NEW RULE - Bulk email + marketing format + ANY single warning = SPAM
+ * - RESULT: Catches distributed low-grade signals that evaded v5.1
  *
  * v5.1 CHANGES: Broadened patterns to catch subtler spam tactics
  * - ADDED: Standalone sensationalist adjectives (shocking, stunning, bizarre, etc.)
@@ -365,11 +375,16 @@ function analyzeMessage(message)
 
     // SIGNAL 2: Clickbait/Sensationalism detection (category-based, not keyword lists!)
     // Each pattern catches a CATEGORY of spam tactics, not specific phrases
+    // v6.0: Now checks BOTH subject AND from field, added new patterns
 
     const clickbaitPatterns = [
       // SENSATIONALIST ADJECTIVES: shocking, bizarre, stunning, etc. (broad match)
       // Catches: "shocking admission", "bizarre discovery", "stunning revelation", etc.
       /\b(shocking|stunning|bizarre|mysterious|secret|hidden|leaked|exposed|forbidden)\b/i,
+
+      // v6.0: TERRIFYING/ALARMING adjectives (often in From field)
+      // Catches: "A terrifying new warning", "alarming discovery", etc.
+      /\b(terrifying|alarming|devastating|horrifying|frightening|chilling|disturbing)\b/i,
 
       // CURIOSITY GAP: (mystery word) + (visual/media word)
       // Catches: "strange picture", "secret photo", "hidden camera", etc.
@@ -391,16 +406,55 @@ function analyzeMessage(message)
       // Catches: "this changes everything", "what stunned everyone", etc.
       /(what|this).*(changes everything|stunned everyone|shocked|amazed|surprised)/i,
 
+      // v6.0: CELEBRITY/POLITICAL NAME-DROPPING for false credibility
+      // Catches: "RFK Jr Issues Warning", "Trump Reveals", "Musk Exposes", etc.
+      /\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns)/i,
+
+      // v6.0: DEMOGRAPHIC TARGETING (age-based fear)
+      // Catches: "Seniors Most At Risk", "If you're over 60", "Retirees affected", etc.
+      /\b(seniors?|elderly|retirees?|boomers?|over \d{2}|born before|age \d{2})\b.*(risk|warning|alert|danger|affected|target)/i,
+
+      // v6.0: YEAR-BASED URGENCY (current year for fake timeliness)
+      // Catches: "2025 Warning", "2026 Prediction", etc.
+      /\b202[4-9]\b.*(warning|alert|prediction|forecast|crisis)/i,
+
+      // v6.0: CONSPIRACY/HIDING pattern
+      // Catches: "What else are they hiding", "What they don't want you to know", etc.
+      /(what|who).*(hiding|don't want you|truth|they won't tell)/i,
+
+      // v6.0: MILITARY/WAR SENSATIONALISM
+      // Catches: "Declared war", "Bombed", "Attack", "Destroyed", etc.
+      /\b(declared war|bombed|bombing|attack|attacked|destroyed|invasion)\b/i,
+
+      // v6.0: STOCK PRICE HYPE
+      // Catches: "Under $1 a share", "$5 stock", "penny stock", etc.
+      /\$\d+(\.\d+)?\s*(a\s+)?share|\bpenny stock\b/i,
+
+      // v6.0: WATCH/SEE WHAT HAPPENED (curiosity gap)
+      // Catches: "Watch what happened", "See what happens when", etc.
+      /\b(watch|see)\s+(what|this|the moment)/i,
+
       // STRUCTURAL SPAM INDICATORS
       /【.*】/,           // Japanese date brackets (spammer tactic)
+      /\[.{3,}[?!]\]/,    // v6.0: Square brackets with question/exclamation [Like This?]
       /[💼📸⏯️🚨⚠️📰💰]/,  // Sensationalist emoji (business, camera, play, alert, money)
       /\?\?\?|!!!/,       // Multiple punctuation (urgency tactic)
-      /\bWATCH\b.*\?$/i   // "WATCH" + question mark (clickbait structure)
+      /\bWATCH\b.*\?$/i,  // "WATCH" + question mark (clickbait structure)
+
+      // v6.0: CYRILLIC/UNICODE OBFUSCATION (spammers use lookalike characters)
+      // Catches: "Еlоn" (Cyrillic Е, о), "Wаr" (Cyrillic а), etc.
+      /[\u0400-\u04FF]/,  // Any Cyrillic character = spam evasion tactic
+
+      // v6.0: JOBS/EMPLOYMENT FEAR
+      // Catches: "jobs disappeared", "jobs that never existed", "layoffs"
+      /\b(jobs?|employment).*(disappeared|vanished|never existed|fake|fraud|layoffs?)/i
     ];
 
+    // v6.0: Check BOTH subject AND from field for clickbait patterns
+    const textToCheck = subject + ' ' + from;
     for (let i = 0; i < clickbaitPatterns.length; i++)
     {
-      if (clickbaitPatterns[i].test(subject))
+      if (clickbaitPatterns[i].test(textToCheck))
       {
         signals.clickbaitCount++;
       }
@@ -408,6 +462,7 @@ function analyzeMessage(message)
 
     // SIGNAL 3: Fear-mongering (category-based detection)
     // Broad categories that catch variations without hardcoded phrases
+    // v6.0: Fixed case-insensitive urgency words, checks subject + from
 
     const fearPatterns = [
       // GOVERNMENT FEAR: IRS, NSA, FBI, government + any threat/revelation
@@ -419,10 +474,12 @@ function analyzeMessage(message)
       /\b(banks?|bank account|credit card|social security|identity|savings|cash|money)\b.*(seize|steal|stolen|hacked|freeze|frozen|close|closed|warning|alert|confiscat|take|taking|lost)/i,
 
       // HEALTH FEAR: Medical warnings, dangers
-      /\b(blood thinner|medication|drug|vaccine|doctor).*(warning|danger|deadly|killing|risk|avoid)/i,
+      // v6.0: Added more health terms (FDA, health crisis, at risk)
+      /\b(blood thinner|medication|drug|vaccine|doctor|FDA|health crisis|at risk)\b.*(warning|danger|deadly|killing|risk|avoid|corrupt)/i,
 
-      // URGENCY WORDS (ALL CAPS detection)
-      /\b(WARNING|ALERT|URGENT|BREAKING|EXPOSED|BANNED|STOPPED)\b/,
+      // v6.0: STANDALONE URGENCY WORDS (case-insensitive!)
+      // Catches: "Warning", "WARNING", "Alert", etc.
+      /\b(warning|alert|urgent|breaking|exposed|banned|stopped)\b/i,
 
       // "STOP USING" pattern
       /\bSTOP (using|taking|doing|buying)\b/i
@@ -430,7 +487,7 @@ function analyzeMessage(message)
 
     for (let i = 0; i < fearPatterns.length; i++)
     {
-      if (fearPatterns[i].test(subject))
+      if (fearPatterns[i].test(textToCheck))
       {
         signals.fearMongering = true;
         logDebug('Fear-mongering detected (pattern match)');
@@ -439,23 +496,29 @@ function analyzeMessage(message)
     }
 
     // SIGNAL 4: Marketing sender format ("Name | Org" or "Topic, Company" or "Name at Org")
-    if (/["|,]\s*[A-Z]/.test(from) || /\s+at\s+[A-Z]/i.test(from) || /\|\s*/.test(from))
+    // v6.0: Also detect spammy sender names and suspicious email patterns
+    if (/["|,]\s*[A-Z]/.test(from) ||
+        /\s+at\s+[A-Z]/i.test(from) ||
+        /\|\s*/.test(from) ||
+        /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i.test(from) ||  // v6.0: Spammy business names
+        /grow@with\./i.test(from) ||  // v6.0: Suspicious email patterns
+        /@[a-z]\.[a-z]+\.(com|net)/i.test(from))  // v6.0: Subdomain email pattern (e.g., @F.FinanceInsiderPro.com)
     {
       signals.marketingFormat = true;
       logDebug('Marketing sender format detected');
     }
 
-    // DECISION LOGIC (Conservative - Option B)
+    // DECISION LOGIC (v6.0 - Less conservative when bulk email + marketing present)
     // RULE 1: Bulk email + 2+ clickbait patterns = SPAM
     if (signals.bulkEmailService && signals.clickbaitCount >= 2)
     {
-      logInfo('SPAM detected: Bulk email + clickbait');
+      logInfo('SPAM detected: Bulk email + clickbait (' + signals.clickbaitCount + ' patterns)');
       return 100;
     }
 
     // RULE 2: Bulk email + 2+ spam behaviors = SPAM
     let spamBehaviorCount = 0;
-    if (signals.clickbaitCount >= 2) spamBehaviorCount++;
+    if (signals.clickbaitCount >= 1) spamBehaviorCount++;  // v6.0: Changed from >= 2 to >= 1
     if (signals.fearMongering) spamBehaviorCount++;
     if (signals.marketingFormat) spamBehaviorCount++;
 
@@ -465,7 +528,16 @@ function analyzeMessage(message)
       return 100;
     }
 
-    // RULE 3: Extreme clickbait even without bulk email = SPAM
+    // v6.0 NEW RULE 3: Bulk email + marketing format + ANY warning signal = SPAM
+    // Rationale: Legitimate bulk newsletters DON'T combine marketing format with fear tactics
+    if (signals.bulkEmailService && signals.marketingFormat &&
+        (signals.clickbaitCount >= 1 || signals.fearMongering))
+    {
+      logInfo('SPAM detected: Bulk email + marketing format + warning signal');
+      return 100;
+    }
+
+    // RULE 4: Extreme clickbait even without bulk email = SPAM
     if (signals.clickbaitCount >= 3)
     {
       logInfo('SPAM detected: Extreme clickbait (' + signals.clickbaitCount + ' patterns)');
@@ -473,7 +545,10 @@ function analyzeMessage(message)
     }
 
     // Not spam
-    logDebug('Not spam - insufficient signals');
+    logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
+             ', clickbait=' + signals.clickbaitCount +
+             ', fear=' + signals.fearMongering +
+             ', marketing=' + signals.marketingFormat);
     return 0;
   }
   catch (error)

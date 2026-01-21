@@ -40,8 +40,14 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'\bWATCH\b.*\?$', re.I),
     # v6.0 NEW: Cyrillic/Unicode obfuscation (spam evasion tactic)
     re.compile(r'[\u0400-\u04FF]'),
+    # v6.1 NEW: Greek character obfuscation (Β instead of B, etc.)
+    re.compile(r'[\u0370-\u03FF]'),
     # v6.0 NEW: Jobs/employment fear
     re.compile(r'\b(jobs?|employment).*(disappeared|vanished|never existed|fake|fraud|layoffs?)', re.I),
+    # v6.1 NEW: Bank/branch closing fear
+    re.compile(r'\b(banks?|branch|branches|ATMs?).*(clos|shut|disappear|eliminat)', re.I),
+    # v6.1 NEW: Building/institution emoji
+    re.compile(r'[🏦🏥🏛️🏢]'),
 ]
 
 # v6.0 Fear patterns (same as SpamDetector.gs)
@@ -208,21 +214,92 @@ def main():
             print()
 
     print('=' * 80)
-    print('SUMMARY')
+    print('SPAM DETECTION SUMMARY')
     print('=' * 80)
     print(f'Total: {len(files)}')
-    print(f'Passed: {passed} ({passed/len(files)*100:.1f}%)')
-    print(f'Failed: {failed} ({failed/len(files)*100:.1f}%)')
+    print(f'Detected: {passed} ({passed/len(files)*100:.1f}%)')
+    print(f'Missed: {failed} ({failed/len(files)*100:.1f}%)')
 
-    if failures:
-        print('\n❌ FAILURES:')
-        for f in failures:
-            print(f'  - {f["file"]}')
-            print(f'    Subject: {f["subject"]}')
-        sys.exit(1)
+    spam_failures = failures.copy()
+
+    # Test HAM (legitimate emails) - should NOT be marked as spam
+    ham_dir = Path(__file__).parent / 'ham_examples'
+    ham_false_positives = []
+    ham_passed = 0
+    ham_total = 0
+
+    if ham_dir.exists():
+        ham_files = sorted([f for f in ham_dir.iterdir() if f.suffix == '.eml'])
+        ham_total = len(ham_files)
+
+        if ham_files:
+            print('\n' + '=' * 80)
+            print('HAM (Legitimate Email) Testing')
+            print('=' * 80)
+            print(f'Testing {len(ham_files)} ham examples...\n')
+
+            for filepath in ham_files:
+                subject, from_field, has_amazon_ses = parse_eml(filepath)
+                signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses)
+
+                if not is_spam:
+                    ham_passed += 1
+                    print(f'✅ PASS (not spam): {filepath.name[:60]}')
+                    print(f'   Subject: {subject[:60]}')
+                    print(f'   From: {from_field[:60]}')
+                    print()
+                else:
+                    ham_false_positives.append({
+                        'file': filepath.name,
+                        'subject': subject,
+                        'from': from_field,
+                        'rule': rule,
+                        'signals': signals
+                    })
+                    print(f'❌ FALSE POSITIVE: {filepath.name}')
+                    print(f'   Subject: {subject}')
+                    print(f'   From: {from_field}')
+                    print(f'   Wrongly triggered: {rule}')
+                    print(f'   Signals: bulk={signals["bulk_email"]}, clickbait={signals["clickbait_count"]}, '
+                          f'fear={signals["fear_mongering"]}, marketing={signals["marketing_format"]}')
+                    print()
+
+            print('=' * 80)
+            print('HAM TESTING SUMMARY')
+            print('=' * 80)
+            print(f'Total: {ham_total}')
+            print(f'Correctly allowed: {ham_passed} ({ham_passed/ham_total*100:.1f}%)')
+            print(f'False positives: {len(ham_false_positives)} ({len(ham_false_positives)/ham_total*100:.1f}%)')
+
+    # Final summary
+    print('\n' + '=' * 80)
+    print('FINAL RESULTS')
+    print('=' * 80)
+
+    all_good = True
+
+    if spam_failures:
+        print(f'❌ SPAM MISSED: {len(spam_failures)}')
+        for f in spam_failures:
+            print(f'   - {f["file"]}: {f["subject"][:50]}')
+        all_good = False
     else:
-        print('\n🎉 ALL SPAM DETECTED SUCCESSFULLY!')
+        print(f'✅ SPAM: {passed}/{len(files)} detected (100%)')
+
+    if ham_false_positives:
+        print(f'❌ FALSE POSITIVES: {len(ham_false_positives)}')
+        for f in ham_false_positives:
+            print(f'   - {f["file"]}: {f["subject"][:50]}')
+        all_good = False
+    elif ham_total > 0:
+        print(f'✅ HAM: {ham_passed}/{ham_total} correctly allowed (0% false positives)')
+
+    if all_good:
+        print('\n🎉 ALL TESTS PASSED!')
         sys.exit(0)
+    else:
+        print('\n💥 TESTS FAILED!')
+        sys.exit(1)
 
 
 if __name__ == '__main__':

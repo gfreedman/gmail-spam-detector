@@ -18,7 +18,13 @@
  *    - Choose minute interval: Every 15 minutes
  *
  * @author Anti-Spam Dataset
- * @version 6.0 - Distributed Signal Detection
+ * @version 6.1 - Greek Character Detection
+ *
+ * v6.1 CHANGES: Fixed Greek character obfuscation detection
+ * - FIXED: Added Greek character range detection (Β instead of B, etc.)
+ * - ADDED: Bank/branch closing pattern for financial fear spam
+ * - ADDED: Building emoji detection (🏦 etc.)
+ * - RESULT: Catches "Major Βanks Continue Closing Locations 🏦" spam
  *
  * v6.0 CHANGES: Fixed critical blindspots that let "RFK Jr Issues 2025 Warning" through
  * - FIXED: Case-insensitive standalone warning words (Warning, Alert, Urgent)
@@ -445,9 +451,20 @@ function analyzeMessage(message)
       // Catches: "Еlоn" (Cyrillic Е, о), "Wаr" (Cyrillic а), etc.
       /[\u0400-\u04FF]/,  // Any Cyrillic character = spam evasion tactic
 
+      // v6.1: GREEK CHARACTER OBFUSCATION (Β instead of B, etc.)
+      // Catches: "Βanks" (Greek Β), "Αmazon" (Greek Α), etc.
+      /[\u0370-\u03FF]/,  // Any Greek character = spam evasion tactic
+
       // v6.0: JOBS/EMPLOYMENT FEAR
       // Catches: "jobs disappeared", "jobs that never existed", "layoffs"
-      /\b(jobs?|employment).*(disappeared|vanished|never existed|fake|fraud|layoffs?)/i
+      /\b(jobs?|employment).*(disappeared|vanished|never existed|fake|fraud|layoffs?)/i,
+
+      // v6.1: BANK/BRANCH CLOSING FEAR
+      // Catches: "Banks closing", "branch closures", "ATMs shutting down", etc.
+      /\b(banks?|branch|branches|ATMs?).*(clos|shut|disappear|eliminat)/i,
+
+      // v6.1: BUILDING/INSTITUTION EMOJI (banks, hospitals, etc.)
+      /[🏦🏥🏛️🏢]/
     ];
 
     // v6.0: Check BOTH subject AND from field for clickbait patterns

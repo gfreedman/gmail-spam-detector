@@ -18,7 +18,7 @@
  *    - Choose minute interval: Every 15 minutes
  *
  * @author Anti-Spam Dataset
- * @version 6.2 - Fullwidth & Collectible Scam Detection
+ * @version 6.2.1 - Fix emoji regex for Google Apps Script compatibility
  *
  * v6.2 CHANGES: L6 engineering review - detect CATEGORIES not specific patterns
  * - FIXED: Added fullwidth character detection (U+FF00-FFEF) - ＄ instead of $
@@ -455,7 +455,7 @@ function analyzeMessage(message)
       // STRUCTURAL SPAM INDICATORS
       /【.*】/,           // Japanese date brackets (spammer tactic)
       /\[.{3,}[?!]\]/,    // v6.0: Square brackets with question/exclamation [Like This?]
-      /[💼📸⏯️🚨⚠️📰💰]/,  // Sensationalist emoji (business, camera, play, alert, money)
+      /💼|📸|⏯️|🚨|⚠️|📰|💰/,  // Sensationalist emoji (business, camera, play, alert, money)
       /\?\?\?|!!!/,       // Multiple punctuation (urgency tactic)
       /\bWATCH\b.*\?$/i,  // "WATCH" + question mark (clickbait structure)
 
@@ -481,7 +481,7 @@ function analyzeMessage(message)
       /\b(banks?|branch|branches|ATMs?).*(clos|shut|disappear|eliminat)/i,
 
       // v6.1: BUILDING/INSTITUTION EMOJI (banks, hospitals, etc.)
-      /[🏦🏥🏛️🏢]/,
+      /🏦|🏥|🏛️|🏢/,
 
       // v6.2: COLLECTIBLE/COMMEMORATIVE SCAM CATEGORY
       // L6 INSIGHT: This is a distinct spam category, not individual keywords

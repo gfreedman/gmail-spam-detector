@@ -37,7 +37,7 @@ CLICKBAIT_PATTERNS = [
     # Structural indicators
     re.compile(r'【.*】'),
     re.compile(r'\[.{3,}[?!]\]'),
-    re.compile(r'[💼📸⏯️🚨⚠️📰💰]'),
+    re.compile(r'💼|📸|⏯️|🚨|⚠️|📰|💰'),
     re.compile(r'\?\?\?|!!!'),
     re.compile(r'\bWATCH\b.*\?$', re.I),
     # v6.0 NEW: Cyrillic/Unicode obfuscation (spam evasion tactic)
@@ -51,7 +51,7 @@ CLICKBAIT_PATTERNS = [
     # v6.1 NEW: Bank/branch closing fear
     re.compile(r'\b(banks?|branch|branches|ATMs?).*(clos|shut|disappear|eliminat)', re.I),
     # v6.1 NEW: Building/institution emoji
-    re.compile(r'[🏦🏥🏛️🏢]'),
+    re.compile(r'🏦|🏥|🏛️|🏢'),
     # v6.2 NEW: Collectible/commemorative scam category
     re.compile(r'\b(minted|commemorat|collector\'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b', re.I),
 ]

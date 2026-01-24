@@ -1367,3 +1367,51 @@ function testOnRecentEmail()
     throw error;
   }
 }
+
+/**
+ * DEBUG: Test pattern matching directly without needing an email
+ * Run this to verify patterns work in GAS
+ */
+function debugPatternTest()
+{
+  Logger.log('=== PATTERN DEBUG TEST ===');
+
+  // Test subject from the Trump spam
+  var testSubject = "Honor Trump's Legacy with the Colored ＄2 Bill";
+  var testFrom = "American Icons | Custom Currencies grow@with.F.legacy-mint.com";
+  var textToCheck = testSubject + ' ' + testFrom;
+
+  Logger.log('Testing: ' + testSubject);
+  Logger.log('From: ' + testFrom);
+  Logger.log('');
+
+  // Test each pattern individually
+  var patterns = [
+    { name: 'Celebrity+Merch', regex: /\b(Trump|Biden|Obama|Kennedy)\b.*(coin|bill|medal|card|stamp|legacy|commemorat|collect|mint|gold|silver)/i },
+    { name: 'Fullwidth', regex: /[\uFF00-\uFFEF]/ },
+    { name: 'Collectible', regex: /\b(minted|commemorat|collector'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b/i },
+    { name: 'Marketing|pipe', regex: /\|\s*/ },
+    { name: 'Spammy biz name', regex: /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i },
+    { name: 'grow@with', regex: /grow@with\./i }
+  ];
+
+  var matchCount = 0;
+  for (var i = 0; i < patterns.length; i++)
+  {
+    var p = patterns[i];
+    var matches = p.regex.test(textToCheck);
+    Logger.log(p.name + ': ' + (matches ? 'MATCH' : 'no'));
+    if (matches) matchCount++;
+  }
+
+  Logger.log('');
+  Logger.log('Total matches: ' + matchCount);
+  Logger.log('');
+
+  // Check for fullwidth dollar specifically
+  Logger.log('Fullwidth dollar char code: ' + '＄'.charCodeAt(0));
+  Logger.log('Regular dollar char code: ' + '$'.charCodeAt(0));
+  Logger.log('Subject contains fullwidth char: ' + /[\uFF00-\uFFEF]/.test(testSubject));
+
+  Logger.log('=== END DEBUG ===');
+}

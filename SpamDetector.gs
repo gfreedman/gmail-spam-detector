@@ -18,7 +18,14 @@
  *    - Choose minute interval: Every 15 minutes
  *
  * @author Anti-Spam Dataset
- * @version 6.1 - Greek Character Detection
+ * @version 6.2 - Fullwidth & Collectible Scam Detection
+ *
+ * v6.2 CHANGES: L6 engineering review - detect CATEGORIES not specific patterns
+ * - FIXED: Added fullwidth character detection (U+FF00-FFEF) - ＄ instead of $
+ * - ADDED: Celebrity + merchandise pattern (Trump Coin, Biden Medal, etc.)
+ * - ADDED: Collectible/commemorative scam pattern (Minted, Limited Edition, etc.)
+ * - PHILOSOPHY: Detect spam CATEGORIES, not individual keywords
+ * - RESULT: Catches "Honor Trump's Legacy with the Colored ＄2 Bill" spam
  *
  * v6.1 CHANGES: Fixed Greek character obfuscation detection
  * - FIXED: Added Greek character range detection (Β instead of B, etc.)
@@ -416,6 +423,11 @@ function analyzeMessage(message)
       // Catches: "RFK Jr Issues Warning", "Trump Reveals", "Musk Exposes", etc.
       /\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns)/i,
 
+      // v6.2: CELEBRITY MERCHANDISE/COLLECTIBLE SCAM
+      // Catches: "Trump Coin", "Trump $2 Bill", "Biden Medal", "Trump's Legacy", etc.
+      // L6 INSIGHT: Celebrity + product/legacy = collectible scam category
+      /\b(Trump|Biden|Obama|Kennedy)\b.*(coin|bill|medal|card|stamp|legacy|commemorat|collect|mint|gold|silver)/i,
+
       // v6.0: DEMOGRAPHIC TARGETING (age-based fear)
       // Catches: "Seniors Most At Risk", "If you're over 60", "Retirees affected", etc.
       /\b(seniors?|elderly|retirees?|boomers?|over \d{2}|born before|age \d{2})\b.*(risk|warning|alert|danger|affected|target)/i,
@@ -455,6 +467,11 @@ function analyzeMessage(message)
       // Catches: "Βanks" (Greek Β), "Αmazon" (Greek Α), etc.
       /[\u0370-\u03FF]/,  // Any Greek character = spam evasion tactic
 
+      // v6.2: FULLWIDTH CHARACTER OBFUSCATION (＄ instead of $, etc.)
+      // L6 INSIGHT: Fullwidth forms (U+FF00-FFEF) are NEVER legitimate in English
+      // Catches: "＄2 Bill", "１００％ guaranteed", etc.
+      /[\uFF00-\uFFEF]/,  // Any fullwidth character = spam evasion tactic
+
       // v6.0: JOBS/EMPLOYMENT FEAR
       // Catches: "jobs disappeared", "jobs that never existed", "layoffs"
       /\b(jobs?|employment).*(disappeared|vanished|never existed|fake|fraud|layoffs?)/i,
@@ -464,7 +481,12 @@ function analyzeMessage(message)
       /\b(banks?|branch|branches|ATMs?).*(clos|shut|disappear|eliminat)/i,
 
       // v6.1: BUILDING/INSTITUTION EMOJI (banks, hospitals, etc.)
-      /[🏦🏥🏛️🏢]/
+      /[🏦🏥🏛️🏢]/,
+
+      // v6.2: COLLECTIBLE/COMMEMORATIVE SCAM CATEGORY
+      // L6 INSIGHT: This is a distinct spam category, not individual keywords
+      // Catches: "Limited Edition", "Minted", "Commemorative", "Collector's Item"
+      /\b(minted|commemorat|collector'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b/i
     ];
 
     // v6.0: Check BOTH subject AND from field for clickbait patterns

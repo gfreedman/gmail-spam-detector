@@ -22,6 +22,8 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'caught (on|doing|in|red-handed)', re.I),
     re.compile(r'(what|this).*(changes everything|stunned everyone|shocked|amazed|surprised)', re.I),
     re.compile(r'\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns)', re.I),
+    # v6.2 NEW: Celebrity merchandise/collectible scam
+    re.compile(r'\b(Trump|Biden|Obama|Kennedy)\b.*(coin|bill|medal|card|stamp|legacy|commemorat|collect|mint|gold|silver)', re.I),
     re.compile(r'\b(seniors?|elderly|retirees?|boomers?|over \d{2}|born before|age \d{2})\b.*(risk|warning|alert|danger|affected|target)', re.I),
     re.compile(r'\b202[4-9]\b.*(warning|alert|prediction|forecast|crisis)', re.I),
     # v6.0 NEW: Conspiracy/hiding pattern
@@ -42,12 +44,16 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'[\u0400-\u04FF]'),
     # v6.1 NEW: Greek character obfuscation (Β instead of B, etc.)
     re.compile(r'[\u0370-\u03FF]'),
+    # v6.2 NEW: Fullwidth character obfuscation (＄ instead of $, etc.)
+    re.compile(r'[\uFF00-\uFFEF]'),
     # v6.0 NEW: Jobs/employment fear
     re.compile(r'\b(jobs?|employment).*(disappeared|vanished|never existed|fake|fraud|layoffs?)', re.I),
     # v6.1 NEW: Bank/branch closing fear
     re.compile(r'\b(banks?|branch|branches|ATMs?).*(clos|shut|disappear|eliminat)', re.I),
     # v6.1 NEW: Building/institution emoji
     re.compile(r'[🏦🏥🏛️🏢]'),
+    # v6.2 NEW: Collectible/commemorative scam category
+    re.compile(r'\b(minted|commemorat|collector\'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b', re.I),
 ]
 
 # v6.0 Fear patterns (same as SpamDetector.gs)

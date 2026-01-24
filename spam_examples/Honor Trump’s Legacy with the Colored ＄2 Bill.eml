@@ -1,0 +1,505 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7413:1b84:b0:1b3:596f:ddda with SMTP id 4csp393486rdo;
+        Sat, 24 Jan 2026 09:08:02 -0800 (PST)
+X-Received: by 2002:ac8:7d04:0:b0:501:463a:20a1 with SMTP id d75a77b69052e-502f7822403mr94558521cf.81.1769274062682;
+        Sat, 24 Jan 2026 09:01:02 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1769274062; cv=none;
+        d=google.com; s=arc-20240605;
+        b=NsTgi77eco4JEsSRteIdxA69aD7ZPPjaqcNb95MT2fUsN6ymPc3L6aLoEi47XCBi74
+         snagZXfJeTTRmRIqBi2C1OIVd1Fuuq4ba6ng97t3e1T5ufOnVFPvwbvFwUzJaxUXmz1S
+         8h25MG5dfDVPiaL6YJhKWtq2vurS3kFt6cjx9FdFPwyDIkV3DUJ51PDMv3+z+JFu2veq
+         YrzdU33Cyh/wxRre2ZTNyWMlMH5f0mdq/F6JOb4VDNMlRFk223etd46GrFTMcGxitMCo
+         QkCLAvQLsPS6Xl3zw0AzzMCHPXa+9bvqObalBRHGjvt4qoVfe8up/puv08qKAn+YxUJa
+         Beig==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=ZZxqHGfUPn2i/4ypjwBrh7UYaHM8FCn0jTIvVhO6oAU=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=di0fabNUJlTnT22TAGWWzn/EWsXeYF6YM5U0b5HT7p4tBLvjH/uFoJwWhMG9XjyDus
+         XrurYcF0rKMdV2qmd7RL2C5oISycy4L0fzTyl1ght3ywmPV2OjkdnLvq4tuFeH4BFUkD
+         V+UslelgUd28mBYaEHyCBxYEOgMjHNv/2nwIcXACaxqWA0CZYNtbjrMJ+USrkCls5fgW
+         NpZ+hMdjpbA3Jn4/V/UbY32W3i7N5WMMp1g4zQQREwMwJ18Y32aiimZDtQgIYG3Id5rk
+         4NF8IGScd0111B3fqFMjpN1cIH2f7b3f7AU1aT2kXkPMf81So57P8PyncrMhyp6kG8Q1
+         WWiQ==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@safe.turbotradepro.com header.s=dhv27izgagoq7ezvrdsodh27arn2kavo header.b=WR0YkyMo;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b="jU3cS/PJ";
+       spf=pass (google.com: domain of 0100019bf0f3b576-bb02474a-8f18-4113-bf19-c930cdaba412-000000@amazonses.com designates 54.240.79.2 as permitted sender) smtp.mailfrom=0100019bf0f3b576-bb02474a-8f18-4113-bf19-c930cdaba412-000000@amazonses.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=turbotradepro.com
+Return-Path: <0100019bf0f3b576-bb02474a-8f18-4113-bf19-c930cdaba412-000000@amazonses.com>
+Received: from a79-2.smtp-out.amazonses.com (a79-2.smtp-out.amazonses.com. [54.240.79.2])
+        by mx.google.com with ESMTPS id d75a77b69052e-502f7e91f8esi53926461cf.62.2026.01.24.09.01.02
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sat, 24 Jan 2026 09:01:02 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019bf0f3b576-bb02474a-8f18-4113-bf19-c930cdaba412-000000@amazonses.com designates 54.240.79.2 as permitted sender) client-ip=54.240.79.2;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@safe.turbotradepro.com header.s=dhv27izgagoq7ezvrdsodh27arn2kavo header.b=WR0YkyMo;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b="jU3cS/PJ";
+       spf=pass (google.com: domain of 0100019bf0f3b576-bb02474a-8f18-4113-bf19-c930cdaba412-000000@amazonses.com designates 54.240.79.2 as permitted sender) smtp.mailfrom=0100019bf0f3b576-bb02474a-8f18-4113-bf19-c930cdaba412-000000@amazonses.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=turbotradepro.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=dhv27izgagoq7ezvrdsodh27arn2kavo; d=safe.turbotradepro.com;
+	t=1769274062;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=ZZxqHGfUPn2i/4ypjwBrh7UYaHM8FCn0jTIvVhO6oAU=;
+	b=WR0YkyMo0NHdBJ7ojz4u10JmM+EYdYEx8t7XjEkdX+uuirjtKFEK/1yHDRqACRw0
+	kdO9t54Y/+lItIZjfS42y5Cw+XfZZSS0p4wsXRung+fGMTKz6DaUCgjm3tlfShuMu2y
+	AnMRC4a1/AJ67Hyz4SoSG72RirKTp8iGsSs+Og0jXFeER7fIpJwbA/hHMtexvZCuVo+
+	iS9ty0rtvAYKogmxKWsY8SY1olPC7edTsF0HFHZNK18U46p++++vDJD8AG5C3TrHa6/
+	wuoOaU32YLLGhT3iVDVTuZ4chQUHIlszfczWnLRbI28E/U3lHnwzU5kyIUqmw7KsQH/
+	+kpPXqVSjA==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1769274062;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=ZZxqHGfUPn2i/4ypjwBrh7UYaHM8FCn0jTIvVhO6oAU=;
+	b=jU3cS/PJojvgjDygcOyjUczx+UsTDWuvD/zMxYvOVyDxAeMuB8ED7cqnWWm11SrL
+	uEN2S5vcjKW9pOm5BDhaWLniylKGsmI+BEC03iItPkRaWgJJtHEidgSVCCIl4XSB5vq
+	NToHZZwGwQF7p1qTGk3LO057qNeVkZR/+5y/jU+Q=
+Date: Sat, 24 Jan 2026 17:01:02 +0000
+From: =?UTF-8?Q?Trump_=EF=BC=842_Bills_Minted_=7C_Turbo_Trade_Pro?= <seen@safe.turbotradepro.com>
+Reply-To: support@turbotradepro.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019bf0f3b576-bb02474a-8f18-4113-bf19-c930cdaba412-000000@email.amazonses.com>
+Subject: =?UTF-8?Q?Honor_Trump=E2=80=99s_Legacy_with_the_Colored_=EF=BC=842_Bill?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_8077_1223444073.1769274062079"
+X-Campaign-ID: 16611876
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=2784686eb9da47129ed0b358fd305c52&_s=32eaf276517343eea35a833198bb0d0f&_t=i9murAo74ktPUw4--sPYU7XoFxswq3H8zUUzZrU0x67e-hBQMwmmBGLYM6R3Q15sko6iPCph_I1Dcx5WJ3oAXiQ8FBCA0DWzQkfZkCXx5Hvf26uLkcIR8wfWB-oHO9AWYBpsiJrodxlUv--oNqGNlg%3D%3D>,<mailto:unsubscribe+16611876+21620750@unsubscribe.iterable.com>
+X-Feedback-ID: 21620750:16611876:127403:iterable
+X-Message-ID: 32eaf276517343eea35a833198bb0d0f
+X-SES-Outgoing: 2026.01.24-54.240.79.2
+
+------=_Part_8077_1223444073.1769274062079
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+In celebration of President Trump=E2=80=99s historic inauguration, we=E2=80=
+=99ve released the=20
+Colored Trump =EF=BC=842 Bill=E2=80=94a stunning =CF=B2=CE=BF=E2=85=BC=E2=
+=85=BC=D0=B5=CF=B2tible honoring his leadership and vision=20
+for America.
+
+
+
+ <https://turbotradepro.com/>
+
+
+
+
+ N=D0=B5w Trump =EF=BC=842 Bills Minted!=20
+ A Moment We've waited for=20
+=20
+<https://track.turbotradepro.com/6962c4183996841f51a10b27?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00031_1>
+Patriots like you have waited for this moment!=20
+
+ In celebration of President Trump=E2=80=99s historic inauguration, we=E2=
+=80=99ve released the=20
+Colored Trump =EF=BC=842 Bill=E2=80=94a stunning =CF=B2=CE=BF=E2=85=BC=E2=
+=85=BC=D0=B5=CF=B2tible honoring his leadership and vision=20
+for America.
+
+Why This Bill is a Must-Have:=20
+
+ * Genuine L=D0=B5ga=E2=85=BC Tender: This is a real =EF=BC=842 U.S. bill, =
+carefully enhanced with=20
+vibrant colorization while preserving its authenticity.=20
+ * Exclusive Trump Imagery: Featuring President Trump=E2=80=99s portrait, n=
+am=D0=B5, and=20
+signature, this =CF=B2=CE=BF=E2=85=BC=E2=85=BC=D0=B5=CF=B2tible showcases w=
+hat it would be like to see Trump on=20
+U.S. currency.=20
+ * High-Quality Craftsmanship: Handcrafted by a private mint, each bill is =
+a=20
+work of art=E2=80=94durable, precise, and eye-catching.=20
+ * L=D1=96m=D1=96t=D0=B5d Availability: These bills are in high demand and =
+will sell out=20
+quickly. Don=E2=80=99t miss your =CF=B2han=CF=B2=D0=B5 to own this rare kee=
+psake.=20
+ * A =CE=A1=D0=B5rf=D0=B5=CF=B2t Conversation Starter: Whether f=CE=BFr y=
+=CE=BF=CF=85r =CF=B2=CE=BF=E2=85=BC=E2=85=BC=D0=B5=CF=B2tion or as a unique=
+=20
+gift, this bill will inspire pride and spark discussions.=20
+=20
+<https://track.turbotradepro.com/6962c4183996841f51a10b27?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00031_1>
+Celebrat=D0=B5 Trump=E2=80=99s Presidency with this exclusive piece of hist=
+ory!
+
+=D0=A1=E2=85=BC=D1=96=CF=B2k =CE=97=D0=B5r=D0=B5 to =CE=9Frd=D0=B5r Before =
+They=E2=80=99re Gone!=20
+<https://track.turbotradepro.com/6962c4183996841f51a10b27?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00031_1>
+
+=CE=91=CF=B2t n=CE=BFw=E2=80=94once they=E2=80=99re gone, they=E2=80=99re g=
+one for good!=20
+
+[G=D0=B5t Your Colored Trump =EF=BC=842 Bill N=CE=BFw!]=20
+<https://track.turbotradepro.com/6962c4183996841f51a10b27?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00031_1>
+
+ SHOP THE TRUMP =EF=BC=842 =20
+<https://track.turbotradepro.com/6962c4183996841f51a10b27?sub1=3Dgeoff.c.fr=
+eedman@gmail.com&sub2=3Dttp-oqx&sub3=3DB&sub4=3D00031_1>
+
+ <https://turbotradepro.com/>
+
+This email was sent by Turbo Trade Pro a part of TerraTrance Technologies, =
+LLC
+
+Reach out to us by replying button or by direct email to=20
+support@turbotradepro.com <mailto:support@turbotradepro.com>
+
+ Reproduction or distribution of texts, images or information in any forms =
+is=20
+forbidden without written permission from TerraTrance Technologies, LLC.
+
+200 Broadway Blvd NE, Albuquerque, NM 87102
+
+
+
+
+=C2=A9 2026 Turbo Trade Pro. All Rights Reserved.
+
+
+Privacy Policy <https://turbotradepro.com/privacy-policy/> | Terms & Condit=
+ions
+ <https://turbotradepro.com/terms-conditions/> | Unsubscribe=20
+<https://links.safe.turbotradepro.com/e/encryptedUnsubscribe?_r=3D2784686eb=
+9da47129ed0b358fd305c52&_s=3D32eaf276517343eea35a833198bb0d0f&_t=3Di9murAo7=
+4ktPUw4--sPYU7XoFxswq3H8zUUzZrU0x67e-hBQMwmmBGLYM6R3Q15sko6iPCph_I1Dcx5WJ3o=
+AXiQ8FBCA0DWzQkfZkCXx5Hvf26uLkcIR8wfWB-oHO9AWYBpsiJrodxlUv--oNqGNlg%3D%3D>
+
+------=_Part_8077_1223444073.1769274062079
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: bo=
+rder-box;"><head><title></title><meta http-equiv=3D"Content-Type" content=
+=3D"text/html; charset=3Dutf-8"><meta name=3D"viewport" content=3D"width=3D=
+device-width,initial-scale=3D1"><!--[if mso]><xml><w:WordDocument xmlns:w=
+=3D"urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyRead=
+ingMail/></w:WordDocument> <o:OfficeDocumentSettings><o:PixelsPerInch>96</o=
+:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]--><s=
+tyle>*{box-sizing:border-box}body{margin:0;padding:0}a[x-apple-data-detecto=
+rs]{color:inherit!important;text-decoration:inherit!important}#MessageViewB=
+ody a{color:inherit;text-decoration:none}p{line-height:inherit}.desktop_hid=
+e,.desktop_hide table{mso-hide:all;display:none;max-height:0;overflow:hidde=
+n}.image_block img+div{display:none}sub,sup{font-size:75%;line-height:0}@me=
+dia(max-width:620px){.mobile_hide{display:none}.row-content{width:100%!impo=
+rtant}.stack .column{width:100%;display:block}.mobile_hide{min-height:0;max=
+-height:0;max-width:0;overflow:hidden;font-size:0}.desktop_hide,.desktop_hi=
+de table{display:table!important;max-height:none!important}}</style><!--[if=
+ mso ]><style>sup,sub{font-size:100%!important}sup{mso-text-raise:10%}sub{m=
+so-text-raise:-10%}</style><![endif]--></head><body class=3D"body" style=3D=
+"box-sizing: border-box; background-color: #fff; margin: 0; padding: 0; -we=
+bkit-text-size-adjust: none; text-size-adjust: none;"><span style=3D"color:=
+transparent;visibility:hidden;display:none;opacity:0;height:0;width:0;font-=
+size:0;">In celebration of President Trump=E2=80=99s historic inauguration,=
+ we=E2=80=99ve released the Colored Trump =EF=BC=842 Bill=E2=80=94a stunnin=
+g =CF=B2=CE=BF=E2=85=BC=E2=85=BC=D0=B5=CF=B2tible honoring his leadership a=
+nd vision for America.</span><img src=3D"https://links.safe.turbotradepro.c=
+om/e/eo?_t=3D2784686eb9da47129ed0b358fd305c52&amp;_m=3D32eaf276517343eea35a=
+833198bb0d0f&amp;_e=3Di9murAo74ktPUw4--sPYU7XoFxswq3H8zUUzZrU0x67e-hBQMwmmB=
+GLYM6R3Q15sko6iPCph_I1Dcx5WJ3oAXiQ8FBCA0DWzQkfZkCXx5Hvt_8URCwtpTCMFv6Jf9QdJ=
+Oeh49aRENguALh-EvNzEEdszAYoY3X9texk6y-RamoU%3D" style=3D"border:0;width:1px=
+;height:1px;border-width:0px!important;display:none!important;line-height:0=
+!important;" width=3D"1" height=3D"1"/><table class=3D"nl-container" width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspac=
+e: 0; background-color: #fff;" bgcolor=3D"#fff"><tbody style=3D"box-sizing:=
+ border-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing=
+: border-box;"><table class=3D"row row-1" align=3D"center" width=3D"100%" b=
+order=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; backg=
+round-image: url(https://library.iterable.com/2346/28606/772e8a04301840068c=
+91ce3b715018da-bg-1.jpg); background-repeat: no-repeat; background-size: co=
+ver;" background=3D"https://library.iterable.com/2346/28606/772e8a043018400=
+68c91ce3b715018da-bg-1.jpg"><tbody style=3D"box-sizing: border-box;"><tr st=
+yle=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"><tabl=
+e class=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=3D"=
+0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box;=
+ mso-table-lspace: 0; mso-table-rspace: 0; background-color: #fff; backgrou=
+nd-size: auto; border-radius: 0; color: #000; width: 600px; margin: 0 auto;=
+" width=3D"600" bgcolor=3D"#fff"><tbody style=3D"box-sizing: border-box;"><=
+tr style=3D"box-sizing: border-box;"><td class=3D"column column-1" width=3D=
+"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspa=
+ce: 0; font-weight: 400; text-align: left; vertical-align: top;" align=3D"l=
+eft" valign=3D"top"><table class=3D"image_block block-1" width=3D"100%" bor=
+der=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr =
+style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: bo=
+rder-box; width: 100%;" width=3D"100%"> <div class=3D"alignment" align=3D"c=
+enter" style=3D"box-sizing: border-box;"><div style=3D"box-sizing: border-b=
+ox; max-width: 600px;"><a href=3D"https://links.safe.turbotradepro.com/u/cl=
+ick?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D32eaf276517343eea35a833198bb=
+0d0f&_e=3DicqG8LPxBLdpB-ve_8wCG2xP90p1On184r22hyQ4z2hKBYwqEyLnPNldaHphDDC1T=
+SlRGRQkZkpjLRRreVafI0flSa-v9CNeIAvQFGayte17VHuV93-S9kbLJI-Zg66n2rwSFzR-az0r=
+tUp_gggugEUz85n2mWcO4nUfpH69L2iLdM9DMivftdJNhPcsFJNgssVi9Re5ZQbFPQQGXWJHZjl=
+Ze2efaf9EzSM5E2yWBXfPFD7fZXPNFj2AtS20gpBU3CKQnIS_yN9Xia9j4F0gdMDtyDoEKjsk5s=
+5O3pI8_bVoygP96qMZjuld-tMURtBbc3ZOQdplOnOlXBozCMSEQg%3D%3D" target=3D"_blan=
+k" style=3D"box-sizing: border-box;"><img src=3D"https://library.iterable.c=
+om/2346/28606/09b8f8b0c350449ea036e8beb496f530-header-7-2.jpg" style=3D"box=
+-sizing: border-box; display: block; height: auto; border: 0; width: 100%;"=
+ width=3D"600" alt=3D"Turbo Trade Pro" title=3D"Turbo Trade Pro" height=3D"=
+auto"></a></div></div></td></tr></table><table class=3D"html_block block-2"=
+ width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pr=
+esentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table=
+-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=
+=3D"box-sizing: border-box;"><div style=3D"box-sizing: border-box; font-fam=
+ily: Arial,'Helvetica Neue',Helvetica,sans-serif; text-align: center;" alig=
+n=3D"center"><table width=3D"100%" border=3D"0" cellpadding=3D"0" cellspaci=
+ng=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; font-family=
+: 'Verdana', Arial, Helvetica, sans-serif; max-width: 600px;"> <tbody style=
+=3D"box-sizing: border-box; max-width: 600px;"> <tr style=3D"box-sizing: bo=
+rder-box;"> <td align=3D"center" valign=3D"top" style=3D"box-sizing: border=
+-box; font-family: 'Verdana', Arial, Helvetica, sans-serif; max-width: 600p=
+x;"> <table class=3D"main-table" bgcolor=3D"#FFFFFF" border=3D"0" cellspaci=
+ng=3D"0" cellpadding=3D"0" role=3D"presentation" width=3D"100%" style=3D"bo=
+x-sizing: border-box; font-family: 'Verdana', Arial, Helvetica, sans-serif;=
+ max-width: 600px;"> <tbody style=3D"box-sizing: border-box; max-width: 600=
+px;"> <tr style=3D"box-sizing: border-box;"> <td class=3D"content-wrapper" =
+align=3D"center" style=3D"box-sizing: border-box; padding-left: 21px; paddi=
+ng-right: 21px; font-family: 'Verdana', Arial, Helvetica, sans-serif; max-w=
+idth: 600px;"> <table class=3D"inner-content-wrapper" border=3D"0" cellspac=
+ing=3D"0" role=3D"presentation" cellpadding=3D"0" width=3D"100%" style=3D"b=
+ox-sizing: border-box; width: 100%; font-family: 'Verdana', Arial, Helvetic=
+a, sans-serif; max-width: 600px;"> <tbody style=3D"box-sizing: border-box; =
+max-width: 600px;"> <tr style=3D"box-sizing: border-box;"> <td height=3D"15=
+" width=3D"100%" style=3D"box-sizing: border-box; font-family: 'Verdana', A=
+rial, Helvetica, sans-serif; max-width: 600px;" class=3D"space-between-sect=
+ions"></td> </tr> <tr style=3D"box-sizing: border-box;"> <td align=3D"cente=
+r" style=3D"box-sizing: border-box; font-style: normal; font-weight: bold; =
+line-height: 1.5; text-align: center; color: #000000; padding-top: 15px; pa=
+dding-bottom: 15px; font-family: 'Verdana', Arial, Helvetica, sans-serif; f=
+ont-size: 22px; max-width: 600px;"> <b style=3D"box-sizing: border-box; fon=
+t-family: 'Roboto', Arial, Helvetica, sans-serif; font-size: 24px; font-sty=
+le: normal; font-weight: bold; line-height: 1.5; text-align: center; color:=
+ #000000;"> N=D0=B5w Trump =EF=BC=842 Bills Minted! <br style=3D"box-sizing=
+: border-box;"> A Moment We've waited for </b> </td> </tr> <tr style=3D"box=
+-sizing: border-box;"> <td class=3D"image-block" align=3D"center" style=3D"=
+box-sizing: border-box; padding-top: 15px; padding-bottom: 15px; font-famil=
+y: 'Verdana', Arial, Helvetica, sans-serif; max-width: 600px;"> <a href=3D"=
+https://links.safe.turbotradepro.com/u/click?_t=3D2784686eb9da47129ed0b358f=
+d305c52&_m=3D32eaf276517343eea35a833198bb0d0f&_e=3DicqG8LPxBLdpB-ve_8wCG-c4=
+nV4d39cNuDSUmUoUk6ZVAS24VTM_bUl2tLBlXA69RuvgAcX3e6RxV5-fHBfHfKWMS-wdS1bPQWF=
+58cgja-ePT7lt5KwMAkDxyTv0QyCDOLn3rn5q4lrnQA7DiZxGaYhNkAcHJQzUAAkYRLeIt_MHMi=
+TWc64iJVdGAwIRLLq5kBwIj5JIqhnvKQ8O6uyYgCTLBIBcMqKJJLIsDAv1UEKbv9u2ghzEZ7-hS=
+JqGlz7P5YaFs9k2JNIBMtC_Bhk7wb9hU6lBRQv36aDoKHLQce1a9H4voXF-t6DSFTrpRHJ_UNY-=
+9nZ8L_vNu2T52MOkm506bnqjFE-7WOD5Eg-lZ2vVvYRgwEgQgIqEPF4k-q9fn9zR69h9J9CSWpc=
+UKNEr5fsr6or1_YYgVgRvmKdGTEQa1Ejq9SbEPvqQVBiiRZOJ3kH9msn57DrV0Ym5prYhruVYRB=
+tc4pBieiRHC8t1RCSxbmTPCoI64Mtw4iDVL6BK6WJWUPW2P1OFgYj5Y_KzjgHjM3t8WrWS_mFzm=
+PJUrbg7vXnjTK6ITSuXtEWb34kzPoJekFEL7Nb3litE5vHA9w%3D%3D" target=3D"_blank" =
+style=3D"box-sizing: border-box; font-family: 'Verdana', Arial, Helvetica, =
+sans-serif;"> <img alt=3D"=EF=BC=842" height=3D"auto" src=3D"https://librar=
+y.iterable.com/2346/28606/6c7ecc29d6fc41d1a8cada4b032e8c20-jhyghj.jpg" styl=
+e=3D"box-sizing: border-box; border: 0; display: block; outline: none; text=
+-decoration: none; height: auto; width: 100%; max-width: 560px; font-size: =
+13px;" width=3D"560"> </a> </td> </tr> <tr style=3D"box-sizing: border-box;=
+"> <td style=3D"box-sizing: border-box; font-style: normal; font-weight: no=
+rmal; line-height: 1.5; text-align: left; color: #000000; padding-top: 15px=
+; padding-bottom: 15px; font-family: 'Verdana', Arial, Helvetica, sans-seri=
+f; font-size: 22px; max-width: 600px;" align=3D"left"> <div style=3D"box-si=
+zing: border-box; font-style: normal; font-weight: normal; line-height: 1.5=
+; text-align: left; color: #000000; font-family: 'Verdana', Arial, Helvetic=
+a, sans-serif; font-size: 22px; max-width: 600px;"> <b style=3D"box-sizing:=
+ border-box;">Patriots like you have waited for this moment!</b> <br style=
+=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> In cele=
+bration of President Trump=E2=80=99s historic inauguration, we=E2=80=99ve r=
+eleased the <b style=3D"box-sizing: border-box;">Colored Trump =EF=BC=842 B=
+ill</b>=E2=80=94a stunning =CF=B2=CE=BF=E2=85=BC=E2=85=BC=D0=B5=CF=B2tible =
+honoring his leadership and vision for America. <br style=3D"box-sizing: bo=
+rder-box;"><br style=3D"box-sizing: border-box;"> <b style=3D"box-sizing: b=
+order-box;">Why This Bill is a Must-Have:</b> <br style=3D"box-sizing: bord=
+er-box;"> <ul style=3D"box-sizing: border-box;"> <li style=3D"box-sizing: b=
+order-box;"> <b style=3D"box-sizing: border-box;">Genuine L=D0=B5ga=E2=85=
+=BC Tender</b>: This is a real =EF=BC=842 U.S. bill, carefully enhanced wit=
+h vibrant colorization while preserving its authenticity. </li> <li style=
+=3D"box-sizing: border-box;"> <b style=3D"box-sizing: border-box;">Exclusiv=
+e Trump Imagery</b>: Featuring President Trump=E2=80=99s portrait, nam=D0=
+=B5, and signature, this =CF=B2=CE=BF=E2=85=BC=E2=85=BC=D0=B5=CF=B2tible sh=
+owcases what it would be like to see Trump on U.S. currency. </li> <li styl=
+e=3D"box-sizing: border-box;"> <b style=3D"box-sizing: border-box;">High-Qu=
+ality Craftsmanship</b>: Handcrafted by a private mint, each bill is a work=
+ of art=E2=80=94durable, precise, and eye-catching. </li> <li style=3D"box-=
+sizing: border-box;"> <b style=3D"box-sizing: border-box;">L=D1=96m=D1=96t=
+=D0=B5d Availability</b>: These bills are in high demand and will sell out =
+quickly. Don=E2=80=99t miss your =CF=B2han=CF=B2=D0=B5 to own this rare kee=
+psake. </li> <li style=3D"box-sizing: border-box;"> <b style=3D"box-sizing:=
+ border-box;">A =CE=A1=D0=B5rf=D0=B5=CF=B2t Conversation Starter</b>: Wheth=
+er f=CE=BFr y=CE=BF=CF=85r =CF=B2=CE=BF=E2=85=BC=E2=85=BC=D0=B5=CF=B2tion o=
+r as a unique gift, this bill will inspire pride and spark discussions. </l=
+i> </ul> <table role=3D"presentation" cellpadding=3D"0" cellspacing=3D"0" a=
+lign=3D"center" width=3D"100%" style=3D"box-sizing: border-box;"> <tbody st=
+yle=3D"box-sizing: border-box;"> <tr style=3D"box-sizing: border-box;"> <td=
+ align=3D"center" style=3D"box-sizing: border-box; padding-top: 15px; paddi=
+ng-bottom: 15px;"> <a href=3D"https://links.safe.turbotradepro.com/u/click?=
+_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D32eaf276517343eea35a833198bb0d0f=
+&_e=3DicqG8LPxBLdpB-ve_8wCG-c4nV4d39cNuDSUmUoUk6ZVAS24VTM_bUl2tLBlXA69RuvgA=
+cX3e6RxV5-fHBfHfKWMS-wdS1bPQWF58cgja-ePT7lt5KwMAkDxyTv0QyCDOLn3rn5q4lrnQA7D=
+iZxGaYhNkAcHJQzUAAkYRLeIt_MHMiTWc64iJVdGAwIRLLq5B5-R2ywClFZKcwuzdCB2GQtzS0x=
+rwojPOAni1sKVOVOg5y3JfyBbKT2e9imvTwIjOETPAalfm2N5m7wrdF-oE4tnC1HHaN9FZ7M-xr=
+3myCL-BY8XvhDAbNHU0lCpcLPkWS7fKaUDlweCdsJOvfFtDAqcnueZWHO0SW4SVblniZTzFl0m-=
+g0OpbEQ1pg_ZHcv02HyDnRFhc3csRHwR9tyDH0QByNf9ItVmuyWLOH0oqUlbu8dmEKiWl5W7qqO=
+4F6XKSfAhoxktaq6hqlt4-ZUO8GrEP1oxnCyBAtOhWeiTBWpnCckzFR0oF0ZFy_QMMGqvLBINDH=
+HbHlNgp-PjB9KAM7lsQP_HfhR6HqTCl2rQHxk_pC6lZIW4R8dNZ4XpYdxFCD_xib284r0SGAjqF=
+c8PQ%3D%3D" style=3D"box-sizing: border-box; font-weight: 900; text-decorat=
+ion: none;"> <img width=3D"500" src=3D"https://library.iterable.com/2346/28=
+606/bed2f0bdb12942c3a8821f35f697ec7c-jhygtf.png" alt=3D"Image" style=3D"box=
+-sizing: border-box; width: 100%; height: auto; border: 0; max-width: 350px=
+;"> </a> </td> </tr> </tbody> </table>Celebrat=D0=B5 Trump=E2=80=99s Presid=
+ency with this exclusive piece of history! <br style=3D"box-sizing: border-=
+box;"><br style=3D"box-sizing: border-box;"> <a href=3D"https://links.safe.=
+turbotradepro.com/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D32eaf2=
+76517343eea35a833198bb0d0f&_e=3DicqG8LPxBLdpB-ve_8wCG-c4nV4d39cNuDSUmUoUk6Z=
+VAS24VTM_bUl2tLBlXA69RuvgAcX3e6RxV5-fHBfHfKWMS-wdS1bPQWF58cgja-ePT7lt5KwMAk=
+DxyTv0QyCDOLn3rn5q4lrnQA7DiZxGaYhNkAcHJQzUAAkYRLeIt_MHMiTWc64iJVdGAwIRLLq52=
+G4tCMWl7kR1l4NRkkcGGkfs1PKLSu3OOHAi22Wjuht0HdUUllsaAgaID3gwrZfv0tMyoW2VjhjD=
+0lPHBW1FPoqf0GYu5GwagEycgBxn1ltysKYmU0cjALWriLEJd04ZAkjj--IRQ2ZazUT7ecBCqkz=
+yqJksUVSNvfUFkhDP9rkYdX29b-JHGO5lTTsUQ3ht684YDFQ0JJ_b04lGjUV9yLUnvZ9G7ut9P3=
+9EG0FO98OT9x85GnXzsaD_T_kC1_FtNr3e0iqY2ld8cL5KP00XDEqFaqTAZPSE4DEgPPpioDtoP=
+q2H4A8UvAQq-f-PqjKcxZdIdWUbI6QcV53cRE3kRW8g9Bm3beLayTVDenelpg5IIL6GJXSzbN9t=
+dL_H-pXmRjGAksi30ZIKzR5ETdZ1Xg%3D%3D" style=3D"box-sizing: border-box; text=
+-decoration: underline; font-weight: 700; font-family: 'Verdana', Arial, He=
+lvetica, sans-serif;">=D0=A1=E2=85=BC=D1=96=CF=B2k =CE=97=D0=B5r=D0=B5 to =
+=CE=9Frd=D0=B5r Before They=E2=80=99re Gone!</a> <br style=3D"box-sizing: b=
+order-box;"><br style=3D"box-sizing: border-box;"> <b style=3D"box-sizing: =
+border-box;">=CE=91=CF=B2t n=CE=BFw</b>=E2=80=94once they=E2=80=99re gone, =
+they=E2=80=99re gone for good! <br style=3D"box-sizing: border-box;"><br st=
+yle=3D"box-sizing: border-box;"> <a href=3D"https://links.safe.turbotradepr=
+o.com/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D32eaf276517343eea3=
+5a833198bb0d0f&_e=3DicqG8LPxBLdpB-ve_8wCG-c4nV4d39cNuDSUmUoUk6ZVAS24VTM_bUl=
+2tLBlXA69RuvgAcX3e6RxV5-fHBfHfKWMS-wdS1bPQWF58cgja-ePT7lt5KwMAkDxyTv0QyCDOL=
+n3rn5q4lrnQA7DiZxGaYhNkAcHJQzUAAkYRLeIt_MHMiTWc64iJVdGAwIRLLq5fxrwDifOW7FvX=
+uI16bRTUKnKaZVS2LjS_AoQeqmHUk5_gQPZ4bfX9itDdxFVpaK3cppSo1QiKNuVLj15HDUMv16f=
+CTPsvJ7PPZJVfBu6fWPDDoTIkT-5pn9VIvCCmsXFBB6D5E-CuVY0Sf6MGaAdliw8f32aZc3RT8d=
+cIro9xak-RjPdIdPW7h7zmcITJACPq2ftTzB_4qME389bb4DuKn_CorI0AYXNbhDeI-e-KyoE0p=
+IWVB72TL4tzwX2uEdEqGDqJrmclozx1LJDulWmnuJ1t5seY7PaoOQX1tPPyqLFBuqJdH4W4Hqdv=
+AT_s-4vhZg1OaNFcFd5smy9wYQXrXs_Xi6T20Bpi1r8exhvUPtvJ3ugb72832GZ6RGfaoWhsROn=
+Ox5mji8tLmzQokkoLQ%3D%3D" style=3D"box-sizing: border-box; text-decoration:=
+ underline; font-weight: 700; font-family: 'Verdana', Arial, Helvetica, san=
+s-serif;">[G=D0=B5t Your Colored Trump =EF=BC=842 Bill N=CE=BFw!]</a> </div=
+> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td align=3D"center" s=
+tyle=3D"box-sizing: border-box; padding-top: 15px; padding-bottom: 15px; fo=
+nt-family: 'Verdana', Arial, Helvetica, sans-serif; max-width: 600px;"> <ta=
+ble cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-=
+sizing: border-box; font-family: 'Verdana', Arial, Helvetica, sans-serif; m=
+ax-width: 600px;"> <tbody style=3D"box-sizing: border-box; max-width: 600px=
+;"> <tr style=3D"box-sizing: border-box;"> <td align=3D"center" style=3D"bo=
+x-sizing: border-box; border-radius: 10px; font-style: normal; line-height:=
+ 1.5; text-align: center; font-weight: bold; background-color: #0C79B3; col=
+or: #ffffff; font-family: 'Verdana', Arial, Helvetica, sans-serif; font-siz=
+e: 22px; max-width: 600px;" bgcolor=3D"#0C79B3"> <a href=3D"https://links.s=
+afe.turbotradepro.com/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D32=
+eaf276517343eea35a833198bb0d0f&_e=3DicqG8LPxBLdpB-ve_8wCG-c4nV4d39cNuDSUmUo=
+Uk6ZVAS24VTM_bUl2tLBlXA69RuvgAcX3e6RxV5-fHBfHfKWMS-wdS1bPQWF58cgja-ePT7lt5K=
+wMAkDxyTv0QyCDOLn3rn5q4lrnQA7DiZxGaYhNkAcHJQzUAAkYRLeIt_MHMiTWc64iJVdGAwIRL=
+Lq5vKwNzeEVeC5I21_hK0JQj3tfytHdNwn2cT_toDzGXKee7opj34iGbAUlWydXwhsyQWUb1A6n=
+0raX6IeO6Mk__oGMqHDNMW6wOwmN-8xn7Pu0imBKqU5JrhGZmhAb7K2D688UUKt63da8ShXiBKr=
+VI4mcgjwGJpiPFzOnA-RDml2FxQPpjN5x4PyHG91xcprjdYI-cZt1imIkeNK03B3Dcbf8_Qdg34=
+1hzT6XgwJyQxtCndD12bSyUKIEBPbH6Q2vHNyOLFjvjczG0ylKOv1AgyUfbNf1x3Krk4ycL9Zol=
+gUXfSrGLYVe_p6768Q2oBlDlc0B_nK_0JU9Dyq3y0GLp70fUpaWJ0p7hWw8lueLeqpbItGpHK1a=
+4SyVxaAJcnKA7DeaXMxU2gI6XqAeZgs8yw%3D%3D" target=3D"_blank" style=3D"box-si=
+zing: border-box; font-weight: bold; text-decoration: none; color: #ffffff;=
+ background-color: #0C79B3; border-radius: 10px; padding: 12px 20px; displa=
+y: inline-block; font-style: normal; line-height: 1.5; text-align: center; =
+font-family: 'Verdana', Arial, Helvetica, sans-serif; font-size: 22px;"> SH=
+OP THE TRUMP =EF=BC=842 </a> </td> </tr> </tbody> </table> </td> </tr> <tr =
+style=3D"box-sizing: border-box;"> <td height=3D"15" width=3D"100%" style=
+=3D"box-sizing: border-box; font-family: 'Verdana', Arial, Helvetica, sans-=
+serif; max-width: 600px;" class=3D"space-between-sections"></td> </tr> </tb=
+ody> </table> </td> </tr> </tbody> </table> </td> </tr> </tbody> </table> <=
+table role=3D"presentation" cellpadding=3D"0" cellspacing=3D"0" align=3D"ce=
+nter" style=3D"box-sizing: border-box;"> <tbody style=3D"box-sizing: border=
+-box;"> </tbody> </table></div></td></tr></table><table class=3D"image_bloc=
+k block-3" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" =
+role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0;=
+ mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"p=
+ad" style=3D"box-sizing: border-box; width: 100%;" width=3D"100%"><div clas=
+s=3D"alignment" align=3D"center" style=3D"box-sizing: border-box;"><div sty=
+le=3D"box-sizing: border-box; max-width: 600px;"> <a href=3D"https://links.=
+safe.turbotradepro.com/u/click?_t=3D2784686eb9da47129ed0b358fd305c52&_m=3D3=
+2eaf276517343eea35a833198bb0d0f&_e=3DicqG8LPxBLdpB-ve_8wCG2xP90p1On184r22hy=
+Q4z2hKBYwqEyLnPNldaHphDDC1z-Q7iK32SKw4kXHV2Le0wqOEsql-EXwkPE8HerF0swgfFhB7G=
+YspvoWhUtMtuqewCkBF-OS_kL2q7KZYNStl9E7rc8oN-bcavCNxzTiU2vpj-rqKWj5y1SJwrwSf=
+C90rgpP_ymx-IgpjN305NXPEyk4XSZdQs8RnqP0FNbr2ailWhRWLqwAtdwgqCeCbq1yL9rSTG8A=
+wAB3-CQ9N2FKWToOpscxGEB5AFpWxu-M1k8MdJ3W5biKLcQU-YDp91gs55o4sV28lfwB1pABzdZ=
+yyjw%3D%3D" target=3D"_blank" style=3D"box-sizing: border-box;"><img src=3D=
+"https://library.iterable.com/2346/28606/9f9e921b1685467b95c50277215759c3-h=
+eader-8-1.jpg" style=3D"box-sizing: border-box; display: block; height: aut=
+o; border: 0; width: 100%;" width=3D"600" alt=3D"Divider Turbo Trade Pro" t=
+itle=3D"Divider Turbo Trade Pro" height=3D"auto"></a></div></div></td></tr>=
+</table><table class=3D"text_block block-4" width=3D"100%" border=3D"0" cel=
+lpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing:=
+ border-box; mso-table-lspace: 0; mso-table-rspace: 0; word-break: break-wo=
+rd;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-s=
+izing: border-box; padding-bottom: 20px; padding-left: 30px; padding-right:=
+ 30px; padding-top: 20px;"><div style=3D"box-sizing: border-box; font-famil=
+y: Verdana,sans-serif;"><div class style=3D"box-sizing: border-box; font-si=
+ze: 14px; font-family: Verdana,Geneva,sans-serif; mso-line-height-alt: 16.8=
+px; color: #555; line-height: 1.2;"><p style=3D"box-sizing: border-box; lin=
+e-height: inherit; margin: 0; text-align: center; mso-line-height-alt: 16.8=
+px;"> <span style=3D"box-sizing: border-box; word-break: break-word; color:=
+ #000000;">This email was sent by Turbo Trade Pro a part of TerraTrance Tec=
+hnologies, LLC<br style=3D"box-sizing: border-box;"><br style=3D"box-sizing=
+: border-box;">Reach out to us by replying button or by direct email to <a =
+href=3D"mailto:support@turbotradepro.com" target=3D"_blank" style=3D"box-si=
+zing: border-box; text-decoration: underline; color: #000000;" rel=3D"noope=
+ner">support@turbotradepro.com</a><br style=3D"box-sizing: border-box;"><br=
+ style=3D"box-sizing: border-box;"> Reproduction or distribution of texts, =
+images or information in any forms is forbidden without written permission =
+from TerraTrance Technologies, LLC.<br style=3D"box-sizing: border-box;"><b=
+r style=3D"box-sizing: border-box;">200 Broadway Blvd NE, Albuquerque, NM 8=
+7102<br style=3D"box-sizing: border-box;"></span></p><p style=3D"box-sizing=
+: border-box; line-height: inherit; margin: 0; text-align: center; mso-line=
+-height-alt: 16.8px;">&nbsp;</p><p style=3D"box-sizing: border-box; line-he=
+ight: inherit; margin: 0; text-align: center; mso-line-height-alt: 16.8px;"=
+><span style=3D"box-sizing: border-box; word-break: break-word; color: #000=
+000;">=C2=A9 2026 Turbo Trade Pro. All Rights Reserved.</span></p></div></d=
+iv></td></tr></table><table class=3D"text_block block-5" width=3D"100%" bor=
+der=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; word-=
+break: break-word;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad"=
+ style=3D"box-sizing: border-box; padding-bottom: 20px; padding-left: 10px;=
+ padding-right: 10px; padding-top: 10px;"><div style=3D"box-sizing: border-=
+box; font-family: Verdana,sans-serif;"><div class style=3D"box-sizing: bord=
+er-box; font-size: 14px; font-family: Verdana,Geneva,sans-serif; mso-line-h=
+eight-alt: 16.8px; color: #555; line-height: 1.2;"><p style=3D"box-sizing: =
+border-box; line-height: inherit; margin: 0; text-align: center; mso-line-h=
+eight-alt: 16.8px;"> <strong style=3D"box-sizing: border-box;"><span style=
+=3D"box-sizing: border-box; word-break: break-word; color: #000000;"><a hre=
+f=3D"https://links.safe.turbotradepro.com/u/click?_t=3D2784686eb9da47129ed0=
+b358fd305c52&_m=3D32eaf276517343eea35a833198bb0d0f&_e=3DicqG8LPxBLdpB-ve_8w=
+CG2xP90p1On184r22hyQ4z2j1XsmLU32j38cUAhq_N-hbX2Oyd6MxyjlnGt7ncgmxEVSwJzFDuv=
+CVibd74UEaxXvyUechb7mYl7oKI91B8hoFftEsHqVbyp7hZxEjpY7PKQdI4pXamg4jPENWluyUw=
+DR018o9FHtSn19NcsdjCZM-jOdSxgYT7B7b1Ftch3CP566-XBta4VBKSWKtAU6bpWlQjrZfgEQu=
+I2u8LxhaDGV0AgnQdQjSx_cSp6e9aV6pxlZCRMx_Eu1jthxPeuJCH5tBKqO4MKLn6nvCrJor9Lq=
+2HBscxof9i5jUEYh5OFaqhSR6eoA79D_fq62d8DbbLsBD8fKOBQGCkPwy48raLmoN" target=
+=3D"_blank" style=3D"box-sizing: border-box; text-decoration: underline; co=
+lor: #000000;" rel=3D"noopener">Privacy Policy</a> &nbsp;| &nbsp;<a href=3D=
+"https://links.safe.turbotradepro.com/u/click?_t=3D2784686eb9da47129ed0b358=
+fd305c52&_m=3D32eaf276517343eea35a833198bb0d0f&_e=3DicqG8LPxBLdpB-ve_8wCG2x=
+P90p1On184r22hyQ4z2gvXGrKyzPah7tU9fSWFDZfzWYdoJRbPJ7Gu3bBnlBBizz7cF030gmTml=
+0tK_vwGKlcvlRksDXmGKlgEX7F97U85OQoNKaJT04vP5gJmsqVta2-YhWHZyAcbV2l2eEl4RozJ=
+Jy7UIebHzLm8J3xpf4UD4EU3pZUlB0W0aCCDn-DF-yx9gPaokB3m3o82lAhqxgfDCMn-he80iDz=
+rodikQrfkKJOCbie9ixNM0kFLZaCDSyptOa0cVMcoHrmLlbg10nHCvJ4Li_2JarODLmxPa7OarE=
+Pwvb1FQ8LeiQofu_h612acC4sG_bZUuoDgp-bCi0TT50z2WiHO5cRIEsGE2oa" target=3D"_b=
+lank" style=3D"box-sizing: border-box; text-decoration: underline; color: #=
+000000;" rel=3D"noopener">Terms & Conditions</a> &nbsp;| &nbsp;<a href=3D"h=
+ttps://links.safe.turbotradepro.com/e/encryptedUnsubscribe?_r=3D2784686eb9d=
+a47129ed0b358fd305c52&_s=3D32eaf276517343eea35a833198bb0d0f&_t=3Di9murAo74k=
+tPUw4--sPYU7XoFxswq3H8zUUzZrU0x67e-hBQMwmmBGLYM6R3Q15sko6iPCph_I1Dcx5WJ3oAX=
+iQ8FBCA0DWzQkfZkCXx5Hvf26uLkcIR8wfWB-oHO9AWYBpsiJrodxlUv--oNqGNlg%3D%3D" ta=
+rget=3D"_blank" style=3D"box-sizing: border-box; text-decoration: underline=
+; color: #000000;" rel=3D"noopener">Unsubscribe</a></span></strong> </p></d=
+iv></div></td></tr></table></td></tr></tbody></table></td></tr></tbody></ta=
+ble></td></tr></tbody></table><!-- End --></body></html>
+------=_Part_8077_1223444073.1769274062079--

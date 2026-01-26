@@ -911,19 +911,16 @@ function markAsSpam(message, thread)
   {
     const messageId = message.getId();
 
-    // 1. SIGNAL: Move to spam folder. 
-    // This is the strongest "Reporting" signal available to scripts.
+    // 1. SIGNAL: Report as spam to train Gmail's filters.
     thread.moveToSpam();
 
-    // 2. CLEANUP: Mark as read so it doesn't haunt your unread counts.
-    thread.markRead();
+    // 2. Brief pause to let Gmail process the spam report before deletion.
+    Utilities.sleep(500);
 
     // 3. THE VAPORIZER: Permanently deletes the message from the server.
-    // 'me' is a reserved alias that tells the Gmail API: 
-    // "Perform this on the account of the person who authorized this script (YOU)."
     Gmail.Users.Messages.remove('me', messageId);
 
-    logInfo('REPORTED & VAPORIZED: ' + sanitizeForLog(message.getSubject()));
+    logInfo('SPAM REPORTED & VAPORIZED: ' + sanitizeForLog(message.getSubject()));
   }
   catch (error)
   {

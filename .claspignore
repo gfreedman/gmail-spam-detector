@@ -1,7 +1,7 @@
 # Clasp ignore - only push SpamDetector.gs and appsscript.json
 archive/**
-ham_examples/**
-spam_examples/**
+tests/**
+docs/**
 venv/**
 __pycache__/**
 .git/**

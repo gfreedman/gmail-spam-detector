@@ -18,7 +18,7 @@
  *    - Choose minute interval: Every 15 minutes
  *
  * @author Anti-Spam Dataset
- * @version 6.2.1 - Fix emoji regex for Google Apps Script compatibility
+ * @version 6.4.0 - Fix LinkedIn false positives + vaporizer error logging
  *
  * v6.2 CHANGES: L6 engineering review - detect CATEGORIES not specific patterns
  * - FIXED: Added fullwidth character detection (U+FF00-FFEF) - ＄ instead of $
@@ -160,8 +160,8 @@ const KEYWORDS = Object.freeze({
   legitimateDomains_DEFAULT: Object.freeze([
     'sardine.ai', 'meetup.com', 'substack.com', 'conservative.ca',
     'sundaymass.store', 'customerservice@stan', 'privaterelay.appleid.com',
-    'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'dsf.ca',
-    'dragonfly'
+    'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'e.linkedin.com',
+    'linkedin.email', 'dsf.ca', 'dragonfly'
   ]),
   financialScam: Object.freeze([
     'investment opportunity', 'cash back', 'bonus instantly',
@@ -910,27 +910,56 @@ function markAsSpam(message, thread)
   try
   {
     const messageId = message.getId();
+    const subject = sanitizeForLog(message.getSubject());
+
+    // Check if Gmail Advanced Service is available
+    if (typeof Gmail === 'undefined' || !Gmail.Users || !Gmail.Users.Messages)
+    {
+      logError('Gmail Advanced Service not available! Enable it in Apps Script:');
+      logError('  Services > + > Gmail API > Add');
+      // Fallback: just move to spam using GmailApp
+      thread.moveToSpam();
+      logInfo('SPAM REPORTED (fallback): ' + subject);
+      return;
+    }
 
     // 1. SIGNAL: Report as spam to train Gmail's filters via the Gmail REST API.
     //    Uses the Advanced Service (not GmailApp) so both operations go through
     //    the same API surface, avoiding cross-API state inconsistency.
+    logDebug('Reporting spam: ' + messageId);
     Gmail.Users.Messages.modify(
       { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] },
       'me',
       messageId
     );
+    logDebug('Spam report sent');
 
     // 2. Brief pause to let Gmail process the spam report before deletion.
     Utilities.sleep(500);
 
     // 3. THE VAPORIZER: Permanently deletes the message from the server.
+    logDebug('Vaporizing: ' + messageId);
     Gmail.Users.Messages.remove('me', messageId);
 
-    logInfo('SPAM REPORTED & VAPORIZED: ' + sanitizeForLog(message.getSubject()));
+    logInfo('SPAM REPORTED & VAPORIZED: ' + subject);
   }
   catch (error)
   {
     logError('Error marking as spam: ' + error.toString());
+    logError('Message ID: ' + message.getId());
+    logError('Subject: ' + sanitizeForLog(message.getSubject()));
+
+    // Fallback: try basic spam move if vaporizer fails
+    try
+    {
+      thread.moveToSpam();
+      logInfo('Fallback: moved to spam folder (no delete)');
+    }
+    catch (fallbackError)
+    {
+      logError('Fallback also failed: ' + fallbackError.toString());
+    }
+
     throw error; // Re-throw to ensure caller knows it failed
   }
 }
@@ -1292,6 +1321,40 @@ function viewBlacklist()
 }
 
 /**
+ * REFRESH WHITELIST: Adds any missing default domains to the whitelist
+ * Run this if you set up before new legitimate domains were added
+ */
+function refreshWhitelist()
+{
+  const props = PropertiesService.getScriptProperties();
+  const currentWhitelist = getWhitelist();
+  const defaults = KEYWORDS.legitimateDomains_DEFAULT;
+  let addedCount = 0;
+
+  for (let i = 0; i < defaults.length; i++)
+  {
+    if (!currentWhitelist.includes(defaults[i]))
+    {
+      currentWhitelist.push(defaults[i]);
+      logInfo('Added missing domain: ' + defaults[i]);
+      addedCount++;
+    }
+  }
+
+  if (addedCount > 0)
+  {
+    props.setProperty('LEGITIMATE_DOMAINS', JSON.stringify(currentWhitelist));
+    logInfo('Whitelist refreshed! Added ' + addedCount + ' new domains.');
+  }
+  else
+  {
+    logInfo('Whitelist already up to date.');
+  }
+
+  viewWhitelist();
+}
+
+/**
  * Test function to analyze a specific email by subject search
  *
  * @param {string} testSubject - Subject line to search for (optional)
@@ -1376,6 +1439,79 @@ function testOnRecentEmail()
   {
     logError('Test on recent email failed: ' + error.toString());
     throw error;
+  }
+}
+
+/**
+ * DEBUG: Test why a specific email might be flagged
+ * Searches for the email and shows all detection signals
+ */
+function debugWhyFlagged(searchTerm)
+{
+  try
+  {
+    const search = searchTerm || 'from:linkedin';
+    const threads = GmailApp.search(search, 0, 1);
+
+    if (threads.length === 0)
+    {
+      logInfo('No email found for: ' + search);
+      return;
+    }
+
+    const message = threads[0].getMessages()[0];
+    const subject = message.getSubject();
+    const from = message.getFrom();
+    const rawContent = message.getRawContent();
+
+    logInfo('=== DEBUG: WHY FLAGGED? ===');
+    logInfo('Subject: ' + subject);
+    logInfo('From: ' + from);
+    logInfo('');
+
+    // Check whitelist
+    const whitelist = getWhitelist();
+    const fromLower = from.toLowerCase();
+    let isWhitelisted = false;
+    for (let i = 0; i < whitelist.length; i++)
+    {
+      if (fromLower.includes(whitelist[i]))
+      {
+        logInfo('✓ WHITELISTED: matches "' + whitelist[i] + '"');
+        isWhitelisted = true;
+        break;
+      }
+    }
+    if (!isWhitelisted)
+    {
+      logInfo('✗ NOT WHITELISTED');
+      logInfo('  Whitelist domains: ' + whitelist.join(', '));
+    }
+
+    // Check bulk email service
+    const rawLower = rawContent.toLowerCase();
+    if (rawLower.includes('amazonses.com') || rawLower.includes('x-ses-'))
+    {
+      logInfo('⚠ Bulk email: Amazon SES detected');
+    }
+    if (rawLower.includes('sendgrid.net'))
+    {
+      logInfo('⚠ Bulk email: SendGrid detected');
+    }
+
+    // Check marketing format
+    if (/["|,]\s*[A-Z]/.test(from) || /\|\s*/.test(from))
+    {
+      logInfo('⚠ Marketing format detected in From field');
+    }
+
+    logInfo('');
+    logInfo('Final score: ' + analyzeMessage(message));
+    logInfo('=== END DEBUG ===');
+  }
+  catch (error)
+  {
+    logError('Debug failed: ' + error.toString());
   }
 }
 

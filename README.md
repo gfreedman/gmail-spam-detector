@@ -63,9 +63,15 @@ All sent via bulk email services like Amazon SES.
    - Interval: **Every 15 minutes**
 4. Click **Save**
 
-### 4. Done!
+### 4. Enable Gmail API (for auto-delete)
 
-The script now runs every 15 minutes, automatically moving spam to your Spam folder.
+1. In Apps Script, click **Services** (+ icon in left sidebar)
+2. Search for **Gmail API**
+3. Click **Add**
+
+### 5. Done!
+
+The script now runs every 15 minutes, automatically detecting spam, reporting it to Gmail, and permanently deleting it.
 
 ## 📖 How It Works
 
@@ -148,6 +154,17 @@ Check execution log to see all whitelisted domains.
 removeFromWhitelist('example.com');
 ```
 
+## 🔥 The Vaporizer
+
+Detected spam doesn't just go to your Spam folder - it gets **permanently deleted**:
+
+1. **Report as spam** - Trains Gmail's filters
+2. **Delete forever** - Removes from your account entirely
+
+No more spam cluttering your Spam folder. Gone. Vaporized.
+
+*Requires Gmail API to be enabled (see Quick Start step 4).*
+
 ## 🔍 Monitoring
 
 ### View Activity
@@ -174,6 +191,22 @@ Occasionally check your Spam folder for legitimate emails:
 
 ## 🛠️ Troubleshooting
 
+### Debug Why an Email Was Flagged
+
+```javascript
+debugWhyFlagged('from:linkedin');  // Search term
+```
+
+Shows whitelist status, bulk email detection, and all signals for the email.
+
+### Refresh Whitelist with New Domains
+
+If you set up before new legitimate domains were added:
+
+```javascript
+refreshWhitelist();
+```
+
 ### Script Not Running
 - Check **Triggers** tab - verify 15-minute trigger exists
 - Check **Executions** tab for errors
@@ -191,7 +224,10 @@ addToWhitelist('domain.com');
 
 ## 📁 Files
 
-- **`SpamDetector.gs`** - Main script (deploy this)
+- **`SpamDetector.gs`** - Main script (auto-deployed to Apps Script)
+- **`appsscript.json`** - Apps Script manifest (OAuth scopes, Gmail API)
+- **`.clasp.json.example`** - Template for clasp config
+- **`.github/workflows/deploy.yml`** - CI/CD pipeline
 - **`README.md`** - This file
 - **`V4_PATTERN_BASED_DETECTION.md`** - Technical documentation
 - **`EXPORTING_EMAILS.md`** - How to export real .eml files for testing
@@ -255,6 +291,41 @@ Found a spam pattern we're missing? Open an issue with:
 - The `.eml` file (not PDF!)
 - Why it's spam
 - What signals it has
+
+## 👩‍💻 Developer Setup
+
+### Auto-Deploy Pipeline
+
+This repo has CI/CD that auto-deploys to Google Apps Script on every push to `main`.
+
+**How it works:**
+1. Push changes to `SpamDetector.gs`
+2. GitHub Actions runs `clasp push`
+3. Code is live in Apps Script
+
+**Setup for your own fork:**
+
+1. Install clasp and login:
+   ```bash
+   npm install -g @google/clasp
+   clasp login
+   ```
+
+2. Copy `.clasp.json.example` to `.clasp.json` and add your script ID:
+   ```json
+   {"scriptId": "YOUR_SCRIPT_ID_HERE", "rootDir": "."}
+   ```
+
+3. Enable Apps Script API at https://script.google.com/home/usersettings
+
+4. Add GitHub secrets:
+   - `SCRIPT_ID` - Your Apps Script project ID (from the URL)
+   - `CLASP_TOKEN` - Contents of `~/.clasprc.json` after `clasp login`
+
+**Manual deploy:**
+```bash
+clasp push
+```
 
 ## 📝 License
 

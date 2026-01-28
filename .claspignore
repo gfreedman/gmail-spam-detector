@@ -1,0 +1,4 @@
+# Ignore everything except the Apps Script files
+**/**
+!SpamDetector.gs
+!appsscript.json

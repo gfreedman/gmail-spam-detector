@@ -911,8 +911,14 @@ function markAsSpam(message, thread)
   {
     const messageId = message.getId();
 
-    // 1. SIGNAL: Report as spam to train Gmail's filters.
-    thread.moveToSpam();
+    // 1. SIGNAL: Report as spam to train Gmail's filters via the Gmail REST API.
+    //    Uses the Advanced Service (not GmailApp) so both operations go through
+    //    the same API surface, avoiding cross-API state inconsistency.
+    Gmail.Users.Messages.modify(
+      { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] },
+      'me',
+      messageId
+    );
 
     // 2. Brief pause to let Gmail process the spam report before deletion.
     Utilities.sleep(500);

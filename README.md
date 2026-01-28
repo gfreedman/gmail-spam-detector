@@ -73,6 +73,17 @@ All sent via bulk email services like Amazon SES.
 
 The script now runs every 15 minutes, automatically detecting spam, reporting it to Gmail, and permanently deleting it.
 
+## 🔥 The Vaporizer
+
+Detected spam doesn't just go to your Spam folder - it gets **permanently deleted**:
+
+1. **Report as spam** - Trains Gmail's filters
+2. **Delete forever** - Removes from your account entirely
+
+No more spam cluttering your Spam folder. Gone. Vaporized.
+
+*Requires Gmail API to be enabled (see Quick Start step 4).*
+
 ## 📖 How It Works
 
 ### Detection Signals
@@ -153,17 +164,6 @@ Check execution log to see all whitelisted domains.
 ```javascript
 removeFromWhitelist('example.com');
 ```
-
-## 🔥 The Vaporizer
-
-Detected spam doesn't just go to your Spam folder - it gets **permanently deleted**:
-
-1. **Report as spam** - Trains Gmail's filters
-2. **Delete forever** - Removes from your account entirely
-
-No more spam cluttering your Spam folder. Gone. Vaporized.
-
-*Requires Gmail API to be enabled (see Quick Start step 4).*
 
 ## 🔍 Monitoring
 

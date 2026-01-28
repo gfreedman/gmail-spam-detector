@@ -1,9 +1,24 @@
-# Only push Apps Script files to Google
-# Everything else is ignored
+# Clasp ignore - only push SpamDetector.gs and appsscript.json
+archive/**
+ham_examples/**
+spam_examples/**
+venv/**
+__pycache__/**
+.git/**
+.github/**
+.claude/**
+*.md
+*.py
+*.js
+*.json
+*.txt
+.DS_Store
+.clasp.json
+.clasp.json.example
+.claspignore
+.gitignore
+LICENSE
 
-# Ignore all files by default
-*
-
-# Include only the script files
+# Whitelist only these files
 !SpamDetector.gs
 !appsscript.json

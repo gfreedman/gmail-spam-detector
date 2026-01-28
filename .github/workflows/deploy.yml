@@ -7,16 +7,37 @@ on:
       - 'SpamDetector.gs'
       - 'appsscript.json'
 
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      - name: Check secrets
+        run: |
+          if [ -z "${{ secrets.CLASP_TOKEN }}" ]; then
+            echo "::error::CLASP_TOKEN secret not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SCRIPT_ID }}" ]; then
+            echo "::error::SCRIPT_ID secret not set"
+            exit 1
+          fi
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Cache npm
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-clasp-${{ runner.os }}
 
       - name: Install clasp
         run: npm install -g @google/clasp

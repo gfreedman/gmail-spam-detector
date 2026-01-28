@@ -1,4 +1,9 @@
-# Ignore everything except the Apps Script files
-**/**
+# Only push Apps Script files to Google
+# Everything else is ignored
+
+# Ignore all files by default
+*
+
+# Include only the script files
 !SpamDetector.gs
 !appsscript.json

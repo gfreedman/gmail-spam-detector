@@ -1,70 +1,16 @@
 /**
  * Gmail Spam Detector - Google Apps Script
+ * @version 6.5.0
  *
- * This script detects spam emails based on patterns observed in common spam messages
- * and automatically marks them as spam and moves them to the SPAM folder.
+ * Detects spam using behavioral patterns spammers can't easily change:
+ * - Bulk email infrastructure (Amazon SES, SendGrid)
+ * - Clickbait/fear-mongering subject patterns
+ * - Unicode obfuscation (Cyrillic, Greek, fullwidth chars)
+ * - Marketing sender format
  *
- * Setup Instructions:
- * 1. Open Google Apps Script (script.google.com)
- * 2. Create a new project
- * 3. Copy this entire script into Code.gs
- * 4. Run 'setup()' function once to authorize the script
- * 5. Set up a time-based trigger:
- *    - Click on the clock icon (Triggers)
- *    - Add Trigger
- *    - Choose function: processInbox
- *    - Choose event source: Time-driven
- *    - Choose type of time based trigger: Minutes timer
- *    - Choose minute interval: Every 15 minutes
+ * Reports spam to Gmail and permanently deletes (vaporizes) it.
  *
- * @author Anti-Spam Dataset
- * @version 6.4.6 - LinkedIn false positives fix + vaporizer error logging
- *
- * v6.2 CHANGES: L6 engineering review - detect CATEGORIES not specific patterns
- * - FIXED: Added fullwidth character detection (U+FF00-FFEF) - ＄ instead of $
- * - ADDED: Celebrity + merchandise pattern (Trump Coin, Biden Medal, etc.)
- * - ADDED: Collectible/commemorative scam pattern (Minted, Limited Edition, etc.)
- * - PHILOSOPHY: Detect spam CATEGORIES, not individual keywords
- * - RESULT: Catches "Honor Trump's Legacy with the Colored ＄2 Bill" spam
- *
- * v6.1 CHANGES: Fixed Greek character obfuscation detection
- * - FIXED: Added Greek character range detection (Β instead of B, etc.)
- * - ADDED: Bank/branch closing pattern for financial fear spam
- * - ADDED: Building emoji detection (🏦 etc.)
- * - RESULT: Catches "Major Βanks Continue Closing Locations 🏦" spam
- *
- * v6.0 CHANGES: Fixed critical blindspots that let "RFK Jr Issues 2025 Warning" through
- * - FIXED: Case-insensitive standalone warning words (Warning, Alert, Urgent)
- * - ADDED: Square brackets detection [like this?] (not just Japanese 【】)
- * - ADDED: From field sensationalism check ("terrifying", "alarming" in sender name)
- * - ADDED: Demographic targeting detection (seniors, elderly, age-based fear)
- * - ADDED: Celebrity/political name-dropping (RFK, Trump, Musk + warning/reveals)
- * - ADDED: Year-based urgency (2025/2026 Warning)
- * - ADDED: NEW RULE - Bulk email + marketing format + ANY single warning = SPAM
- * - RESULT: Catches distributed low-grade signals that evaded v5.1
- *
- * v5.1 CHANGES: Broadened patterns to catch subtler spam tactics
- * - ADDED: Standalone sensationalist adjectives (shocking, stunning, bizarre, etc.)
- * - BROADENED: Government fear now catches "admission/reveal/expose" (not just spy/hiding)
- * - BROADENED: Financial fear now catches "banks" + "seize/confiscate" (not just "bank account")
- * - RESULT: Catches "Government's Shocking Admission: Banks Could Seize Your Cash"
- *
- * v5.0 CHANGES: Complete rewrite to eliminate keyword array anti-pattern
- * - REMOVED: Hardcoded clickbait phrase arrays (was whack-a-mole)
- * - REMOVED: Hardcoded fear keyword lists (reactive, not proactive)
- * - ADDED: Category-based regex patterns that catch CLASSES of spam tactics
- *   * Curiosity gap: (mystery word) + (visual word) = catches ALL variations
- *   * Financial fear: (market word) + (crisis word) = catches ALL variations
- *   * Government fear: (agency) + (threat) = catches ALL variations
- *   * Urgency + sensationalism patterns
- *   * Structural spam indicators (emoji, punctuation, formatting)
- * - RESULT: Proactive detection without reactive keyword additions
- *
- * v4.0 CHANGES: Moved from complex scoring to simple pattern detection
- * - Detects bulk email services (Amazon SES, SendGrid)
- * - Detects clickbait/fear-mongering patterns
- * - Requires multiple signals (not just one)
- * - Returns binary decision: 0 or 100 (not spam or spam)
+ * Setup: See README.md or run setup() and follow the logs.
  */
 
 // Configuration - frozen to prevent accidental modification
@@ -88,99 +34,21 @@ const CONFIG = Object.freeze({
   debug: false,
 
   // Maximum email size to process (in bytes) - prevents memory issues
-  maxEmailSizeBytes: 5 * 1024 * 1024, // 5MB
-
-  // Timeout for individual email processing (milliseconds)
-  emailProcessingTimeout: 5000
+  maxEmailSizeBytes: 5 * 1024 * 1024 // 5MB
 });
 
-// Spam detection scoring weights - centralized for easy tuning
-// Architecture: Tier 1 (structural) > Tier 2 (behavioral) > Tier 3 (content)
-const SCORING_WEIGHTS = Object.freeze({
-  // TIER 1: Structural indicators (very high confidence - 40-50 points)
-  MALFORMED_HEADERS: 50,           // Header corruption/bleeding
-  DISPLAY_NAME_MISMATCH: 40,       // Display name doesn't match email domain
-  MULTIPLE_SENDERS: 35,            // Multiple sender names in From field
-  SUSPICIOUS_FROM_PATTERN: 30,     // Unusual From field structure
-
-  // TIER 2: Behavioral indicators (high confidence - 15-25 points)
-  SUSPICIOUS_DOMAIN: 25,           // Increased from 15
-  UNICODE_OBFUSCATION: 20,         // Increased from 15
-  AFFILIATE_DISCLAIMER: 15,        // Increased from 12
-  UNSUBSCRIBE_LANGUAGE: 12,        // Increased from 8
-  NOREPLY_SENDER: 8,               // Increased from 5
-
-  // TIER 3: Content indicators (medium confidence - 5-12 points)
-  ALL_CAPS_SUBJECT: 12,
-  SENSATIONALIST_KEYWORD: 10,
-  HEALTH_SCAM: 10,
-  MANY_LINKS_HIGH: 10,
-  DATE_URGENCY: 8,
-  EXCESSIVE_EXCLAMATION_SUBJECT: 8,
-  FINANCIAL_SCAM: 8,
-  CLICK_TRACKING: 8,
-  FEAR_MONGERING: 7,
-  MULTIPLE_CTAS: 7,
-  TECH_HYPE: 6,
-  MANY_LINKS_MEDIUM: 5,
-  EXCLAMATION_PER_COUNT: 2,
-  MAX_EXCLAMATION_SCORE: 15
-});
-
-// Compile regexes once for performance
-const REGEX_CACHE = Object.freeze({
-  dateUrgency: /january|february|march|april|may|june|july|august|september|october|november|december.*\d{1,2}.*202[0-9]/i,
-  exclamationMarks: /!/g,
-  linkTags: /<a\s+(?:[^>]*?\s+)?href/gi,
-  ctaPatterns: /learn more|apply now|click here|get started|claim now/gi,
-  cyrillic: /[а-яА-Я]/,
-  greek: /[\u0370-\u03FF]/,
-  phoneticExt: /[\u1D00-\u1DBF]/,
-  latinExtAdd: /[\u1E00-\u1EFF]/,
-  latinExtC: /[\u2C60-\u2C7F]/,
-  latinExtD: /[\uA720-\uA7FF]/,
-  alphaPres: /[\uFB00-\uFB4F]/,
-  mathAlpha: /[\uD835]/
-});
-
-// Keyword arrays - centralized and frozen
-const KEYWORDS = Object.freeze({
-  sensationalist: Object.freeze([
-    'breaking news', 'urgent', 'warning', 'caught on camera',
-    'just exposed', 'shocking', 'stunned everyone', 'alert',
-    'do not ignore', 'this changes everything', 'secret'
-  ]),
-  // Note: suspiciousDomains and legitimateDomains are now stored in Script Properties
-  // Use addToWhitelist() / addToBlacklist() functions to manage them
-  // Kept here as defaults for initial setup only
-  suspiciousDomains_DEFAULT: Object.freeze([
-    'financeinsiderpro.com', 'financebuzz', 'smartinvestmenttools',
-    'investorplace', 'weissratings', 'americanprofitinsight.com'
-  ]),
-  legitimateDomains_DEFAULT: Object.freeze([
+// Default whitelist/blacklist for initial setup
+// Actual lists are stored in Script Properties (use addToWhitelist/addToBlacklist to manage)
+const DEFAULT_DOMAINS = Object.freeze({
+  legitimate: Object.freeze([
     'sardine.ai', 'meetup.com', 'substack.com', 'conservative.ca',
     'sundaymass.store', 'customerservice@stan', 'privaterelay.appleid.com',
     'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'e.linkedin.com',
     'linkedin.email', 'dsf.ca', 'dragonfly'
   ]),
-  financialScam: Object.freeze([
-    'investment opportunity', 'cash back', 'bonus instantly',
-    'approval decision', 'wealth transfer', 'smart money',
-    'government infrastructure spending', 'stock tips',
-    'make money', 'earn cash', 'financial freedom'
-  ]),
-  fearMongering: Object.freeze([
-    'jobs disappeared', 'massive layoffs', 'market crash',
-    'wealth confiscation', 'government hiding', 'exposed',
-    'economic collapse', 'crisis'
-  ]),
-  healthScam: Object.freeze([
-    'cure', 'erases', 'brain health', 'neuropathy',
-    'miracle', 'breakthrough', 'doctors hate'
-  ]),
-  techHype: Object.freeze([
-    'tesla', 'spacex', 'self-driving', 'ai takeover',
-    'cybertruck', 'elon'
+  suspicious: Object.freeze([
+    'financeinsiderpro.com', 'financebuzz', 'smartinvestmenttools',
+    'investorplace', 'weissratings', 'americanprofitinsight.com'
   ])
 });
 
@@ -255,7 +123,7 @@ function processThread(thread)
 
   const messages = thread.getMessages();
 
-  // Process only unread messages to avoid reprocessing
+  // Process all messages in thread
   for (let i = 0; i < messages.length; i++)
   {
     try
@@ -598,308 +466,6 @@ function analyzeMessage(message)
 }
 
 /**
- * Analyze sender for TIER 1 structural/malformation indicators
- * These are very high confidence spam signals that are hard to fake
- *
- * @param {string} from - The sender email/display name
- * @param {string} subject - The email subject (to detect header bleeding)
- * @return {Object} Object with score and reasons array
- */
-function analyzeStructuralIndicators(from, subject)
-{
-  if (!from || from.length === 0)
-  {
-    return { score: 0, reasons: [] };
-  }
-
-  let score = 0;
-  const reasons = [];
-
-  // TIER 1.1: Malformed headers - "Subject:" bleeding into From field
-  // This is a 100% reliable indicator found in all test spam
-  if (from.toLowerCase().includes('subject:'))
-  {
-    score += SCORING_WEIGHTS.MALFORMED_HEADERS;
-    reasons.push('Malformed headers (Subject: in From field) (+' + SCORING_WEIGHTS.MALFORMED_HEADERS + ')');
-  }
-
-  // TIER 1.2: Multiple senders in From field (using || separator)
-  if (from.includes('||'))
-  {
-    score += SCORING_WEIGHTS.MULTIPLE_SENDERS;
-    reasons.push('Multiple sender names in From field (+' + SCORING_WEIGHTS.MULTIPLE_SENDERS + ')');
-  }
-
-  // TIER 1.3: Display name mismatch - extract email vs display name
-  // Pattern: "Display Name email@domain.com" or "Display Name <email@domain.com>"
-  const emailMatch = from.match(/[\w.-]+@[\w.-]+\.[a-z]{2,}/i);
-  if (emailMatch)
-  {
-    const emailDomain = emailMatch[0].split('@')[1];
-    const displayPart = from.substring(0, from.indexOf(emailMatch[0])).trim();
-
-    // Check if display name is completely different from domain
-    if (displayPart.length > 3 && emailDomain)
-    {
-      const domainWords = emailDomain.replace(/\./g, ' ').toLowerCase();
-      const displayWords = displayPart.replace(/[^a-z0-9\s]/gi, ' ').toLowerCase();
-
-      // If display name has no words in common with domain, it's suspicious
-      const displayWordArray = displayWords.split(/\s+/).filter(w => w.length > 2);
-      const domainWordArray = domainWords.split(/\s+/).filter(w => w.length > 2);
-
-      let hasCommonWord = false;
-      for (let i = 0; i < displayWordArray.length; i++)
-      {
-        for (let j = 0; j < domainWordArray.length; j++)
-        {
-          if (displayWordArray[i] === domainWordArray[j])
-          {
-            hasCommonWord = true;
-            break;
-          }
-        }
-        if (hasCommonWord) break;
-      }
-
-      if (!hasCommonWord && displayWordArray.length > 0)
-      {
-        score += SCORING_WEIGHTS.DISPLAY_NAME_MISMATCH;
-        reasons.push('Display name does not match email domain (+' + SCORING_WEIGHTS.DISPLAY_NAME_MISMATCH + ')');
-      }
-    }
-  }
-
-  // TIER 1.4: Suspicious From field patterns
-  // Multiple domains in From field, concatenated text, missing spaces
-  if (from.match(/\.com[A-Z]/i) || from.match(/\.com[a-z]{3,}/) || from.includes('grow@with'))
-  {
-    score += SCORING_WEIGHTS.SUSPICIOUS_FROM_PATTERN;
-    reasons.push('Suspicious From field formatting (+' + SCORING_WEIGHTS.SUSPICIOUS_FROM_PATTERN + ')');
-  }
-
-  return { score: score, reasons: reasons };
-}
-
-/**
- * Analyze subject line for spam indicators
- *
- * @param {string} subject - The email subject line
- * @return {number} Spam score contribution
- */
-function analyzeSubject(subject)
-{
-  if (!subject || subject.length === 0)
-  {
-    return 0;
-  }
-
-  let score = 0;
-  const subjectLower = subject.toLowerCase();
-
-  // Sensationalist keywords
-  score += countKeywordMatches(subjectLower, KEYWORDS.sensationalist,
-                                SCORING_WEIGHTS.SENSATIONALIST_KEYWORD);
-
-  // Fake urgency with dates
-  if (REGEX_CACHE.dateUrgency.test(subject))
-  {
-    score += SCORING_WEIGHTS.DATE_URGENCY;
-  }
-
-  // All caps (excluding short subjects which might be legitimate)
-  if (subject.length > 10 && subject === subject.toUpperCase())
-  {
-    score += SCORING_WEIGHTS.ALL_CAPS_SUBJECT;
-  }
-
-  // Excessive exclamation marks
-  const exclamationCount = countMatches(subject, REGEX_CACHE.exclamationMarks);
-  if (exclamationCount >= 2)
-  {
-    score += SCORING_WEIGHTS.EXCESSIVE_EXCLAMATION_SUBJECT;
-  }
-
-  return score;
-}
-
-/**
- * Analyze sender email for suspicious patterns
- *
- * @param {string} from - The sender email address
- * @return {number} Spam score contribution
- */
-function analyzeSender(from)
-{
-  if (!from || from.length === 0)
-  {
-    return 0;
-  }
-
-  let score = 0;
-  const fromLower = from.toLowerCase();
-
-  // Common spam sender domains/patterns
-  // Load from Script Properties (allows runtime updates without code changes)
-  const blacklist = getBlacklist();
-  score += countKeywordMatches(fromLower, blacklist,
-                                SCORING_WEIGHTS.SUSPICIOUS_DOMAIN);
-
-  // Generic marketing patterns
-  if (fromLower.includes('noreply') || fromLower.includes('no-reply'))
-  {
-    score += SCORING_WEIGHTS.NOREPLY_SENDER;
-  }
-
-  return score;
-}
-
-/**
- * Analyze email body for spam patterns
- *
- * @param {string} body - Plain text email body
- * @param {string} htmlBody - HTML email body
- * @return {number} Spam score contribution
- */
-function analyzeBody(body, htmlBody)
-{
-  if (!body || body.length === 0)
-  {
-    return 0;
-  }
-
-  let score = 0;
-  const bodyLower = body.toLowerCase();
-
-  // Financial scam keywords
-  score += countKeywordMatches(bodyLower, KEYWORDS.financialScam,
-                                SCORING_WEIGHTS.FINANCIAL_SCAM);
-
-  // Fear-mongering keywords
-  score += countKeywordMatches(bodyLower, KEYWORDS.fearMongering,
-                                SCORING_WEIGHTS.FEAR_MONGERING);
-
-  // Health scam indicators
-  score += countKeywordMatches(bodyLower, KEYWORDS.healthScam,
-                                SCORING_WEIGHTS.HEALTH_SCAM);
-
-  // Tech hype keywords
-  score += countKeywordMatches(bodyLower, KEYWORDS.techHype,
-                                SCORING_WEIGHTS.TECH_HYPE);
-
-  // Unsubscribe language (common in spam)
-  if (bodyLower.includes('unsubscribe') && bodyLower.includes('opt out'))
-  {
-    score += SCORING_WEIGHTS.UNSUBSCRIBE_LANGUAGE;
-  }
-
-  // Affiliate disclaimer language
-  if (bodyLower.includes('this is an advertisement') ||
-      bodyLower.includes('we may receive compensation'))
-  {
-    score += SCORING_WEIGHTS.AFFILIATE_DISCLAIMER;
-  }
-
-  // Multiple exclamation marks
-  const exclamationCount = countMatches(body, REGEX_CACHE.exclamationMarks);
-  if (exclamationCount >= 3)
-  {
-    score += Math.min(exclamationCount * SCORING_WEIGHTS.EXCLAMATION_PER_COUNT,
-                      SCORING_WEIGHTS.MAX_EXCLAMATION_SCORE);
-  }
-
-  return score;
-}
-
-/**
- * Analyze links for suspicious patterns
- *
- * @param {string} htmlBody - HTML email body
- * @return {number} Spam score contribution
- */
-function analyzeLinks(htmlBody)
-{
-  if (!htmlBody || htmlBody.length === 0)
-  {
-    return 0;
-  }
-
-  let score = 0;
-
-  // Count number of links safely
-  const linkCount = countMatches(htmlBody, REGEX_CACHE.linkTags);
-
-  // Many links is suspicious
-  if (linkCount > 10)
-  {
-    score += SCORING_WEIGHTS.MANY_LINKS_HIGH;
-  }
-  else if (linkCount > 5)
-  {
-    score += SCORING_WEIGHTS.MANY_LINKS_MEDIUM;
-  }
-
-  // Check for click tracking links
-  if (htmlBody.toLowerCase().includes('click here') && linkCount > 0)
-  {
-    score += SCORING_WEIGHTS.CLICK_TRACKING;
-  }
-
-  // Multiple CTAs
-  const ctaCount = countMatches(htmlBody, REGEX_CACHE.ctaPatterns);
-  if (ctaCount >= 2)
-  {
-    score += SCORING_WEIGHTS.MULTIPLE_CTAS;
-  }
-
-  return score;
-}
-
-/**
- * Detect Unicode character obfuscation
- *
- * @param {string} text - Text to analyze
- * @return {number} Spam score contribution
- */
-function analyzeUnicodeObfuscation(text)
-{
-  if (!text || text.length === 0)
-  {
-    return 0;
-  }
-
-  let score = 0;
-
-  // Check for various Unicode obfuscation patterns
-  const obfuscationPatterns = [
-    REGEX_CACHE.cyrillic,
-    REGEX_CACHE.greek,
-    REGEX_CACHE.phoneticExt,
-    REGEX_CACHE.latinExtAdd,
-    REGEX_CACHE.latinExtC,
-    REGEX_CACHE.latinExtD,
-    REGEX_CACHE.alphaPres
-  ];
-
-  for (let i = 0; i < obfuscationPatterns.length; i++)
-  {
-    if (obfuscationPatterns[i].test(text))
-    {
-      score += SCORING_WEIGHTS.UNICODE_OBFUSCATION;
-      break; // Only count once even if multiple patterns match
-    }
-  }
-
-  // Check for mathematical alphanumeric symbols (bold, italic variants)
-  if (REGEX_CACHE.mathAlpha.test(text))
-  {
-    score += SCORING_WEIGHTS.UNICODE_OBFUSCATION;
-  }
-
-  return score;
-}
-
-/**
  * Mark message as spam and move to spam folder
  *
  * @param {GmailMessage} message - The spam message
@@ -1172,7 +738,7 @@ function initializeScriptProperties()
   // Initialize whitelist if not exists
   if (!props.getProperty('LEGITIMATE_DOMAINS'))
   {
-    const defaultWhitelist = Array.from(KEYWORDS.legitimateDomains_DEFAULT);
+    const defaultWhitelist = Array.from(DEFAULT_DOMAINS.legitimate);
     props.setProperty('LEGITIMATE_DOMAINS', JSON.stringify(defaultWhitelist));
     logInfo('Initialized whitelist with ' + defaultWhitelist.length + ' domains');
   }
@@ -1180,7 +746,7 @@ function initializeScriptProperties()
   // Initialize blacklist if not exists
   if (!props.getProperty('SUSPICIOUS_DOMAINS'))
   {
-    const defaultBlacklist = Array.from(KEYWORDS.suspiciousDomains_DEFAULT);
+    const defaultBlacklist = Array.from(DEFAULT_DOMAINS.suspicious);
     props.setProperty('SUSPICIOUS_DOMAINS', JSON.stringify(defaultBlacklist));
     logInfo('Initialized blacklist with ' + defaultBlacklist.length + ' domains');
   }
@@ -1328,7 +894,7 @@ function refreshWhitelist()
 {
   const props = PropertiesService.getScriptProperties();
   const currentWhitelist = getWhitelist();
-  const defaults = KEYWORDS.legitimateDomains_DEFAULT;
+  const defaults = DEFAULT_DOMAINS.legitimate;
   let addedCount = 0;
 
   for (let i = 0; i < defaults.length; i++)
@@ -1352,94 +918,6 @@ function refreshWhitelist()
   }
 
   viewWhitelist();
-}
-
-/**
- * Test function to analyze a specific email by subject search
- *
- * @param {string} testSubject - Subject line to search for (optional)
- */
-function testSpamDetection(testSubject)
-{
-  try
-  {
-    const subject = testSubject || 'URGENT: Government Checks monthly';
-    const threads = GmailApp.search('subject:"' + subject + '"', 0, 1);
-
-    if (threads.length === 0)
-    {
-      logInfo('No email found with subject: ' + subject);
-      logInfo('Try searching for a different subject or check your inbox.');
-      return;
-    }
-
-    const message = threads[0].getMessages()[0];
-    const from = message.getFrom();
-    const subj = message.getSubject();
-    const body = message.getPlainBody().substring(0, 500);
-
-    // Test structural detection directly
-    logInfo('=== Spam Detection Test Results ===');
-    logInfo('Subject: ' + sanitizeForLog(subj));
-    logInfo('From: ' + from);
-    logInfo('Date: ' + message.getDate());
-    logInfo('--- Testing Structural Detection ---');
-
-    const structuralResult = analyzeStructuralIndicators(from, subj);
-    logInfo('Structural Score: ' + structuralResult.score);
-    if (structuralResult.reasons.length > 0)
-    {
-      structuralResult.reasons.forEach(function(reason) {
-        logInfo('  - ' + reason);
-      });
-    }
-    else
-    {
-      logInfo('  - No structural indicators detected');
-    }
-
-    // Check if "Subject:" is in from field
-    logInfo('--- Debug Info ---');
-    logInfo('Does From contain "subject:": ' + from.toLowerCase().includes('subject:'));
-    logInfo('Does From contain "||": ' + from.includes('||'));
-
-    const score = analyzeMessage(message);
-    logInfo('--- Final Results ---');
-    logInfo('Total Spam Score: ' + score + ' / 100');
-    logInfo('Threshold: ' + CONFIG.spamThreshold);
-    logInfo('Would be marked as spam: ' + (score >= CONFIG.spamThreshold ? 'YES' : 'NO'));
-    logInfo('===================================');
-  }
-  catch (error)
-  {
-    logError('Test failed: ' + error.toString());
-    throw error;
-  }
-}
-
-/**
- * Utility function to test the spam detector on the most recent email
- */
-function testOnRecentEmail()
-{
-  try
-  {
-    const threads = GmailApp.search('in:inbox', 0, 1);
-
-    if (threads.length === 0)
-    {
-      logInfo('No emails found in inbox');
-      return;
-    }
-
-    const message = threads[0].getMessages()[0];
-    testSpamDetection(message.getSubject());
-  }
-  catch (error)
-  {
-    logError('Test on recent email failed: ' + error.toString());
-    throw error;
-  }
 }
 
 /**

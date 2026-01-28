@@ -24,5 +24,9 @@ jobs:
       - name: Write clasp credentials
         run: echo '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
 
+      - name: Write clasp config
+        run: |
+          echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"."}' > .clasp.json
+
       - name: Push to Apps Script
         run: clasp push --force

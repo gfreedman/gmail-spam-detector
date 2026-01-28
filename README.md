@@ -224,15 +224,22 @@ addToWhitelist('domain.com');
 
 ## 📁 Files
 
-- **`SpamDetector.gs`** - Main script (auto-deployed to Apps Script)
-- **`appsscript.json`** - Apps Script manifest (OAuth scopes, Gmail API)
-- **`.clasp.json.example`** - Template for clasp config
-- **`.github/workflows/deploy.yml`** - CI/CD pipeline
-- **`README.md`** - This file
-- **`V4_PATTERN_BASED_DETECTION.md`** - Technical documentation
-- **`EXPORTING_EMAILS.md`** - How to export real .eml files for testing
-- **`LICENSE`** - MIT License
-- **`archive/`** - Old versions and experiments (ignore)
+```
+/
+├── SpamDetector.gs              # Main script (auto-deployed)
+├── appsscript.json              # Apps Script manifest
+├── README.md
+├── LICENSE
+├── docs/
+│   ├── EXPORTING_EMAILS.md      # How to export .eml files
+│   └── PATTERN_DETECTION.md     # Technical deep-dive
+├── tests/
+│   ├── test_v6.py               # Python test suite
+│   ├── spam_examples/           # Real spam .eml files
+│   └── ham_examples/            # Legitimate .eml files
+├── archive/                     # Old versions (ignore)
+└── .github/workflows/           # CI/CD pipeline
+```
 
 ## 🔐 Privacy & Security
 
@@ -253,7 +260,7 @@ addToWhitelist('domain.com');
 3. Save as `.eml` file
 4. Analyze with email parsing library
 
-See `EXPORTING_EMAILS.md` for details.
+See `docs/EXPORTING_EMAILS.md` for details.
 
 ## 🎓 Why Pattern-Based Detection?
 

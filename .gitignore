@@ -32,3 +32,6 @@ Thumbs.db
 # Clasp credentials (contains script ID)
 .clasp.json
 .clasprc.json
+
+# Working files
+SESSION_REPORT.md

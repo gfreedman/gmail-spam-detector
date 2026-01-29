@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.5.0
+ * @version 6.6.0
  *
  * Detects spam using behavioral patterns spammers can't easily change:
  * - Bulk email infrastructure (Amazon SES, SendGrid)
@@ -8,7 +8,7 @@
  * - Unicode obfuscation (Cyrillic, Greek, fullwidth chars)
  * - Marketing sender format
  *
- * Reports spam to Gmail and permanently deletes (vaporizes) it.
+ * Reports spam to Gmail (trains filters) then destroys the entire spam folder.
  *
  * Setup: See README.md or run setup() and follow the logs.
  */
@@ -101,11 +101,57 @@ function processInbox()
     const duration = Date.now() - startTime;
     logInfo('Completed in ' + duration + 'ms: Processed ' + processedCount +
             ' emails, marked ' + spamCount + ' as spam, ' + errorCount + ' errors');
+
+    // Now destroy all spam - messages have settled in spam folder by now
+    destroySpam();
   }
   catch (error)
   {
     logError('Critical error in processInbox: ' + error.toString());
     throw error; // Re-throw to ensure trigger failures are visible
+  }
+}
+
+/**
+ * Destroy all messages in spam folder
+ * Runs after processInbox so messages have time to settle
+ */
+function destroySpam()
+{
+  if (typeof Gmail === 'undefined' || !Gmail.Users || !Gmail.Users.Messages)
+  {
+    logDebug('Gmail API not available for spam destruction');
+    return;
+  }
+
+  let destroyed = 0;
+  let threads;
+
+  // Keep going until spam folder is empty (batch of 100 at a time)
+  while ((threads = GmailApp.getSpamThreads(0, 100)).length > 0)
+  {
+    for (let i = 0; i < threads.length; i++)
+    {
+      const messages = threads[i].getMessages();
+
+      for (let j = 0; j < messages.length; j++)
+      {
+        try
+        {
+          Gmail.Users.Messages.remove('me', messages[j].getId());
+          destroyed++;
+        }
+        catch (e)
+        {
+          logError('Destroy error: ' + e.toString());
+        }
+      }
+    }
+  }
+
+  if (destroyed > 0)
+  {
+    logInfo('Destroyed ' + destroyed + ' spam messages');
   }
 }
 
@@ -473,60 +519,46 @@ function analyzeMessage(message)
  */
 function markAsSpam(message, thread)
 {
+  const subject = sanitizeForLog(message.getSubject());
+
   try
   {
     const messageId = message.getId();
-    const subject = sanitizeForLog(message.getSubject());
 
-    // Check if Gmail Advanced Service is available
-    if (typeof Gmail === 'undefined' || !Gmail.Users || !Gmail.Users.Messages)
+    // Use Gmail API to report spam (trains Gmail's filters)
+    if (typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Messages)
     {
-      logError('Gmail Advanced Service not available! Enable it in Apps Script:');
-      logError('  Services > + > Gmail API > Add');
-      // Fallback: just move to spam using GmailApp
+      Gmail.Users.Messages.modify(
+        { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] },
+        'me',
+        messageId
+      );
+    }
+    else
+    {
+      // Fallback to GmailApp
       thread.moveToSpam();
-      logInfo('SPAM REPORTED (fallback): ' + subject);
-      return;
     }
 
-    // 1. SIGNAL: Report as spam to train Gmail's filters via the Gmail REST API.
-    //    Uses the Advanced Service (not GmailApp) so both operations go through
-    //    the same API surface, avoiding cross-API state inconsistency.
-    logDebug('Reporting spam: ' + messageId);
-    Gmail.Users.Messages.modify(
-      { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] },
-      'me',
-      messageId
-    );
-    logDebug('Spam report sent');
-
-    // 2. Brief pause to let Gmail process the spam report before deletion.
-    Utilities.sleep(500);
-
-    // 3. THE VAPORIZER: Permanently deletes the message from the server.
-    logDebug('Vaporizing: ' + messageId);
-    Gmail.Users.Messages.remove('me', messageId);
-
-    logInfo('SPAM REPORTED & VAPORIZED: ' + subject);
+    logInfo('SPAM REPORTED: ' + subject);
+    // Actual deletion happens in destroySpam() after messages settle
   }
   catch (error)
   {
     logError('Error marking as spam: ' + error.toString());
-    logError('Message ID: ' + message.getId());
-    logError('Subject: ' + sanitizeForLog(message.getSubject()));
+    logError('Subject: ' + subject);
 
-    // Fallback: try basic spam move if vaporizer fails
+    // Fallback: try basic spam move
     try
     {
       thread.moveToSpam();
-      logInfo('Fallback: moved to spam folder (no delete)');
+      logInfo('SPAM REPORTED (fallback): ' + subject);
     }
     catch (fallbackError)
     {
       logError('Fallback also failed: ' + fallbackError.toString());
+      throw error;
     }
-
-    throw error; // Re-throw to ensure caller knows it failed
   }
 }
 

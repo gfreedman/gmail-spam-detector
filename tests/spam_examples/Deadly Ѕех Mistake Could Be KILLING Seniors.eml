@@ -1,0 +1,401 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7413:703:b0:1ae:bc57:f539 with SMTP id ss3csp838350rdb;
+        Mon, 5 Jan 2026 12:20:34 -0800 (PST)
+X-Google-Smtp-Source: AGHT+IFRNfL0UIoG5iSN0u/BHCv4EnEfTiIj2ziT+Jha5SxJ5h2Tjof9JNC970FSppvVv7z/ty0k
+X-Received: by 2002:ac8:5e12:0:b0:4ee:43b0:b053 with SMTP id d75a77b69052e-4ffa769a120mr10944821cf.9.1767644434724;
+        Mon, 05 Jan 2026 12:20:34 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1767644434; cv=none;
+        d=google.com; s=arc-20240605;
+        b=XUd5HWlk698FDpKnQX9z4ozqUqea2+eJ6fgMiJMiHKHXVnDI9QprnO4tcQOcgp6hwD
+         rXTbCcWnPoECjm56dzUKPQf3SrTjPXuAtywifaY/yLeWyTKd2vZlw8tbEAhE3Ym/4fMX
+         k86ZG3Vg2MwWiN8mSxV5faS8LsccP4Zjac+/qmCinfKl7F20tkjwRFwdrUxFDImkuj2l
+         gmo3T/l+i+Eg9kWoN7UhrUkPP1MBT9tK8GVyDSNEtM9YRTXBrV3LS1yonetciPtwaqSv
+         KABrTYK/nMFQmz6wH++3KXGAbpItcaGCtIWs4NdrUU+SN6YX0J+V4pM8UhVZqL90zxdQ
+         Xqng==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=hGPhpdwkXyzfBJKfIwcuPjf9ABa/Tvfc3MyvT3CLOU4=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=UmnsBp/wEW1onv01mCTJ8VaL80DwfvrJOxl6JcB7/xuFHBeByjehBZkuYPFBzqvOmq
+         M6P9StsLKjsDYqZesF/4Lj4Npw74z2pbqZMHokxB0mRuSbfqmjj8hqSJE1PKmisCnlu8
+         PwsHcWQu4CohwGSrULcJYnO2sqevI8hHST809+VQPjJx2V7uqt7qS2k8mJLPLmSNYsJb
+         ws+5Eh9C/475CVcrq4ymmyC6nkGGdrj3tT9S36x3ymUgapMXcdwqMkrBOg6owclXbiEb
+         IIPKghCJwVrslaW0NzobdB75cPg0JA5igN2UqMFEIS4FA6zBiLP/pOTryzb6W4oMMYm7
+         Bscg==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@f.financeinsiderpro.com header.s=x2k5kdjxxaewtwxheqdrqqqnxug7cghk header.b=tOzJgtUI;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=f6MzLrgb;
+       spf=pass (google.com: domain of 0100019b8fd18ea4-a1e00aae-0167-42de-b982-8e6468064a28-000000@amazonses.com designates 54.240.79.74 as permitted sender) smtp.mailfrom=0100019b8fd18ea4-a1e00aae-0167-42de-b982-8e6468064a28-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=financeinsiderpro.com
+Return-Path: <0100019b8fd18ea4-a1e00aae-0167-42de-b982-8e6468064a28-000000@amazonses.com>
+Received: from a79-74.smtp-out.amazonses.com (a79-74.smtp-out.amazonses.com. [54.240.79.74])
+        by mx.google.com with ESMTPS id d75a77b69052e-4ffa8e8a24bsi861221cf.244.2026.01.05.12.20.34
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 05 Jan 2026 12:20:34 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019b8fd18ea4-a1e00aae-0167-42de-b982-8e6468064a28-000000@amazonses.com designates 54.240.79.74 as permitted sender) client-ip=54.240.79.74;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@f.financeinsiderpro.com header.s=x2k5kdjxxaewtwxheqdrqqqnxug7cghk header.b=tOzJgtUI;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=f6MzLrgb;
+       spf=pass (google.com: domain of 0100019b8fd18ea4-a1e00aae-0167-42de-b982-8e6468064a28-000000@amazonses.com designates 54.240.79.74 as permitted sender) smtp.mailfrom=0100019b8fd18ea4-a1e00aae-0167-42de-b982-8e6468064a28-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=financeinsiderpro.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=x2k5kdjxxaewtwxheqdrqqqnxug7cghk; d=f.financeinsiderpro.com;
+	t=1767644434;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=hGPhpdwkXyzfBJKfIwcuPjf9ABa/Tvfc3MyvT3CLOU4=;
+	b=tOzJgtUInyxo2r4X+YEaKFFYWXi1Dhs/7bU9Cw3SGbIeuqXBoBNWvMS5AN38xSXI
+	Y0ILKmiFrg7ZvC7kuaEHyr782lHLChbxjv0WM3HwaBfVjnfZhFgV8cvlb4fN1G0pkQh
+	ildy/okB5IM6v6oPK5s70wojh/Twkmjtz+rU03WJ2BXj6NDBhU1IoQZ4G/0GJ3yV14m
+	1ACHlf1FOzTAJiFowGHVGcee9xXZg4/jwAxtzvfs5FGqPS/ioLcOlLmT9sN2tG56sic
+	Y6ahWDCAlPeNjq7lrwI/L9vLc9TiIeY295THmJpFaJM+Mly47ghAQreefoLSQAPjKXN
+	qOfvMvG4rw==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1767644434;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=hGPhpdwkXyzfBJKfIwcuPjf9ABa/Tvfc3MyvT3CLOU4=;
+	b=f6MzLrgbva/d0XIoilgd+9Cyk9K87hP1N6Fp+7CUKqMADZdt2n+IjphOn+ehIgi8
+	s0T8sQypH/dOMdqeU83EdMiPs2ld5Iz/ptVNoSK2S+XyREM6wMzNRNPAyNE3ez+q92P
+	qGjozuFtaJCdiXax+KrMC9y7eWlgeYGoMDjVSxHM=
+Date: Mon, 5 Jan 2026 20:20:34 +0000
+From: =?UTF-8?Q?S=D0=B5=D1=85_Linked_to_CANCER_=7C=7C_Robert_Jacobs_at_FI?= <robertjacobs@F.FinanceInsiderPro.com>
+Reply-To: support@financeinsiderpro.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019b8fd18ea4-a1e00aae-0167-42de-b982-8e6468064a28-000000@email.amazonses.com>
+Subject: =?UTF-8?Q?Deadly_=D0=85=D0=B5=D1=85_Mistake_Could_Be_KILLING_Seniors?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_108696_612062741.1767644434066"
+X-Campaign-ID: 16341210
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=1c4be19c62cc4a88bab88766467a72b3&_s=29cd5297357b441eaa05058bd734f9e8&_t=m1vv1IHFqFjSxUv7yJz3v8FN3VX1fJztil5hPi625OaC9ej-_78nqpLVUPWeHzCNz_7zFrtN03kDJ0JdUZo6oTEBNBeGCaFL0Dj0JeUwjmRgYt9Xg9oCmE0grhw2d0BoTlQEVzWbZ6tWvzP-9AHfDQ%3D%3D>,<mailto:unsubscribe+16341210+21264986@unsubscribe.iterable.com>
+X-Feedback-ID: 21264986:16341210:126278:iterable
+X-Message-ID: 29cd5297357b441eaa05058bd734f9e8
+X-SES-Outgoing: 2026.01.05-54.240.79.74
+
+------=_Part_108696_612062741.1767644434066
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+A top Doctor has uncovered a common =D1=95=D0=B5=D1=85 routine that is shoc=
+kingly linked to=20
+CANCER in men over the age of 60. =D0=A1=E2=85=BC=D1=96=CF=B2k h=D0=B5r=D0=
+=B5 to make sure you=E2=80=99re not at risk.
+
+
+
+ <https://financeinsiderpro.com/>
+
+=E2=80=8A
+
+
+
+
+Is Your =D0=85=D0=B5=D1=85 L=D1=96f=D0=B5 KILLING YOU?=20
+ A top Doctor has uncovered a common =D1=95=D0=B5=D1=85 routine=20
+<https://tracking.financeinsiderpro.com/ONESS/geoff.c.freedman@gmail.com/fi=
+p-hnl/B/00239_1>
+ that isshockingly linked to CANCER in men over the age of 60.=20
+
+=D0=A1=E2=85=BC=D1=96=CF=B2k h=D0=B5r=D0=B5=20
+<https://tracking.financeinsiderpro.com/ONESS/geoff.c.freedman@gmail.com/fi=
+p-hnl/B/00239_1>
+ to make sure you=E2=80=99re not at risk.
+
+ --Christine=20
+
+
+ This ad is sent on behalf of NewMarket Health. P.O. Box 913, Frederick, MD=
+=20
+21705, USA. If you would like to unsubscribe from receiving offers from=20
+NewMarket Health, please clickhere=20
+<https://tracking.financeinsiderpro.com/unsuboness/geoff.c.freedman@gmail.c=
+om/fip-hnl/unsub>
+
+
+=E2=80=8A
+ <https://financeinsiderpro.com/>
+
+This email was sent by Finance Insider Pro, a part of TerraTrance=20
+Technologies, LLC.
+
+ Reach out to us by replying button or by direct email to=20
+support@financeinsiderpro.com <mailto:support@financeinsiderpro.com>
+
+Reproduction or distribution of texts, images or information in any forms i=
+s=20
+forbidden without written permission from TerraTrance Technologies, LLC.
+
+200 Broadway Blvd NE, Albuquerque, NM 87102=20
+
+=C2=A9 2026 Finance Insider Pro. All Rights Reserved.
+
+Privacy Policy <https://financeinsiderpro.com/privacy-policy/> | Terms and=
+=20
+Conditions <https://financeinsiderpro.com/terms-conditions/> | Unsubscribe=
+=20
+<https://links.f.financeinsiderpro.com/e/encryptedUnsubscribe?_r=3D1c4be19c=
+62cc4a88bab88766467a72b3&_s=3D29cd5297357b441eaa05058bd734f9e8&_t=3Dm1vv1IH=
+FqFjSxUv7yJz3v8FN3VX1fJztil5hPi625OaC9ej-_78nqpLVUPWeHzCNz_7zFrtN03kDJ0JdUZ=
+o6oTEBNBeGCaFL0Dj0JeUwjmRgYt9Xg9oCmE0grhw2d0BoTlQEVzWbZ6tWvzP-9AHfDQ%3D%3D>
+
+------=_Part_108696_612062741.1767644434066
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: bo=
+rder-box;"><head><title></title><meta http-equiv=3D"Content-Type" content=
+=3D"text/html; charset=3Dutf-8"><meta name=3D"viewport" content=3D"width=3D=
+device-width,initial-scale=3D1"><!--[if mso]><xml><w:WordDocument xmlns:w=
+=3D"urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyRead=
+ingMail/></w:WordDocument> <o:OfficeDocumentSettings><o:PixelsPerInch>96</o=
+:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]--><s=
+tyle>*{box-sizing:border-box}body{margin:0;padding:0}a[x-apple-data-detecto=
+rs]{color:inherit!important;text-decoration:inherit!important}#MessageViewB=
+ody a{color:inherit;text-decoration:none}p{line-height:inherit}.desktop_hid=
+e,.desktop_hide table{mso-hide:all;display:none;max-height:0;overflow:hidde=
+n}.image_block img+div{display:none}sub,sup{font-size:75%;line-height:0}@me=
+dia(max-width:620px){.mobile_hide{display:none}.row-content{width:100%!impo=
+rtant}.stack .column{width:100%;display:block}.mobile_hide{min-height:0;max=
+-height:0;max-width:0;overflow:hidden;font-size:0}.desktop_hide,.desktop_hi=
+de table{display:table!important;max-height:none!important}}</style><!--[if=
+ mso ]><style>sup,sub{font-size:100%!important}sup{mso-text-raise:10%}sub{m=
+so-text-raise:-10%}</style><![endif]--></head><body class=3D"body" style=3D=
+"box-sizing: border-box; background-color: #fff; margin: 0; padding: 0; -we=
+bkit-text-size-adjust: none; text-size-adjust: none;"><span style=3D"color:=
+transparent;visibility:hidden;display:none;opacity:0;height:0;width:0;font-=
+size:0;">A top Doctor has uncovered a common =D1=95=D0=B5=D1=85 routine tha=
+t is shockingly linked to CANCER in men over the age of 60. =D0=A1=E2=85=BC=
+=D1=96=CF=B2k h=D0=B5r=D0=B5 to make sure you=E2=80=99re not at risk.</span=
+><img src=3D"https://links.f.financeinsiderpro.com/e/eo?_t=3D1c4be19c62cc4a=
+88bab88766467a72b3&amp;_m=3D29cd5297357b441eaa05058bd734f9e8&amp;_e=3Dm1vv1=
+IHFqFjSxUv7yJz3v8FN3VX1fJztil5hPi625OaC9ej-_78nqpLVUPWeHzCNz_7zFrtN03kDJ0Jd=
+UZo6oTEBNBeGCaFL0Dj0JeUwjmQ-otPckCoLG7gyPouFgHCMns6a4i8WGJyvTrj3fW7Zk2Fs0_q=
+hOdkhGuFCsOh0TeU%3D" style=3D"border:0;width:1px;height:1px;border-width:0p=
+x!important;display:none!important;line-height:0!important;" width=3D"1" he=
+ight=3D"1"/><table class=3D"nl-container" width=3D"100%" border=3D"0" cellp=
+adding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: b=
+order-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color: #fff=
+;" bgcolor=3D"#fff"><tbody style=3D"box-sizing: border-box;"><tr style=3D"b=
+ox-sizing: border-box;"><td style=3D"box-sizing: border-box;"><table class=
+=3D"row row-1" align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"=
+0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box;=
+ mso-table-lspace: 0; mso-table-rspace: 0;"><tbody style=3D"box-sizing: bor=
+der-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing: bo=
+rder-box;"><table class=3D"row-content stack" align=3D"center" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; color: #000; wid=
+th: 600px; margin: 0 auto;" width=3D"600"><tbody style=3D"box-sizing: borde=
+r-box;"><tr style=3D"box-sizing: border-box;"><td class=3D"column column-1"=
+ width=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-t=
+able-rspace: 0; font-weight: 400; text-align: left; padding-bottom: 5px; pa=
+dding-top: 5px; vertical-align: top;" align=3D"left" valign=3D"top"><table =
+class=3D"image_block block-1" width=3D"100%" border=3D"0" cellpadding=3D"10=
+" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; =
+mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-=
+box;"><td class=3D"pad" style=3D"box-sizing: border-box;"><div class=3D"ali=
+gnment" align=3D"center" style=3D"box-sizing: border-box;"><div style=3D"bo=
+x-sizing: border-box; max-width: 240px;"><a href=3D"https://links.f.finance=
+insiderpro.com/u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3&_m=3D29cd52973=
+57b441eaa05058bd734f9e8&_e=3DGT_dOoyPAxMvglBVhjEb2kwReVVGBTTUS3qhZvr-34A-5s=
+3-uG43O7Q8uVIGZ1Pz-SH8M6TBjwQtt9ylAUPThX6vUxum97V8Vj8Lki32iDpzaV3lLthBxYvil=
+_HdZ18qx9U0VzFWU5Sx1OwzyhiGgk_UWKsMPSirkTKOKrj6kgUAcwYzyirZr7vcVYWQPyywcyRA=
+T9Snbq9GkhztYfvRvhtMfEdMgn6oL_d0ANkztMrIfWJ3EI8c_FMq4mPfSUVCuAAkgHtU4HrIQOZ=
+LGeZk8_x5FEWHCdVrC3WKY705a_vuUY4dyM4Ln_WeuLeC48gQzbxQzVOkZpgCFWw7PDUbBDbzkI=
+-Z4UHrJrT4eQTxWSI%3D" target=3D"_blank" style=3D"box-sizing: border-box;"><=
+img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/6=
+69d5713-9b6a-46bb-bd7e-c542cff6dd6a/1c4be19c62cc4a88bab88766467a72b3/financ=
+e_insider_pro.png" style=3D"box-sizing: border-box; display: block; height:=
+ auto; border: 0; width: 100%;" width=3D"240" alt=3D"Logo FIP" title=3D"Log=
+o FIP" height=3D"auto"></a></div></div></td></tr></table><table class=3D"di=
+vider_block block-2" width=3D"100%" border=3D"0" cellpadding=3D"10" cellspa=
+cing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table=
+-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td=
+ class=3D"pad" style=3D"box-sizing: border-box;"><div class=3D"alignment" a=
+lign=3D"center" style=3D"box-sizing: border-box;"><table border=3D"0" cellp=
+adding=3D"0" cellspacing=3D"0" role=3D"presentation" width=3D"45%" style=3D=
+"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr sty=
+le=3D"box-sizing: border-box;"><td class=3D"divider_inner" style=3D"box-siz=
+ing: border-box; font-size: 1px; line-height: 1px; border-top: 3px dotted #=
+bbb;"><span style=3D"box-sizing: border-box; word-break: break-word;">&#820=
+2;</span></td></tr></table></div></td></tr></table><table class=3D"html_blo=
+ck block-3" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0"=
+ role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0=
+; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"=
+pad" style=3D"box-sizing: border-box;"><div style=3D"box-sizing: border-box=
+; font-family: Arial,'Helvetica Neue',Helvetica,sans-serif; text-align: cen=
+ter;" align=3D"center"><table width=3D"100%" border=3D"0" cellpadding=3D"0"=
+ cellspacing=3D"0" style=3D"box-sizing: border-box; font-family: 'Tahoma', =
+Arial, Helvetica, sans-serif; max-width: 600px;"> <tbody style=3D"box-sizin=
+g: border-box; max-width: 600px;"> <tr style=3D"box-sizing: border-box;"> <=
+td align=3D"center" valign=3D"top" style=3D"box-sizing: border-box; font-fa=
+mily: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 600px;"> <table cl=
+ass=3D"main-table" bgcolor=3D"#FFFFFF" border=3D"0" cellspacing=3D"0" cellp=
+adding=3D"0" width=3D"100%" style=3D"box-sizing: border-box; font-family: '=
+Tahoma', Arial, Helvetica, sans-serif; max-width: 600px;"> <tbody style=3D"=
+box-sizing: border-box; max-width: 600px;"> <tr style=3D"box-sizing: border=
+-box;"> <td class=3D"content-wrapper" align=3D"center" style=3D"box-sizing:=
+ border-box; padding-left: 21px; padding-right: 21px; font-family: 'Tahoma'=
+, Arial, Helvetica, sans-serif; max-width: 600px;"> <table class=3D"inner-c=
+ontent-wrapper" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" width=3D"1=
+00%" style=3D"box-sizing: border-box; width: 100%; font-family: 'Tahoma', A=
+rial, Helvetica, sans-serif; max-width: 600px;"> <tbody style=3D"box-sizing=
+: border-box; max-width: 600px;"> <tr style=3D"box-sizing: border-box;"> <t=
+d height=3D"15" width=3D"100%" style=3D"box-sizing: border-box; font-family=
+: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 600px;" class=3D"space=
+-between-sections"></td> </tr> <tr style=3D"box-sizing: border-box;"> <td a=
+lign=3D"center" style=3D"box-sizing: border-box; font-style: normal; font-w=
+eight: normal; line-height: 1.5; text-align: center; color: #000000; paddin=
+g-top: 15px; padding-bottom: 15px; font-family: 'Tahoma', Arial, Helvetica,=
+ sans-serif; font-size: 20px; max-width: 600px;"> <div style=3D"box-sizing:=
+ border-box; font-style: normal; font-weight: normal; line-height: 1.5; tex=
+t-align: center; color: #000000; font-family: 'Tahoma', Arial, Helvetica, s=
+ans-serif; font-size: 20px; max-width: 600px;"> <b style=3D"box-sizing: bor=
+der-box; color: #bb0000;">Is Your =D0=85=D0=B5=D1=85 L=D1=96f=D0=B5 KILLING=
+ YOU? </b> </div> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td st=
+yle=3D"box-sizing: border-box; font-style: normal; font-weight: normal; lin=
+e-height: 1.5; text-align: left; color: #000000; padding-top: 15px; padding=
+-bottom: 15px; font-family: 'Tahoma', Arial, Helvetica, sans-serif; font-si=
+ze: 20px; max-width: 600px;" align=3D"left"> <div style=3D"box-sizing: bord=
+er-box; font-style: normal; font-weight: normal; line-height: 1.5; text-ali=
+gn: left; color: #000000; font-family: 'Tahoma', Arial, Helvetica, sans-ser=
+if; font-size: 20px; max-width: 600px;"> A top Doctor has uncovered a <a hr=
+ef=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c4be19c62cc4a88ba=
+b88766467a72b3&_m=3D29cd5297357b441eaa05058bd734f9e8&_e=3DGT_dOoyPAxMvglBVh=
+jEb2uAK4LYrUiFlgFPKS-xneBtooHMWb1xPgKYPAGDNdHgoc_gMz0nEIxez_MfP0jcfZlozCiyO=
+L_lQKy8VAKuvoj_MN02QNhqSAgl498Y0bS6OAp-G1aeQsiwUiK4ZBkbDGHlelAMsFn3QDaVjIxk=
+Bd_YpdfFLPRy0XZJCAJrF_EZDwi-RR-ELF8WfwKZZ3rPQG-Se1fIC_4tmTIL2Xuh2v9eW6HJ0kX=
+RMuQolxSL51D2nmg1gBSHFTTtUh4lY9M1B1Y66REgKidHMqCagmPjBmAMtfxK7EnMWpCv1q6QV3=
+NKulwx8Ak5_8oUTzwSKA_iLiSplUIWauipVr7TgIZfWu6yxakQ-za70k_u3613FL64jtBMa-3Ud=
+1fFAtsi9F7WvR8WnyaxwFpI_0NltAehzEYM3GwqPHuGVLkG2LiEf0g0DqiAMa54exkUBIgG3DGU=
+JcU-UKlZTL1Q5zN7ITNBXAg75jY-6CTURIRIU5erWW34i" style=3D"box-sizing: border-=
+box; text-decoration: underline; font-weight: 700; font-family: 'Tahoma', A=
+rial, Helvetica, sans-serif; color: #2f75b5;">common =D1=95=D0=B5=D1=85 rou=
+tine</a> that is <b style=3D"box-sizing: border-box;">shockingly linked to =
+CANCER in men over the age of 60</b>. <br style=3D"box-sizing: border-box;"=
+><br style=3D"box-sizing: border-box;"> <a href=3D"https://links.f.financei=
+nsiderpro.com/u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3&_m=3D29cd529735=
+7b441eaa05058bd734f9e8&_e=3DGT_dOoyPAxMvglBVhjEb2uAK4LYrUiFlgFPKS-xneBtooHM=
+Wb1xPgKYPAGDNdHgoc_gMz0nEIxez_MfP0jcfZlozCiyOL_lQKy8VAKuvoj_MN02QNhqSAgl498=
+Y0bS6OtNQElFDNz4Un0grYMaf_1F-338ymnOjpzsXLiPtaiVxQHoxC4-lwPRqFs72MkssU4_Av-=
+u5VWY4oUJ_ZocInGXurqJP5Dip9sClKgcdAWJHKmpmcpscLu-d3vemYK2vRCcFzNNLQqn2zPsC-=
+1g0PVH_nIdaRY8q4axLSsmq-xUHk1rbIrdlisP_SNuNKeGX8dDCBKIubN0r51wq6COaJ-DV0AZC=
+nqFAfDJ-4Bg6hFUQuBp6wDOqHuNU8MSEcrIpznEK4XK_qmXENb9yWjcqdvJY7tgHuPd4GY67JKJ=
+XwQxIsxl4fNYg9EysC6mpzAbVdzSqmYWG7dLVcbrOfZziow422hx7t-hyzJISgU-OIyhAF04_li=
+tDrhjiuH9n2qhcS" style=3D"box-sizing: border-box; text-decoration: underlin=
+e; font-weight: 700; font-family: 'Tahoma', Arial, Helvetica, sans-serif; c=
+olor: #2f75b5;">=D0=A1=E2=85=BC=D1=96=CF=B2k h=D0=B5r=D0=B5</a> to make sur=
+e you=E2=80=99re not at risk. <br style=3D"box-sizing: border-box;"><br sty=
+le=3D"box-sizing: border-box;"> --Christine </div> </td> </tr> <tr style=3D=
+"box-sizing: border-box;"> <td height=3D"15" width=3D"100%" style=3D"box-si=
+zing: border-box; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-=
+width: 600px;" class=3D"space-between-sections"></td> </tr> </tbody> </tabl=
+e> </td> </tr> </tbody> </table> </td> </tr> </tbody> </table> <table cellp=
+adding=3D"0" cellspacing=3D"0" align=3D"left" style=3D"box-sizing: border-b=
+ox;"> <tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: bor=
+der-box;"> <td align=3D"left" style=3D"box-sizing: border-box; text-align: =
+left; padding: 10px 20px 10px 20px;"> <p style=3D"box-sizing: border-box; l=
+ine-height: inherit; color: #000000; font-weight: 400; font-size: 12px; fon=
+t-family: Tahoma; margin: 0; padding: 0;"> This ad is sent on behalf of New=
+Market Health. P.O. Box 913, Frederick, MD 21705, USA. If you would like to=
+ unsubscribe from receiving offers from NewMarket Health, please click <a h=
+ref=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c4be19c62cc4a88b=
+ab88766467a72b3&_m=3D29cd5297357b441eaa05058bd734f9e8&_e=3DGT_dOoyPAxMvglBV=
+hjEb2uAK4LYrUiFlgFPKS-xneBuedhPlHYteqa5M8GAMuK7JvFzqVxg_m01nQV_EjdZ8usbRUbl=
+_0pscQncINiCnoD-ovdWV8xjeFDJTrmRpUW3GEHX1WQJvlBx55GSRJQFSlE2nApg__EQtbsE_IL=
+jEU02ReQfyYl7VzW_sCaF78t2aluGYV51VAE_1yZggR_2R5PtoPzc9LTXGsKl4y8ZkZjHmKtHek=
+wJXOpG21HPZ5QtEv7YqFuSjVWrZxWFeWbqqw9iqawx4xIVOXbdIrcgEiM3vRlN2knwmG1GWMJQg=
+mwzVDCl13SaYPc21SdOHSTo0B9a4DANKRAeqjVXQEDA5jShnRlBre3ZsdX8dMFH3h6nuiL3MGuI=
+ngNlvqIEk3KCrP07aeBaM69z46CFGdLimh1XD3lwzE1vVp_D_qHKJe79dJ5NcE0P2tsdpJeNtF1=
+a3GoodDsoaWVRDvfcnNKWXj3XTx_IfpdinAmnorpesSlIn" style=3D"box-sizing: border=
+-box; font-weight: bold; text-decoration: underline; color: #2f75b5; font-s=
+ize: 12px; font-family: Tahoma;">here</a> </p> </td> </tr> </tbody></table>=
+ </div></td></tr></table><table class=3D"divider_block block-4" width=3D"10=
+0%" border=3D"0" cellpadding=3D"10" cellspacing=3D"0" role=3D"presentation"=
+ style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;=
+"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizi=
+ng: border-box;"><div class=3D"alignment" align=3D"center" style=3D"box-siz=
+ing: border-box;"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" r=
+ole=3D"presentation" width=3D"45%" style=3D"box-sizing: border-box; mso-tab=
+le-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><=
+td class=3D"divider_inner" style=3D"box-sizing: border-box; font-size: 1px;=
+ line-height: 1px; border-top: 3px dotted #bbb;"><span style=3D"box-sizing:=
+ border-box; word-break: break-word;">&#8202;</span></td></tr></table></div=
+></td></tr></table><table class=3D"image_block block-5" width=3D"100%" bord=
+er=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D=
+"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr sty=
+le=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: borde=
+r-box; padding-bottom: 20px; padding-left: 10px; padding-right: 10px; paddi=
+ng-top: 10px; width: 100%;" width=3D"100%"><div class=3D"alignment" align=
+=3D"center" style=3D"box-sizing: border-box;"><div style=3D"box-sizing: bor=
+der-box; max-width: 210px;"><a href=3D"https://links.f.financeinsiderpro.co=
+m/u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3&_m=3D29cd5297357b441eaa0505=
+8bd734f9e8&_e=3DGT_dOoyPAxMvglBVhjEb2kwReVVGBTTUS3qhZvr-34A-5s3-uG43O7Q8uVI=
+GZ1PzwVD0PbPtcrJ0WreXeQx5dmUB56IVeo8IiT-RyXZFkbiCGI0px2MW6AOOEc0oYKuQxqGZn0=
+OZfVEMBFd4dZEQ6WgZ8Teump55WaNgmn08CtrMOjPIpzxBk_VzMeefLeARnlR_wk7fQNHb9F-_o=
+v3lAnDEpJyR-Cznu1CWR8P3YBX_XMVrCClt3BHrTtS5IIsiBseDBBu-qRo6wTFlVrRRrP6xL_ZM=
+lxNWO4czWkj1wHMiDPyppVxktDayyvxgL_TxCR-8nj7PBrYWoKhR7vOKcmolAcMgHoapcF6kRlC=
+FQmM%3D" target=3D"_blank" style=3D"box-sizing: border-box;"><img src=3D"ht=
+tps://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-=
+46bb-bd7e-c542cff6dd6a/1c4be19c62cc4a88bab88766467a72b3/finance_insider_pro=
+.png" style=3D"box-sizing: border-box; display: block; height: auto; border=
+: 0; width: 100%;" width=3D"210" alt=3D"Logo FIP" title=3D"Logo FIP" height=
+=3D"auto"></a></div></div></td></tr></table><table class=3D"heading_block b=
+lock-6" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; ms=
+o-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad"=
+ style=3D"box-sizing: border-box; text-align: center; width: 100%;" width=
+=3D"100%" align=3D"center"><h1 style=3D"box-sizing: border-box; margin: 0; =
+color: #555; direction: ltr; font-family: Tahoma,Verdana,Segoe,sans-serif; =
+font-size: 14px; font-weight: 400; letter-spacing: normal; line-height: 1.2=
+; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt:=
+ 17px;"><span class=3D"tinyMce-placeholder" style=3D"box-sizing: border-box=
+; word-break: break-word;">This email was sent by <strong style=3D"box-sizi=
+ng: border-box;">Finance Insider Pro</strong>, a part of TerraTrance Techno=
+logies, LLC.<br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: =
+border-box;"> Reach out to us by replying button or by direct email to <str=
+ong style=3D"box-sizing: border-box;"><a href=3D"mailto:support@financeinsi=
+derpro.com" target=3D"_blank" title=3D"support@financeinsiderpro.com" style=
+=3D"box-sizing: border-box; text-decoration: underline; color: #555555;" re=
+l=3D"noopener">support@financeinsiderpro.com</a></strong><br style=3D"box-s=
+izing: border-box;"><br style=3D"box-sizing: border-box;">Reproduction or d=
+istribution of texts, images or information in any forms is forbidden witho=
+ut written permission from TerraTrance Technologies, LLC.<br style=3D"box-s=
+izing: border-box;"><br style=3D"box-sizing: border-box;">200 Broadway Blvd=
+ NE, Albuquerque, NM 87102 <br style=3D"box-sizing: border-box;"><br style=
+=3D"box-sizing: border-box;">=C2=A9 2026 Finance Insider Pro. All Rights Re=
+served.<br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: borde=
+r-box;"><strong style=3D"box-sizing: border-box;"><u style=3D"box-sizing: b=
+order-box;"><a href=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1=
+c4be19c62cc4a88bab88766467a72b3&_m=3D29cd5297357b441eaa05058bd734f9e8&_e=3D=
+GT_dOoyPAxMvglBVhjEb2kwReVVGBTTUS3qhZvr-34CyWRYBdtoCfwqgvIVTioqpez0Bts67za2=
+4YMIAX3hWDZYLsoVplZkjgnoWDZMA_8s6FJyCjLZeTQ4vRzxjrcGQ8Fbjna_Bkopnjah7-JLmTF=
+y50NphJRdYv2M2JHQnlT7zWY6yQics2ugnjhsg4-XGVO5D127PYKn_HJAco-0a29aBCLDKptXEZ=
+hq-27gp9rrvLIB_t9V_uYgy2axTvIgAlvjc6p_ob5aKDivlE-_ceYpD2qJ3YfHrUntvox9WMaBx=
+aee9R5kktdi7wYsLasiQProMsUQSY2PNM5_kUFkKHKQjRFpEcUY3GApZIDAgBHVp7b8LRitzF__=
+El9y0H1kJCCeb71tDuK6tlg0WcV3jnA%3D%3D" target=3D"_blank" style=3D"box-sizin=
+g: border-box; text-decoration: underline; color: #555555;" rel=3D"noopener=
+">Privacy Policy</a></u> | </strong><strong style=3D"box-sizing: border-box=
+;"><a href=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c4be19c62=
+cc4a88bab88766467a72b3&_m=3D29cd5297357b441eaa05058bd734f9e8&_e=3DGT_dOoyPA=
+xMvglBVhjEb2kwReVVGBTTUS3qhZvr-34BF-aeSEHNq3w9x_N__Y1LiW5eypyo_hOZb6pjenAtM=
+acrkkt2L3blEpoEhZ-Abgl8CYuLsiahiZ3AE2jgdug-4jGWHjs8Z5NLGN_p9qqQqm3VZPi57x8s=
+oWcnFhyDWAHFfhQhLstJn1XWZY4O6slZ5bZnTtfLJJbEmRocVum31_S9EQbLx26OUn21QmuIRBQ=
+lEyDKW373oIgFgxYS_hiZcAdLhAKJmEKqO0Ic_k_wMFdrt5XvLbSUcEeqP79Pn4v1guctVhAyFO=
+b9i182qtMjIQiESbRRbGv_aYrB4OKrnVd4y2Hi3NwRU8U78VCtzw3K-pTCUoAX-RPkPbnOUJurG=
+hC-sfS30TJ6gMsqEMBGNhA%3D%3D" target=3D"_blank" style=3D"box-sizing: border=
+-box; text-decoration: underline; color: #555555;" rel=3D"noopener">Terms a=
+nd Conditions</a> | <a href=3D"https://links.f.financeinsiderpro.com/e/encr=
+yptedUnsubscribe?_r=3D1c4be19c62cc4a88bab88766467a72b3&_s=3D29cd5297357b441=
+eaa05058bd734f9e8&_t=3Dm1vv1IHFqFjSxUv7yJz3v8FN3VX1fJztil5hPi625OaC9ej-_78n=
+qpLVUPWeHzCNz_7zFrtN03kDJ0JdUZo6oTEBNBeGCaFL0Dj0JeUwjmRgYt9Xg9oCmE0grhw2d0B=
+oTlQEVzWbZ6tWvzP-9AHfDQ%3D%3D" target=3D"_blank" rel=3D"noopener" style=3D"=
+box-sizing: border-box; color: #555555;">Unsubscribe</a></strong></span></h=
+1> </td></tr></table></td></tr></tbody></table></td></tr></tbody></table></=
+td></tr></tbody></table><!-- End --></body></html>
+------=_Part_108696_612062741.1767644434066--

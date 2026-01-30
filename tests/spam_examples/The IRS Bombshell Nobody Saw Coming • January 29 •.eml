@@ -1,0 +1,1021 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:b21a:b0:1b3:596f:ddda with SMTP id bn26csp995610rdb;
+        Thu, 29 Jan 2026 15:58:20 -0800 (PST)
+X-Received: by 2002:a05:620a:254c:b0:8c7:f55:2062 with SMTP id af79cd13be357-8c9eb312608mr181492285a.61.1769731099707;
+        Thu, 29 Jan 2026 15:58:19 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1769731099; cv=none;
+        d=google.com; s=arc-20240605;
+        b=MKGvA92FO5cnesVDmjJRPJAFgxZIIvgfm7WBcMuhvzTovBE4dp6rbb9j/3ZF5MGILr
+         CILvJNMUE+Gbga8U/OMBQtICmOJoLhoRI7EiriHr2npTSGe7Sx109L/gfyYUFPRHe02v
+         O687EqOZQQQTbW+dnH40Fg9jPE62kXg7+xyeRue+/G/YMAcoOuhqi0EaR4xnM4DMPQJc
+         702nAMnILNeFYFUx4reF7UFwY5+szD5+rq5lEFGOLOZVw0wcnDklWRjq7+1+KPsg/9s9
+         l5v1673Zl5rDF43g5+v++VG50zfuiNgLUM3DhDe+eKvf2A2x/FEWAbvQ+TO3cfURPZhf
+         ykxA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=IYJpBhe2N7rTosmHtDCQzl8iIg+51OF+jPq2k48liek=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=GWTcxCF1gqJnzzx5esOhBrRT4OWFnX/+ZiqLiklyXdwRzcx8/2Dxtv+EMu/vWaJiNG
+         zcuApdYXqk5qfrtSmLunuv65f2KaerYVNLiAr96wWMORXn3QxXv8OWASrkkQaBq2Louu
+         h26BoViBbNzN4u7qZGZGMLeeRUuruKX+G1lnh1WmaS42ak5w2CBTaQA8jWy/hK4KCpsp
+         /aa71b4bPhHC50y+xduG1g9+CpguP/b2xGhM5TFeex5DKkYsMDZ0uYv2C6aHrkqHzv7y
+         +cpxv4CT3OWrSnbBJp/s8LpdF9DbZJXUfbr0tZw9ViicGCmXoJAuldyVdXS32WvC16bM
+         Hm+A==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@e.saferetirementreports.com header.s=fyu2lb4gdarywcyjphxafx6gerykou4g header.b="hWaOSga/";
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=ReJyEIfy;
+       spf=pass (google.com: domain of 0100019c0c318aa2-7fec1262-848d-44c7-9634-c8beea458bf1-000000@amazonses.com designates 54.240.79.139 as permitted sender) smtp.mailfrom=0100019c0c318aa2-7fec1262-848d-44c7-9634-c8beea458bf1-000000@amazonses.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=e.saferetirementreports.com
+Return-Path: <0100019c0c318aa2-7fec1262-848d-44c7-9634-c8beea458bf1-000000@amazonses.com>
+Received: from a79-139.smtp-out.amazonses.com (a79-139.smtp-out.amazonses.com. [54.240.79.139])
+        by mx.google.com with ESMTPS id af79cd13be357-8c711dcf164si681132685a.515.2026.01.29.15.58.19
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Thu, 29 Jan 2026 15:58:19 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019c0c318aa2-7fec1262-848d-44c7-9634-c8beea458bf1-000000@amazonses.com designates 54.240.79.139 as permitted sender) client-ip=54.240.79.139;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@e.saferetirementreports.com header.s=fyu2lb4gdarywcyjphxafx6gerykou4g header.b="hWaOSga/";
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=ReJyEIfy;
+       spf=pass (google.com: domain of 0100019c0c318aa2-7fec1262-848d-44c7-9634-c8beea458bf1-000000@amazonses.com designates 54.240.79.139 as permitted sender) smtp.mailfrom=0100019c0c318aa2-7fec1262-848d-44c7-9634-c8beea458bf1-000000@amazonses.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=e.saferetirementreports.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=fyu2lb4gdarywcyjphxafx6gerykou4g; d=e.saferetirementreports.com;
+	t=1769731099;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=fklba8Ev09d81mMjCPIpcduKtV+nBO7YJLMUcqrYehI=;
+	b=hWaOSga/Wsay6F+q7E5TvfCU8e93Zq7PspCZ/6I5g1k14MygQDiKAjpI3gRqQ0tU
+	9kOgL+JKWlfTU3JkrlZnLz2QbsEILgBN/FB4KNP7JgWTGS+Ukej4qdE/5pDGIzDpPQ/
+	syW29QnWuw7aXuyQpm9ooKI05H1IbaRJl2V29jpI=
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1769731099;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=fklba8Ev09d81mMjCPIpcduKtV+nBO7YJLMUcqrYehI=;
+	b=ReJyEIfyKo9WAp7PajaXXZTlRyBBwZ9uEWwEXmzZ+tM4rba5824NufUp7xaArqU4
+	pmxfxIgMFl2IdJ50CcbiGd/cTKvawKAqbYR4ctyn94MWi/OgtT7NskxeDpKnLd858xR
+	fJ7UNPQ0N0/veEALifRdaKXy/pE8W4LIcB/fswJY=
+Date: Thu, 29 Jan 2026 23:58:19 +0000
+From: =?UTF-8?Q?Crack-Up_Has_Begun_=E2=80=A2=C2=A0Safe_Retirement_Reports?= <daily@e.saferetirementreports.com>
+Reply-To: daily@e.saferetirementreports.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019c0c318aa2-7fec1262-848d-44c7-9634-c8beea458bf1-000000@email.amazonses.com>
+Subject: =?UTF-8?Q?The_IRS_Bombshell_Nobody_?=
+ =?UTF-8?Q?Saw_Coming_=E2=80=A2_January_29_=E2=80=A2?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_820173_21588726.1769731099190"
+X-Campaign-ID: 16674895
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=9cee5a7d319d4483be456f980018a9a6&_s=5bf1fca39c5e4aaab344582829b285f0&_t=02zlHgyX3HJ0UXXhcVHqV7JfOj5MeYbAk9a-dsZTTeoCdxjg22VBfcN3yPyrDtz_tyUiq1BQ6zFqK0ALCR2VNh54i8Eo702-Ob7-ji1EHEDElQz5xXqIyeE0GxQESI63>,<mailto:unsubscribe+16674895+21703413@unsubscribe.iterable.com>
+X-Feedback-ID: 21703413:16674895:36682:iterable
+X-Message-ID: 5bf1fca39c5e4aaab344582829b285f0
+X-SES-Outgoing: 2026.01.29-54.240.79.139
+
+------=_Part_820173_21588726.1769731099190
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+E-mail Letter Musk didn=E2=80=99t just slip - he detonated a truth bomb.=20
+
+
+
+
+
+
+
+ <https://saferetirementreports.com/>=20
+
+
+
+
+
+
+=20
+<https://tracking.saferetirementreports.com/68b1965e3b7e38bea4b2f4a6?email=
+=3Dgeoff.c.freedman@gmail.com&domain=3D135SRR&type=3DB&product=3DAMMI604>
+ Musk didn=E2=80=99t just slip - he detonated a truth bomb.=20
+
+ One move with the IRS that could set off a chain reaction. The first domin=
+o=20
+is already falling=E2=80=A6 and retirement accounts are lined up in its pat=
+h.
+
+ This isn=E2=80=99t a warning. It=E2=80=99s a countdown.=20
+
+ Every day wasted means your savings are more exposed to Washington=E2=80=
+=99s traps=20
+and Wall Street=E2=80=99s games.
+
+ But there=E2=80=99s one escape route=E2=80=94left behind by Trump himself.=
+ A legal loophole,=20
+hidden in plain sight, that could mean the difference between survival and=
+=20
+devastation.
+
+ Ignore it, and the system decides your future. Use it, and you control wha=
+t=20
+happens next.
+
+Grab the 2026 Wealth Preservation Guide now=E2=80=94before the cracks turn =
+into a full=20
+collapse.=20
+<https://tracking.saferetirementreports.com/68b1965e3b7e38bea4b2f4a6?email=
+=3Dgeoff.c.freedman@gmail.com&domain=3D135SRR&type=3DB&product=3DAMMI604>
+
+
+
+
+ Ads=20
+
+ =E2=9A=A1=EF=B8=8F Breaking: What Everyone=E2=80=99s Talking About:=20
+
+ =E2=80=A2 Zelenskyy=E2=80=99s Conversation with Trump & Putin =E2=80=93 Wh=
+at Comes Next?=20
+<https://tracking.saferetirementreports.com/6693b451dde4980001cfaf9d?email=
+=3Dgeoff.c.freedman@gmail.com&domain=3D135SRR&type=3DSA&product=3DBTMA812_S=
+A>
+ (Behind The Markets)
+
+
+ =E2=80=A2 A credit card that feels like a reset button=20
+<https://tracking.saferetirementreports.com/68e64c19c84bba38831a9653?email=
+=3Dgeoff.c.freedman@gmail.com&domain=3D135SRR&type=3DSA&product=3DPYSTR615_=
+SA>
+ (FinanceBuzz)=20
+
+
+ =E2=80=A2 The secret U.S. territory no one=E2=80=99s talking about (until =
+now). =20
+<https://tracking.saferetirementreports.com/694e6a5d757ce64590392a4f?email=
+=3Dgeoff.c.freedman@gmail.com&domain=3D135SRR&type=3DSA&product=3DBTHA601_S=
+A>
+ (Behind The Markets)=20
+
+
+
+
+
+ Ads=20
+
+ =E2=9A=A1=EF=B8=8F Trending news you should check out:=20
+
+
+ =E2=80=A2 Banks Are Quietly Closing =E2=80=94 What Do They Know That You D=
+on=E2=80=99t? =20
+<https://tracking.saferetirementreports.com/68b81f01c203f0f7cc3752ef?email=
+=3Dgeoff.c.freedman@gmail.com&domain=3D135SRR&type=3DSA&product=3DPGOGA605_=
+SA>
+ (Golden Portfolio)=20
+
+ =E2=80=A2 Inflation steals quietly. Take back control today.=20
+<https://tracking.saferetirementreports.com/67efd4daf6ca30919fb8c9ca?email=
+=3Dgeoff.c.freedman@gmail.com&domain=3D135SRR&type=3DSA&product=3DPYSIC645_=
+SA>
+ (FinanceBuzz)
+
+ =E2=80=A2 Another gold high? Here=E2=80=99s the move Wall Street is missin=
+g.=20
+<https://tracking.saferetirementreports.com/6846ae9edc1de2f360f6465a?email=
+=3Dgeoff.c.freedman@gmail.com&domain=3D135SRR&type=3DSA&product=3DWSGP206_S=
+A>
+ (Weiss Ratings)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ At Safe Retirement Reports, we=E2=80=99re dedicated to serving as your tru=
+sted source=20
+for timely, high-impact retirement insights. The message above comes from o=
+ne=20
+of our reliable partners =E2=80=94 and we believe it=E2=80=99s worth your s=
+erious attention.=20
+
+
+
+
+ EDITOR NOTE=20
+
+
+
+
+
+
+
+
+
+ Email sent by Finance and Investing Traffic, LLC, owner and operator of Sa=
+fe=20
+Retirement Reports.
+
+ You are receiving this e-mail because you have expressed an interest in th=
+e=20
+Financial Education niche on one of our landing pages or sign-up forms on o=
+ur=20
+website.
+
+ We are going to show how to whitelist=20
+<https://saferetirementreports.com/email-whitelisting/> emails so they don=
+=E2=80=99t=20
+get sent to spam.
+
+ Your satisfaction is our priority. Let our support team assist you in maki=
+ng=20
+the most of our services, day or night. Simply send an email to=20
+support@saferetirementreports.com <mailto:support@saferetirementreports.com=
+>=20
+You=E2=80=99ll receive a response within 24 hours.
+
+ This offer is brought to you by Safe Retirement Reports. 221 W 9th St #=20
+Wilmington, DE 19801. If you would like to unsubscribe from receiving offer=
+s=20
+brought to you by Safe Retirement Reportsclick here.=20
+<https://links.e.saferetirementreports.com/e/encryptedUnsubscribe?_r=3D9cee=
+5a7d319d4483be456f980018a9a6&_s=3D5bf1fca39c5e4aaab344582829b285f0&_t=3D02z=
+lHgyX3HJ0UXXhcVHqV7JfOj5MeYbAk9a-dsZTTeoCdxjg22VBfcN3yPyrDtz_tyUiq1BQ6zFqK0=
+ALCR2VNh54i8Eo702-Ob7-ji1EHEDElQz5xXqIyeE0GxQESI63>
+
+
+
+ <https://saferetirementreports.com>=20
+
+
+ Privacy Policy  <https://saferetirementreports.com/privacy-policy/>=20
+
+
+ Terms & Conditions  <https://saferetirementreports.com/terms-and-condition=
+s/>=20
+
+
+ Unsubscribe =20
+<https://links.e.saferetirementreports.com/e/encryptedUnsubscribe?_r=3D9cee=
+5a7d319d4483be456f980018a9a6&_s=3D5bf1fca39c5e4aaab344582829b285f0&_t=3D02z=
+lHgyX3HJ0UXXhcVHqV7JfOj5MeYbAk9a-dsZTTeoCdxjg22VBfcN3yPyrDtz_tyUiq1BQ6zFqK0=
+ALCR2VNh54i8Eo702-Ob7-ji1EHEDElQz5xXqIyeE0GxQESI63>
+
+
+
+
+ =C2=A9 2026 Safe Retirement Reports. All Rights Reserved.=20
+
+
+
+------=_Part_820173_21588726.1769731099190
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.=
+w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> <html xmlns=3D"http://www.w3=
+.org/1999/xhtml" xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:s=
+chemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: border=
+-box !important;"> <head> <meta http-equiv=3D"Content-Type" content=3D"text=
+/html; charset=3DUTF-8"> <title>E-mail Letter</title> <meta name=3D"viewpor=
+t" content=3D"width=3Ddevice-width, initial-scale=3D1.0"> <link rel=3D"prec=
+onnect" href=3D"https://fonts.googleapis.com"> <link rel=3D"preconnect" hre=
+f=3D"https://fonts.gstatic.com" crossorigin> <link href=3D"https://fonts.go=
+ogleapis.com/css2?family=3DMontserrat:ital,wght@0,100..900;1,100..900&displ=
+ay=3Dswap" rel=3D"stylesheet"> <link href=3D"https://fonts.googleapis.com/c=
+ss2?family=3DRoboto:ital,wght@0,100..900;1,100..900&display=3Dswap" rel=3D"=
+stylesheet"> <!-- <link href=3D"https://fonts.googleapis.com/css2?family=3D=
+Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,7=
+00&display=3Dswap" rel=3D"stylesheet"> --> <style>body{width:100%!important=
+;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;margin:0!important=
+;padding:0!important;line-height:100%}*{box-sizing:border-box!important}img=
+{outline:none!important;text-decoration:none!important;border:none!importan=
+t;-ms-interpolation-mode:bicubic!important;margin:0!important;padding:0!imp=
+ortant;display:block!important}a{text-decoration:none}table{mso-table-lspac=
+e:0;mso-table-rspace:0}@media screen and (max-width:498px){img{background-c=
+olor:transparent!important}.hide_mobile{display:none!important}.show_mobile=
+{display:block!important}.divider_sm{padding-top:20px!important}.w_full{wid=
+th:100%!important;max-width:none!important;min-width:100%!important}.text_c=
+enter{text-align:center!important}.sa_wrapper{padding-left:10px!important;p=
+adding-right:10px!important}.remove_bdrs{border-radius:0!important;padding:=
+0!important}.footer_wrapper{padding-left:8px!important;padding-right:8px!im=
+portant}}</style> <!--[if (gte mso 9)|(IE)]><xml> <o:OfficeDocumentSettings=
+> <o:AllowPNG/> <o:PixelsPerInch>96</o:PixelsPerInch> </o:OfficeDocumentSet=
+tings> </xml><![endif]--> </head> <body style=3D"-webkit-text-size-adjust: =
+100%; -ms-text-size-adjust: 100%; line-height: 100%; background-color: #fff=
+fff; box-sizing: border-box !important; width: 100% !important; margin: 0 !=
+important; padding: 0 !important;"><span style=3D"color:transparent;visibil=
+ity:hidden;display:none;opacity:0;height:0;width:0;font-size:0;">Musk didn=
+=E2=80=99t just slip - he detonated a truth bomb.</span><img src=3D"https:/=
+/links.e.saferetirementreports.com/e/eo?_t=3D9cee5a7d319d4483be456f980018a9=
+a6&amp;_m=3D5bf1fca39c5e4aaab344582829b285f0&amp;_e=3D02zlHgyX3HJ0UXXhcVHqV=
+7JfOj5MeYbAk9a-dsZTTeoCdxjg22VBfcN3yPyrDtz_tyUiq1BQ6zFqK0ALCR2VNh54i8Eo702-=
+Ob7-ji1EHEDq8bxOy2iJtrQJAjXe9a7yVMT6OGmB2jAmG0lpzGpOlA%3D%3D" style=3D"bord=
+er:0;width:1px;height:1px;border-width:0px!important;display:none!important=
+;line-height:0!important;" width=3D"1" height=3D"1"/> <center style=3D"box-=
+sizing: border-box !important;"> <table width=3D"100%" border=3D"0" cellpad=
+ding=3D"0" cellspacing=3D"0" bgcolor=3D"#ffffff" style=3D"mso-table-lspace:=
+ 0pt; mso-table-rspace: 0pt; width: 100%; max-width: 1000px; box-sizing: bo=
+rder-box !important;"> <tr style=3D"box-sizing: border-box !important;"> <t=
+d style=3D"box-sizing: border-box !important;"> <table width=3D"100%" borde=
+r=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"=
+mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing: bord=
+er-box !important;"> <tr style=3D"box-sizing: border-box !important;"> <td =
+width=3D"1000" align=3D"center" valign=3D"top" bgcolor=3D"#fdf9f0" style=3D=
+"box-sizing: border-box !important;"> <table width=3D"100%" border=3D"0" ce=
+llspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-=
+lspace: 0pt; mso-table-rspace: 0pt; width: 100%; background: url('https://d=
+15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd=
+7e-c542cff6dd6a/9cee5a7d319d4483be456f980018a9a6/email-bg-bot.png'); backgr=
+ound-position: center bottom; background-repeat: no-repeat; box-sizing: bor=
+der-box !important;"> <tr style=3D"box-sizing: border-box !important;"> <td=
+ style=3D"box-sizing: border-box !important;"> <table cellpadding=3D"0" cel=
+lspacing=3D"0" width=3D"100%" align=3D"center" style=3D"mso-table-lspace: 0=
+pt; mso-table-rspace: 0pt; max-width: 1000px; width: 100%; background: url(=
+'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b=
+6a-46bb-bd7e-c542cff6dd6a/9cee5a7d319d4483be456f980018a9a6/email-bg-top.png=
+'); background-position: center top; background-repeat: no-repeat; box-sizi=
+ng: border-box !important;"> <!--[if mso | IE]><tr> <td align=3D"center"> <=
+table border=3D"0" cellspacing=3D"0" cellpadding=3D"0" width=3D"1000" style=
+=3D"width: 1000px;max-width: 100%;"><![endif]--> <tr style=3D"box-sizing: b=
+order-box !important;"> <td width=3D"100%" style=3D"max-width: 100%; paddin=
+g-top: 20px; box-sizing: border-box !important;" class=3D"hide_mobile"></td=
+> </tr> <tr style=3D"box-sizing: border-box !important;"> <td align=3D"cent=
+er" style=3D"box-sizing: border-box !important;"> <table width=3D"100%" bor=
+der=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=
+=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; max-width: 6=
+00px; box-sizing: border-box !important;"> <!--[if mso | IE]><tr> <td align=
+=3D"center"> <table class=3D"top-inner-content-table content-inner-table" b=
+order=3D"0" cellspacing=3D"0" cellpadding=3D"0" width=3D"600" style=3D"widt=
+h: 600px;max-width: 100%;"><![endif]--> <tr style=3D"box-sizing: border-box=
+ !important;"> <td bgcolor=3D"#8E826A" style=3D"padding: 1px; border-radius=
+: 10px; box-sizing: border-box !important;" class=3D"remove_bdrs"> <table b=
+gcolor=3D"#ffffff" width=3D"100%" border=3D"0" cellspacing=3D"0" cellpaddin=
+g=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rsp=
+ace: 0pt; width: 100%; border-radius: 9px; box-sizing: border-box !importan=
+t;" class=3D"remove_bdrs"> <!-- ~HEADER --> <tr style=3D"box-sizing: border=
+-box !important;"> <td style=3D"box-sizing: border-box !important;"> <table=
+ width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"pr=
+esentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 1=
+00%; box-sizing: border-box !important;"> <tr style=3D"box-sizing: border-b=
+ox !important;"> <td style=3D"box-sizing: border-box !important;"> <a href=
+=3D"https://links.e.saferetirementreports.com/u/click?_t=3D9cee5a7d319d4483=
+be456f980018a9a6&_m=3D5bf1fca39c5e4aaab344582829b285f0&_e=3DPZf8k65gke0bpAw=
+-VkXqa28UxQnYDiSIon7VAjqh2iZan-yd2IhcYzRhCrcy4iAY2InSvBjLvJLIt2jOK7raiw5S9s=
+4Kh-avkUMVRbrxwAqyqeSiweI0tG3UYRMAo-t_lSs15d9jSDZBPy9aeyFpbSppmfa0cfS84HrWx=
+1YcEQSmNEMAS-t2k8b64Gh1FkbBur5BmKTJwLkXx7sb2wOhaG901NhMcn5MscowXz7sJkzPiSsH=
+Xr8lacOkNtw07IqhPJzmHB0zxGdNU8BgafzU-KXDXcEG8GVOupZsBdOA37Le_FO4ntb3hJhTucf=
+KyswHH5gelRoMMTomotIzC3j_sfpufL9nQ34TE2UoM8IArAA%3D" target=3D"_blank" styl=
+e=3D"text-decoration: none; font-size: 0; box-sizing: border-box !important=
+;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrat=
+ors/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/9cee5a7d319d4483be456f980018a9a6/h=
+eader-logo.jpg" alt=3D"Logo" title=3D"Logo" width=3D"600" style=3D"object-f=
+it: contain; max-width: 600px; object-position: center; font-size: 13px; wi=
+dth: 100%; border-radius: 9px 9px 0 0; box-sizing: border-box !important; o=
+utline: none !important; text-decoration: none !important; border: none !im=
+portant; -ms-interpolation-mode: bicubic !important; margin: 0 !important; =
+padding: 0 !important; display: block !important;" class=3D"remove_bdrs"> <=
+/a> </td> </tr> </table> </td> </tr> <!-- ~END HEADER --> <!-- ~CONTENT -->=
+ <tr style=3D"box-sizing: border-box !important;"> <td align=3D"center" val=
+ign=3D"top" style=3D"box-sizing: border-box !important;"> <table cellpaddin=
+g=3D"0" cellspacing=3D"0" width=3D"100%" align=3D"center" style=3D"mso-tabl=
+e-lspace: 0pt; mso-table-rspace: 0pt; max-width: 600px; width: 100%; box-si=
+zing: border-box !important;"> <tr style=3D"box-sizing: border-box !importa=
+nt;"> <td width=3D"100%" style=3D"max-width: 100%; padding-top: 24px; box-s=
+izing: border-box !important;" class=3D"hide_mobile"></td> </tr> <!-- ~SPON=
+SORED CONTENT --> <!-- ~END SPONSORED CONTENT --> <!-- ~BODY~ --> <tr style=
+=3D"box-sizing: border-box !important;"> <td style=3D"box-sizing: border-bo=
+x !important;"> <!-- ~---------Promo Starts Here--------~ --> <table width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; max-width: 100=
+%; box-sizing: border-box !important;"> <tbody style=3D"box-sizing: border-=
+box !important;"> <tr style=3D"box-sizing: border-box !important;"> <td ali=
+gn=3D"center" valign=3D"top" style=3D"box-sizing: border-box !important;"> =
+<table class=3D"primary-table-limit content-table" bgcolor=3D"#FFFFFF" bord=
+er=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" width=3D=
+"100%" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; max-width: 60=
+0px; box-sizing: border-box !important;"> <tbody style=3D"box-sizing: borde=
+r-box !important;"> <tr style=3D"box-sizing: border-box !important;"> <td c=
+lass=3D"content-vertical-space" align=3D"center" style=3D"padding-left: 20p=
+x; padding-right: 20px; box-sizing: border-box !important;"> <table class=
+=3D"content-inner-table" border=3D"0" cellspacing=3D"0" role=3D"presentatio=
+n" cellpadding=3D"0" width=3D"100%" style=3D"mso-table-lspace: 0pt; mso-tab=
+le-rspace: 0pt; width: 100%; box-sizing: border-box !important;"> <tbody st=
+yle=3D"box-sizing: border-box !important;"> <tr style=3D"box-sizing: border=
+-box !important;"> <td height=3D"16" width=3D"100%" style=3D"max-width: 100=
+%; box-sizing: border-box !important;" class=3D"md-horizontal-space"></td> =
+</tr> <tr style=3D"box-sizing: border-box !important;"> <td class=3D"img-bg=
+-block" align=3D"center" style=3D"padding-top: 14px; padding-bottom: 14px; =
+box-sizing: border-box !important;"> <a href=3D"https://links.e.saferetirem=
+entreports.com/u/click?_t=3D9cee5a7d319d4483be456f980018a9a6&_m=3D5bf1fca39=
+c5e4aaab344582829b285f0&_e=3DPZf8k65gke0bpAw-VkXqa3ayCQIU_3yGKEgEMiXYOw2HEC=
+IF3iLsxfnsddH6VftPUeI-jJgHmVt95BgQXzWA24eDMo9csDEBCZdN_f4_zP6VgN9Ej492DmJUB=
+GBHhmxDehuICXftY6KVIwqx6C-ljJJ-EjzE62iC24HYgX84KiANeJ9AMtT64AkPDntKuUHzFC9W=
+PfmWXQrhMe4qz2MoJsNZn5tDEfG4o8-UMT8dTTeoBQOJAOOSYa2eemAGrhEU_Lgc5OOcocKWaPl=
+eQ56COmeYLz-QWlGhOIhAZklnoeopF6IbefjXYTT5WqCnf4lw7QJUq-WEtAA-yQoKc6x0heJwsK=
+ciEeS3veS23rh19M18Y3V-HtL2cWKosE82SyY9B76zt1Hx4W1xyvGIqeKZ6zpfJQi1D-IU89XHF=
+ERPL7ozsrRDejPJKz2Tw9MTZ_EWwuGnZGSEWTo9_LQs-0bP6b77stUnd8qp3v_MCAcNujnNqa23=
+qP7dJN1Xi-6-v1oyhMvrzC0DaJclpkt4RTvAPeMx_lPeeBKuB9mn9NOCt_1JOK03haGTKZOsgGT=
+xdPYgR5mkeeW7COUq2-cD-S3LpGkcljytzojvskEAdMlNWsw%3D" target=3D"_blank" styl=
+e=3D"text-decoration: none; box-sizing: border-box !important;"> <img alt=
+=3D"click" height=3D"auto" src=3D"https://library.iterable.com/1940/9447/33=
+bb324039bc473bbb788f0f8a0a9ba1-ammi604.png" style=3D"height: auto; width: 1=
+00%; max-width: 560px; font-size: 13px; box-sizing: border-box !important; =
+outline: none !important; text-decoration: none !important; border: none !i=
+mportant; -ms-interpolation-mode: bicubic !important; margin: 0 !important;=
+ padding: 0 !important; display: block !important;" width=3D"560"> </a> </t=
+d> </tr> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"fon=
+t-family: 'Roboto', Arial, Helvetica, sans-serif; font-size: 18px; font-sty=
+le: normal; font-weight: normal; line-height: 1.5; text-align: left; color:=
+ #000000; padding-top: 14px; padding-bottom: 14px; box-sizing: border-box !=
+important;" align=3D"left"> <span style=3D"font-family: 'Roboto', Arial, He=
+lvetica, sans-serif; font-size: 18px; font-style: normal; font-weight: norm=
+al; line-height: 1.5; text-align: left; color: #000000; box-sizing: border-=
+box !important;"> Musk didn=E2=80=99t just slip - he detonated a truth bomb=
+. <br style=3D"box-sizing: border-box !important;"><br style=3D"box-sizing:=
+ border-box !important;"> One move with the IRS that could set off a chain =
+reaction. The first domino is already falling=E2=80=A6 and retirement accou=
+nts are lined up in its path. <br style=3D"box-sizing: border-box !importan=
+t;"><br style=3D"box-sizing: border-box !important;"> This isn=E2=80=99t a =
+warning. It=E2=80=99s a countdown. <br style=3D"box-sizing: border-box !imp=
+ortant;"><br style=3D"box-sizing: border-box !important;"> Every day wasted=
+ means your savings are more exposed to Washington=E2=80=99s traps and Wall=
+ Street=E2=80=99s games. <br style=3D"box-sizing: border-box !important;"><=
+br style=3D"box-sizing: border-box !important;"> But there=E2=80=99s one es=
+cape route=E2=80=94left behind by Trump himself. A legal loophole, hidden i=
+n plain sight, that could mean the difference between survival and devastat=
+ion. <br style=3D"box-sizing: border-box !important;"><br style=3D"box-sizi=
+ng: border-box !important;"> Ignore it, and the system decides your future.=
+ Use it, and you control what happens next. <br style=3D"box-sizing: border=
+-box !important;"><br style=3D"box-sizing: border-box !important;"> <a href=
+=3D"https://links.e.saferetirementreports.com/u/click?_t=3D9cee5a7d319d4483=
+be456f980018a9a6&_m=3D5bf1fca39c5e4aaab344582829b285f0&_e=3DPZf8k65gke0bpAw=
+-VkXqa3ayCQIU_3yGKEgEMiXYOw2HECIF3iLsxfnsddH6VftPUeI-jJgHmVt95BgQXzWA24eDMo=
+9csDEBCZdN_f4_zP6VgN9Ej492DmJUBGBHhmxDehuICXftY6KVIwqx6C-ljJJ-EjzE62iC24HYg=
+X84KiANeJ9AMtT64AkPDntKuUHzFC9WPfmWXQrhMe4qz2MoJoHkCz79w9tzaFk5XuEzZHq635pC=
+EfRyPtIeMk9BRfvrwO7RCbs7YlfPRpO_jL9TMe3SN0Ve4OcECFTAGAyw4OYiurMFjRNz7WnFqnv=
+Z6bk_uJdCUT4O16vte-j5ajxjHQY4IhgoV3HdptztcwJJqB1XuIs5ouaaE0Do6LKMD-TfZinRJu=
+qfEkBY4utcT2_q9VHTpas3-puXUs8Cpa9Q8vRYNfMUICACQooOGom9CfTgRrE3IYQQKf0n2wto3=
+j1gjUTV3E6SwN6mAgC2d9ExHkX8XY0cMQG_9eehC8qJ-eblVGNhX3vl2dVIZOh-G6fIC9I1bEV0=
+-1JglncEXPujYiZys__MXoQwJV5woWfqn0o7-0THKt8rvTm7yroxSseKzq1Hig2dMqRQAH8qEON=
+Ifyo%3D" style=3D"font-family: 'Roboto', Arial, Helvetica, sans-serif; text=
+-decoration: underline; font-weight: 700; color: #0000ee; box-sizing: borde=
+r-box !important;">Grab the <em style=3D"box-sizing: border-box !important;=
+">2026 Wealth Preservation Guide</em> now=E2=80=94before the cracks turn in=
+to a full collapse.</a> </span> </td> </tr> <tr style=3D"box-sizing: border=
+-box !important;"> <td height=3D"16" width=3D"100%" style=3D"max-width: 100=
+%; box-sizing: border-box !important;" class=3D"md-horizontal-space"></td> =
+</tr> </tbody> </table> </td> </tr> </tbody> </table> </td> </tr> </tbody> =
+</table> <!-- ~---------Promo Ends Here--------~ --> <!-- ~SPONSORED CONTEN=
+T1 --> <table align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" width=3D"100%" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt=
+; border-collapse: collapse; border-spacing: 0; margin: 0 auto; max-width: =
+600px; width: 100%; background-color: #ffffff; box-sizing: border-box !impo=
+rtant;" bgcolor=3D"#ffffff"> <tbody style=3D"box-sizing: border-box !import=
+ant;"> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"paddi=
+ng: 9px; box-sizing: border-box !important;"> <table align=3D"center" borde=
+r=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"mso-tab=
+le-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: collapse; border-sp=
+acing: 0; margin: 0 auto; max-width: 560px; width: 100%; background-color: =
+#c0c0c0; border-radius: 14px; box-sizing: border-box !important;" bgcolor=
+=3D"#c0c0c0"> <tbody style=3D"box-sizing: border-box !important;"> <tr styl=
+e=3D"box-sizing: border-box !important;"> <td style=3D"padding: 1px; box-si=
+zing: border-box !important;"> <table align=3D"center" border=3D"0" cellpad=
+ding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"mso-table-lspace: 0pt;=
+ mso-table-rspace: 0pt; border-collapse: collapse; border-spacing: 0; margi=
+n: 0 auto; max-width: 560px; width: 100%; background-color: #ffffff; border=
+-radius: 13px; box-sizing: border-box !important;" bgcolor=3D"#ffffff"> <tb=
+ody style=3D"box-sizing: border-box !important;"> <tr style=3D"box-sizing: =
+border-box !important;"> <td height=3D"16" style=3D"box-sizing: border-box =
+!important;"></td> </tr> <tr style=3D"box-sizing: border-box !important;"> =
+<td align=3D"right" style=3D"font-family: 'Roboto', Arial, Helvetica, sans-=
+serif; font-size: 12px; font-weight: 600; font-style: normal; line-height: =
+1.5; color: #333333; text-transform: uppercase; padding-top: 0; padding-bot=
+tom: 0; padding-right: 16px; padding-left: 16px; box-sizing: border-box !im=
+portant;"> Ads </td> </tr> <tr style=3D"box-sizing: border-box !important;"=
+> <td height=3D"16" style=3D"box-sizing: border-box !important;"></td> </tr=
+> <tr style=3D"box-sizing: border-box !important;"> <td align=3D"left" styl=
+e=3D"font-family: 'Roboto', Arial, Helvetica, sans-serif; font-size: 22px; =
+font-weight: 600; font-style: normal; line-height: 1.5; color: #333333; pad=
+ding-top: 0; padding-bottom: 0; padding-right: 16px; padding-left: 16px; bo=
+x-sizing: border-box !important;"> =E2=9A=A1=EF=B8=8F Breaking: What Everyo=
+ne=E2=80=99s Talking About: </td> </tr> <tr style=3D"box-sizing: border-box=
+ !important;"> <td height=3D"16" style=3D"box-sizing: border-box !important=
+;"></td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td align=
+=3D"left" style=3D"font-family: 'Roboto', Arial, Helvetica, sans-serif; fon=
+t-size: 16px; font-weight: normal; font-style: normal; line-height: 1.5; co=
+lor: #333333; padding-top: 0; padding-bottom: 0; padding-right: 16px; paddi=
+ng-left: 16px; box-sizing: border-box !important;"> <a href=3D"https://link=
+s.e.saferetirementreports.com/u/click?_t=3D9cee5a7d319d4483be456f980018a9a6=
+&_m=3D5bf1fca39c5e4aaab344582829b285f0&_e=3DPZf8k65gke0bpAw-VkXqa3ayCQIU_3y=
+GKEgEMiXYOw2HECIF3iLsxfnsddH6VftPMJ0G1p91Q8SBJXw1fzZayXUqc9-26FkjDL346qjARj=
+4gcwe5Sbg2Rdh3EnadDPerJE8h6t8Cq_INNMKG449GR_xQIn-50q5SRFpDo2BypVARaNwLrCKdV=
+9B5otj9olT_OAauzT7wIzCsUk1Nj1eSpG5Elx2gRqYi_HStWkoRF808b3zMEIRLuzN5Dw4dWlQZ=
+VPY3IVWZvahCkOSYxPo_JNNqF7uVgQAmKLLGSIWuIhO9ndfVcL0ZB7tIrCYMZPl_s0kLl4KTCXd=
+rBxPRiC3eJjlA7tDR6EZSE940LawDRDn1llwUE2TiSsE-dh4KuYJ7j2-jF5JLYQizFJixKz8EBB=
+E94Cucb07ysEa2SocH24pyV0Cr3MgR5QQKuaScWAXlZweT5y40-8W2FgSjkJbMM3mKjX7Uf5MgI=
+AE_GBuFoCXh8uSgF0QBW0RQvekPzTErywNIgOpXuvWrFwLnmGJdd1K2LVabGVJFIfnC6tUiOSOd=
+WjRbiRVmPSnZAaUpn2cH74n262jD12mo7xgUYAMxquCTqCm1H2aV3TxNjJACfbloqUu96AaTx6q=
+X6mslRCo8" target=3D"_blank" style=3D"font-family: 'Roboto', Arial, Helveti=
+ca, sans-serif; font-size: 18px; line-height: 1.5; font-weight: bold; font-=
+style: normal; text-decoration: underline; color: #006fbe; box-sizing: bord=
+er-box !important;"> =E2=80=A2 Zelenskyy=E2=80=99s Conversation with Trump =
+& Putin =E2=80=93 What Comes Next?</a><br style=3D"box-sizing: border-box !=
+important;"> (Behind The Markets)<br style=3D"box-sizing: border-box !impor=
+tant;"><br style=3D"box-sizing: border-box !important;"> </td> </tr> <tr st=
+yle=3D"box-sizing: border-box !important;"> <td align=3D"left" style=3D"fon=
+t-family: 'Roboto', Arial, Helvetica, sans-serif; font-size: 16px; font-wei=
+ght: normal; font-style: normal; line-height: 1.5; color: #333333; padding-=
+top: 0; padding-bottom: 0; padding-right: 16px; padding-left: 16px; box-siz=
+ing: border-box !important;"> <a href=3D"https://links.e.saferetirementrepo=
+rts.com/u/click?_t=3D9cee5a7d319d4483be456f980018a9a6&_m=3D5bf1fca39c5e4aaa=
+b344582829b285f0&_e=3DPZf8k65gke0bpAw-VkXqa3ayCQIU_3yGKEgEMiXYOw2HECIF3iLsx=
+fnsddH6VftPx830O0x4QVvAhWsrPGiDTejDKu0AJCd5mvlWAbKLIOrudGi1O9adMr68Oly24qTn=
+hchgZ1HDqpu9d8KnrEuMQOLEciWhIKeU1SOK5TQ0d-bmt_16Jr3lrjFxhsqdQwUWDftgca0pZ3Q=
+3_LiwBPd1wpit6Y_8KRlUco3ErcH-x2rBSBPDnnde6DrtFB1cVWXYTVcZbqfh-1a9WaKPW2IzLe=
+FDhx9ttmv62VW2rkfGBSQMbq6NnR-fINlfavW43oGOEBZvP7pDWqTZUm8ywA5xe4eIjPuH7aWSp=
+046SEFtSa5Qa52h3f6QkgDfXmkF6nEy1fuYPwYgW-D6t1EK-blfz-XX_R_5thasC6WpthueTC-m=
+bzR-wRVHtxdG_FK1TPRDGVnb4gjHEkSLAwaWOLOR4IshUK9JmvLMbClT-7F79TSbU-IPXXZ9BV0=
+xyZp8dK7m-Q-8UFHR1ceSOWoMzoe7d5gwYW4NI1_yJdRup-ryqThPDLXd7XhYYT5IHTQJvupvY2=
+EcEJIx9Z56hC5JpQf5sDio_zemgmYH6G_jnxX4Qu4%3D" target=3D"_blank" style=3D"fo=
+nt-family: 'Roboto', Arial, Helvetica, sans-serif; font-size: 18px; line-he=
+ight: 1.5; font-weight: bold; font-style: normal; text-decoration: underlin=
+e; color: #006fbe; box-sizing: border-box !important;"> =E2=80=A2 A credit =
+card that feels like a reset button</a><br style=3D"box-sizing: border-box =
+!important;"> (FinanceBuzz) </td> </tr> <tr style=3D"box-sizing: border-box=
+ !important;"> <td height=3D"16" style=3D"box-sizing: border-box !important=
+;"></td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td height=
+=3D"10" style=3D"box-sizing: border-box !important;"></td> </tr> <tr style=
+=3D"box-sizing: border-box !important;"> <td align=3D"left" style=3D"font-f=
+amily: 'Roboto', Arial, Helvetica, sans-serif; font-size: 16px; font-weight=
+: normal; font-style: normal; line-height: 1.5; color: #333333; padding-top=
+: 0; padding-bottom: 0; padding-right: 16px; padding-left: 16px; box-sizing=
+: border-box !important;"> <a href=3D"https://links.e.saferetirementreports=
+.com/u/click?_t=3D9cee5a7d319d4483be456f980018a9a6&_m=3D5bf1fca39c5e4aaab34=
+4582829b285f0&_e=3DPZf8k65gke0bpAw-VkXqa3ayCQIU_3yGKEgEMiXYOw2HECIF3iLsxfns=
+ddH6VftPfxfpwWIC7YNw4DyEw4-NmgFUjfp-jcdMxtmC7tCR6ie84mhUGnie4gaN8OCMyYcKroK=
+nP6vyZyj-w8yTN1P4vpf3fDDpWgF0Z2aRioBcHLRZ-f9fABPLv5XOheG0wVMaZIYjpHcLXCY6S2=
+Jb-7XADp8ojpwQTMB2UY3pUNt5xrkgsmkVwxd6FSq4wpx6OvCHDUgI8-EKCYF1T3h0Rt2PktzaQ=
+3e_2pIhQDX_nXdM6e2cz476-7IXcqdfKfIogoFQKxBF-zQjaFIFlYEP55i-5V2XgQCXLOjAAdwQ=
+j-3DY7fROCszOHMfZROVveFDlXdTtuXI5VZQhL7wW-i3PoDtQeSdenhbKr8MLjXOqtp6gfD-pGo=
+yMOgnDyyjZg9a15jTn1SSP7a-oOZbjwmyQ4xeA5VjwACG1NMk-sRkfsPIlosPHdxMzkcfiW6c-A=
+gjiYYXs80oUhPTEiO2VDBkiVM0rsGtBooN843DknoIZJytCeA98FSQdjGVT8DSZnko-PIu72r9X=
+QoQI3QQ56ldbB9BTpaCRlW0LPK9EPULOFFt-4_azEuyMlHk8pF1t08DuAza" target=3D"_bla=
+nk" style=3D"font-family: 'Roboto', Arial, Helvetica, sans-serif; font-size=
+: 18px; line-height: 1.5; font-weight: bold; font-style: normal; text-decor=
+ation: underline; color: #006fbe; box-sizing: border-box !important;"> =E2=
+=80=A2 The secret U.S. territory no one=E2=80=99s talking about (until now)=
+. </a><br style=3D"box-sizing: border-box !important;"> (Behind The Markets=
+) <br style=3D"box-sizing: border-box !important;"><br style=3D"box-sizing:=
+ border-box !important;"> </td> </tr> </tbody> </table> </td> </tr> </tbody=
+> </table> </td> </tr> </tbody> </table> <!-- ~END SPONSORED CONTENT --> <!=
+-- ~SPONSORED CONTENT2 --> <table align=3D"center" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"mso-table-lspace: 0pt; mso=
+-table-rspace: 0pt; border-collapse: collapse; border-spacing: 0; margin: 0=
+ auto; max-width: 600px; width: 100%; background-color: #ffffff; box-sizing=
+: border-box !important;" bgcolor=3D"#ffffff"> <tbody style=3D"box-sizing: =
+border-box !important;"> <tr style=3D"box-sizing: border-box !important;"> =
+<td style=3D"padding: 9px; box-sizing: border-box !important;"> <table alig=
+n=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%=
+" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: c=
+ollapse; border-spacing: 0; margin: 0 auto; max-width: 560px; width: 100%; =
+background-color: #c0c0c0; border-radius: 14px; box-sizing: border-box !imp=
+ortant;" bgcolor=3D"#c0c0c0"> <tbody style=3D"box-sizing: border-box !impor=
+tant;"> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"padd=
+ing: 1px; box-sizing: border-box !important;"> <table align=3D"center" bord=
+er=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"mso-ta=
+ble-lspace: 0pt; mso-table-rspace: 0pt; border-collapse: collapse; border-s=
+pacing: 0; margin: 0 auto; max-width: 560px; width: 100%; background-color:=
+ #ffffff; border-radius: 13px; box-sizing: border-box !important;" bgcolor=
+=3D"#ffffff"> <tbody style=3D"box-sizing: border-box !important;"> <tr styl=
+e=3D"box-sizing: border-box !important;"> <td height=3D"16" style=3D"box-si=
+zing: border-box !important;"></td> </tr> <tr style=3D"box-sizing: border-b=
+ox !important;"> <td align=3D"right" style=3D"font-family: 'Roboto', Arial,=
+ Helvetica, sans-serif; font-size: 12px; font-weight: 600; font-style: norm=
+al; line-height: 1.5; color: #333333; text-transform: uppercase; padding-to=
+p: 0; padding-bottom: 0; padding-right: 16px; padding-left: 16px; box-sizin=
+g: border-box !important;"> Ads </td> </tr> <tr style=3D"box-sizing: border=
+-box !important;"> <td height=3D"16" style=3D"box-sizing: border-box !impor=
+tant;"></td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td al=
+ign=3D"left" style=3D"font-family: 'Roboto', Arial, Helvetica, sans-serif; =
+font-size: 22px; font-weight: 600; font-style: normal; line-height: 1.5; co=
+lor: #333333; padding-top: 0; padding-bottom: 0; padding-right: 16px; paddi=
+ng-left: 16px; box-sizing: border-box !important;"> =E2=9A=A1=EF=B8=8F Tren=
+ding news you should check out: </td> </tr> <tr style=3D"box-sizing: border=
+-box !important;"> <td height=3D"16" style=3D"box-sizing: border-box !impor=
+tant;"></td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td he=
+ight=3D"10" style=3D"box-sizing: border-box !important;"></td> </tr> <tr st=
+yle=3D"box-sizing: border-box !important;"> <td align=3D"left" style=3D"fon=
+t-family: 'Roboto', Arial, Helvetica, sans-serif; font-size: 16px; font-wei=
+ght: normal; font-style: normal; line-height: 1.5; color: #333333; padding-=
+top: 0; padding-bottom: 0; padding-right: 16px; padding-left: 16px; box-siz=
+ing: border-box !important;"> <a href=3D"https://links.e.saferetirementrepo=
+rts.com/u/click?_t=3D9cee5a7d319d4483be456f980018a9a6&_m=3D5bf1fca39c5e4aaa=
+b344582829b285f0&_e=3DPZf8k65gke0bpAw-VkXqa3ayCQIU_3yGKEgEMiXYOw2HECIF3iLsx=
+fnsddH6VftPqEN0yKWMSCZfgnKTGQ7Xtm3DnbiSV-CXckVOc1tSrMMALeJHrsiuyL1LBH2nXU1i=
+QcNma6A4SLzMY6f9vETsU8ZQz-fMC-6OTHeihEV_GuQ8YPjdxRzI3HknpGLi9dK1zONNSYtgPWD=
+_CKGLw43B3f_IiQMDFiuFfBzXtwvGGYVuGl5f0KcSpgwWZzGb4ISJSazX07a05Ag59ajQO5GXoi=
+w691UZz6hYlYbwdWgMqKhknhZS0dqLwI88TDdcI3nZk511FXQaPJ4xmwY92NFrFcliA0gxDkrpk=
+hkg-g_XbrbWGFvJaYRb1kZ1lG5k4MeqaB8XWfLYK_0iDs_RUdU9P0TmbnaAv3prOs7Td4VS76mh=
+vD4jxeKDUspMQMLbMCYJEX2qpkgfAuK4PAwVLgItESXuJBXfsooYEV1nlm9oyGop_pkh3raFfu1=
+heawMPXOahwo__CfLgHxMIZwWJZ9i09tbz5fMOAI2Qf4v5CpzWTLZaShR9prwps5j0OzCzyn7JG=
+3B3hrtk4tgIVTRhYVoZgAcQZin4q6mFpTHAE9j68o%3D" target=3D"_blank" style=3D"fo=
+nt-family: 'Roboto', Arial, Helvetica, sans-serif; font-size: 18px; line-he=
+ight: 1.5; font-weight: bold; font-style: normal; text-decoration: underlin=
+e; color: #006fbe; box-sizing: border-box !important;"> =E2=80=A2 Banks Are=
+ Quietly Closing =E2=80=94 What Do They Know That You Don=E2=80=99t? </a><b=
+r style=3D"box-sizing: border-box !important;"> (Golden Portfolio) <br styl=
+e=3D"box-sizing: border-box !important;"><br style=3D"box-sizing: border-bo=
+x !important;"> <a href=3D"https://links.e.saferetirementreports.com/u/clic=
+k?_t=3D9cee5a7d319d4483be456f980018a9a6&_m=3D5bf1fca39c5e4aaab344582829b285=
+f0&_e=3DPZf8k65gke0bpAw-VkXqa3ayCQIU_3yGKEgEMiXYOw2HECIF3iLsxfnsddH6VftPFt1=
+WscXTDDq99gK8Bk7PBoz-P4xU01FtJqwgbIMoUe4lS-FuF9cDwzd4S17ZqE280dxGeFJx8E7ZnX=
+UgRFJtRtfwEZW3yU5PauMZ5T3Ss_5jpDPZH0uRM12VqICJgwOBpFrHAmeNaznzdF6Zxcudipewl=
+UUIuF_-boxptnugsDSwXuc4geKUFT759cT_sn-4Du9VLW01zwVbMhnQ_vxwSazDomiL-wubqCI6=
+bEQkQFNKZclMm-iyW1dODFfj6EtlOmT6aIM7UZMK-loVpSD33Gw_WRD2qimdKdmdnxrCUlN37aS=
+rgRIyVtwpq0WOisOyM88LgWxMPkINZleyDyynH_9Tx6bdsgXvBcmOPFjkH_DUnuwhJwsfmm1FSC=
+QBGL3-crySUADQNDnTi2YTbK0c2A1mp_eFULxeMmeNYZCR4ZhvV-RrbEiVRkuDZ0Thvj214e7gS=
+uoREr7U6ipWCJjv3Q-Ba13lNTozCrsGx0qtjuXtO3otowIXqVNWv7xXlGc4mxldOKoTaysLEU1o=
+3PxZ21bUnTAXiM86U5WG_lZ_2gk%3D" target=3D"_blank" style=3D"font-family: 'Ro=
+boto', Arial, Helvetica, sans-serif; font-size: 18px; line-height: 1.5; fon=
+t-weight: bold; font-style: normal; text-decoration: underline; color: #006=
+fbe; box-sizing: border-box !important;"> =E2=80=A2 Inflation steals quietl=
+y. Take back control today.</a><br style=3D"box-sizing: border-box !importa=
+nt;"> (FinanceBuzz)<br style=3D"box-sizing: border-box !important;"> <br st=
+yle=3D"box-sizing: border-box !important;"> <a href=3D"https://links.e.safe=
+retirementreports.com/u/click?_t=3D9cee5a7d319d4483be456f980018a9a6&_m=3D5b=
+f1fca39c5e4aaab344582829b285f0&_e=3DPZf8k65gke0bpAw-VkXqa3ayCQIU_3yGKEgEMiX=
+YOw2HECIF3iLsxfnsddH6VftPVLC5FD8_mfL_Vk2lHKyK6e9nGrzj3NXMoR779LQmhpfPkWITTy=
+YTCRtVOLkgxf-CUPjDAzMUDonxhRQrn5Eb6ZkXcl_N50a1bG_yyQ2oLppBUs3IwsFI6HCSbY114=
+d7Z-a-BCzOw5o94QmsYJZ12jfoPrtEh15z3l5OHEydjlVAeacjKUxKlmiGqJzmbKe7TgL7uRYgf=
+4JSLrlvnCy2fH5O7EPhN56Dd8TlOlcpBjj4DBVn9StBZCDv4p4oUF-ohzWwIiszZ3UZJMtYdBQk=
+xPU3VOKSMxFYsvl3v4pldTwd0PTOjYIjeSxID0mlIfHHXmr7MRZh3Qs7CFUecV9URLVGHX98v-D=
+_OXqyOYnpvlkHltErp2BOPnec-gS2a038vutWFPSMHR6ezVTaiVn6q4hUPnQ9WUVG1W6gUDqK2l=
+yCKxxl8Efh0_YYlSBj5ef__6-h_c0ngNSIwx8xzAKR2DD8FB896JHYjwigxo7E8DuBCmHIEqGC3=
+9xAQqRiNnGvYmbKsXHtKg_BX8-ZGfTqkQX69H4OjYOUNPjkiO_-ytRY%3D" target=3D"_blan=
+k" style=3D"font-family: 'Roboto', Arial, Helvetica, sans-serif; font-size:=
+ 18px; line-height: 1.5; font-weight: bold; font-style: normal; text-decora=
+tion: underline; color: #006fbe; box-sizing: border-box !important;"> =E2=
+=80=A2 Another gold high? Here=E2=80=99s the move Wall Street is missing.</=
+a><br style=3D"box-sizing: border-box !important;"> (Weiss Ratings)<br styl=
+e=3D"box-sizing: border-box !important;"> </td> </tr> <tr style=3D"box-sizi=
+ng: border-box !important;"> <td height=3D"24" style=3D"box-sizing: border-=
+box !important;"></td> </tr> <tr style=3D"box-sizing: border-box !important=
+;"> <td height=3D"16" style=3D"box-sizing: border-box !important;"></td> </=
+tr> </tbody> </table> </td> </tr> </tbody> </table> </td> </tr> </tbody> </=
+table><br style=3D"box-sizing: border-box !important;"><br style=3D"box-siz=
+ing: border-box !important;"> <!-- ~END SPONSORED CONTENT --> </td> </tr> <=
+!-- ~END BODY~ --> <!-- ~DIVIDER~ --> <tr style=3D"box-sizing: border-box !=
+important;"> <td style=3D"padding-left: 20px; padding-right: 20px; box-sizi=
+ng: border-box !important;"> <table width=3D"100%" border=3D"0" cellspacing=
+=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0=
+pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-box !important;"=
+> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"box-sizing=
+: border-box !important;"> <table width=3D"100%" border=3D"0" cellspacing=
+=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0=
+pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-box !important;"=
+> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"padding-ri=
+ght: 12px; box-sizing: border-box !important;"> <table width=3D"100%" borde=
+r=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"=
+mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing: bord=
+er-box !important;"> <tr style=3D"box-sizing: border-box !important;"> <td =
+height=3D"1" bgcolor=3D"#9F9F9F" style=3D"box-sizing: border-box !important=
+;"> </td> </tr> </table> </td> </tr> </table><br style=3D"box-sizing: borde=
+r-box !important;"><br style=3D"box-sizing: border-box !important;"> </td> =
+<td align=3D"center" width=3D"31" style=3D"box-sizing: border-box !importan=
+t;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integra=
+tors/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/9cee5a7d319d4483be456f980018a9a6/=
+divider.png" alt=3D"divider" title=3D"divider" width=3D"31" style=3D"object=
+-fit: contain; object-position: center; font-size: 13px; box-sizing: border=
+-box !important; outline: none !important; text-decoration: none !important=
+; border: none !important; -ms-interpolation-mode: bicubic !important; marg=
+in: 0 !important; padding: 0 !important; display: block !important;"><br st=
+yle=3D"box-sizing: border-box !important;"><br style=3D"box-sizing: border-=
+box !important;"> </td> <td style=3D"box-sizing: border-box !important;"> <=
+table width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=
+=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; wi=
+dth: 100%; box-sizing: border-box !important;"> <tr style=3D"box-sizing: bo=
+rder-box !important;"> <td style=3D"padding-left: 12px; box-sizing: border-=
+box !important;"> <table width=3D"100%" border=3D"0" cellspacing=3D"0" cell=
+padding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-tab=
+le-rspace: 0pt; width: 100%; box-sizing: border-box !important;"> <tr style=
+=3D"box-sizing: border-box !important;"> <td height=3D"1" bgcolor=3D"#9F9F9=
+F" style=3D"box-sizing: border-box !important;"> </td> </tr> </table> </td>=
+ </tr> </table><br style=3D"box-sizing: border-box !important;"><br style=
+=3D"box-sizing: border-box !important;"> </td> </tr> </table> </td> </tr> <=
+!-- ~END DIVIDER~ --> <!--[if mso | IE]></table> </td> </tr><![endif]--> </=
+table> </td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td wi=
+dth=3D"100%" style=3D"max-width: 100%; padding-top: 24px; box-sizing: borde=
+r-box !important;" class=3D"divider_sm"></td> </tr> <!-- ~EDITOR~ --> <tr s=
+tyle=3D"box-sizing: border-box !important;"> <td align=3D"center" style=3D"=
+padding-left: 20px; padding-right: 20px; box-sizing: border-box !important;=
+"> <table width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" r=
+ole=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt;=
+ width: 100%; max-width: 552px; box-sizing: border-box !important;"> <!--[i=
+f mso | IE]><tr> <td align=3D"center"> <table border=3D"0" cellspacing=3D"0=
+" cellpadding=3D"0" width=3D"552" style=3D"width: 552px;max-width: 100%;"><=
+![endif]--> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"=
+padding-right: 15px; box-sizing: border-box !important;"> <table width=3D"1=
+00%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation"=
+ style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; max-wi=
+dth: 522px; box-sizing: border-box !important;"> <tr style=3D"box-sizing: b=
+order-box !important;"> <td style=3D"border: 1px solid #8E826A; border-radi=
+us: 10px 10px 0 0; border-bottom: none; box-sizing: border-box !important;"=
+> <table width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" ro=
+le=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; =
+width: 100%; box-sizing: border-box !important;"> <tr style=3D"box-sizing: =
+border-box !important;"> <td style=3D"padding: 15px 15px 0 15px; box-sizing=
+: border-box !important;"> <table width=3D"100%" border=3D"0" cellspacing=
+=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0=
+pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-box !important;"=
+> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"color: #00=
+0000; font-family: Roboto, sans-serif; font-size: 16px; font-style: normal;=
+ font-weight: 400; line-height: 1.5; box-sizing: border-box !important;"> A=
+t Safe Retirement Reports, we=E2=80=99re dedicated to serving as your trust=
+ed source for timely, high-impact retirement insights. The message above co=
+mes from one of our reliable partners =E2=80=94 and we believe it=E2=80=99s=
+ worth your serious attention. </td> </tr> </table> </td> </tr> </table> </=
+td> </tr> </table> </td> </tr> <tr style=3D"box-sizing: border-box !importa=
+nt;"> <td style=3D"box-sizing: border-box !important;"> <table width=3D"100=
+%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" s=
+tyle=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizi=
+ng: border-box !important;"> <tr style=3D"box-sizing: border-box !important=
+;"> <td style=3D"box-sizing: border-box !important;"> <table width=3D"100%"=
+ border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" sty=
+le=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing=
+: border-box !important;"> <tr style=3D"box-sizing: border-box !important;"=
+> <td width=3D"100%" style=3D"border-bottom: 1px solid #8E826A; border-radi=
+us: 0 0 0 10px; padding-top: 24px; border-left: 1px solid #8E826A; box-sizi=
+ng: border-box !important;" class=3D"divider"></td> </tr> <tr style=3D"box-=
+sizing: border-box !important;"> <td width=3D"100%" style=3D"max-width: 100=
+%; padding-top: 20px; box-sizing: border-box !important;" class=3D"divider"=
+></td> </tr> </table> </td> <td width=3D"10" style=3D"min-width: 10px; box-=
+sizing: border-box !important;"></td> <td align=3D"right" width=3D"105" sty=
+le=3D"box-sizing: border-box !important;"> <table width=3D"100%" border=3D"=
+0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-t=
+able-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-bo=
+x !important;"> <tr style=3D"box-sizing: border-box !important;"> <td style=
+=3D"color: #8E826A; font-family: Roboto; font-size: 16px; font-style: norma=
+l; font-weight: 900; line-height: 1.2; white-space: nowrap; box-sizing: bor=
+der-box !important;"> EDITOR NOTE </td> </tr> </table> </td> </tr> </table>=
+ </td> </tr> <!--[if mso | IE]></table> </td> </tr><![endif]--> </table> </=
+td> </tr> <!-- ~END EDITOR~ --> <tr style=3D"box-sizing: border-box !import=
+ant;"> <td width=3D"100%" style=3D"max-width: 100%; padding-top: 20px; box-=
+sizing: border-box !important;" class=3D"divider_sm"></td> </tr> </table> <=
+/td> </tr> <!-- ~END CONTENT --> <!-- ~FOOTER --> <tr style=3D"box-sizing: =
+border-box !important;"> <td bgcolor=3D"#5e5439" style=3D"border-radius: 0 =
+0 9px 9px; box-sizing: border-box !important;"> <table width=3D"100%" borde=
+r=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"=
+mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; background: url(=
+'https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b=
+6a-46bb-bd7e-c542cff6dd6a/9cee5a7d319d4483be456f980018a9a6/footer-bg.jpg');=
+ background-position: center top; background-repeat: no-repeat; border-radi=
+us: 0 0 9px 9px; box-sizing: border-box !important;"> <tr style=3D"box-sizi=
+ng: border-box !important;"> <td width=3D"100%" style=3D"max-width: 100%; p=
+adding-top: 24px; box-sizing: border-box !important;" class=3D"divider_sm">=
+</td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td align=3D"=
+center" style=3D"padding-left: 20px; padding-right: 20px; box-sizing: borde=
+r-box !important;"> <table width=3D"100%" border=3D"0" cellspacing=3D"0" ce=
+llpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-t=
+able-rspace: 0pt; width: 100%; max-width: 552px; box-sizing: border-box !im=
+portant;"> <!--[if mso | IE]><tr> <td align=3D"center"> <table border=3D"0"=
+ cellspacing=3D"0" cellpadding=3D"0" width=3D"552" style=3D"width: 552px;ma=
+x-width: 100%;"><![endif]--> <tr style=3D"box-sizing: border-box !important=
+;"> <td bgcolor=3D"#4c4c4c" style=3D"background: rgba(0, 0, 0, 0.63); borde=
+r-radius: 10px; box-sizing: border-box !important;"> <table width=3D"100%" =
+border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" styl=
+e=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing:=
+ border-box !important;"> <tr style=3D"box-sizing: border-box !important;">=
+ <td width=3D"100%" style=3D"max-width: 100%; padding-top: 12px; box-sizing=
+: border-box !important;" class=3D"divider"></td> </tr> <tr style=3D"box-si=
+zing: border-box !important;"> <td class=3D"footer_wrapper" style=3D"box-si=
+zing: border-box !important;"> <table width=3D"100%" border=3D"0" cellspaci=
+ng=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace:=
+ 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-box !important=
+;"> <!--[if mso | IE]><tr> <td align=3D"center"> <table border=3D"0" cellsp=
+acing=3D"0" cellpadding=3D"0" width=3D"548" style=3D"width: 548px;max-width=
+: 100%;"><![endif]--> <tr align=3D"center" style=3D"box-sizing: border-box =
+!important;"> <td valign=3D"top" style=3D"display: inline-block; width: 274=
+px; box-sizing: border-box !important;" class=3D"w_full" width=3D"274"> <ta=
+ble width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D=
+"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width=
+: 100%; box-sizing: border-box !important;"> <tr style=3D"box-sizing: borde=
+r-box !important;"> <td style=3D"padding: 12px; box-sizing: border-box !imp=
+ortant;"> <table width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspa=
+ce: 0pt; width: 100%; box-sizing: border-box !important;"> <tr style=3D"box=
+-sizing: border-box !important;"> <td style=3D"color: #ffffff; font-family:=
+ Roboto, sans-serif; font-size: 14px; font-style: normal; font-weight: 400;=
+ line-height: normal; box-sizing: border-box !important;"> Email sent by Fi=
+nance and Investing Traffic, LLC, owner and operator of Safe Retirement Rep=
+orts. <br style=3D"box-sizing: border-box !important;"><br style=3D"box-siz=
+ing: border-box !important;"> You are receiving this e-mail because you hav=
+e expressed an interest in the Financial Education niche on one of our land=
+ing pages or sign-up forms on our website. <br style=3D"box-sizing: border-=
+box !important;"><br style=3D"box-sizing: border-box !important;"> We are g=
+oing to show how to <u style=3D"box-sizing: border-box !important;"><b styl=
+e=3D"box-sizing: border-box !important;"><a href=3D"https://links.e.saferet=
+irementreports.com/u/click?_t=3D9cee5a7d319d4483be456f980018a9a6&_m=3D5bf1f=
+ca39c5e4aaab344582829b285f0&_e=3DPZf8k65gke0bpAw-VkXqa28UxQnYDiSIon7VAjqh2i=
+ZZ12lgtTF_QXdCmnUGoZuFeezJMYDrm2S3kePmWrJ-bHi-Mv1UGE30oGzPIolYA8EA2ZtqAEYZ6=
+vKfspLry8K-dNT3e4zy-FROt5IubBSxwnLPO8Ej-f1g9Dr_6pIZ5Wmyg87CEPsmQNiCG1GymQAs=
+1xVxwoxgHWt_O1FSE4Igof-khkYqaAutexihv763dL0vLWtby532VlgZOBGolxXJhdRaGNHEIpe=
+2uTNxRMj75FZJQhSka2ELEO-oiO29-A9IH0pVbuGO6NpEQtE85hebil_PhamJ_xOIyK7IMrjZ9P=
+lf0GiEbu3IoHbeSe72L2QeuDFqPoye3QG2xyB39xmblDJRUN7BSzXlfVSaWxF8Fg%3D%3D" sty=
+le=3D"text-decoration: none; color: #FFFFFF; box-sizing: border-box !import=
+ant;">whitelist</a></b></u> emails so they don=E2=80=99t get sent to spam. =
+<br style=3D"box-sizing: border-box !important;"><br style=3D"box-sizing: b=
+order-box !important;"> Your satisfaction is our priority. Let our support =
+team assist you in making the most of our services, day or night. Simply se=
+nd an email to <a href=3D"mailto:support@saferetirementreports.com" style=
+=3D"color: #ffffff; font-weight: bold; text-decoration: underline; box-sizi=
+ng: border-box !important;"> support@saferetirementreports.com </a> You=E2=
+=80=99ll receive a response within 24 hours. <br style=3D"box-sizing: borde=
+r-box !important;"><br style=3D"box-sizing: border-box !important;"> This o=
+ffer is brought to you by Safe Retirement Reports. 221 W 9th St # Wilmingto=
+n, DE 19801. If you would like to unsubscribe from receiving offers brought=
+ to you by Safe Retirement Reports <u style=3D"box-sizing: border-box !impo=
+rtant;"><b style=3D"box-sizing: border-box !important;"><a href=3D"https://=
+links.e.saferetirementreports.com/e/encryptedUnsubscribe?_r=3D9cee5a7d319d4=
+483be456f980018a9a6&_s=3D5bf1fca39c5e4aaab344582829b285f0&_t=3D02zlHgyX3HJ0=
+UXXhcVHqV7JfOj5MeYbAk9a-dsZTTeoCdxjg22VBfcN3yPyrDtz_tyUiq1BQ6zFqK0ALCR2VNh5=
+4i8Eo702-Ob7-ji1EHEDElQz5xXqIyeE0GxQESI63" style=3D"text-decoration: none; =
+color: #FFFFFF; box-sizing: border-box !important;">click here.</a> </b></u=
+> <br style=3D"box-sizing: border-box !important;"><br style=3D"box-sizing:=
+ border-box !important;"> </td> </tr> </table> </td> </tr> </table> </td> <=
+td valign=3D"top" style=3D"display: inline-block; width: 274px; box-sizing:=
+ border-box !important;" class=3D"w_full" width=3D"274"> <table width=3D"10=
+0%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" =
+style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-siz=
+ing: border-box !important;"> <tr style=3D"box-sizing: border-box !importan=
+t;"> <td style=3D"padding: 12px; box-sizing: border-box !important;"> <tabl=
+e width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"p=
+resentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: =
+100%; box-sizing: border-box !important;"> <tr style=3D"box-sizing: border-=
+box !important;"> <td align=3D"center" style=3D"box-sizing: border-box !imp=
+ortant;"> <a href=3D"https://links.e.saferetirementreports.com/u/click?_t=
+=3D9cee5a7d319d4483be456f980018a9a6&_m=3D5bf1fca39c5e4aaab344582829b285f0&_=
+e=3DPZf8k65gke0bpAw-VkXqa28UxQnYDiSIon7VAjqh2iZxRUBzLNARo3OhRhaH2VRxRCRfpi2=
+iAAheShKL5J3Vs_7oS9MSFDFinx5UP2P7hIai7wkdJrP-xTFj41uIylDwuKfpmiaSF2ETl5Qib9=
+8BvatVN1f9ouniyVo8Sp-nqD4mMScpL1_8YC-46c1pAKPtSjMMkvcnYpKJB_guoMwX0HQDF6_Bb=
+Tx3bWytnmDT7TdWnWheD167cnsXBNhPCsino1219Qi4ezmmbAJ-G69MFaXaf1cxDn8akupEny4Q=
+xifdhQihgi5Hs4j-yMbnBnckLubZXQcNENrhndH-4ghiwJ9Wz_mVqaZjYevItkJfjdE%3D" tar=
+get=3D"_blank" style=3D"text-decoration: none; font-size: 0; box-sizing: bo=
+rder-box !important;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.net/pu=
+blic/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/9cee5a7d319d448=
+3be456f980018a9a6/footer-logo.png" alt=3D"Logo" title=3D"Logo" width=3D"92"=
+ style=3D"object-fit: contain; width: 92px; object-position: center; font-s=
+ize: 13px; box-sizing: border-box !important; outline: none !important; tex=
+t-decoration: none !important; border: none !important; -ms-interpolation-m=
+ode: bicubic !important; margin: 0 !important; padding: 0 !important; displ=
+ay: block !important;"> </a> </td> </tr> <tr style=3D"box-sizing: border-bo=
+x !important;"> <td width=3D"100%" style=3D"max-width: 100%; padding-top: 2=
+4px; box-sizing: border-box !important;" class=3D"divider_sm"></td> </tr> <=
+tr style=3D"box-sizing: border-box !important;"> <td bgcolor=3D"#8E826A" st=
+yle=3D"padding: 1px; border-radius: 4px; box-sizing: border-box !important;=
+"> <table bgcolor=3D"#8E826A" width=3D"100%" border=3D"0" cellspacing=3D"0"=
+ cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; ms=
+o-table-rspace: 0pt; width: 100%; border-radius: 4px; min-width: 100%; box-=
+sizing: border-box !important;"> <tr style=3D"box-sizing: border-box !impor=
+tant;"> <td height=3D"44" align=3D"center" style=3D"border-radius: 4px; fon=
+t-family: Roboto, sans-serif; color: #FDFCF4; font-size: 16px; font-style: =
+normal; font-weight: 400; white-space: nowrap; line-height: 1.5; box-sizing=
+: border-box !important;"> <a href=3D"https://links.e.saferetirementreports=
+.com/u/click?_t=3D9cee5a7d319d4483be456f980018a9a6&_m=3D5bf1fca39c5e4aaab34=
+4582829b285f0&_e=3DPZf8k65gke0bpAw-VkXqa28UxQnYDiSIon7VAjqh2ia8S2QB6Oh19aR8=
+Ofa_q5M45ORQAghi59viRHnKwNgKZn9hXqjwlq5MMKL0v0h44rd_wGDiMdzMIIxKl_8esJTtTRc=
+8iKinIbVIvEozmx2IqlGTzJ39t0W791U0go2DdZ3BDYafmGLKRCKWookT36Io09qR6zjffR4Gn8=
+mGZGLjsfV1ATil6Syq4D0VF1zXZkzZmWgg8OkhNvLJNTeJIla0xlgsWj_gu5TCLJqrOZY1T9eJL=
+5gRubgSGGYDo9U-N59wBC4nf4rLPFI4ATWZyQzqKDtpC0fDIdIq8EwaoF8vwyL5xy3luXJ2czAm=
+Yia3dWbtuIZgOJAWMrAgQJtmRPz_2lWNsdGd7hmxL1XQ9gsz7Q%3D%3D" target=3D"_blank"=
+ style=3D"border-radius: 4px; text-decoration: none; color: #FDFCF4; font-f=
+amily: Roboto, sans-serif; font-size: 16px; font-style: normal; font-weight=
+: 400; line-height: 1.5; text-align: center; width: 100%; display: table; m=
+in-width: 100%; box-sizing: border-box !important;"> <!--[if !mso]><!--> <s=
+pan style=3D"text-align: center; box-sizing: border-box !important;"> <img =
+src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5=
+713-9b6a-46bb-bd7e-c542cff6dd6a/9cee5a7d319d4483be456f980018a9a6/privacy-ic=
+on.png" alt=3D"privacy-icon" title=3D"privacy-icon" width=3D"20" style=3D"o=
+bject-fit: contain; object-position: center; font-size: 13px; vertical-alig=
+n: middle; box-sizing: border-box !important; outline: none !important; tex=
+t-decoration: none !important; border: none !important; -ms-interpolation-m=
+ode: bicubic !important; margin: 0 !important; padding: 0 !important; displ=
+ay: inline-block !important;"> </span> <!--<![endif]--> <span align=3D"left=
+" style=3D"color: #FDFCF4; font-family: Roboto, sans-serif; font-size: 16px=
+; font-style: normal; font-weight: 400; line-height: 1.5; box-sizing: borde=
+r-box !important;"> Privacy Policy </span> </a> </td> </tr> </table> </td> =
+</tr> <tr style=3D"box-sizing: border-box !important;"> <td width=3D"100%" =
+style=3D"max-width: 100%; padding-top: 8px; box-sizing: border-box !importa=
+nt;" class=3D"divider"></td> </tr> <tr style=3D"box-sizing: border-box !imp=
+ortant;"> <td bgcolor=3D"#8E826A" style=3D"padding: 1px; border-radius: 4px=
+; box-sizing: border-box !important;"> <table bgcolor=3D"#8E826A" width=3D"=
+100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation=
+" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; borde=
+r-radius: 4px; min-width: 100%; box-sizing: border-box !important;"> <tr st=
+yle=3D"box-sizing: border-box !important;"> <td height=3D"44" align=3D"cent=
+er" style=3D"border-radius: 4px; font-family: Roboto, sans-serif; color: #F=
+DFCF4; font-size: 16px; font-style: normal; font-weight: 400; white-space: =
+nowrap; line-height: 1.5; box-sizing: border-box !important;"> <a href=3D"h=
+ttps://links.e.saferetirementreports.com/u/click?_t=3D9cee5a7d319d4483be456=
+f980018a9a6&_m=3D5bf1fca39c5e4aaab344582829b285f0&_e=3DPZf8k65gke0bpAw-VkXq=
+a28UxQnYDiSIon7VAjqh2ib9rpHIxQh7O9OB8HxV5Gjuytz75Yl4r8PzjDBjlVLzV0wje6hXG4c=
+kQ-IFqxgAJNbYbjfYpx5mKxaAzfxe_NKYkxVk92iwCX3bB3ZQFvwXs8TDKefhgcwI-N8rprjxag=
+mmhEEfniSxyUPAH0KAHyp0jwd3NL4aBEyq9a-_DmybLtBiABua1E__0WHrnbuggoOHTeKinbkKU=
+6ixIV2JYaMKdS4a4gpKte6RqH71rdh3KgRZDAnTWKb3hJGPUn8DMCvnahn4BeM-q8T3Nkkpp4y2=
+rSpMF4LFWGAolzmXq-vkCD-ICgwz9khq0DuH_LzI0aZZNPeszsBXcVezlfYPwIK5U0QItnGZjIK=
+K_y6BzbaA-Q%3D%3D" target=3D"_blank" style=3D"border-radius: 4px; text-deco=
+ration: none; color: #FDFCF4; font-family: Roboto, sans-serif; font-size: 1=
+6px; font-style: normal; font-weight: 400; line-height: 1.5; text-align: ce=
+nter; width: 100%; display: table; min-width: 100%; box-sizing: border-box =
+!important;"> <!--[if !mso]><!--> <span style=3D"text-align: center; box-si=
+zing: border-box !important;"> <img src=3D"https://d15k2d11r6t6rl.cloudfron=
+t.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/9cee5a7=
+d319d4483be456f980018a9a6/terms-icon.png" alt=3D"terms-icon" title=3D"terms=
+-icon" width=3D"20" style=3D"object-fit: contain; object-position: center; =
+font-size: 13px; vertical-align: middle; box-sizing: border-box !important;=
+ outline: none !important; text-decoration: none !important; border: none !=
+important; -ms-interpolation-mode: bicubic !important; margin: 0 !important=
+; padding: 0 !important; display: inline-block !important;"> </span> <!--<!=
+[endif]--> <span align=3D"left" style=3D"color: #FDFCF4; font-family: Robot=
+o, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; line-=
+height: 1.5; box-sizing: border-box !important;"> Terms & Conditions </span=
+> </a> </td> </tr> </table> </td> </tr> <tr style=3D"box-sizing: border-box=
+ !important;"> <td width=3D"100%" style=3D"max-width: 100%; padding-top: 8p=
+x; box-sizing: border-box !important;" class=3D"divider"></td> </tr> <tr st=
+yle=3D"box-sizing: border-box !important;"> <td bgcolor=3D"#EBE8D8" style=
+=3D"padding: 1px; border-radius: 4px; box-sizing: border-box !important;"> =
+<table bgcolor=3D"#EBE8D8" width=3D"100%" border=3D"0" cellspacing=3D"0" ce=
+llpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-t=
+able-rspace: 0pt; width: 100%; border-radius: 4px; min-width: 100%; box-siz=
+ing: border-box !important;"> <tr style=3D"box-sizing: border-box !importan=
+t;"> <td height=3D"44" align=3D"center" style=3D"border-radius: 4px; font-f=
+amily: Roboto, sans-serif; color: #000000; font-size: 16px; font-style: nor=
+mal; font-weight: 400; white-space: nowrap; line-height: 1.5; box-sizing: b=
+order-box !important;"> <a href=3D"https://links.e.saferetirementreports.co=
+m/e/encryptedUnsubscribe?_r=3D9cee5a7d319d4483be456f980018a9a6&_s=3D5bf1fca=
+39c5e4aaab344582829b285f0&_t=3D02zlHgyX3HJ0UXXhcVHqV7JfOj5MeYbAk9a-dsZTTeoC=
+dxjg22VBfcN3yPyrDtz_tyUiq1BQ6zFqK0ALCR2VNh54i8Eo702-Ob7-ji1EHEDElQz5xXqIyeE=
+0GxQESI63" target=3D"_blank" style=3D"border-radius: 4px; text-decoration: =
+none; color: #000000; font-family: Roboto, sans-serif; font-size: 16px; fon=
+t-style: normal; font-weight: 400; line-height: 1.5; text-align: center; wi=
+dth: 100%; display: table; min-width: 100%; box-sizing: border-box !importa=
+nt;"> <!--[if !mso]><!--> <span style=3D"text-align: center; box-sizing: bo=
+rder-box !important;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.net/pu=
+blic/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/9cee5a7d319d448=
+3be456f980018a9a6/unsub-icon%20%281%29.png" alt=3D"unsub-icon" title=3D"uns=
+ub-icon" width=3D"20" style=3D"object-fit: contain; object-position: center=
+; font-size: 13px; vertical-align: middle; box-sizing: border-box !importan=
+t; outline: none !important; text-decoration: none !important; border: none=
+ !important; -ms-interpolation-mode: bicubic !important; margin: 0 !importa=
+nt; padding: 0 !important; display: inline-block !important;"> </span> <!--=
+<![endif]--> <span align=3D"left" style=3D"color: #000000; font-family: Rob=
+oto, sans-serif; font-size: 16px; font-style: normal; font-weight: 400; lin=
+e-height: 1.5; box-sizing: border-box !important;"> Unsubscribe </span> </a=
+> </td> </tr> </table> </td> </tr> </table> </td> </tr> </table> </td> </tr=
+> <!--[if mso | IE]></table> </td> </tr><![endif]--> </table> </td> </tr> <=
+tr style=3D"box-sizing: border-box !important;"> <td width=3D"100%" style=
+=3D"max-width: 100%; padding-top: 12px; box-sizing: border-box !important;"=
+ class=3D"divider"></td> </tr> <tr style=3D"box-sizing: border-box !importa=
+nt;"> <td align=3D"center" style=3D"padding-left: 20px; padding-right: 20px=
+; box-sizing: border-box !important;"> <table width=3D"100%" border=3D"0" c=
+ellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table=
+-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; max-width: 524px; box-siz=
+ing: border-box !important;"> <!--[if mso | IE]><tr> <td align=3D"center"> =
+<table border=3D"0" cellspacing=3D"0" cellpadding=3D"0" width=3D"524" style=
+=3D"width: 524px;max-width: 100%;"><![endif]--> <tr style=3D"box-sizing: bo=
+rder-box !important;"> <td width=3D"100%" style=3D"max-width: 100%; padding=
+-top: 1px; box-sizing: border-box !important;" bgcolor=3D"#ffffff" class=3D=
+"divider"></td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td=
+ width=3D"100%" style=3D"max-width: 100%; padding-top: 24px; box-sizing: bo=
+rder-box !important;" class=3D"divider"></td> </tr> <tr style=3D"box-sizing=
+: border-box !important;"> <td align=3D"center" style=3D"color: #ffffff; te=
+xt-align: center; font-family: Roboto, sans-serif; font-size: 12px; font-st=
+yle: normal; font-weight: 400; line-height: normal; box-sizing: border-box =
+!important;"> &copy; 2026 Safe Retirement Reports. All Rights Reserved. </t=
+d> </tr> <!--[if mso | IE]></table> </td> </tr><![endif]--> </table> </td> =
+</tr> <tr style=3D"box-sizing: border-box !important;"> <td width=3D"100%" =
+style=3D"max-width: 100%; padding-top: 24px; box-sizing: border-box !import=
+ant;" class=3D"divider_sm"></td> </tr> </table> </td> </tr> <!--[if mso | I=
+E]></table> </td> </tr><![endif]--> </table> </td> </tr> <tr style=3D"box-s=
+izing: border-box !important;"> <td width=3D"100%" style=3D"max-width: 100%=
+; padding-top: 24px; box-sizing: border-box !important;" class=3D"divider_s=
+m"></td> </tr> </table> </td> </tr> <!-- ~END FOOTER --> </table> </td> </t=
+r> <!--[if mso | IE]></table> </td> </tr><![endif]--> </table> </td> </tr> =
+<tr style=3D"box-sizing: border-box !important;"> <td width=3D"100%" style=
+=3D"max-width: 100%; padding-top: 20px; box-sizing: border-box !important;"=
+ class=3D"hide_mobile"></td> </tr> <!--[if mso | IE]></table> </td> </tr><!=
+[endif]--> </table> </td> </tr> </table> </td> </tr> </table> </center> </b=
+ody> </html>
+------=_Part_820173_21588726.1769731099190--

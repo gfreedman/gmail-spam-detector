@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Test script for SpamDetector v6.0
-Tests all spam examples against the new detection patterns
+Test script for SpamDetector v6.7
+Tests all spam examples against the detection patterns
 """
 
 import os
@@ -14,14 +14,16 @@ from pathlib import Path
 
 # v6.0 Clickbait patterns (same as SpamDetector.gs)
 CLICKBAIT_PATTERNS = [
-    re.compile(r'\b(shocking|stunning|bizarre|mysterious|secret|hidden|leaked|exposed|forbidden)\b', re.I),
+    # v6.7: Added "bombshell" - classic sensationalist framing word
+    re.compile(r'\b(shocking|stunning|bizarre|mysterious|secret|hidden|leaked|exposed|forbidden|bombshell)\b', re.I),
     re.compile(r'\b(terrifying|alarming|devastating|horrifying|frightening|chilling|disturbing)\b', re.I),
     re.compile(r'(strange|secret|hidden|mysterious|shocking|bizarre|unusual|leaked).*(picture|photo|image|video|camera|footage|document)', re.I),
     re.compile(r'(breaking|urgent|warning|alert|stop|exposed|banned).*(news|truth|secret|scandal|exposed|revealed)', re.I),
     re.compile(r'(market|stock|economy|dollar|gold|bitcoin|investment|crypto).*(crash|collapse|shift|crisis|warning|alert|plunge|tank)', re.I),
     re.compile(r'caught (on|doing|in|red-handed)', re.I),
     re.compile(r'(what|this).*(changes everything|stunned everyone|shocked|amazed|surprised)', re.I),
-    re.compile(r'\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns)', re.I),
+    # v6.7: Added "showed|shows" - "The Video Musk Showed Trump" pattern
+    re.compile(r'\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns|showed|shows)', re.I),
     # v6.2 NEW: Celebrity merchandise/collectible scam
     re.compile(r'\b(Trump|Biden|Obama|Kennedy)\b.*(coin|bill|medal|card|stamp|legacy|commemorat|collect|mint|gold|silver)', re.I),
     re.compile(r'\b(seniors?|elderly|retirees?|boomers?|over \d{2}|born before|age \d{2})\b.*(risk|warning|alert|danger|affected|target)', re.I),
@@ -37,7 +39,7 @@ CLICKBAIT_PATTERNS = [
     # Structural indicators
     re.compile(r'【.*】'),
     re.compile(r'\[.{3,}[?!]\]'),
-    re.compile(r'💼|📸|⏯️|🚨|⚠️|📰|💰'),
+    re.compile(r'💼|📸|⏯️|🚨|⚠️|📰|💰|⚡'),
     re.compile(r'\?\?\?|!!!'),
     re.compile(r'\bWATCH\b.*\?$', re.I),
     # v6.0 NEW: Cyrillic/Unicode obfuscation (spam evasion tactic)
@@ -54,6 +56,20 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'🏦|🏥|🏛️|🏢'),
     # v6.2 NEW: Collectible/commemorative scam category
     re.compile(r'\b(minted|commemorat|collector\'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b', re.I),
+    # v6.7 NEW: Mathematical Unicode obfuscation (𝗔𝗺𝗮𝘇𝗼𝗻 instead of Amazon)
+    # Mathematical Alphanumeric Symbols (U+1D400-1D7FF) - NEVER legitimate in English email
+    re.compile(r'[\U0001D400-\U0001D7FF]'),
+    # v6.7 NEW: Bullet-point date format (• January 29 •)
+    # Structural spam indicator - marketing spam wraps dates in bullet separators
+    re.compile(r'•\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
+    # v6.7 NEW: Historical atrocity clickbait (Nazi/Hitler references as engagement bait)
+    re.compile(r'\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b', re.I),
+    # v6.7 NEW: Health condition clickbait words (anxiety triggers in spam subjects)
+    re.compile(r'\b(fatigue|insomnia|inflammation|blood sugar|cholesterol|blood pressure|joint pain|brain fog|belly fat)\b', re.I),
+    # v6.7 NEW: Financial scam product categories (gift cards, tax liens, instant approval)
+    re.compile(r'\b(gift card|tax lien|tax sale|foreclosure list|pre-?approved|instant approval|no annual fee)\b', re.I),
+    # v6.7 NEW: "Now you can see/watch" exclusive access clickbait
+    re.compile(r'\bnow you can (see|watch|view|get)\b', re.I),
 ]
 
 # v6.0 Fear patterns (same as SpamDetector.gs)
@@ -183,7 +199,7 @@ def main():
     files = sorted([f for f in spam_dir.iterdir() if f.suffix == '.eml'])
 
     print('=' * 80)
-    print('SpamDetector v6.0 Test Results')
+    print('SpamDetector v6.7 Test Results')
     print('=' * 80)
     print(f'Testing {len(files)} spam examples...\n')
 

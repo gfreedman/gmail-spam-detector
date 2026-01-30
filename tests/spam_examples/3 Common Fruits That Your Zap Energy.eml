@@ -1,0 +1,458 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:6099:b0:1ac:2cc3:5c95 with SMTP id v25csp14244rdv;
+        Sat, 3 Jan 2026 16:15:03 -0800 (PST)
+X-Google-Smtp-Source: AGHT+IE+AWsji8pJnjJH2VCFYL5CmrR1bkDUh9Kzkn7entSABFbTNojlr0J31Zi38FDjkHntSMsv
+X-Received: by 2002:a05:620a:4d04:b0:8b2:eaf3:5cd8 with SMTP id af79cd13be357-8c08f668734mr5041599085a.29.1767485703663;
+        Sat, 03 Jan 2026 16:15:03 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1767485703; cv=none;
+        d=google.com; s=arc-20240605;
+        b=WCuwp4c1GKqmLDke4QqlVKtbKasYe15iusNmjc5KIyvie+BS2eHdZyxr/sAXpBau9c
+         0gVQ+P3SFEvB1RApZJZt868aWe0ttxF/uwJvBhaPCJRs9i5uAsNLAaJe+36dhfWBHEps
+         PMvQiz7SbbipV+02tt30YZWwYzU5g57JuT4+8BpYOYoiabQ4zLiDZqcSslkEPjCNpTIT
+         WOAHaQ0f3NT1XY08y4ydvulAeBQOCsqyKWreiFsDY7GXeErLrgSb+PUZ/wWYYa5aD2JN
+         k00xcTSbQ9jKdDBv/gOoXXLdLrnQSBKZF8axnWOc+PAVCiwX8YbbygMxxMzktg0Z5/11
+         uM4w==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=WjkLilvUP+6lFrLXySWiPEAkmaUl11M64m37EIHhauk=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=eMvtinriXCXwZI06CdIBU1dbWLTWAytSs4ABYryghCsPdv8t3+m0QPxxayLAEj2Yij
+         CFmskAWhAC/BecArX0Za2hdvki0Pa4GPHwu5V9t8CRQcUveS1UcY9CzaFyK2DE/ZdCXg
+         v8VcKlWtIpGKbFU1lBvw+MuOFtdy3HVHTqKEUXUxK6q2NQgTfzzzgwu4Kjtf+cs62ZN4
+         LW9SpD16N2mvK6WzKNPo8tgh5BYR5rT3djrWur8v5eomnNkTrJCc2m3oAsr0e6OZxiC2
+         /52AdKrMl+FTELVh1vdrTdPyyRhegnwZN21qEdeUReg2dQfqtO7XeAH+bK2u3xptqQPA
+         xLMw==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@f.financeinsiderpro.com header.s=x2k5kdjxxaewtwxheqdrqqqnxug7cghk header.b=qmXNK4YS;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=bLrWfc7b;
+       spf=pass (google.com: domain of 0100019b865b8403-72c511c9-5d67-4022-911f-8c3f3d8470b4-000000@amazonses.com designates 54.240.78.237 as permitted sender) smtp.mailfrom=0100019b865b8403-72c511c9-5d67-4022-911f-8c3f3d8470b4-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=financeinsiderpro.com
+Return-Path: <0100019b865b8403-72c511c9-5d67-4022-911f-8c3f3d8470b4-000000@amazonses.com>
+Received: from a78-237.smtp-out.amazonses.com (a78-237.smtp-out.amazonses.com. [54.240.78.237])
+        by mx.google.com with ESMTPS id af79cd13be357-8c096ffa29asi4618434885a.365.2026.01.03.16.15.03
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sat, 03 Jan 2026 16:15:03 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019b865b8403-72c511c9-5d67-4022-911f-8c3f3d8470b4-000000@amazonses.com designates 54.240.78.237 as permitted sender) client-ip=54.240.78.237;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@f.financeinsiderpro.com header.s=x2k5kdjxxaewtwxheqdrqqqnxug7cghk header.b=qmXNK4YS;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=bLrWfc7b;
+       spf=pass (google.com: domain of 0100019b865b8403-72c511c9-5d67-4022-911f-8c3f3d8470b4-000000@amazonses.com designates 54.240.78.237 as permitted sender) smtp.mailfrom=0100019b865b8403-72c511c9-5d67-4022-911f-8c3f3d8470b4-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=financeinsiderpro.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=x2k5kdjxxaewtwxheqdrqqqnxug7cghk; d=f.financeinsiderpro.com;
+	t=1767485703;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=WjkLilvUP+6lFrLXySWiPEAkmaUl11M64m37EIHhauk=;
+	b=qmXNK4YSyPf5VhUT0ifZagQK/bUafKtTFf3HkNTEu+O7zekZaQTiVIugdIWQBx6j
+	XTM5Cw550YWIFA8Y19IvqTu7LRfaeD064mn8dWuCZgjYgMXQAZuS/V+rZHw5T3DAYl7
+	5059aoUVHD9buw3QdKNJiwJaAMnH5MJVhy7SaNL5XgmsL2Y2U9XcYTiWgGgU84bNrL1
+	xWv4Meivf9ZxNN0rEDz856DoUNor5J6hTJblBUXLZq7nOsUk1bxpkeNm+L8og3/JVMs
+	c+tvhtCanjehOIQVeD9rUL7SmHpX85XKVD0tLQkgGv4aJboDkZQUEQDTD7QdwfD0Slr
+	RPIu/fccng==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1767485703;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=WjkLilvUP+6lFrLXySWiPEAkmaUl11M64m37EIHhauk=;
+	b=bLrWfc7brf2cd8ggrN2U/IGFsYXpmkXqr+e1Kd+daz3yb/zki/mTuJmcBPKX/POV
+	q/Q+YvshF37hEiHPJt64nvJm8OuoGz+rr2od3RR6TEMveD3+bzbEPpuKet3I6o9lZQd
+	SrshA/aG87KETx5Ulo2nyxCyvtA1igIpTGSbHaFw=
+Date: Sun, 4 Jan 2026 00:15:03 +0000
+From: Cause of Your Fatigue || Robert Jacobs at FI <robertjacobs@F.FinanceInsiderPro.com>
+Reply-To: support@financeinsiderpro.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019b865b8403-72c511c9-5d67-4022-911f-8c3f3d8470b4-000000@email.amazonses.com>
+Subject: 3 Common Fruits That Your Zap Energy
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_5913_954613938.1767485703152"
+X-Campaign-ID: 16330980
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=1c4be19c62cc4a88bab88766467a72b3&_s=f3cc6ecccb844c1da5b2052a097760b4&_t=8W8bQ5g1oxLJPLKkZ-Xtcv491KTcGvVsRSYNxeTpcWasAw_jkF63PYv6pz5OfLPDc3GKlObm-SHrsJLsT6Z0lzkBQlYvx2Bcb94m4IO4BMYCbCLnD5_0uOweE3c6b0aNm0RiFNUo2x6OmTyGKjNKqw%3D%3D>,<mailto:unsubscribe+16330980+21252748@unsubscribe.iterable.com>
+X-Feedback-ID: 21252748:16330980:126278:iterable
+X-Message-ID: f3cc6ecccb844c1da5b2052a097760b4
+X-SES-Outgoing: 2026.01.04-54.240.78.237
+
+------=_Part_5913_954613938.1767485703152
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Are you turning healthy fruits into highly unhealthy fruits, without even=
+=20
+realizing it?
+
+
+
+ <https://financeinsiderpro.com/>
+
+=E2=80=8A
+
+
+
+
+ Are you turning healthy fruits into highly unhealthy fruits, without even=
+=20
+realizing it?
+
+ Fruit can be one of the healthiest things you can put into your body, but =
+the=20
+majority of Americans are guilty of making this single breakfa=D1=95t mista=
+ke that=20
+can countera=CF=B2t most of the health benefits of fruit.
+
+ Some fruits can help with occasional constipation, reduce bloating, and ev=
+en=20
+help burn calories.
+
+ Others can wreak havoc on your digestive system and energy levels.=20
+
+ In this viral presentation, world-ren=CE=BFwned heart surgeon Dr. Steven G=
+undry=20
+showcases the three fruits to =D1=95t=CE=BFp eating t=CE=BFday.
+
+=D0=A1=E2=85=BC=D1=96=CF=B2k h=D0=B5r=D0=B5 to l=D0=B5arn the top 3 common =
+breakfa=D1=95t foods that are the cause of=20
+your fatigue.=20
+<https://tracking.financeinsiderpro.com/OGHWS/geoff.c.freedman@gmail.com/fi=
+p-hnl/B/00091_7>
+=20
+<https://tracking.financeinsiderpro.com/OGHWS/geoff.c.freedman@gmail.com/fi=
+p-hnl/B/00091_7>
+ P.S. Eliminating these fruits=20
+<https://tracking.financeinsiderpro.com/OGHWS/geoff.c.freedman@gmail.com/fi=
+p-hnl/B/00091_7>
+ could forever change the way we help increase energy levels, decrease brai=
+n=20
+fog, support digestion, and even =E2=85=BC=CE=BF=D1=95=D0=B5 weight.=20
+ *=CE=91=E2=85=BC=E2=85=BC individuals are unique. Results can and will var=
+y.=20
+
+
+ If you no longer wish to get these emails, you can unsubscribe by clicking=
+=20
+here.=20
+<https://tracking.financeinsiderpro.com/unsuboghws/geoff.c.freedman@gmail.c=
+om/fip-hnl/unsub>
+
+
+=E2=80=8A
+ <https://financeinsiderpro.com/>
+
+This email was sent by Finance Insider Pro, a part of TerraTrance=20
+Technologies, LLC.
+
+ Reach out to us by replying button or by direct email to=20
+support@financeinsiderpro.com <mailto:support@financeinsiderpro.com>
+
+Reproduction or distribution of texts, images or information in any forms i=
+s=20
+forbidden without written permission from TerraTrance Technologies, LLC.
+
+200 Broadway Blvd NE, Albuquerque, NM 87102=20
+
+=C2=A9 2026 Finance Insider Pro. All Rights Reserved.
+
+Privacy Policy <https://financeinsiderpro.com/privacy-policy/> | Terms and=
+=20
+Conditions <https://financeinsiderpro.com/terms-conditions/> | Unsubscribe=
+=20
+<https://links.f.financeinsiderpro.com/e/encryptedUnsubscribe?_r=3D1c4be19c=
+62cc4a88bab88766467a72b3&_s=3Df3cc6ecccb844c1da5b2052a097760b4&_t=3D8W8bQ5g=
+1oxLJPLKkZ-Xtcv491KTcGvVsRSYNxeTpcWasAw_jkF63PYv6pz5OfLPDc3GKlObm-SHrsJLsT6=
+Z0lzkBQlYvx2Bcb94m4IO4BMYCbCLnD5_0uOweE3c6b0aNm0RiFNUo2x6OmTyGKjNKqw%3D%3D>
+
+------=_Part_5913_954613938.1767485703152
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: bo=
+rder-box;"><head><title></title><meta http-equiv=3D"Content-Type" content=
+=3D"text/html; charset=3Dutf-8"><meta name=3D"viewport" content=3D"width=3D=
+device-width,initial-scale=3D1"><!--[if mso]><xml><w:WordDocument xmlns:w=
+=3D"urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyRead=
+ingMail/></w:WordDocument> <o:OfficeDocumentSettings><o:PixelsPerInch>96</o=
+:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]--><s=
+tyle>*{box-sizing:border-box}body{margin:0;padding:0}a[x-apple-data-detecto=
+rs]{color:inherit!important;text-decoration:inherit!important}#MessageViewB=
+ody a{color:inherit;text-decoration:none}p{line-height:inherit}.desktop_hid=
+e,.desktop_hide table{mso-hide:all;display:none;max-height:0;overflow:hidde=
+n}.image_block img+div{display:none}sub,sup{font-size:75%;line-height:0}@me=
+dia(max-width:620px){.mobile_hide{display:none}.row-content{width:100%!impo=
+rtant}.stack .column{width:100%;display:block}.mobile_hide{min-height:0;max=
+-height:0;max-width:0;overflow:hidden;font-size:0}.desktop_hide,.desktop_hi=
+de table{display:table!important;max-height:none!important}}</style><!--[if=
+ mso ]><style>sup,sub{font-size:100%!important}sup{mso-text-raise:10%}sub{m=
+so-text-raise:-10%}</style><![endif]--></head><body class=3D"body" style=3D=
+"box-sizing: border-box; background-color: #fff; margin: 0; padding: 0; -we=
+bkit-text-size-adjust: none; text-size-adjust: none;"><span style=3D"color:=
+transparent;visibility:hidden;display:none;opacity:0;height:0;width:0;font-=
+size:0;">Are you turning healthy fruits into highly unhealthy fruits, witho=
+ut even realizing it? </span><img src=3D"https://links.f.financeinsiderpro.=
+com/e/eo?_t=3D1c4be19c62cc4a88bab88766467a72b3&amp;_m=3Df3cc6ecccb844c1da5b=
+2052a097760b4&amp;_e=3D8W8bQ5g1oxLJPLKkZ-Xtcv491KTcGvVsRSYNxeTpcWasAw_jkF63=
+PYv6pz5OfLPDc3GKlObm-SHrsJLsT6Z0lzkBQlYvx2Bcb94m4IO4BMa2OVnizoladfNzDyPsNWc=
+57t_NmoHf8n8fSG_Q0klThB9q_L8kXYDVcAAUGmBWX9g%3D" style=3D"border:0;width:1p=
+x;height:1px;border-width:0px!important;display:none!important;line-height:=
+0!important;" width=3D"1" height=3D"1"/><table class=3D"nl-container" width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspac=
+e: 0; background-color: #fff;" bgcolor=3D"#fff"><tbody style=3D"box-sizing:=
+ border-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing=
+: border-box;"><table class=3D"row row-1" align=3D"center" width=3D"100%" b=
+order=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tbo=
+dy style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;">=
+<td style=3D"box-sizing: border-box;"><table class=3D"row-content stack" al=
+ign=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pre=
+sentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-=
+rspace: 0; color: #000; width: 600px; margin: 0 auto;" width=3D"600"><tbody=
+ style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><t=
+d class=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-box;=
+ mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: le=
+ft; padding-bottom: 5px; padding-top: 5px; vertical-align: top;" align=3D"l=
+eft" valign=3D"top"><table class=3D"image_block block-1" width=3D"100%" bor=
+der=3D"0" cellpadding=3D"10" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr =
+style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: bo=
+rder-box;"><div class=3D"alignment" align=3D"center" style=3D"box-sizing: b=
+order-box;"><div style=3D"box-sizing: border-box; max-width: 240px;"><a hre=
+f=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c4be19c62cc4a88bab=
+88766467a72b3&_m=3Df3cc6ecccb844c1da5b2052a097760b4&_e=3DfDkNAbX1ERWpxq8J7H=
+6kh28bUFyl4ZchQEVjcS2Y_7phsezFuoxT2zEKpeORqPc_EUJonRJDmlpsRjiMPtHd9rfv6aaIt=
+yNf5dHeHOVjGPjaEHi3jLTmNgLHftpHAxH57656J6YawtnqRp4arwwQMZISo1c29lZEMTAtVMkd=
+_6ya-jboLowY1eUhBA0dZnzAw4k1WtVcdt608o89FoN0IiadddAhDaOiDzruO48ToJWYGSOZUU5=
+OM-30zZ35Vz5Sux_QscZuaWl4gBMT6sImmxRbsxUPxH8eAL-hbkrQits-VF5VqzgtH5veteMnxa=
+gkiHcd8KederUm-O8GspIh-RWR0ehaciYC2eMl66AuFiQ%3D" target=3D"_blank" style=
+=3D"box-sizing: border-box;"><img src=3D"https://d15k2d11r6t6rl.cloudfront.=
+net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/1c4be19c6=
+2cc4a88bab88766467a72b3/finance_insider_pro.png" style=3D"box-sizing: borde=
+r-box; display: block; height: auto; border: 0; width: 100%;" width=3D"240"=
+ alt=3D"Logo FIP" title=3D"Logo FIP" height=3D"auto"></a></div></div></td><=
+/tr></table><table class=3D"divider_block block-2" width=3D"100%" border=3D=
+"0" cellpadding=3D"10" cellspacing=3D"0" role=3D"presentation" style=3D"box=
+-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=
+=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-=
+box;"><div class=3D"alignment" align=3D"center" style=3D"box-sizing: border=
+-box;"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pres=
+entation" width=3D"45%" style=3D"box-sizing: border-box; mso-table-lspace: =
+0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D=
+"divider_inner" style=3D"box-sizing: border-box; font-size: 1px; line-heigh=
+t: 1px; border-top: 3px dotted #bbb;"><span style=3D"box-sizing: border-box=
+; word-break: break-word;">&#8202;</span></td></tr></table></div></td></tr>=
+</table><table class=3D"html_block block-3" width=3D"100%" border=3D"0" cel=
+lpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing:=
+ border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-si=
+zing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box;"><div=
+ style=3D"box-sizing: border-box; font-family: Arial,'Helvetica Neue',Helve=
+tica,sans-serif; text-align: center;" align=3D"center"><table width=3D"100%=
+" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" style=3D"box-sizing: bor=
+der-box; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 60=
+0px;"> <tbody style=3D"box-sizing: border-box; max-width: 600px;"> <tr styl=
+e=3D"box-sizing: border-box;"> <td align=3D"center" valign=3D"top" style=3D=
+"box-sizing: border-box; font-family: 'Tahoma', Arial, Helvetica, sans-seri=
+f; max-width: 600px;"> <table class=3D"main-table" bgcolor=3D"#FFFFFF" bord=
+er=3D"0" cellspacing=3D"0" cellpadding=3D"0" width=3D"100%" style=3D"box-si=
+zing: border-box; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-=
+width: 600px;"> <tbody style=3D"box-sizing: border-box; max-width: 600px;">=
+ <tr style=3D"box-sizing: border-box;"> <td class=3D"content-wrapper" align=
+=3D"center" style=3D"box-sizing: border-box; padding-left: 21px; padding-ri=
+ght: 21px; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width: =
+600px;"> <table class=3D"inner-content-wrapper" border=3D"0" cellspacing=3D=
+"0" cellpadding=3D"0" width=3D"100%" style=3D"box-sizing: border-box; width=
+: 100%; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 600=
+px;"> <tbody style=3D"box-sizing: border-box; max-width: 600px;"> <tr style=
+=3D"box-sizing: border-box;"> <td height=3D"15" width=3D"100%" style=3D"box=
+-sizing: border-box; font-family: 'Tahoma', Arial, Helvetica, sans-serif; m=
+ax-width: 600px;" class=3D"space-between-sections"></td> </tr> <tr style=3D=
+"box-sizing: border-box;"> <td style=3D"box-sizing: border-box; font-style:=
+ normal; font-weight: normal; line-height: 1.5; text-align: left; color: #0=
+00000; padding-top: 15px; padding-bottom: 15px; font-family: 'Tahoma', Aria=
+l, Helvetica, sans-serif; font-size: 20px; max-width: 600px;" align=3D"left=
+"> <div style=3D"box-sizing: border-box; font-style: normal; font-weight: n=
+ormal; line-height: 1.5; text-align: left; color: #000000; font-family: 'Ta=
+homa', Arial, Helvetica, sans-serif; font-size: 20px; max-width: 600px;"> A=
+re you turning healthy fruits into highly unhealthy fruits, without even re=
+alizing it? <br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: =
+border-box;"> Fruit can be one of the healthiest things you can put into yo=
+ur body, but the majority of Americans are guilty of making this single bre=
+akfa=D1=95t mistake that can countera=CF=B2t most of the health benefits of=
+ fruit. <br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: bord=
+er-box;"> Some fruits can help with occasional constipation, reduce bloatin=
+g, and even help burn calories. <br style=3D"box-sizing: border-box;"><br s=
+tyle=3D"box-sizing: border-box;"> Others can wreak havoc on your digestive =
+system and energy levels. <br style=3D"box-sizing: border-box;"><br style=
+=3D"box-sizing: border-box;"> In this viral presentation, world-ren=CE=BFwn=
+ed heart surgeon Dr. Steven Gundry showcases the three fruits to =D1=95t=CE=
+=BFp eating t=CE=BFday. <br style=3D"box-sizing: border-box;"><br style=3D"=
+box-sizing: border-box;"> <a href=3D"https://links.f.financeinsiderpro.com/=
+u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3&_m=3Df3cc6ecccb844c1da5b2052a=
+097760b4&_e=3DfDkNAbX1ERWpxq8J7H6kh1BXQirt63rGlHQht4SBV28XT1EqF9a6S_QyJy4PF=
+nTZ50PwKVhHPfw4IK-l6DmfD2a8mI3kajCdpAb6jsNVmXTrsgQvN7IoMZHxj923VcOZQ5Keq2lD=
+i9zWDTVMkzw_F6UzQG6fFFaACkdQ-VL3oSTOWZxJuaEEbA0flyIYGc5kyJkwdzFafFaegciWg4h=
+x709VPZ3H8XwT6XAUpEBE1Rz5FBLP4RI8XpqPgAH2X1sQWA6PbPDttfrDN5NuVoj4QOJEACC0PG=
+OWosQlRdDp6bwEPohAmyYF_BkRrZFouacYL5AJnKChAzYtvce6Cc9DE9SSSy1y81BBGx7ekhDTU=
+23hRIosD4M7ohzawSKJicb7NqYil_MnYXf8-irBsX8GXayrnb754eg0wQzx5lVqpDcfMeineyOv=
+_KZgqGfu7XFMkpOOZrv4z9s1izEMGBVpav6Ri7vXIk_ZVj-fk6ZHtZ2QHt9DFuQ7kliAwdqV5zT=
+h" style=3D"box-sizing: border-box; text-decoration: underline; font-weight=
+: 700; font-family: 'Tahoma', Arial, Helvetica, sans-serif; color: #2f75b5;=
+">=D0=A1=E2=85=BC=D1=96=CF=B2k h=D0=B5r=D0=B5 to l=D0=B5arn the top 3 commo=
+n breakfa=D1=95t foods that are the cause of your fatigue.</a> </div> </td>=
+ </tr> <tr style=3D"box-sizing: border-box;"> <td class=3D"image-block" ali=
+gn=3D"center" style=3D"box-sizing: border-box; padding-top: 15px; padding-b=
+ottom: 15px; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width=
+: 600px;"> <a href=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c=
+4be19c62cc4a88bab88766467a72b3&_m=3Df3cc6ecccb844c1da5b2052a097760b4&_e=3Df=
+DkNAbX1ERWpxq8J7H6kh1BXQirt63rGlHQht4SBV28XT1EqF9a6S_QyJy4PFnTZ50PwKVhHPfw4=
+IK-l6DmfD2a8mI3kajCdpAb6jsNVmXTrsgQvN7IoMZHxj923VcOZ1y3LCTwC8r65r5heYOnXhJe=
+5ICt1YYO16eU1VYPoR1OGYmp_O9N8wdvuiXTsSHNSI4FoJJsdviVqIGMFI8r58r2meRZp8_uI6k=
+Yd0Pz3hUaoZABuRWOArPNwbladLCVQRdMuyEmOGLw_1CweTcQL1BYyo1N4z1lPEnEFaKOhBpvaz=
+bpFPUa4gVv2F102mSChgkCXf8XbfM2Z_367AbkSuQkI6YHJL97wqna-TB_dzv6oCI9OiigLOaDu=
+jLMZgwrZAh8ipPChjAU9QI6NAlf8t2YUsep7CPoB3IoPHFCD9CRA9zJNgewBzys8sbip5UnyfGX=
+7SQnRaIt4NC_pN33LXa1Y9FctY0tlos9yyI0iTU5uFPXgfLze1FrksIA0nn40" target=3D"_b=
+lank" style=3D"box-sizing: border-box; font-family: 'Tahoma', Arial, Helvet=
+ica, sans-serif;"> <img alt=3D"Man" height=3D"auto" src=3D"https://d15k2d11=
+r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542=
+cff6dd6a/1c4be19c62cc4a88bab88766467a72b3/editor_images/OGHWS7%20%282%29.pn=
+g" style=3D"box-sizing: border-box; border: 0; display: block; outline: non=
+e; text-decoration: none; height: auto; width: 100%; max-width: 560px; font=
+-size: 13px;" width=3D"560"> </a> </td> </tr> <tr style=3D"box-sizing: bord=
+er-box;"> <td style=3D"box-sizing: border-box; font-style: normal; font-wei=
+ght: normal; line-height: 1.5; text-align: left; color: #000000; padding-to=
+p: 15px; padding-bottom: 15px; font-family: 'Tahoma', Arial, Helvetica, san=
+s-serif; font-size: 20px; max-width: 600px;" align=3D"left"> <div style=3D"=
+box-sizing: border-box; font-style: normal; font-weight: normal; line-heigh=
+t: 1.5; text-align: left; color: #000000; font-family: 'Tahoma', Arial, Hel=
+vetica, sans-serif; font-size: 20px; max-width: 600px;"> P.S. <a href=3D"ht=
+tps://links.f.financeinsiderpro.com/u/click?_t=3D1c4be19c62cc4a88bab8876646=
+7a72b3&_m=3Df3cc6ecccb844c1da5b2052a097760b4&_e=3DfDkNAbX1ERWpxq8J7H6kh1BXQ=
+irt63rGlHQht4SBV28XT1EqF9a6S_QyJy4PFnTZ50PwKVhHPfw4IK-l6DmfD2a8mI3kajCdpAb6=
+jsNVmXTrsgQvN7IoMZHxj923VcOZ3M59QDaiR6BabLQ5JHyOY3j8pojNMKNr-cX_lp9uQq7-JNi=
+g8YPGF7kOFlymWZFO21JtUY9h3O1HV-hUviT288k0exSEBjmfZbCfUxhCicvSOnHkVnktd3-lNl=
+NTIfA13xH4zeVWabBcWDzu4AEdI4X_GgcEfxuwT4pfDL-YN5Eng1cO-KAhm5r11wNoPvoChE1ox=
+ypnFwfdewzU2BiJAAwvpMK1p4WJCftVamOy8QEJES0kfy-S4V48U4OtTaE6oAsFJBfOPZXhSA9g=
+YJ-mqolRC4vuwJOdPi0P0m_-1fLtwQ7IiXzOw8IHfDyOmx4pA35nMuyrAuROZxdBc-xreWqariI=
+-zMR6qAtpVGNx8eGOKReR0vItpCj1UCPum7BO" style=3D"box-sizing: border-box; tex=
+t-decoration: underline; font-weight: 700; font-family: 'Tahoma', Arial, He=
+lvetica, sans-serif; color: #2f75b5;">Eliminating these fruits</a> could fo=
+rever change the way we help increase energy levels, decrease brain fog, su=
+pport digestion, and even =E2=85=BC=CE=BF=D1=95=D0=B5 weight. </div> </td> =
+</tr> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: borde=
+r-box; font-size: 12px; font-style: normal; font-weight: normal; line-heigh=
+t: 1.5; text-align: left; color: #000000; padding-top: 15px; padding-bottom=
+: 15px; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 600=
+px;" align=3D"left"> <div style=3D"box-sizing: border-box; font-size: 12px;=
+ font-style: normal; font-weight: normal; line-height: 1.5; text-align: lef=
+t; color: #000000; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max=
+-width: 600px;"> *=CE=91=E2=85=BC=E2=85=BC individuals are unique. Results =
+can and will vary. </div> </td> </tr> <tr style=3D"box-sizing: border-box;"=
+> <td height=3D"15" width=3D"100%" style=3D"box-sizing: border-box; font-fa=
+mily: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 600px;" class=3D"s=
+pace-between-sections"></td> </tr> </tbody> </table> </td> </tr> </tbody> <=
+/table> </td> </tr> </tbody> </table> <table cellpadding=3D"0" cellspacing=
+=3D"0" align=3D"left" style=3D"box-sizing: border-box;"> <tbody style=3D"bo=
+x-sizing: border-box;"><tr style=3D"box-sizing: border-box;"> <td align=3D"=
+left" style=3D"box-sizing: border-box; text-align: left; padding: 10px 20px=
+ 10px 20px;"> <p style=3D"box-sizing: border-box; line-height: inherit; col=
+or: #000000; font-weight: 400; font-size: 12px; font-family: Tahoma; margin=
+: 0; padding: 0;"> If you no longer wish to get these emails, you can unsub=
+scribe by <a href=3D"https://links.f.financeinsiderpro.com/u/click?_t=3D1c4=
+be19c62cc4a88bab88766467a72b3&_m=3Df3cc6ecccb844c1da5b2052a097760b4&_e=3DfD=
+kNAbX1ERWpxq8J7H6kh1BXQirt63rGlHQht4SBV2-ySQaQNoG1JAfUCTluqJFwe6r3RbdJ3rHEh=
+-7a_VCURMA-K9SvC_ujXiYDwssyEYhqVj2YrRs8Zx-NqV7RI0rDAm9AjMhNNQ1MlUZQVJxhZu4g=
+Dzs5qw394bf5WE6ouJ7HDO1jdcCJecghNmDQ6Gq8iw-9PDScdsKwh5h3H-Ojxv90bkgTW8E5Vpb=
+C01NeS5Zc3bpxXytueIprwYhtX0POlMk0yVyAClnyAGin8nN5LHNir3M0NHBLmV6Hddn_xJeZei=
+yBOFLJqPqb9qkgylpzTDFvVpNv_1hYAeKHV3VknlfpzI4MWpF9N48pZRuW_sqZRVNbGhZfE5JrB=
+4okS6xuxpwDDR3GdVdlLFX4TgGLh5vq5_AdXuD3fKNxGoWgmH5E-gM1W9o0Xim7v2RRhwiaoF9t=
+1njKF5xHfvM1Zg1u81jrptL-v79QEvVPom7nEsypw88gvyOYx5X4IRQnUeL4" style=3D"box-=
+sizing: border-box; font-weight: bold; text-decoration: underline; color: #=
+2f75b5; font-size: 12px; font-family: Tahoma;">clicking here.</a> </p> </td=
+> </tr> </tbody></table> </div></td></tr></table><table class=3D"divider_bl=
+ock block-4" width=3D"100%" border=3D"0" cellpadding=3D"10" cellspacing=3D"=
+0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace:=
+ 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=
+=3D"pad" style=3D"box-sizing: border-box;"><div class=3D"alignment" align=
+=3D"center" style=3D"box-sizing: border-box;"><table border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" role=3D"presentation" width=3D"45%" style=3D"box=
+-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=
+=3D"box-sizing: border-box;"><td class=3D"divider_inner" style=3D"box-sizin=
+g: border-box; font-size: 1px; line-height: 1px; border-top: 3px dotted #bb=
+b;"><span style=3D"box-sizing: border-box; word-break: break-word;">&#8202;=
+</span></td></tr></table></div></td></tr></table><table class=3D"image_bloc=
+k block-5" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" =
+role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0;=
+ mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"p=
+ad" style=3D"box-sizing: border-box; padding-bottom: 20px; padding-left: 10=
+px; padding-right: 10px; padding-top: 10px; width: 100%;" width=3D"100%"><d=
+iv class=3D"alignment" align=3D"center" style=3D"box-sizing: border-box;"><=
+div style=3D"box-sizing: border-box; max-width: 210px;"><a href=3D"https://=
+links.f.financeinsiderpro.com/u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3=
+&_m=3Df3cc6ecccb844c1da5b2052a097760b4&_e=3DfDkNAbX1ERWpxq8J7H6kh28bUFyl4Zc=
+hQEVjcS2Y_7phsezFuoxT2zEKpeORqPc_l58NK3DZuORH6UxO9fyMPcbHLGBxf_Ut-44b9-D2kx=
+qlKTPs9zaY7AzcR-Jlu-pDy5Ng3Cg7387pkjA1xTz4HGZlyo4x8aHyVLQ42fYR9Y0jtNIR-8Cai=
+f2l3h3drYJLN_S5Y8-rqMlX2qS_0w6znqA0ChbMB9YDTFgDIEPkpVdsdMbLNUG7i1uXeO0Vr-z8=
+E0W3gpdIPUoMtJoJbPwB2FLI7YPScV7km4MmPJimel_oXC-pP_vSfB--zame9tabSmEvnIzO5EH=
+-MO8-YVuczgR2ncGCWI3Eo0miPC6hg0A%3D" target=3D"_blank" style=3D"box-sizing:=
+ border-box;"><img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/user=
+s/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/1c4be19c62cc4a88bab88766=
+467a72b3/finance_insider_pro.png" style=3D"box-sizing: border-box; display:=
+ block; height: auto; border: 0; width: 100%;" width=3D"210" alt=3D"Logo FI=
+P" title=3D"Logo FIP" height=3D"auto"></a></div></div></td></tr></table><ta=
+ble class=3D"heading_block block-6" width=3D"100%" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-=
+box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: bo=
+rder-box;"><td class=3D"pad" style=3D"box-sizing: border-box; text-align: c=
+enter; width: 100%;" width=3D"100%" align=3D"center"><h1 style=3D"box-sizin=
+g: border-box; margin: 0; color: #555; direction: ltr; font-family: Tahoma,=
+Verdana,Segoe,sans-serif; font-size: 14px; font-weight: 400; letter-spacing=
+: normal; line-height: 1.2; text-align: center; margin-top: 0; margin-botto=
+m: 0; mso-line-height-alt: 17px;"><span class=3D"tinyMce-placeholder" style=
+=3D"box-sizing: border-box; word-break: break-word;">This email was sent by=
+ <strong style=3D"box-sizing: border-box;">Finance Insider Pro</strong>, a =
+part of TerraTrance Technologies, LLC.<br style=3D"box-sizing: border-box;"=
+><br style=3D"box-sizing: border-box;"> Reach out to us by replying button =
+or by direct email to <strong style=3D"box-sizing: border-box;"><a href=3D"=
+mailto:support@financeinsiderpro.com" target=3D"_blank" title=3D"support@fi=
+nanceinsiderpro.com" style=3D"box-sizing: border-box; text-decoration: unde=
+rline; color: #555555;" rel=3D"noopener">support@financeinsiderpro.com</a><=
+/strong><br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: bord=
+er-box;">Reproduction or distribution of texts, images or information in an=
+y forms is forbidden without written permission from TerraTrance Technologi=
+es, LLC.<br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: bord=
+er-box;">200 Broadway Blvd NE, Albuquerque, NM 87102 <br style=3D"box-sizin=
+g: border-box;"><br style=3D"box-sizing: border-box;">=C2=A9 2026 Finance I=
+nsider Pro. All Rights Reserved.<br style=3D"box-sizing: border-box;"><br s=
+tyle=3D"box-sizing: border-box;"><strong style=3D"box-sizing: border-box;">=
+<u style=3D"box-sizing: border-box;"><a href=3D"https://links.f.financeinsi=
+derpro.com/u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3&_m=3Df3cc6ecccb844=
+c1da5b2052a097760b4&_e=3DfDkNAbX1ERWpxq8J7H6kh28bUFyl4ZchQEVjcS2Y_7qhYw-cGg=
+LhSfC5bW_fK0w9HGOGo7xCvJPznuTqMN0kDzoS85337S7juuHMYPeOXnnpDjkHkbHKbzzVCwTC9=
+C--TATzsjSsHuTQ6J5simrzoG5lc5waxPUP02xQbCm-fbSON0SBBrMIIkcPgWGPauBSpOkPBC_1=
+GhFWb5orKATvWcYlxxpiXAyzVIYQE2PGViGCUFDw2CPkRKfWM-JYOfWuYwsPhGpH-Ztb7VyyZyb=
+dhzxenUgpkToLEeuAyC3GpNn6RKrnSD9A4Mkda3juT4YH_uX2Fw67eIIDH6LPO7_P392WEvBzYF=
+n5sRzSBRC-ZORNburjWvQmkwkPn-V2-vZzd6_YeTqDvauzzqNzd2hdQQ%3D%3D" target=3D"_=
+blank" style=3D"box-sizing: border-box; text-decoration: underline; color: =
+#555555;" rel=3D"noopener">Privacy Policy</a></u> | </strong><strong style=
+=3D"box-sizing: border-box;"><a href=3D"https://links.f.financeinsiderpro.c=
+om/u/click?_t=3D1c4be19c62cc4a88bab88766467a72b3&_m=3Df3cc6ecccb844c1da5b20=
+52a097760b4&_e=3DfDkNAbX1ERWpxq8J7H6kh28bUFyl4ZchQEVjcS2Y_7oTYiznpLUuWheVjy=
+Od3ovX4wstaZNU8tl3tkzmduqqTlGSi5_KAHlHKOPdfBYqvEGdd9lC3eZOjqR6vkcOP93kqaqIY=
+ceG1f4C9QPJEmwPrGp_d_01V2qwPzdmfiLWJU47MZtJ2GuZl7avhyG8sBNkMQ9qanDloqb18eUf=
+mEaZMpP2ZZ6dppZpy4tWz50AR0GR5-By49SUZA4zUKVK8lxBNMm8w4ycXFyU2BUlsmOhLXz1xLH=
+s4FtjW8B2lRYJ-VU77RC6mx7tnPS198knyuLKfhJpJoIM8CsslP4A2OkxD5T53Z4ccqOIKIo4Pc=
+ja-of_MDyRqQRqlzHHdE3JPjozTO1O8UpXwt_lc39Obgph7g%3D%3D" target=3D"_blank" s=
+tyle=3D"box-sizing: border-box; text-decoration: underline; color: #555555;=
+" rel=3D"noopener">Terms and Conditions</a> | <a href=3D"https://links.f.fi=
+nanceinsiderpro.com/e/encryptedUnsubscribe?_r=3D1c4be19c62cc4a88bab88766467=
+a72b3&_s=3Df3cc6ecccb844c1da5b2052a097760b4&_t=3D8W8bQ5g1oxLJPLKkZ-Xtcv491K=
+TcGvVsRSYNxeTpcWasAw_jkF63PYv6pz5OfLPDc3GKlObm-SHrsJLsT6Z0lzkBQlYvx2Bcb94m4=
+IO4BMYCbCLnD5_0uOweE3c6b0aNm0RiFNUo2x6OmTyGKjNKqw%3D%3D" target=3D"_blank" =
+rel=3D"noopener" style=3D"box-sizing: border-box; color: #555555;">Unsubscr=
+ibe</a></strong></span></h1> </td></tr></table></td></tr></tbody></table></=
+td></tr></tbody></table></td></tr></tbody></table><!-- End --></body></html=
+>
+------=_Part_5913_954613938.1767485703152--

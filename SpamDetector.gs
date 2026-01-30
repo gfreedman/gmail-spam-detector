@@ -1,12 +1,17 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.6.0
+ * @version 6.7.0
  *
  * Detects spam using behavioral patterns spammers can't easily change:
  * - Bulk email infrastructure (Amazon SES, SendGrid)
  * - Clickbait/fear-mongering subject patterns
- * - Unicode obfuscation (Cyrillic, Greek, fullwidth chars)
+ * - Unicode obfuscation (Cyrillic, Greek, fullwidth, mathematical chars)
  * - Marketing sender format
+ *
+ * v6.7.0: Added detection for mathematical Unicode obfuscation, bullet-point
+ * date formatting, historical atrocity clickbait, health condition anxiety words,
+ * financial scam product categories, "now you can see" curiosity gaps, bombshell
+ * sensationalism, celebrity "showed/shows" verbs, and ⚡ lightning emoji.
  *
  * Reports spam to Gmail (trains filters) then destroys the entire spam folder.
  *
@@ -305,9 +310,10 @@ function analyzeMessage(message)
     // v6.0: Now checks BOTH subject AND from field, added new patterns
 
     const clickbaitPatterns = [
-      // SENSATIONALIST ADJECTIVES: shocking, bizarre, stunning, etc. (broad match)
-      // Catches: "shocking admission", "bizarre discovery", "stunning revelation", etc.
-      /\b(shocking|stunning|bizarre|mysterious|secret|hidden|leaked|exposed|forbidden)\b/i,
+      // SENSATIONALIST ADJECTIVES: shocking, bizarre, stunning, bombshell, etc. (broad match)
+      // Catches: "shocking admission", "bizarre discovery", "stunning revelation", "bombshell report", etc.
+      // v6.7: Added "bombshell" - classic sensationalist framing word
+      /\b(shocking|stunning|bizarre|mysterious|secret|hidden|leaked|exposed|forbidden|bombshell)\b/i,
 
       // v6.0: TERRIFYING/ALARMING adjectives (often in From field)
       // Catches: "A terrifying new warning", "alarming discovery", etc.
@@ -335,7 +341,8 @@ function analyzeMessage(message)
 
       // v6.0: CELEBRITY/POLITICAL NAME-DROPPING for false credibility
       // Catches: "RFK Jr Issues Warning", "Trump Reveals", "Musk Exposes", etc.
-      /\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns)/i,
+      // v6.7: Added "showed|shows" - "The Video Musk Showed Trump" pattern
+      /\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns|showed|shows)/i,
 
       // v6.2: CELEBRITY MERCHANDISE/COLLECTIBLE SCAM
       // Catches: "Trump Coin", "Trump $2 Bill", "Biden Medal", "Trump's Legacy", etc.
@@ -369,7 +376,7 @@ function analyzeMessage(message)
       // STRUCTURAL SPAM INDICATORS
       /【.*】/,           // Japanese date brackets (spammer tactic)
       /\[.{3,}[?!]\]/,    // v6.0: Square brackets with question/exclamation [Like This?]
-      /💼|📸|⏯️|🚨|⚠️|📰|💰/,  // Sensationalist emoji (business, camera, play, alert, money)
+      /💼|📸|⏯️|🚨|⚠️|📰|💰|⚡/,  // Sensationalist emoji (business, camera, play, alert, money, lightning)
       /\?\?\?|!!!/,       // Multiple punctuation (urgency tactic)
       /\bWATCH\b.*\?$/i,  // "WATCH" + question mark (clickbait structure)
 
@@ -400,7 +407,39 @@ function analyzeMessage(message)
       // v6.2: COLLECTIBLE/COMMEMORATIVE SCAM CATEGORY
       // L6 INSIGHT: This is a distinct spam category, not individual keywords
       // Catches: "Limited Edition", "Minted", "Commemorative", "Collector's Item"
-      /\b(minted|commemorat|collector'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b/i
+      /\b(minted|commemorat|collector'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b/i,
+
+      // v6.7: MATHEMATICAL UNICODE OBFUSCATION (𝗔𝗺𝗮𝘇𝗼𝗻 instead of Amazon)
+      // Mathematical Alphanumeric Symbols (U+1D400-1D7FF) use surrogate pair \uD835
+      // Used for bold/italic/script letter variants - NEVER legitimate in English email
+      // Catches: "𝗔𝗺𝗮𝘇𝗼𝗻" (Mathematical Bold Sans-Serif), "𝐀𝐦𝐚𝐳𝐨𝐧" (Mathematical Bold), etc.
+      /\uD835/,
+
+      // v6.7: BULLET-POINT DATE FORMAT (• January 29 •)
+      // Structural spam indicator - marketing spam wraps dates in bullet separators
+      // Legitimate emails use plain dates; bullet-wrapped dates are a newsletter spam tactic
+      // Catches: "• January 29 •", "• February 15 •", etc.
+      /•\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
+
+      // v6.7: HISTORICAL ATROCITY CLICKBAIT
+      // Bulk email senders using Nazi/Holocaust references = shock engagement bait
+      // Catches: "Nazi medical center", "Hitler's experiment", "Auschwitz", etc.
+      /\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b/i,
+
+      // v6.7: HEALTH CONDITION CLICKBAIT WORDS
+      // Specific health conditions used as anxiety triggers in spam subject/from lines
+      // Catches: "Cause of Your Fatigue", "Blood Sugar Warning", "Brain Fog", etc.
+      /\b(fatigue|insomnia|inflammation|blood sugar|cholesterol|blood pressure|joint pain|brain fog|belly fat)\b/i,
+
+      // v6.7: FINANCIAL SCAM PRODUCT CATEGORIES
+      // Gift cards, tax liens, instant approval offers - classic scam/phishing categories
+      // Catches: "Gift Card bonus", "Tax Lien List", "Instant Approval", "No Annual Fee"
+      /\b(gift card|tax lien|tax sale|foreclosure list|pre-?approved|instant approval|no annual fee)\b/i,
+
+      // v6.7: "NOW YOU CAN SEE/WATCH" EXCLUSIVE ACCESS CLICKBAIT
+      // Promises exclusive access to hidden/restricted content
+      // Catches: "Now You Can See It", "Now You Can Watch", etc.
+      /\bnow you can (see|watch|view|get)\b/i
     ];
 
     // v6.0: Check BOTH subject AND from field for clickbait patterns

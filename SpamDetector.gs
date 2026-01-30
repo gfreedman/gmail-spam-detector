@@ -1,12 +1,18 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.7.0
+ * @version 6.8.0
  *
  * Detects spam using behavioral patterns spammers can't easily change:
  * - Bulk email infrastructure (Amazon SES, SendGrid)
  * - Clickbait/fear-mongering subject patterns
  * - Unicode obfuscation (Cyrillic, Greek, fullwidth, mathematical chars)
  * - Marketing sender format
+ * - Blacklisted sender domains (known spam mills)
+ * - Suspicious From-field anomalies (headline-like display names)
+ *
+ * v6.8.0: Blacklist hardening - suspicious domains now actively checked in
+ * detection (bulk + blacklisted = spam). From-field anomaly detection catches
+ * display names with bullet separators or excessive length (> 50 chars).
  *
  * v6.7.0: Added detection for mathematical Unicode obfuscation, bullet-point
  * date formatting, historical atrocity clickbait, health condition anxiety words,
@@ -53,7 +59,11 @@ const DEFAULT_DOMAINS = Object.freeze({
   ]),
   suspicious: Object.freeze([
     'financeinsiderpro.com', 'financebuzz', 'smartinvestmenttools',
-    'investorplace', 'weissratings', 'americanprofitinsight.com'
+    'investorplace', 'weissratings', 'americanprofitinsight.com',
+    // v6.8: Additional spam mill domains identified from test corpus
+    'saferetirementreports.com', 'thinkrichtoday.com',
+    'brightcrestcapital.com', 'turbotradepro.com',
+    'budgetingjournals.com', 'investorbusinesstalk.com'
   ])
 });
 
@@ -291,9 +301,11 @@ function analyzeMessage(message)
     // PATTERN DETECTION: Analyze spam signals
     const signals = {
       bulkEmailService: false,
+      blacklistedSender: false,
       clickbaitCount: 0,
       fearMongering: false,
-      marketingFormat: false
+      marketingFormat: false,
+      suspiciousFromName: false
     };
 
     // SIGNAL 1: Bulk email service (Amazon SES, SendGrid, etc.)
@@ -303,6 +315,29 @@ function analyzeMessage(message)
     {
       signals.bulkEmailService = true;
       logDebug('Bulk email service detected');
+    }
+
+    // v6.8 SIGNAL 1b: Blacklisted sender domain (known spam mills)
+    // Uses suspicious domains list from Script Properties
+    const blacklist = getBlacklist();
+    for (let i = 0; i < blacklist.length; i++)
+    {
+      if (fromLower.includes(blacklist[i]))
+      {
+        signals.blacklistedSender = true;
+        logDebug('Blacklisted sender detected: ' + blacklist[i]);
+        break;
+      }
+    }
+
+    // v6.8 SIGNAL 1c: Suspicious From display name
+    // Legitimate senders use plain names; spam mills stuff headlines into display names
+    const fromDisplayName = from.replace(/<[^>]*>$/, '').trim();
+    if (fromDisplayName.includes('•') ||  // Bullet separator - never used by legitimate senders
+        fromDisplayName.length > 50)      // Excessively long - spam display names are mini-headlines
+    {
+      signals.suspiciousFromName = true;
+      logDebug('Suspicious From name detected: ' + sanitizeForLog(fromDisplayName));
     }
 
     // SIGNAL 2: Clickbait/Sensationalism detection (category-based, not keyword lists!)
@@ -501,6 +536,15 @@ function analyzeMessage(message)
     }
 
     // DECISION LOGIC (v6.0 - Less conservative when bulk email + marketing present)
+
+    // v6.8 RULE 0: Bulk email + blacklisted sender domain = SPAM
+    // Known spam mills using bulk infrastructure are conclusive
+    if (signals.bulkEmailService && signals.blacklistedSender)
+    {
+      logInfo('SPAM detected: Bulk email + blacklisted sender');
+      return 100;
+    }
+
     // RULE 1: Bulk email + 2+ clickbait patterns = SPAM
     if (signals.bulkEmailService && signals.clickbaitCount >= 2)
     {
@@ -509,10 +553,12 @@ function analyzeMessage(message)
     }
 
     // RULE 2: Bulk email + 2+ spam behaviors = SPAM
+    // v6.8: suspiciousFromName counts as a spam behavior
     let spamBehaviorCount = 0;
     if (signals.clickbaitCount >= 1) spamBehaviorCount++;  // v6.0: Changed from >= 2 to >= 1
     if (signals.fearMongering) spamBehaviorCount++;
     if (signals.marketingFormat) spamBehaviorCount++;
+    if (signals.suspiciousFromName) spamBehaviorCount++;
 
     if (signals.bulkEmailService && spamBehaviorCount >= 2)
     {
@@ -520,16 +566,8 @@ function analyzeMessage(message)
       return 100;
     }
 
-    // v6.0 NEW RULE 3: Bulk email + marketing format + ANY warning signal = SPAM
-    // Rationale: Legitimate bulk newsletters DON'T combine marketing format with fear tactics
-    if (signals.bulkEmailService && signals.marketingFormat &&
-        (signals.clickbaitCount >= 1 || signals.fearMongering))
-    {
-      logInfo('SPAM detected: Bulk email + marketing format + warning signal');
-      return 100;
-    }
-
-    // RULE 4: Extreme clickbait even without bulk email = SPAM
+    // RULE 3: Extreme clickbait even without bulk email = SPAM
+    // (Formerly Rule 4; old Rule 3 was subsumed by Rule 2 after v6.0 relaxed clickbait threshold)
     if (signals.clickbaitCount >= 3)
     {
       logInfo('SPAM detected: Extreme clickbait (' + signals.clickbaitCount + ' patterns)');
@@ -538,9 +576,11 @@ function analyzeMessage(message)
 
     // Not spam
     logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
+             ', blacklist=' + signals.blacklistedSender +
              ', clickbait=' + signals.clickbaitCount +
              ', fear=' + signals.fearMongering +
-             ', marketing=' + signals.marketingFormat);
+             ', marketing=' + signals.marketingFormat +
+             ', suspiciousFrom=' + signals.suspiciousFromName);
     return 0;
   }
   catch (error)

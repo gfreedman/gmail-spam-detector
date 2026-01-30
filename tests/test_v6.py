@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for SpamDetector v6.7
+Test script for SpamDetector v6.8
 Tests all spam examples against the detection patterns
 """
 
@@ -81,6 +81,15 @@ FEAR_PATTERNS = [
     re.compile(r'\bSTOP (using|taking|doing|buying)\b', re.I),
 ]
 
+# v6.8: Blacklisted sender domains (known spam mills)
+BLACKLISTED_DOMAINS = [
+    'financeinsiderpro.com', 'financebuzz', 'smartinvestmenttools',
+    'investorplace', 'weissratings', 'americanprofitinsight.com',
+    'saferetirementreports.com', 'thinkrichtoday.com',
+    'brightcrestcapital.com', 'turbotradepro.com',
+    'budgetingjournals.com', 'investorbusinesstalk.com',
+]
+
 # Marketing format patterns (v6.0 expanded)
 MARKETING_PATTERNS = [
     re.compile(r'["|,]\s*[A-Z]', re.I),
@@ -128,16 +137,33 @@ def parse_eml(filepath):
 
 
 def analyze_email(subject, from_field, has_amazon_ses):
-    """Analyze email using v6.0 detection logic."""
+    """Analyze email using v6.8 detection logic."""
     signals = {
         'bulk_email': has_amazon_ses,
+        'blacklisted_sender': False,
         'clickbait_count': 0,
         'fear_mongering': False,
         'marketing_format': False,
+        'suspicious_from_name': False,
         'matched_patterns': []
     }
 
     text_to_check = subject + ' ' + from_field
+    from_lower = from_field.lower()
+
+    # v6.8: Check blacklisted sender domains
+    for domain in BLACKLISTED_DOMAINS:
+        if domain in from_lower:
+            signals['blacklisted_sender'] = True
+            signals['matched_patterns'].append(f'blacklist:{domain}')
+            break
+
+    # v6.8: Check From display name anomalies
+    import re as _re
+    display_name = _re.sub(r'<[^>]*>$', '', from_field).strip()
+    if '•' in display_name or len(display_name) > 50:
+        signals['suspicious_from_name'] = True
+        signals['matched_patterns'].append('suspicious_from')
 
     # Check clickbait patterns
     for i, pattern in enumerate(CLICKBAIT_PATTERNS):
@@ -163,10 +189,15 @@ def analyze_email(subject, from_field, has_amazon_ses):
     is_spam = False
     rule = ''
 
-    if signals['bulk_email'] and signals['clickbait_count'] >= 2:
+    # v6.8 RULE 0: Bulk email + blacklisted sender = SPAM
+    if signals['bulk_email'] and signals['blacklisted_sender']:
+        is_spam = True
+        rule = 'RULE 0: Bulk + blacklisted sender'
+    elif signals['bulk_email'] and signals['clickbait_count'] >= 2:
         is_spam = True
         rule = 'RULE 1: Bulk + 2+ clickbait'
     else:
+        # v6.8: suspicious_from_name counts as a behavior
         behavior_count = 0
         if signals['clickbait_count'] >= 1:
             behavior_count += 1
@@ -174,17 +205,15 @@ def analyze_email(subject, from_field, has_amazon_ses):
             behavior_count += 1
         if signals['marketing_format']:
             behavior_count += 1
+        if signals['suspicious_from_name']:
+            behavior_count += 1
 
         if signals['bulk_email'] and behavior_count >= 2:
             is_spam = True
             rule = 'RULE 2: Bulk + 2+ behaviors'
-        elif (signals['bulk_email'] and signals['marketing_format'] and
-              (signals['clickbait_count'] >= 1 or signals['fear_mongering'])):
-            is_spam = True
-            rule = 'RULE 3: Bulk + marketing + warning'
         elif signals['clickbait_count'] >= 3:
             is_spam = True
-            rule = 'RULE 4: Extreme clickbait'
+            rule = 'RULE 3: Extreme clickbait'
 
     return signals, is_spam, rule
 
@@ -199,7 +228,7 @@ def main():
     files = sorted([f for f in spam_dir.iterdir() if f.suffix == '.eml'])
 
     print('=' * 80)
-    print('SpamDetector v6.7 Test Results')
+    print('SpamDetector v6.8 Test Results')
     print('=' * 80)
     print(f'Testing {len(files)} spam examples...\n')
 

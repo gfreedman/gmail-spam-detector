@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Test script for SpamDetector v6.7
+ * Test script for SpamDetector v6.8
  * Tests all spam examples against the detection patterns
  */
 
@@ -72,6 +72,15 @@ const fearPatterns = [
   /\b(blood thinner|medication|drug|vaccine|doctor|FDA|health crisis|at risk)\b.*(warning|danger|deadly|killing|risk|avoid|corrupt)/i,
   /\b(warning|alert|urgent|breaking|exposed|banned|stopped)\b/i,
   /\bSTOP (using|taking|doing|buying)\b/i
+];
+
+// v6.8: Blacklisted sender domains (known spam mills)
+const blacklistedDomains = [
+  'financeinsiderpro.com', 'financebuzz', 'smartinvestmenttools',
+  'investorplace', 'weissratings', 'americanprofitinsight.com',
+  'saferetirementreports.com', 'thinkrichtoday.com',
+  'brightcrestcapital.com', 'turbotradepro.com',
+  'budgetingjournals.com', 'investorbusinesstalk.com'
 ];
 
 // Marketing format patterns (v6.0 expanded)
@@ -171,13 +180,35 @@ function analyzeEmail(subject, from, hasAmazonSES)
 {
   const signals = {
     bulkEmailService: hasAmazonSES,
+    blacklistedSender: false,
     clickbaitCount: 0,
     fearMongering: false,
     marketingFormat: false,
+    suspiciousFromName: false,
     matchedPatterns: []
   };
 
   const textToCheck = subject + ' ' + from;
+  const fromLower = from.toLowerCase();
+
+  // v6.8: Check blacklisted sender domains
+  for (let i = 0; i < blacklistedDomains.length; i++)
+  {
+    if (fromLower.includes(blacklistedDomains[i]))
+    {
+      signals.blacklistedSender = true;
+      signals.matchedPatterns.push('blacklist:' + blacklistedDomains[i]);
+      break;
+    }
+  }
+
+  // v6.8: Check From display name anomalies
+  const displayName = from.replace(/<[^>]*>$/, '').trim();
+  if (displayName.includes('•') || displayName.length > 50)
+  {
+    signals.suspiciousFromName = true;
+    signals.matchedPatterns.push('suspicious_from');
+  }
 
   // Check clickbait patterns
   for (let i = 0; i < clickbaitPatterns.length; i++)
@@ -212,40 +243,36 @@ function analyzeEmail(subject, from, hasAmazonSES)
   }
 
   // Decision logic
-  let isSpam = false;
-  let rule = '';
+
+  // v6.8 RULE 0: Bulk email + blacklisted sender = SPAM
+  if (signals.bulkEmailService && signals.blacklistedSender)
+  {
+    return { signals, isSpam: true, rule: 'RULE 0: Bulk + blacklisted sender' };
+  }
 
   if (signals.bulkEmailService && signals.clickbaitCount >= 2)
   {
-    isSpam = true;
-    rule = 'RULE 1: Bulk + 2+ clickbait';
+    return { signals, isSpam: true, rule: 'RULE 1: Bulk + 2+ clickbait' };
   }
-  else
+
+  // v6.8: suspiciousFromName counts as a behavior
+  let behaviorCount = 0;
+  if (signals.clickbaitCount >= 1) behaviorCount++;
+  if (signals.fearMongering) behaviorCount++;
+  if (signals.marketingFormat) behaviorCount++;
+  if (signals.suspiciousFromName) behaviorCount++;
+
+  if (signals.bulkEmailService && behaviorCount >= 2)
   {
-    let behaviorCount = 0;
-    if (signals.clickbaitCount >= 1) behaviorCount++;
-    if (signals.fearMongering) behaviorCount++;
-    if (signals.marketingFormat) behaviorCount++;
-
-    if (signals.bulkEmailService && behaviorCount >= 2)
-    {
-      isSpam = true;
-      rule = 'RULE 2: Bulk + 2+ behaviors';
-    }
-    else if (signals.bulkEmailService && signals.marketingFormat &&
-               (signals.clickbaitCount >= 1 || signals.fearMongering))
-    {
-      isSpam = true;
-      rule = 'RULE 3: Bulk + marketing + warning';
-    }
-    else if (signals.clickbaitCount >= 3)
-    {
-      isSpam = true;
-      rule = 'RULE 4: Extreme clickbait';
-    }
+    return { signals, isSpam: true, rule: 'RULE 2: Bulk + 2+ behaviors' };
   }
 
-  return { signals, isSpam, rule };
+  if (signals.clickbaitCount >= 3)
+  {
+    return { signals, isSpam: true, rule: 'RULE 3: Extreme clickbait' };
+  }
+
+  return { signals, isSpam: false, rule: '' };
 }
 
 // Main test
@@ -253,7 +280,7 @@ const spamDir = path.join(__dirname, 'spam_examples');
 const files = fs.readdirSync(spamDir).filter(f => f.endsWith('.eml'));
 
 console.log('='.repeat(80));
-console.log('SpamDetector v6.7 Test Results');
+console.log('SpamDetector v6.8 Test Results');
 console.log('='.repeat(80));
 console.log(`Testing ${files.length} spam examples...\n`);
 

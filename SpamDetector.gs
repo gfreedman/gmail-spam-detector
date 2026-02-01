@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.9.0
+ * @version 6.10.0
  *
  * Detects spam using behavioral patterns spammers can't easily change:
  * - Bulk email infrastructure (Amazon SES, SendGrid)
@@ -9,6 +9,13 @@
  * - Marketing sender format
  * - Blacklisted sender domains (known spam mills)
  * - Suspicious From-field anomalies (headline-like display names)
+ *
+ * v6.10.0: Fix spam destruction by using consistent REST API surface.
+ * destroySpam() now uses Gmail.Users.Messages.list() instead of
+ * GmailApp.getSpamThreads() — eliminates cross-API consistency lag that
+ * caused newly-flagged spam to be invisible to the destroy phase.
+ * Also adds max-iteration guard and batch-failure detection to prevent
+ * infinite loops when deletions fail.
  *
  * v6.9.0: Catch "polished" financial spam that avoids clickbait/fear patterns.
  * Blacklist expertmodernadvice, detect Unicode punctuation obfuscation
@@ -136,38 +143,76 @@ function processInbox()
 /**
  * Destroy all messages in spam folder
  * Runs after processInbox so messages have time to settle
+ *
+ * Uses Gmail REST API (Gmail.Users.Messages.list) instead of GmailApp.getSpamThreads()
+ * to stay on the same API surface as markAsSpam(). The GmailApp service has no
+ * consistency guarantee with the REST API — messages moved to spam via
+ * Gmail.Users.Messages.modify() may not appear in GmailApp.getSpamThreads() yet.
  */
 function destroySpam()
 {
   if (typeof Gmail === 'undefined' || !Gmail.Users || !Gmail.Users.Messages)
   {
-    logDebug('Gmail API not available for spam destruction');
+    logInfo('Gmail API not available for spam destruction');
     return;
   }
 
   let destroyed = 0;
-  let threads;
+  let iterations = 0;
+  const MAX_ITERATIONS = 10; // Safety: max 10 batches (~1000 messages) to prevent runaway loops
 
-  // Keep going until spam folder is empty (batch of 100 at a time)
-  while ((threads = GmailApp.getSpamThreads(0, 100)).length > 0)
+  while (iterations < MAX_ITERATIONS)
   {
-    for (let i = 0; i < threads.length; i++)
-    {
-      const messages = threads[i].getMessages();
+    iterations++;
 
-      for (let j = 0; j < messages.length; j++)
+    let response;
+    try
+    {
+      response = Gmail.Users.Messages.list('me', {
+        labelIds: ['SPAM'],
+        maxResults: 100
+      });
+    }
+    catch (e)
+    {
+      logError('Failed to list spam messages: ' + e.toString());
+      break;
+    }
+
+    if (!response.messages || response.messages.length === 0)
+    {
+      break; // Spam folder is empty
+    }
+
+    let batchDestroyed = 0;
+    for (let i = 0; i < response.messages.length; i++)
+    {
+      try
       {
-        try
-        {
-          Gmail.Users.Messages.remove('me', messages[j].getId());
-          destroyed++;
-        }
-        catch (e)
-        {
-          logError('Destroy error: ' + e.toString());
-        }
+        Gmail.Users.Messages.remove('me', response.messages[i].id);
+        destroyed++;
+        batchDestroyed++;
+      }
+      catch (e)
+      {
+        logError('Destroy error: ' + e.toString());
       }
     }
+
+    // If entire batch failed, stop — systematic issue (rate limit, permissions, etc.)
+    if (batchDestroyed === 0)
+    {
+      logError('Batch destruction failed entirely - stopping to avoid retry loop');
+      break;
+    }
+
+    // Brief pause between batches to respect rate limits
+    Utilities.sleep(500);
+  }
+
+  if (iterations >= MAX_ITERATIONS)
+  {
+    logInfo('Destroy hit max iterations (' + MAX_ITERATIONS + ') - spam folder may still have messages');
   }
 
   if (destroyed > 0)

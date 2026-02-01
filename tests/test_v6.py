@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test script for SpamDetector v6.8
+Test script for SpamDetector v6.9
 Tests all spam examples against the detection patterns
 """
 
@@ -70,6 +70,11 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'\b(gift card|tax lien|tax sale|foreclosure list|pre-?approved|instant approval|no annual fee)\b', re.I),
     # v6.7 NEW: "Now you can see/watch" exclusive access clickbait
     re.compile(r'\bnow you can (see|watch|view|get)\b', re.I),
+    # v6.9: Unicode punctuation obfuscation (lookalike slash characters)
+    # U+2215 DIVISION SLASH, U+2044 FRACTION SLASH, U+29F8 BIG SOLIDUS
+    re.compile(r'[\u2215\u2044\u29F8]'),
+    # v6.9: Financial product solicitation (aggressive credit/loan marketing)
+    re.compile(r'\b(0\s*%\s*(interest|apr)|balance transfer|transfer your.*(balance|debt))\b', re.I),
 ]
 
 # v6.0 Fear patterns (same as SpamDetector.gs)
@@ -88,6 +93,8 @@ BLACKLISTED_DOMAINS = [
     'saferetirementreports.com', 'thinkrichtoday.com',
     'brightcrestcapital.com', 'turbotradepro.com',
     'budgetingjournals.com', 'investorbusinesstalk.com',
+    # v6.9: Polished financial spam mill (aspirational language, no clickbait)
+    'expertmodernadvice',
 ]
 
 # Marketing format patterns (v6.0 expanded)
@@ -137,7 +144,7 @@ def parse_eml(filepath):
 
 
 def analyze_email(subject, from_field, has_amazon_ses):
-    """Analyze email using v6.8 detection logic."""
+    """Analyze email using v6.9 detection logic."""
     signals = {
         'bulk_email': has_amazon_ses,
         'blacklisted_sender': False,
@@ -228,7 +235,7 @@ def main():
     files = sorted([f for f in spam_dir.iterdir() if f.suffix == '.eml'])
 
     print('=' * 80)
-    print('SpamDetector v6.8 Test Results')
+    print('SpamDetector v6.9 Test Results')
     print('=' * 80)
     print(f'Testing {len(files)} spam examples...\n')
 

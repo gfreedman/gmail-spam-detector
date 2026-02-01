@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.8.0
+ * @version 6.9.0
  *
  * Detects spam using behavioral patterns spammers can't easily change:
  * - Bulk email infrastructure (Amazon SES, SendGrid)
@@ -9,6 +9,10 @@
  * - Marketing sender format
  * - Blacklisted sender domains (known spam mills)
  * - Suspicious From-field anomalies (headline-like display names)
+ *
+ * v6.9.0: Catch "polished" financial spam that avoids clickbait/fear patterns.
+ * Blacklist expertmodernadvice, detect Unicode punctuation obfuscation
+ * (division/fraction slash), and financial product solicitation patterns.
  *
  * v6.8.0: Blacklist hardening - suspicious domains now actively checked in
  * detection (bulk + blacklisted = spam). From-field anomaly detection catches
@@ -63,7 +67,9 @@ const DEFAULT_DOMAINS = Object.freeze({
     // v6.8: Additional spam mill domains identified from test corpus
     'saferetirementreports.com', 'thinkrichtoday.com',
     'brightcrestcapital.com', 'turbotradepro.com',
-    'budgetingjournals.com', 'investorbusinesstalk.com'
+    'budgetingjournals.com', 'investorbusinesstalk.com',
+    // v6.9: Polished financial spam mill (aspirational language, no clickbait)
+    'expertmodernadvice'
   ])
 });
 
@@ -474,7 +480,18 @@ function analyzeMessage(message)
       // v6.7: "NOW YOU CAN SEE/WATCH" EXCLUSIVE ACCESS CLICKBAIT
       // Promises exclusive access to hidden/restricted content
       // Catches: "Now You Can See It", "Now You Can Watch", etc.
-      /\bnow you can (see|watch|view|get)\b/i
+      /\bnow you can (see|watch|view|get)\b/i,
+
+      // v6.9: UNICODE PUNCTUATION OBFUSCATION (lookalike slash characters)
+      // Spammers use mathematical slash variants as separators to evade filters
+      // U+2215 DIVISION SLASH, U+2044 FRACTION SLASH, U+29F8 BIG SOLIDUS
+      // These are mathematical symbols — never legitimate in English email subjects
+      /[\u2215\u2044\u29F8]/,
+
+      // v6.9: FINANCIAL PRODUCT SOLICITATION
+      // Aggressive credit/loan marketing language used by financial spam mills
+      // Catches: "0% interest", "0% APR", "balance transfer", "transfer your balance/debt"
+      /\b(0\s*%\s*(interest|apr)|balance transfer|transfer your.*(balance|debt))\b/i
     ];
 
     // v6.0: Check BOTH subject AND from field for clickbait patterns

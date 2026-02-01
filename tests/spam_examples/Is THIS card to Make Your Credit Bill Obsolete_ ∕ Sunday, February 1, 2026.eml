@@ -1,0 +1,580 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:81e:b0:1b3:596f:ddda with SMTP id 30csp967459rdg;
+        Sat, 31 Jan 2026 16:34:15 -0800 (PST)
+X-Received: by 2002:a05:6214:20e5:b0:894:6f51:fc2f with SMTP id 6a1803df08f44-894ea0d7871mr112939066d6.47.1769906054677;
+        Sat, 31 Jan 2026 16:34:14 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1769906054; cv=none;
+        d=google.com; s=arc-20240605;
+        b=dFFMwZFL0GRKFIG5QXg37ar+gVx0rmyg+wjbga0en36BC/HiVbNqY+VmCeQPXcC16k
+         L5JDwH/t6mrlKUyOIl2BGQYFpwOSXxEeD6uQ96k/LRyncZn3NlD58tbh5Bg8VHoCWa8i
+         Wn238scP+cJPXtxP4hS9EWWnvK9CzsM+riOIsxs6oaZurabo3lRLJUMWQtaNM4ny4RbV
+         gxQZ1L1rXy/UtESGWczguzeMfnpOp6/TIDHK18IGKaqHwGDvAXcoZXZdhSsm1dAVG0nd
+         C+f42ksJWMYMjuV8qvQ7NBBhotizRcec2yGguYyDzaDTwhaYLkND4riw2YTEMWi0fR71
+         XCPw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=wjsOBH47LUYkg4zs0B/gGTN0UPlox1Solkxi1JmK65M=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=dGN8Z957JoiWTSP9xTcZ+VtPyvCluvAxz1R65BhnVrGQW7gbHnTsoDV/jHl0RFhp0S
+         KfO+x+lgWVnKl/sjqqS5i29woL6/ShacOjlUzjK7VRj5jHiA+pxb62Gp73Q7I8ulILPv
+         6qE6Pl9v2L4gbHc5nxpxWwTmp5RykMwF9Mtp5B86XF0BTXcxIbhGQDN0pT40eZICBvEg
+         cB9XkAUQcGLbYPVBvC2401YU1UXELRK8LDEksdBNruLwDhJ9vZxU7PMyI6Vp+m1jIozU
+         yjaX6X/NGejRGlWigtAOJ7Hv3cuQOi6Y04lNHK4R90TzEsHqp2rDbHvfDa8SBufOTi+a
+         yecQ==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@your.expertmodernadvice.com header.s=inqs5r2arokxo7ov4svsz2xinq5jr2cq header.b="aZG/YtkF";
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=Oy1bpC0O;
+       spf=pass (google.com: domain of 0100019c169f243c-09b95cc9-fb6e-4dbf-b492-7479b3932f1c-000000@amazonses.com designates 23.251.255.168 as permitted sender) smtp.mailfrom=0100019c169f243c-09b95cc9-fb6e-4dbf-b492-7479b3932f1c-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=your.expertmodernadvice.com
+Return-Path: <0100019c169f243c-09b95cc9-fb6e-4dbf-b492-7479b3932f1c-000000@amazonses.com>
+Received: from e255-168.smtp-out.amazonses.com (e255-168.smtp-out.amazonses.com. [23.251.255.168])
+        by mx.google.com with ESMTPS id 6a1803df08f44-894d3836dcdsi144371426d6.602.2026.01.31.16.34.14
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sat, 31 Jan 2026 16:34:14 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019c169f243c-09b95cc9-fb6e-4dbf-b492-7479b3932f1c-000000@amazonses.com designates 23.251.255.168 as permitted sender) client-ip=23.251.255.168;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@your.expertmodernadvice.com header.s=inqs5r2arokxo7ov4svsz2xinq5jr2cq header.b="aZG/YtkF";
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=Oy1bpC0O;
+       spf=pass (google.com: domain of 0100019c169f243c-09b95cc9-fb6e-4dbf-b492-7479b3932f1c-000000@amazonses.com designates 23.251.255.168 as permitted sender) smtp.mailfrom=0100019c169f243c-09b95cc9-fb6e-4dbf-b492-7479b3932f1c-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=your.expertmodernadvice.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=inqs5r2arokxo7ov4svsz2xinq5jr2cq; d=your.expertmodernadvice.com;
+	t=1769906054;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=79+aSLh7+M1T0OAmaPuYqCOwnloDp8/tL77mRhNyUjo=;
+	b=aZG/YtkFT97ORSTDysZsJW7yw4CE6q0a8ZUgONZ4CuIbImps6TpnX5lJlF3x97PY
+	oCm/lVXXJLyLHwJZTWYCYRhJpmsYQ7v06zzKHPcUgC4Q/o71LWP1WT3dBWqvL+M6W3r
+	PZ0XM2fvYFxIUebemdnLxGFI1AnaqiGm7g2xqAER/cf3iaGSpQM3yHM/jU/IfleBVTg
+	ZcfOsnWMcbvEgYkYQbK2ENZZyEIMQg+w3uY0KrFt1i4UyAd9mpMoCpODUlab7cX7GBE
+	XU07gjgd/zaza6c7J2MpTEwzjq7bT6I1IKIkq9I7+/UjLc+QqGRLL8ElKLO0LWp13pE
+	LxEi2JBZog==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1769906054;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=79+aSLh7+M1T0OAmaPuYqCOwnloDp8/tL77mRhNyUjo=;
+	b=Oy1bpC0O/Mqny4BTfYkS3H/DQ6EbdizbKOT+9sJ6EuaH28OIamNQtUk3NmYPsjXP
+	coiBcUiX6bhX65BQJ+46GAzO4BvP/QiUSMQg0Lj+o21DMEy0Je9Jn6Ns3iqFD//bmlu
+	Xq6r6laJTU4UCQKVK5OLWllwdEqKiOQKlCkmmsRI=
+Date: Sun, 1 Feb 2026 00:34:14 +0000
+From: "Top 0% Interest Cards, Expert Modern Advice" <choose@your.expertmodernadvice.com>
+Reply-To: support@expertmodernadvice.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019c169f243c-09b95cc9-fb6e-4dbf-b492-7479b3932f1c-000000@email.amazonses.com>
+Subject: =?UTF-8?Q?Is_THIS_card_to_Make_Your_Credit_Bill_?=
+ =?UTF-8?Q?Obsolete=3F__=E2=88=95__Sunday,_February_1,_2026?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_1411_1325855107.1769906054181"
+X-Campaign-ID: 16695592
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=94661ae4396f419ea63fc5b6cb313943&_s=29483dc5f02442508b816b619991cc3e&_t=983baazH37Lbdn7uBIjTgGz8VYNKQyDaJjAfGZvBjeBdlzlTe-WndcsIIXo3KWbtpTffOEV8NgsyGUpTQVqgaRAm6fNUl2LhPiDoLAqHsQ_TmPwGG7bEug_ru9lYEY2T>,<mailto:unsubscribe+16695592+21730683@unsubscribe.iterable.com>
+X-Feedback-ID: 21730683:16695592:80693:iterable
+X-Message-ID: 29483dc5f02442508b816b619991cc3e
+X-SES-Outgoing: 2026.02.01-23.251.255.168
+
+------=_Part_1411_1325855107.1769906054181
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Take your credit card. Hold it up. Now imagine lighting it on fire =E2=80=
+=94 watching=20
+years of interest charges go up in smoke.
+
+
+
+ <https://expertmodernadvice.com>
+
+=E2=80=8A
+
+
+
+=20
+<https://track.expertmodernadvice.com/d455e102-6403-49ac-a857-76ffb4ff42b6?=
+email=3Dgeoff.c.freedman@gmail.com&domain=3D262EMA&type=3DB&copy=3DIMG1286_=
+636>
+ Take your credit card.
+
+Hold it up.
+
+Now imagine lighting it on fire =E2=80=94 watching years of interest charge=
+s go up in=20
+smoke.
+
+Feels good, doesn=E2=80=99t it?
+
+Right now, you can transfer your balance to one of these credit cards offer=
+ing=20
+0% interest for up to 21 months.
+
+That=E2=80=99s nearly two years with no interest while you finally crush th=
+e balance=20
+that=E2=80=99s been burning through your paycheck.
+
+Here=E2=80=99s the move:
+
+ * Transfer your high-interest debt =E2=80=94 0% APR for up to 21 months=20
+ * Pay it down, dollar for dollar, while interest is frozen=20
+ * Keep your cash instead of feeding the banks  You could save hundreds =E2=
+=80=94 even=20
+thousands in wasted payments.
+
+Click here to see the top 0% interest cards before this window closes.=20
+<https://track.expertmodernadvice.com/d455e102-6403-49ac-a857-76ffb4ff42b6?=
+email=3Dgeoff.c.freedman@gmail.com&domain=3D262EMA&type=3DB&copy=3DIMG1286_=
+636>
+This is an advertisement.
+
+This email contains references to products from one or more of our=20
+advertisers. FinanceBuzz is an informational website that provides tips,=20
+advice, and recommendations to help you make financial decisions. We strive=
+ to=20
+provide up-to-date information, but make no warranties regarding the accura=
+cy=20
+of our information.
+
+Ultimately, you are responsible for your financial decisions. FinanceBuzz i=
+s=20
+not a financial institution and does not provide credit cards or any other=
+=20
+financial products. FinanceBuzz does not make any credit decisions. We may=
+=20
+receive compensation from the products and services mentioned in this email=
+.
+
+Please click here <https://financebuzz.com/unsub> to opt out of future emai=
+ls=20
+from FinanceBuzz.
+
+111 E. Atlantic Ave., Suite 200 Delray Beach, FL =E2=80=8A
+ <https://expertmodernadvice.com/>
+
+=E2=80=8A
+
+ExpertModernAdvice.com brought to you by Inception Media, LLC.
+
+
+This educational newsletter was sent to geoff.c.freedman@gmail.com . If you=
+ no=20
+longer wish to receive marketing communication from us, pleaseunsubscribe h=
+ere=20
+<https://links.iterable.com/e/encryptedUnsubscribe?_r=3D94661ae4396f419ea63=
+fc5b6cb313943&_s=3D29483dc5f02442508b816b619991cc3e&_t=3D983baazH37Lbdn7uBI=
+jTgGz8VYNKQyDaJjAfGZvBjeBdlzlTe-WndcsIIXo3KWbtpTffOEV8NgsyGUpTQVqgaRAm6fNUl=
+2LhPiDoLAqHsQ_TmPwGG7bEug_ru9lYEY2T>
+.
+
+
+Feel free to email us support@expertmodernadvice.com=20
+<mailto:support@expertmodernadvice.com>. You'll receive response within 24=
+=20
+hours.
+
+
+ <https://expertmodernadvice.com/privacy-policy-2/>
+=20
+<https://links.iterable.com/e/encryptedUnsubscribe?_r=3D94661ae4396f419ea63=
+fc5b6cb313943&_s=3D29483dc5f02442508b816b619991cc3e&_t=3D983baazH37Lbdn7uBI=
+jTgGz8VYNKQyDaJjAfGZvBjeBdlzlTe-WndcsIIXo3KWbtpTffOEV8NgsyGUpTQVqgaRAm6fNUl=
+2LhPiDoLAqHsQ_TmPwGG7bEug_ru9lYEY2T>
+
+We appreciate your comments and inquiries. Please be aware that Inception=
+=20
+Media, LLC is not authorized to offer personalized financial advice. This=
+=20
+message should not be considered financial advice, and any investment decis=
+ions=20
+are made solely at your own risk and responsibility.
+
+
+600 N Broad St Ste 5 PMB 1 Middletown, DE 19709
+
+
+
+2026 Inception Media, LLC. All rights reserved
+
+=E2=80=8A
+------=_Part_1411_1325855107.1769906054181
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: bo=
+rder-box;"><head><title></title><meta http-equiv=3D"Content-Type" content=
+=3D"text/html; charset=3Dutf-8"><meta name=3D"viewport" content=3D"width=3D=
+device-width,initial-scale=3D1"><!--[if mso]><xml><w:WordDocument xmlns:w=
+=3D"urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyRead=
+ingMail/></w:WordDocument> <o:OfficeDocumentSettings><o:PixelsPerInch>96</o=
+:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]--><s=
+tyle>*{box-sizing:border-box}body{margin:0;padding:0}a[x-apple-data-detecto=
+rs]{color:inherit!important;text-decoration:inherit!important}#MessageViewB=
+ody a{color:inherit;text-decoration:none}p{line-height:inherit}.desktop_hid=
+e,.desktop_hide table{mso-hide:all;display:none;max-height:0;overflow:hidde=
+n}.image_block img+div{display:none}sub,sup{font-size:75%;line-height:0}@me=
+dia(max-width:720px){.image_block div.fullWidth{max-width:100%!important}.m=
+obile_hide{display:none}.row-content{width:100%!important}.stack .column{wi=
+dth:100%;display:block}.mobile_hide{min-height:0;max-height:0;max-width:0;o=
+verflow:hidden;font-size:0}.desktop_hide,.desktop_hide table{display:table!=
+important;max-height:none!important}}</style><!--[if mso ]><style>sup,sub{f=
+ont-size:100%!important}sup{mso-text-raise:10%}sub{mso-text-raise:-10%}</st=
+yle><![endif]--></head><body class=3D"body" style=3D"box-sizing: border-box=
+; background-color: #e2e8e8; margin: 0; padding: 0; -webkit-text-size-adjus=
+t: none; text-size-adjust: none;"><span style=3D"color:transparent;visibili=
+ty:hidden;display:none;opacity:0;height:0;width:0;font-size:0;">Take your c=
+redit card. Hold it up. Now imagine lighting it on fire =E2=80=94 watching =
+years of interest charges go up in smoke.</span><img src=3D"https://links.i=
+terable.com/e/eo?_t=3D94661ae4396f419ea63fc5b6cb313943&amp;_m=3D29483dc5f02=
+442508b816b619991cc3e&amp;_e=3D983baazH37Lbdn7uBIjTgGz8VYNKQyDaJjAfGZvBjeBd=
+lzlTe-WndcsIIXo3KWbtpTffOEV8NgsyGUpTQVqgaRAm6fNUl2LhPiDoLAqHsQ8Qw1FM82sF4t4=
+Bjjx88XJPF2ZIZYiHTYVTS98z_Cgw0w%3D%3D" style=3D"border:0;width:1px;height:1=
+px;border-width:0px!important;display:none!important;line-height:0!importan=
+t;" width=3D"1" height=3D"1"/><table class=3D"nl-container" width=3D"100%" =
+border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" styl=
+e=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; back=
+ground-color: #e2e8e8;" bgcolor=3D"#e2e8e8"><tbody style=3D"box-sizing: bor=
+der-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing: bo=
+rder-box;"><table class=3D"row row-1" align=3D"center" width=3D"100%" borde=
+r=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"=
+box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tbody s=
+tyle=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td =
+style=3D"box-sizing: border-box;"><table class=3D"row-content stack" align=
+=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presen=
+tation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rsp=
+ace: 0; border-radius: 0; color: #000; width: 700px; margin: 0 auto;" width=
+=3D"700"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: =
+border-box;"><td class=3D"column column-1" width=3D"100%" style=3D"box-sizi=
+ng: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400;=
+ text-align: left; vertical-align: top;" align=3D"left" valign=3D"top"><tab=
+le class=3D"image_block block-1" width=3D"100%" border=3D"0" cellpadding=3D=
+"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box=
+; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: borde=
+r-box;"><td class=3D"pad" style=3D"box-sizing: border-box; width: 100%; pad=
+ding-right: 0; padding-left: 0;" width=3D"100%"><div class=3D"alignment" al=
+ign=3D"center" style=3D"box-sizing: border-box;"><div class=3D"fullWidth" s=
+tyle=3D"box-sizing: border-box; max-width: 700px;"><a href=3D"https://links=
+.iterable.com/u/click?_t=3D94661ae4396f419ea63fc5b6cb313943&_m=3D29483dc5f0=
+2442508b816b619991cc3e&_e=3DINe_GfObiTkQQvXKZER1wDu61pZz_SQvZyLyImlC1Myxvoh=
+osCC100uVeqcLIKxSUz_jgdlvgeGdcMxBlTrEgSsIE17czpGhre4qjleFC71H6CmHaE17DD_hBe=
+SENWvzny9QVa9LXse0SIIlbMxzk8TERcuofhwnVUwiUeW8IuDK69e0EJ5QrHrJSeEVcsk6esUBQ=
+YpoKbqVp8XKr8zZNOlD5nctr_JibyBw3MReCL6tuuLavFPkRptvS0VdruGcr2yVGm955ODhGWw4=
+FKWmGXap-vI3azwIRNlg0gO1HhfwgyuXRvEhhpoYJAvs79wC8cEW2QupaFC1h8M88yrkrw%3D%3=
+D" target=3D"_blank" style=3D"box-sizing: border-box;"><img src=3D"https://=
+d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-b=
+d7e-c542cff6dd6a/94661ae4396f419ea63fc5b6cb313943/Header%20%287%29.png" sty=
+le=3D"box-sizing: border-box; display: block; height: auto; border: 0; widt=
+h: 100%;" width=3D"700" alt=3D"ExpertModernAdvice - logo" title=3D"ExpertMo=
+dernAdvice - logo" height=3D"auto"></a></div></div></td></tr></table></td><=
+/tr></tbody></table></td></tr></tbody></table><table class=3D"row row-2" al=
+ign=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D=
+"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace=
+: 0; mso-table-rspace: 0; background-size: auto;"><tbody style=3D"box-sizin=
+g: border-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizi=
+ng: border-box;"><table class=3D"row-content stack" align=3D"center" border=
+=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"b=
+ox-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background=
+-size: auto; background-color: #fff; border-radius: 0; color: #000; width: =
+700px; margin: 0 auto;" width=3D"700" bgcolor=3D"#fff"><tbody style=3D"box-=
+sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td class=3D"col=
+umn column-1" width=3D"100%" style=3D"box-sizing: border-box; mso-table-lsp=
+ace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; vertical-a=
+lign: top;" align=3D"left" valign=3D"top"><div class=3D"spacer_block block-=
+1" style=3D"box-sizing: border-box; height: 25px; line-height: 25px; font-s=
+ize: 1px;">&#8202;</div><table class=3D"html_block block-2" width=3D"100%" =
+border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" styl=
+e=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr=
+ style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: b=
+order-box;"><div style=3D"box-sizing: border-box; font-family: Arial,Helvet=
+ica Neue,Helvetica,sans-serif; text-align: center;" align=3D"center"><div s=
+tyle=3D"box-sizing: border-box; background-color: #ffffff; font-family: 'Ta=
+homa', Arial, Helvetica, sans-serif; max-width: 707px;"> <div style=3D"box-=
+sizing: border-box; margin: 0px auto; font-family: 'Tahoma', Arial, Helveti=
+ca, sans-serif; max-width: 707px;"> <table align=3D"center" border=3D"0" ce=
+llpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing=
+: border-box; width: 100%; font-family: 'Tahoma', Arial, Helvetica, sans-se=
+rif; max-width: 707px;" width=3D"100%"> <tbody style=3D"box-sizing: border-=
+box; max-width: 707px;"> <tr style=3D"box-sizing: border-box;"> <td style=
+=3D"box-sizing: border-box; direction: ltr; font-size: 0px; padding: 20px 0=
+; text-align: center; font-family: 'Tahoma', Arial, Helvetica, sans-serif; =
+max-width: 707px;" align=3D"center"> <div class=3D"mj-column-per-100 mj-out=
+look-group-fix" style=3D"box-sizing: border-box; font-size: 0px; text-align=
+: left; direction: ltr; display: inline-block; vertical-align: top; width: =
+100%; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 707px=
+;"> <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"present=
+ation" style=3D"box-sizing: border-box; vertical-align: top; font-family: '=
+Tahoma', Arial, Helvetica, sans-serif; max-width: 707px;" width=3D"100%" va=
+lign=3D"top"> <tbody style=3D"box-sizing: border-box; max-width: 707px;"> <=
+tr style=3D"box-sizing: border-box;"> <td align=3D"center" style=3D"box-siz=
+ing: border-box; font-size: 0px; padding: 11px 26px; word-break: break-word=
+; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 707px;"> =
+<table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentatio=
+n" style=3D"box-sizing: border-box; border-collapse: collapse; border-spaci=
+ng: 0px; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 70=
+7px;"> <tbody style=3D"box-sizing: border-box; max-width: 707px;"> <tr styl=
+e=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border-box; width: =
+550px; font-family: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 707p=
+x;" width=3D"550"> <a href=3D"https://links.iterable.com/u/click?_t=3D94661=
+ae4396f419ea63fc5b6cb313943&_m=3D29483dc5f02442508b816b619991cc3e&_e=3DINe_=
+GfObiTkQQvXKZER1wOEB_k1vGj-YBUczBSAI150e8T28DDTS18gjABQt049gapmXCftTUlnpX34=
+i8jmcR-HczdjJw4BoWJQIv4V2DAmfvGI643brK0bECa-h1pJIjQg2nQOXsU7AAX7d4-V1tF4J3m=
+7lMFwfHAqwivC57Ho3hlJl6CYW-6d-RFPSVg0sDmK0z3tve5uiAQ8sSyBN3ldD0QctUDiLdQDA_=
+PLr-mJd2vbTsJb5gUpr-MayTfVvYemMYdMT2uVxEYpG8NemaHsakMdq7L7RZx5WsSVY1MyUzmaV=
+nmWDaIgET8EZL4HKyacSkrECosHBMBGyYBZAkY5_SV_ddHQgo80A2V7opdY7ToX4HxsU0tT9K7i=
+1ix-xWyG-3DcLBBIa1rkr7Z5xrl45EuRWn3j1P5DRDhwPEN_zmWdP_AOwrlBkp2bqpGdJQhMvRM=
+xkW_rMZTFZnhbPcWqf89LOd7M3bzeP8rQhEnPtPlR7vsg7aoB0dzE_AQoiL_XKyEvbER2oiWmCa=
+S3l82f2NtAy8OoUqp2ePN15KjcXoxDfX8zcgaDuyyq5Fmbw98fU5Qx5kVtpWWiDP2N3HatqeayH=
+NBYNbxWfK7w2XTc5XjA1LaFKrZvoO8Qhea4f" target=3D"_blank" style=3D"box-sizing=
+: border-box; font-family: 'Tahoma', Arial, Helvetica, sans-serif;"> <img a=
+lt=3D"Video preview" src=3D"https://library.iterable.com/2798/18948/8ae3d02=
+d49b948a78339500584d141f0-msmxlsm.png" style=3D"box-sizing: border-box; bor=
+der: 0; display: block; outline: none; text-decoration: none; height: auto;=
+ width: 100%; font-size: 13px;" width=3D"550" height=3D"auto"> </a> </td> <=
+/tr> </tbody> </table> </td> </tr> <tr style=3D"box-sizing: border-box;"> <=
+td align=3D"left" style=3D"box-sizing: border-box; font-size: 0px; padding:=
+ 11px 26px; word-break: break-word; font-family: 'Tahoma', Arial, Helvetica=
+, sans-serif; max-width: 707px;"> <div style=3D"box-sizing: border-box; fon=
+t-style: normal; font-weight: normal; line-height: 1.5; text-align: left; c=
+olor: #232322; font-family: 'Tahoma', Arial, Helvetica, sans-serif; font-si=
+ze: 21px; max-width: 707px;"> Take your credit card.<br style=3D"box-sizing=
+: border-box;"><br style=3D"box-sizing: border-box;">Hold it up.<br style=
+=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;">Now imag=
+ine lighting it on fire =E2=80=94 watching years of <b style=3D"box-sizing:=
+ border-box;">interest charges</b> go up in smoke.<br style=3D"box-sizing: =
+border-box;"><br style=3D"box-sizing: border-box;">Feels good, doesn=E2=80=
+=99t it?<br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: bord=
+er-box;">Right now, you can transfer your balance to one of <b style=3D"box=
+-sizing: border-box;">these credit cards</b> offering <b style=3D"box-sizin=
+g: border-box;">0% interest for up to 21 months.</b><br style=3D"box-sizing=
+: border-box;"><br style=3D"box-sizing: border-box;">That=E2=80=99s nearly =
+<b style=3D"box-sizing: border-box;">two years</b> with <em style=3D"box-si=
+zing: border-box;">no interest</em> while you finally crush the balance tha=
+t=E2=80=99s been burning through your paycheck.<br style=3D"box-sizing: bor=
+der-box;"><br style=3D"box-sizing: border-box;">Here=E2=80=99s the move:<br=
+ style=3D"box-sizing: border-box;"> <ul style=3D"box-sizing: border-box;"> =
+<li style=3D"box-sizing: border-box;">Transfer your high-interest debt =E2=
+=80=94 <b style=3D"box-sizing: border-box;">0% APR for up to 21 months</b><=
+/li> <li style=3D"box-sizing: border-box;">Pay it down, dollar for dollar, =
+while interest is frozen</li> <li style=3D"box-sizing: border-box;">Keep yo=
+ur cash instead of feeding the banks</li> </ul> You could save <b style=3D"=
+box-sizing: border-box;">hundreds =E2=80=94 even thousands</b> in wasted pa=
+yments.<br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: borde=
+r-box;"><a href=3D"https://links.iterable.com/u/click?_t=3D94661ae4396f419e=
+a63fc5b6cb313943&_m=3D29483dc5f02442508b816b619991cc3e&_e=3DINe_GfObiTkQQvX=
+KZER1wOEB_k1vGj-YBUczBSAI150e8T28DDTS18gjABQt049gapmXCftTUlnpX34i8jmcR-Hczd=
+jJw4BoWJQIv4V2DAmfvGI643brK0bECa-h1pJIjQg2nQOXsU7AAX7d4-V1tF4J3m7lMFwfHAqwi=
+vC57Ho3hlJl6CYW-6d-RFPSVg0sDmK0z3tve5uiAQ8sSyBN3g8O38DeYOP8w9UOqBox_kI0mHxk=
+O6ZllROnlw313pvHxegsH3XAWOl8KhXZyFzB9NgF7BjZ6mSRRehEiwDBtmsat3J05hI8VuyxQfy=
+CD5lEKZpyFUWtN32VLdvCrsIGQjwHc-EXxqZVM1mDUN_Fv6ggqyChwJCEPeDnV5JFElZ0PexVo3=
+XghjocVS0aI1J4Wd--pFtk851PlOHSIfv_lEQRo_4VJWX1rcSjWJvNK3HClcLUP9xzc874oBnLa=
+kXGSfQdd-I-AdyomCvbSFgu_5hMk7gV1z1SEO3ku19UAs-fimXhp8FQnbDCzlh3d0VllusuypMY=
+2kySQMZHugtBLfJBJlqeDbf7YX5JcaH86cq5cX6J5Ng0rBDT87fkyR0uHGHEm6x6tGq18rd-p_i=
+jJHGw2YHIaU8i9dhRws1bYiyb" style=3D"box-sizing: border-box; text-decoration=
+: underline; font-weight: 700; font-family: 'Tahoma', Arial, Helvetica, san=
+s-serif; color: #074aa8;">Click here to see the top 0% interest cards befor=
+e this window closes.</a> </div> </td> </tr> <tr style=3D"box-sizing: borde=
+r-box;"> <td align=3D"center" style=3D"box-sizing: border-box; font-size: 0=
+px; padding: 11px 26px; padding-top: 34px; word-break: break-word; font-fam=
+ily: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 707px;"> <div style=
+=3D"box-sizing: border-box; font-size: 10px; font-style: normal; font-weigh=
+t: normal; line-height: 1.5; text-align: center; color: #232322; font-famil=
+y: 'Tahoma', Arial, Helvetica, sans-serif; max-width: 707px;"> <em style=3D=
+"box-sizing: border-box;">This is an advertisement.</em><br style=3D"box-si=
+zing: border-box;"><br style=3D"box-sizing: border-box;"><em style=3D"box-s=
+izing: border-box;">This email contains references to products from one or =
+more of our advertisers. FinanceBuzz is an informational website that provi=
+des tips, advice, and recommendations to help you make financial decisions.=
+ We strive to provide up-to-date information, but make no warranties regard=
+ing the accuracy of our information.</em><br style=3D"box-sizing: border-bo=
+x;"><br style=3D"box-sizing: border-box;"><em style=3D"box-sizing: border-b=
+ox;">Ultimately, you are responsible for your financial decisions. FinanceB=
+uzz is not a financial institution and does not provide credit cards or any=
+ other financial products. FinanceBuzz does not make any credit decisions. =
+We may receive compensation from the products and services mentioned in thi=
+s email.</em><br style=3D"box-sizing: border-box;"><br style=3D"box-sizing:=
+ border-box;"><em style=3D"box-sizing: border-box;">Please</em> <a href=3D"=
+https://links.iterable.com/u/click?_t=3D94661ae4396f419ea63fc5b6cb313943&_m=
+=3D29483dc5f02442508b816b619991cc3e&_e=3DINe_GfObiTkQQvXKZER1wCgOmK8tZ3047N=
+Wkd0sAAkNDlToC4vYRRbiQZJ4a1iqgx9PswLLeIFx8glvjsluVdTYGk0u0C_wpWGgeHBDMZtUXA=
+fAXw8LPKBSYZKrAa3RaxPL49nvTh43SfvzJ6N-Xtxt4ISEZdcVQv3PjqGljHdauDJULOwrljTjv=
+gHvUMS-HB-xnPD-5T0vBG6E9M4vODDl504FSe04K1KQNJwhYbyo9hkFO2vMajwdGCpxOmvU5daI=
+mS_EsGhAplzFoU44vmm4YFKiOxJ-9FV3kxNyi__6UyKiL9O8Pf0ATRCmwWC_IykXWK3HL8Ll-P3=
+ekjqFbVw%3D%3D" style=3D"box-sizing: border-box; text-decoration: underline=
+; font-weight: 700; font-family: 'Tahoma', Arial, Helvetica, sans-serif; co=
+lor: #074aa8;">click here</a><em style=3D"box-sizing: border-box;"> to opt =
+out of future emails from FinanceBuzz.</em><br style=3D"box-sizing: border-=
+box;"><br style=3D"box-sizing: border-box;"><em style=3D"box-sizing: border=
+-box;">111 E. Atlantic Ave., Suite 200 Delray Beach, FL</em> </div> </td> <=
+/tr> </tbody> </table> </div> </td> </tr> </tbody> </table> </div> </div> <=
+/div></td> </tr></table><div class=3D"spacer_block block-3" style=3D"box-si=
+zing: border-box; height: 20px; line-height: 20px; font-size: 1px;">&#8202;=
+</div><table class=3D"image_block block-4" width=3D"100%" border=3D"0" cell=
+padding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: =
+border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-siz=
+ing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; width:=
+ 100%;" width=3D"100%"><div class=3D"alignment" align=3D"left" style=3D"box=
+-sizing: border-box;"><div style=3D"box-sizing: border-box; max-width: 700p=
+x;"><a href=3D"https://links.iterable.com/u/click?_t=3D94661ae4396f419ea63f=
+c5b6cb313943&_m=3D29483dc5f02442508b816b619991cc3e&_e=3DINe_GfObiTkQQvXKZER=
+1wDu61pZz_SQvZyLyImlC1Mxe5rzapMTICDTpaAjdgHiCYXdapGOwOPvUuH2PoDthw52mJdLJE9=
+bAYL2cxcN4IZ9kEuDVR-_g1sIAGj_eR_X2Cl_fd3iLMzSwDQC46nbdRYP_8AGuhHEyEbzzgsLaq=
+EsCoMvcbHyPV6lYKL9fOwI6ecXRmijwhJMvo73nC2KtZMo4m41LMGTSvyZbHwpDkxuNpogDaFwt=
+gqFkcXWlgdOK3-vkRGPUPryZ-j5cix_fVtLasy9CEB9ejqQxbipgpeo4P4PWDBdix7RqHAJ9x6f=
+k0OhB0K9_bTirjxsNmculXA%3D%3D" target=3D"_blank" style=3D"box-sizing: borde=
+r-box;"><img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Inte=
+grators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/94661ae4396f419ea63fc5b6cb3139=
+43/Footer%20logo.png" style=3D"box-sizing: border-box; display: block; heig=
+ht: auto; border: 0; width: 100%;" width=3D"700" alt=3D"ExpertModernAdvice =
+footer logo (Advice)" title=3D"ExpertModernAdvice footer logo (Advice)" hei=
+ght=3D"auto"></a></div></div></td></tr></table></td></tr></tbody></table></=
+td></tr></tbody></table><table class=3D"row row-3" align=3D"center" width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspac=
+e: 0; background-size: auto;"><tbody style=3D"box-sizing: border-box;"><tr =
+style=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"><ta=
+ble class=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-=
+box; mso-table-lspace: 0; mso-table-rspace: 0; background-size: auto; backg=
+round-color: #272727; border-radius: 0; color: #000; width: 700px; margin: =
+0 auto;" width=3D"700" bgcolor=3D"#272727"><tbody style=3D"box-sizing: bord=
+er-box;"><tr style=3D"box-sizing: border-box;"><td class=3D"column column-1=
+" width=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-=
+table-rspace: 0; font-weight: 400; text-align: left; vertical-align: top;" =
+align=3D"left" valign=3D"top"><div class=3D"spacer_block block-1" style=3D"=
+box-sizing: border-box; height: 20px; line-height: 20px; font-size: 1px;">&=
+#8202;</div><table class=3D"text_block block-2" width=3D"100%" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; word-break: brea=
+k-word;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"b=
+ox-sizing: border-box; padding-bottom: 5px; padding-left: 25px; padding-rig=
+ht: 25px; padding-top: 5px;"><div style=3D"box-sizing: border-box; font-fam=
+ily: Tahoma,sans-serif;"><div class style=3D"box-sizing: border-box; font-s=
+ize: 14px; font-family: 'Trebuchet MS','Lucida Grande','Lucida Sans Unicode=
+','Lucida Sans',Tahoma,sans-serif; mso-line-height-alt: 21px; color: #f5f5f=
+5; line-height: 1.5;"><p style=3D"box-sizing: border-box; line-height: inhe=
+rit; margin: 0; font-size: 14px; text-align: left; mso-line-height-alt: 21p=
+x; letter-spacing: normal;">ExpertModernAdvice.com brought to you by Incept=
+ion Media, LLC.</p></div></div></td></tr></table><table class=3D"text_block=
+ block-3" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" r=
+ole=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; =
+mso-table-rspace: 0; word-break: break-word;"><tr style=3D"box-sizing: bord=
+er-box;"><td class=3D"pad" style=3D"box-sizing: border-box; padding-bottom:=
+ 5px; padding-left: 25px; padding-right: 25px; padding-top: 5px;"><div styl=
+e=3D"box-sizing: border-box; font-family: Tahoma,sans-serif;"><div class st=
+yle=3D"box-sizing: border-box; font-size: 14px; font-family: 'Trebuchet MS'=
+,'Lucida Grande','Lucida Sans Unicode','Lucida Sans',Tahoma,sans-serif; mso=
+-line-height-alt: 21px; color: #f5f5f5; line-height: 1.5;"><p style=3D"box-=
+sizing: border-box; line-height: inherit; margin: 0; font-size: 14px; text-=
+align: left; mso-line-height-alt: 21px; letter-spacing: normal;">This educa=
+tional newsletter was sent to geoff.c.freedman@gmail.com&nbsp;. If you no l=
+onger wish to receive marketing communication from us, please&nbsp;<a href=
+=3D"https://links.iterable.com/e/encryptedUnsubscribe?_r=3D94661ae4396f419e=
+a63fc5b6cb313943&_s=3D29483dc5f02442508b816b619991cc3e&_t=3D983baazH37Lbdn7=
+uBIjTgGz8VYNKQyDaJjAfGZvBjeBdlzlTe-WndcsIIXo3KWbtpTffOEV8NgsyGUpTQVqgaRAm6f=
+NUl2LhPiDoLAqHsQ_TmPwGG7bEug_ru9lYEY2T" target=3D"_blank" rel=3D"noopener" =
+style=3D"box-sizing: border-box; text-decoration: underline; color: #ffffff=
+;">unsubscribe here</a>.</p></div></div></td></tr></table><table class=3D"t=
+ext_block block-4" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacin=
+g=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-ls=
+pace: 0; mso-table-rspace: 0; word-break: break-word;"><tr style=3D"box-siz=
+ing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; paddin=
+g-bottom: 5px; padding-left: 25px; padding-right: 25px; padding-top: 5px;">=
+<div style=3D"box-sizing: border-box; font-family: Tahoma,sans-serif;"><div=
+ class style=3D"box-sizing: border-box; font-size: 14px; font-family: 'Treb=
+uchet MS','Lucida Grande','Lucida Sans Unicode','Lucida Sans',Tahoma,sans-s=
+erif; mso-line-height-alt: 21px; color: #f5f5f5; line-height: 1.5;"><p styl=
+e=3D"box-sizing: border-box; line-height: inherit; margin: 0; font-size: 14=
+px; text-align: left; mso-line-height-alt: 21px; letter-spacing: normal;"><=
+span style=3D"box-sizing: border-box; word-break: break-word; font-size: 14=
+px;">Feel free to email us <a href=3D"mailto:support@expertmodernadvice.com=
+" target=3D"_blank" title=3D"support@expertmodernadvice.com" style=3D"box-s=
+izing: border-box; text-decoration: underline; color: #ffffff;" rel=3D"noop=
+ener">support@expertmodernadvice.com</a>. You'll receive response within 24=
+ hours.<br style=3D"box-sizing: border-box;"></span></p></div></div></td></=
+tr></table><table class=3D"image_block block-5" width=3D"100%" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"bo=
+x-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; p=
+adding-bottom: 5px; padding-left: 25px; padding-right: 25px; padding-top: 1=
+0px; width: 100%;" width=3D"100%"><div class=3D"alignment" align=3D"center"=
+ style=3D"box-sizing: border-box;"><div style=3D"box-sizing: border-box; ma=
+x-width: 175px;"><a href=3D"https://links.iterable.com/u/click?_t=3D94661ae=
+4396f419ea63fc5b6cb313943&_m=3D29483dc5f02442508b816b619991cc3e&_e=3DINe_Gf=
+ObiTkQQvXKZER1wDu61pZz_SQvZyLyImlC1MyaNQ6le8pq6OpsTo_88HLTCflgZYB3BgOY1R29e=
+L-mSm6r808TV3IZducNMSEdDG-n2w7xO0ZRI7OXovvg8QYq_OGndQKgmeymoGeyQqaR95cHDxOx=
+bTLzNRMKtCzFy7ovlgNsNoyXPMvoGrvAjCMPmHOWwYMSwIpEIgSzdU2OhMOvQviLlwXcAM-DuYg=
+G0LGsXvJY_elgYv-s4bV1qLDa8ZVq1FYbfmy5o-aLEUw9hm_LbVIHPdG5xHsA35kCSjXAMJsPd6=
+DLAcwo2OWuHRnqxhO_-uJowiY2aIwq07RUa49b1kH1rr3DohDb5HECIuABeojHKrvbEiNjNLsO3=
+8jd" target=3D"_blank" style=3D"box-sizing: border-box;"><img src=3D"https:=
+//d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb=
+-bd7e-c542cff6dd6a/94661ae4396f419ea63fc5b6cb313943/button%20%286%29.png" s=
+tyle=3D"box-sizing: border-box; display: block; height: auto; border: 0; wi=
+dth: 100%;" width=3D"175" alt=3D"privacy-policy button" title=3D"privacy-po=
+licy button" height=3D"auto"></a></div></div></td></tr></table><table class=
+=3D"image_block block-6" width=3D"100%" border=3D"0" cellpadding=3D"0" cell=
+spacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-ta=
+ble-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;">=
+<td class=3D"pad" style=3D"box-sizing: border-box; padding-bottom: 10px; pa=
+dding-left: 25px; padding-right: 25px; padding-top: 5px; width: 100%;" widt=
+h=3D"100%"><div class=3D"alignment" align=3D"center" style=3D"box-sizing: b=
+order-box;"><div style=3D"box-sizing: border-box; max-width: 175px;"><a hre=
+f=3D"https://links.iterable.com/e/encryptedUnsubscribe?_r=3D94661ae4396f419=
+ea63fc5b6cb313943&_s=3D29483dc5f02442508b816b619991cc3e&_t=3D983baazH37Lbdn=
+7uBIjTgGz8VYNKQyDaJjAfGZvBjeBdlzlTe-WndcsIIXo3KWbtpTffOEV8NgsyGUpTQVqgaRAm6=
+fNUl2LhPiDoLAqHsQ_TmPwGG7bEug_ru9lYEY2T" target=3D"_blank" style=3D"box-siz=
+ing: border-box;"><img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/=
+users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/94661ae4396f419ea63f=
+c5b6cb313943/button%20%287%29.png" style=3D"box-sizing: border-box; display=
+: block; height: auto; border: 0; width: 100%;" width=3D"175" alt=3D"unsub =
+button" title=3D"unsub button" height=3D"auto"></a></div></div></td></tr></=
+table><table class=3D"text_block block-7" width=3D"100%" border=3D"0" cellp=
+adding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: b=
+order-box; mso-table-lspace: 0; mso-table-rspace: 0; word-break: break-word=
+;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-siz=
+ing: border-box; padding-bottom: 5px; padding-left: 25px; padding-right: 25=
+px; padding-top: 5px;"><div style=3D"box-sizing: border-box; font-family: T=
+ahoma,sans-serif;"><div class style=3D"box-sizing: border-box; font-size: 1=
+4px; font-family: 'Trebuchet MS','Lucida Grande','Lucida Sans Unicode','Luc=
+ida Sans',Tahoma,sans-serif; mso-line-height-alt: 21px; color: #f5f5f5; lin=
+e-height: 1.5;"><p style=3D"box-sizing: border-box; line-height: inherit; m=
+argin: 0; font-size: 14px; text-align: left; mso-line-height-alt: 21px; let=
+ter-spacing: normal;"> <span style=3D"box-sizing: border-box; word-break: b=
+reak-word; font-size: 14px;">We appreciate your comments and inquiries. Ple=
+ase be aware that Inception Media, LLC is not authorized to offer personali=
+zed financial advice. This message should not be considered financial advic=
+e, and any investment decisions are made solely at your own risk and respon=
+sibility.</span></p></div></div></td></tr></table><table class=3D"text_bloc=
+k block-8" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" =
+role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0;=
+ mso-table-rspace: 0; word-break: break-word;"><tr style=3D"box-sizing: bor=
+der-box;"><td class=3D"pad" style=3D"box-sizing: border-box; padding-bottom=
+: 5px; padding-left: 25px; padding-right: 25px; padding-top: 5px;"><div sty=
+le=3D"box-sizing: border-box; font-family: Tahoma,sans-serif;"><div class s=
+tyle=3D"box-sizing: border-box; font-size: 14px; font-family: 'Trebuchet MS=
+','Lucida Grande','Lucida Sans Unicode','Lucida Sans',Tahoma,sans-serif; ms=
+o-line-height-alt: 21px; color: #f5f5f5; line-height: 1.5;"><p style=3D"box=
+-sizing: border-box; line-height: inherit; margin: 0; font-size: 14px; text=
+-align: left; mso-line-height-alt: 21px; letter-spacing: normal;"> <span st=
+yle=3D"box-sizing: border-box; word-break: break-word; font-size: 14px;">60=
+0 N Broad St Ste 5 PMB 1 Middletown, DE 19709<br style=3D"box-sizing: borde=
+r-box;"></span></p></div></div></td></tr></table><table class=3D"text_block=
+ block-9" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" r=
+ole=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; =
+mso-table-rspace: 0; word-break: break-word;"><tr style=3D"box-sizing: bord=
+er-box;"><td class=3D"pad" style=3D"box-sizing: border-box; padding-bottom:=
+ 5px; padding-left: 25px; padding-right: 25px; padding-top: 5px;"><div styl=
+e=3D"box-sizing: border-box; font-family: Tahoma,sans-serif;"><div class st=
+yle=3D"box-sizing: border-box; font-size: 14px; font-family: 'Trebuchet MS'=
+,'Lucida Grande','Lucida Sans Unicode','Lucida Sans',Tahoma,sans-serif; mso=
+-line-height-alt: 21px; color: #f5f5f5; line-height: 1.5;"><p style=3D"box-=
+sizing: border-box; line-height: inherit; margin: 0; font-size: 14px; text-=
+align: left; mso-line-height-alt: 21px; letter-spacing: normal;"><span styl=
+e=3D"box-sizing: border-box; word-break: break-word; font-size: 14px;">2026=
+ Inception Media, LLC. All rights reserved<br style=3D"box-sizing: border-b=
+ox;"></span></p></div></div></td></tr></table><div class=3D"spacer_block bl=
+ock-10" style=3D"box-sizing: border-box; height: 20px; line-height: 20px; f=
+ont-size: 1px;">&#8202;</div></td></tr></tbody></table></td></tr></tbody></=
+table></td></tr></tbody></table><!-- End --></body></html>
+------=_Part_1411_1325855107.1769906054181--

@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.10.0
+ * @version 6.11.0
  *
  * Detects spam using behavioral patterns spammers can't easily change:
  * - Bulk email infrastructure (Amazon SES, SendGrid)
@@ -10,12 +10,14 @@
  * - Blacklisted sender domains (known spam mills)
  * - Suspicious From-field anomalies (headline-like display names)
  *
- * v6.10.0: Fix spam destruction by using consistent REST API surface.
- * destroySpam() now uses Gmail.Users.Messages.list() instead of
- * GmailApp.getSpamThreads() — eliminates cross-API consistency lag that
- * caused newly-flagged spam to be invisible to the destroy phase.
- * Also adds max-iteration guard and batch-failure detection to prevent
- * infinite loops when deletions fail.
+ * v6.11.0: Fix spam deletion once and for all. Root cause: every version
+ * since v6.6.0 relied on QUERYING the spam folder after flagging, then
+ * deleting query results. Gmail has propagation delay between modify() and
+ * list() even on the same REST API, so newly-flagged spam was invisible to
+ * the destroy query. Fix: delete by known message ID immediately in
+ * markAsSpam() after reporting. Messages.remove() addresses by ID — no
+ * label query needed. destroySpam() retained as safety net for pre-existing
+ * spam and edge-case stragglers.
  *
  * v6.9.0: Catch "polished" financial spam that avoids clickbait/fear patterns.
  * Blacklist expertmodernadvice, detect Unicode punctuation obfuscation
@@ -130,7 +132,7 @@ function processInbox()
     logInfo('Completed in ' + duration + 'ms: Processed ' + processedCount +
             ' emails, marked ' + spamCount + ' as spam, ' + errorCount + ' errors');
 
-    // Now destroy all spam - messages have settled in spam folder by now
+    // Safety-net pass: clean pre-existing spam + any failed immediate deletes
     destroySpam();
   }
   catch (error)
@@ -141,13 +143,12 @@ function processInbox()
 }
 
 /**
- * Destroy all messages in spam folder
- * Runs after processInbox so messages have time to settle
+ * Safety-net cleanup of the spam folder
  *
- * Uses Gmail REST API (Gmail.Users.Messages.list) instead of GmailApp.getSpamThreads()
- * to stay on the same API surface as markAsSpam(). The GmailApp service has no
- * consistency guarantee with the REST API — messages moved to spam via
- * Gmail.Users.Messages.modify() may not appear in GmailApp.getSpamThreads() yet.
+ * Primary deletion now happens in markAsSpam() by known message ID.
+ * This function handles two cases:
+ * 1. Pre-existing spam that was in the folder before this script ran
+ * 2. Any messages where the immediate delete in markAsSpam() failed
  */
 function destroySpam()
 {
@@ -666,23 +667,38 @@ function markAsSpam(message, thread)
   {
     const messageId = message.getId();
 
-    // Use Gmail API to report spam (trains Gmail's filters)
+    // Use Gmail API to report spam (trains Gmail's filters) then delete by known ID
     if (typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Messages)
     {
+      // Step 1: Report as spam (trains Gmail's filters)
       Gmail.Users.Messages.modify(
         { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] },
         'me',
         messageId
       );
+      logInfo('SPAM REPORTED: ' + subject);
+
+      // Step 2: Permanently delete by known message ID
+      // Previous versions deferred deletion to destroySpam() which re-queried
+      // the spam folder via Messages.list(). That query has propagation delay
+      // so newly-flagged messages were invisible. Deleting by known ID here
+      // avoids any label-query dependency.
+      try
+      {
+        Gmail.Users.Messages.remove('me', messageId);
+        logInfo('SPAM DESTROYED: ' + subject);
+      }
+      catch (deleteError)
+      {
+        logError('Immediate delete failed (destroySpam will retry): ' + deleteError.toString());
+      }
     }
     else
     {
-      // Fallback to GmailApp
+      // Fallback to GmailApp (no direct delete available without REST API)
       thread.moveToSpam();
+      logInfo('SPAM REPORTED (fallback): ' + subject);
     }
-
-    logInfo('SPAM REPORTED: ' + subject);
-    // Actual deletion happens in destroySpam() after messages settle
   }
   catch (error)
   {

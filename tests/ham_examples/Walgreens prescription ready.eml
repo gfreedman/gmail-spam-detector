@@ -1,0 +1,24 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: from mta.sendgrid.net (mta.sendgrid.net [167.89.0.2])
+        by mx.google.com with ESMTPS id xyz789
+        for <geoff.c.freedman@gmail.com>;
+        Sat, 01 Feb 2026 11:30:00 -0600 (CST)
+From: Walgreens Pharmacy <pharmacy@notifications.walgreens.com>
+To: geoff.c.freedman@gmail.com
+Subject: Your prescription is ready for pickup
+Date: Sat, 01 Feb 2026 11:30:00 -0600
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Hello Geoff,
+
+Your prescription is ready for pickup at your Walgreens pharmacy.
+
+Rx Number: 1234567
+Medication: Lisinopril 10mg
+Store: 456 Main St, San Francisco, CA 94102
+Pharmacy hours: Mon-Fri 8am-9pm, Sat-Sun 9am-6pm
+
+Questions? Call your pharmacy at (555) 987-6543.
+
+Walgreens Pharmacy

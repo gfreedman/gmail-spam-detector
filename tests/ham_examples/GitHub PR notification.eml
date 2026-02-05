@@ -1,0 +1,20 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: from o2.notifications.github.com (ip-10-0-0-1.us-west-2.compute.internal)
+        by inbound-smtp.us-east-1.amazonaws.com via amazonses.com with SMTP id abc123
+        for geoff.c.freedman@gmail.com;
+        Thu, 23 Jan 2026 09:15:00 +0000 (UTC)
+From: dependabot[bot] <notifications@github.com>
+To: gfreedman/gmail-spam-detector <gmail-spam-detector@noreply.github.com>
+Subject: Bump actions/checkout from 3 to 4
+Date: Thu, 23 Jan 2026 09:15:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Bumps actions/checkout from 3 to 4.
+
+Release notes:
+- Updated to Node 20
+- Performance improvements
+
+You can view, comment on, or merge this pull request online at:
+https://github.com/gfreedman/gmail-spam-detector/pull/42

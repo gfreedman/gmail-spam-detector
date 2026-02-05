@@ -1,0 +1,21 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: from mail-01.stripe.com (mail-01.stripe.com [185.2.3.4])
+        by inbound-smtp.us-east-1.amazonaws.com via amazonses.com with SMTP id def456
+        for geoff.c.freedman@gmail.com;
+        Fri, 24 Jan 2026 16:00:00 +0000 (UTC)
+From: Stripe <receipts@stripe.com>
+To: geoff.c.freedman@gmail.com
+Subject: Your receipt from ACME Corp
+Date: Fri, 24 Jan 2026 16:00:00 +0000
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Payment receipt
+
+Amount paid: $49.99
+Date: January 24, 2026
+Payment method: Visa ending in 4242
+
+Description: Monthly subscription
+
+If you have any questions, contact ACME Corp at support@acme.com.

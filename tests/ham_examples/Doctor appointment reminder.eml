@@ -1,0 +1,23 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: from mail.mycharthealth.com (mail.mycharthealth.com [10.0.0.1])
+        by mx.google.com with ESMTPS id xyz789
+        for <geoff.c.freedman@gmail.com>;
+        Mon, 27 Jan 2026 08:00:00 -0800 (PST)
+From: MyChart <noreply@mycharthealth.com>
+To: geoff.c.freedman@gmail.com
+Subject: Appointment reminder: Dr. Johnson on Feb 3
+Date: Mon, 27 Jan 2026 08:00:00 -0800
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+This is a reminder of your upcoming appointment.
+
+Provider: Dr. Sarah Johnson, MD
+Date: Monday, February 3, 2026
+Time: 10:30 AM
+Location: 123 Medical Center Dr, Suite 200
+
+Please arrive 15 minutes early. If you need to cancel or reschedule,
+call (555) 123-4567 at least 24 hours before your appointment.
+
+Bring your insurance card and a list of current medications.

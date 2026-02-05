@@ -6,13 +6,28 @@ on:
     paths:
       - 'SpamDetector.gs'
       - 'appsscript.json'
+      - 'tests/**'
 
 concurrency:
   group: deploy
   cancel-in-progress: true
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run spam detection tests
+        run: python tests/test_v6.py
+
   deploy:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

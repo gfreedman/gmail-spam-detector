@@ -7,6 +7,7 @@ on:
       - 'SpamDetector.gs'
       - 'appsscript.json'
       - 'tests/**'
+      - '.github/workflows/deploy.yml'
 
 concurrency:
   group: deploy

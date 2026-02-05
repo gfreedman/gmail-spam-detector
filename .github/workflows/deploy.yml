@@ -24,6 +24,14 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Lint SpamDetector.gs syntax
+        run: node -e "new (require('vm').Script)(require('fs').readFileSync('SpamDetector.gs','utf8'))"
+
       - name: Run spam detection tests
         run: python tests/test_v6.py
 
@@ -67,3 +75,27 @@ jobs:
 
       - name: Push to Apps Script
         run: clasp push --force
+
+      - name: Notify deploy failure
+        if: failure()
+        run: |
+          echo "## Deploy Failed" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "See [run details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+  tag:
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Auto-tag version commits
+        run: |
+          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
+          if [ -n "$VERSION" ]; then
+            git tag "$VERSION"
+            git push origin "$VERSION"
+            echo "Tagged $VERSION" >> $GITHUB_STEP_SUMMARY
+          fi

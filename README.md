@@ -20,8 +20,11 @@ All sent via bulk email services like Amazon SES.
 2. **Clickbait subject patterns** ("Caught on Camera", "WARNING:", etc.)
 3. **Fear-mongering language** (IRS, NSA, government warnings)
 4. **Marketing sender format** ("Name | Organization")
+5. **Blacklisted sender domains** (known spam mills)
+6. **From-name anomalies** (bullet separators, excessive length)
 
 **Detection Logic:**
+- Bulk email + blacklisted sender = SPAM
 - Bulk email + 2+ clickbait patterns = SPAM
 - Bulk email + 2+ spam behaviors = SPAM
 - Extreme clickbait (3+ patterns) = SPAM
@@ -30,8 +33,8 @@ All sent via bulk email services like Amazon SES.
 
 ## 📊 Results
 
-- ✅ **100% detection** on real spam (.eml files)
-- ✅ **0% false positives** on legitimate email
+- ✅ **100% detection** on 30/30 real spam (.eml files)
+- ✅ **0% false positives** on 11/11 legitimate emails
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Clean, maintainable code** (~120 lines of detection logic)
 
@@ -116,18 +119,31 @@ Bank Account, Government Hiding, Blood Thinner
 "Name at Org" <email@domain.com>
 ```
 
+**5. Blacklisted Sender Domains (Technical Signal)**
+- Known spam mill domains (e.g. financeinsiderpro.com, investorplace)
+- Matched against the From field
+
+**6. From-Name Anomalies (Technical Signal)**
+- Display names with bullet separators (e.g. "Finance • Daily Tips")
+- Excessively long display names (> 50 characters)
+
 ### Decision Rules
 
 **Conservative approach - requires multiple signals:**
 
 ```javascript
+// RULE 0: Bulk email + known spam domain
+if (amazonSES && blacklistedSender) {
+  return SPAM;
+}
+
 // RULE 1: Bulk email + obvious clickbait
 if (amazonSES && clickbaitCount >= 2) {
   return SPAM;
 }
 
 // RULE 2: Bulk email + multiple spam behaviors
-if (amazonSES && (clickbait + fear + marketing >= 2)) {
+if (amazonSES && (clickbait + fear + marketing + suspiciousFrom >= 2)) {
   return SPAM;
 }
 
@@ -305,10 +321,10 @@ Found a spam pattern we're missing? Open an issue with:
 
 This repo has CI/CD that auto-deploys to Google Apps Script on every push to `main`.
 
-**How it works:**
-1. Push changes to `SpamDetector.gs`
-2. GitHub Actions runs `clasp push`
-3. Code is live in Apps Script
+**Pipeline: test → deploy → tag**
+1. **Test** — Lints `SpamDetector.gs` syntax (Node `vm.Script`) and runs spam/ham detection tests (Python)
+2. **Deploy** — Runs `clasp push` to Apps Script (only if tests pass). Writes failure summary on error.
+3. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.11.0`, etc.)
 
 **Setup for your own fork:**
 

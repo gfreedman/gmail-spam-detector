@@ -8,6 +8,7 @@ on:
       - 'appsscript.json'
       - 'tests/**'
       - '.github/workflows/deploy.yml'
+      - 'README.md'
 
 concurrency:
   group: deploy
@@ -34,6 +35,24 @@ jobs:
 
       - name: Run spam detection tests
         run: python tests/test_v6.py
+
+      - name: Check README stats are current
+        run: |
+          SPAM_COUNT=$(ls tests/spam_examples/*.eml | wc -l | tr -d ' ')
+          HAM_COUNT=$(ls tests/ham_examples/*.eml | wc -l | tr -d ' ')
+          STALE=0
+          if ! grep -q "${SPAM_COUNT}/" README.md; then
+            echo "::error::README spam count is stale (found $SPAM_COUNT spam examples)"
+            STALE=1
+          fi
+          if ! grep -q "${HAM_COUNT}/" README.md; then
+            echo "::error::README ham count is stale (found $HAM_COUNT ham examples)"
+            STALE=1
+          fi
+          if [ "$STALE" -eq 1 ]; then
+            echo "Update the test result counts in README.md to match"
+            exit 1
+          fi
 
   deploy:
     needs: test

@@ -247,12 +247,11 @@ addToWhitelist('domain.com');
 ├── README.md
 ├── LICENSE
 ├── docs/
-│   ├── EXPORTING_EMAILS.md      # How to export .eml files
-│   └── PATTERN_DETECTION.md     # Technical deep-dive
+│   └── EXPORTING_EMAILS.md      # How to export .eml files
 ├── tests/
 │   ├── test_v6.py               # Python test suite
-│   ├── spam_examples/           # Real spam .eml files
-│   └── ham_examples/            # Legitimate .eml files
+│   ├── spam_examples/           # Real spam .eml files (30)
+│   └── ham_examples/            # Legitimate .eml files (11)
 ├── archive/                     # Old versions (ignore)
 └── .github/workflows/           # CI/CD pipeline
 ```

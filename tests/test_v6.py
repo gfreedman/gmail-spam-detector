@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Test script for SpamDetector v6.9
-Tests all spam examples against the detection patterns
+Test script for SpamDetector v6
+Tests all spam and ham examples against the detection patterns
 """
 
 import os

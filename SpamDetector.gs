@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.11.0
+ * @version 6.11.1
  *
  * Detects spam using behavioral patterns spammers can't easily change:
  * - Bulk email infrastructure (Amazon SES, SendGrid)
@@ -10,12 +10,16 @@
  * - Blacklisted sender domains (known spam mills)
  * - Suspicious From-field anomalies (headline-like display names)
  *
+ * v6.11.1: Fix Gmail API method name - Apps Script uses delete_() not remove()
+ * because 'delete' is a reserved JavaScript keyword. Previous calls to
+ * Messages.remove() silently failed, falling back to moveToSpam().
+ *
  * v6.11.0: Fix spam deletion once and for all. Root cause: every version
  * since v6.6.0 relied on QUERYING the spam folder after flagging, then
  * deleting query results. Gmail has propagation delay between modify() and
  * list() even on the same REST API, so newly-flagged spam was invisible to
  * the destroy query. Fix: delete by known message ID immediately in
- * markAsSpam() after reporting. Messages.remove() addresses by ID — no
+ * markAsSpam() after reporting. Messages.delete_() addresses by ID — no
  * label query needed. destroySpam() retained as safety net for pre-existing
  * spam and edge-case stragglers.
  *
@@ -190,7 +194,7 @@ function destroySpam()
     {
       try
       {
-        Gmail.Users.Messages.remove('me', response.messages[i].id);
+        Gmail.Users.Messages.delete_('me', response.messages[i].id);
         destroyed++;
         batchDestroyed++;
       }
@@ -685,7 +689,7 @@ function markAsSpam(message, thread)
       // avoids any label-query dependency.
       try
       {
-        Gmail.Users.Messages.remove('me', messageId);
+        Gmail.Users.Messages.delete_('me', messageId);
         logInfo('SPAM DESTROYED: ' + subject);
       }
       catch (deleteError)

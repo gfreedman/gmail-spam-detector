@@ -10,9 +10,9 @@
  * - Blacklisted sender domains (known spam mills)
  * - Suspicious From-field anomalies (headline-like display names)
  *
- * v6.11.1: Fix Gmail API method name - use bracket notation ['delete']()
- * because 'delete' is a reserved JavaScript keyword. Neither remove() nor
- * delete_() exist; bracket notation avoids the keyword conflict.
+ * v6.11.1: Fix spam deletion — use batchDelete() instead of delete().
+ * The Advanced Gmail Service does not expose a single-message delete method.
+ * batchDelete({ids: [...]}, 'me') is the correct API for permanent deletion.
  *
  * v6.11.0: Fix spam deletion once and for all. Root cause: every version
  * since v6.6.0 relied on QUERYING the spam folder after flagging, then
@@ -189,25 +189,16 @@ function destroySpam()
       break; // Spam folder is empty
     }
 
-    let batchDestroyed = 0;
-    for (let i = 0; i < response.messages.length; i++)
-    {
-      try
-      {
-        Gmail.Users.Messages['delete']('me', response.messages[i].id);
-        destroyed++;
-        batchDestroyed++;
-      }
-      catch (e)
-      {
-        logError('Destroy error: ' + e.toString());
-      }
-    }
+    const ids = response.messages.map(function(m) { return m.id; });
 
-    // If entire batch failed, stop — systematic issue (rate limit, permissions, etc.)
-    if (batchDestroyed === 0)
+    try
     {
-      logError('Batch destruction failed entirely - stopping to avoid retry loop');
+      Gmail.Users.Messages.batchDelete({ ids: ids }, 'me');
+      destroyed += ids.length;
+    }
+    catch (e)
+    {
+      logError('Batch destroy failed: ' + e.toString());
       break;
     }
 
@@ -683,13 +674,9 @@ function markAsSpam(message, thread)
       logInfo('SPAM REPORTED: ' + subject);
 
       // Step 2: Permanently delete by known message ID
-      // Previous versions deferred deletion to destroySpam() which re-queried
-      // the spam folder via Messages.list(). That query has propagation delay
-      // so newly-flagged messages were invisible. Deleting by known ID here
-      // avoids any label-query dependency.
       try
       {
-        Gmail.Users.Messages['delete']('me', messageId);
+        Gmail.Users.Messages.batchDelete({ ids: [messageId] }, 'me');
         logInfo('SPAM DESTROYED: ' + subject);
       }
       catch (deleteError)

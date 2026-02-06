@@ -225,7 +225,67 @@ def analyze_email(subject, from_field, has_amazon_ses):
     return signals, is_spam, rule
 
 
+# Valid methods on Gmail Advanced Service objects
+# Source: https://developers.google.com/apps-script/advanced/gmail
+GMAIL_API_METHODS = {
+    'Gmail.Users.Messages': {
+        'batchDelete', 'batchModify', 'get', 'insert', 'list',
+        'modify', 'send', 'trash', 'untrash',
+    },
+    'Gmail.Users.Threads': {
+        'get', 'list', 'modify', 'trash', 'untrash',
+    },
+    'Gmail.Users.Labels': {
+        'create', 'get', 'list', 'patch', 'update',
+    },
+}
+
+
+def validate_api_methods():
+    """Validate that all Gmail API method calls in SpamDetector.gs use real methods."""
+    gs_path = Path(__file__).parent.parent / 'SpamDetector.gs'
+    if not gs_path.exists():
+        print(f"ERROR: SpamDetector.gs not found at {gs_path}")
+        return False
+
+    source = gs_path.read_text()
+
+    errors = []
+    for api_object, valid_methods in GMAIL_API_METHODS.items():
+        # Match dot notation: Gmail.Users.Messages.methodName(
+        dot_pattern = re.compile(re.escape(api_object) + r'\.(\w+)\s*\(')
+        # Match bracket notation: Gmail.Users.Messages['methodName'](
+        bracket_pattern = re.compile(re.escape(api_object) + r"\['(\w+)'\]\s*\(")
+
+        for pattern in [dot_pattern, bracket_pattern]:
+            for match in pattern.finditer(source):
+                method = match.group(1)
+                if method not in valid_methods:
+                    line_num = source[:match.start()].count('\n') + 1
+                    errors.append(f"  Line {line_num}: {api_object}.{method}() is NOT a valid method")
+                    errors.append(f"    Valid methods: {', '.join(sorted(valid_methods))}")
+
+    return errors
+
+
 def main():
+    # First: validate API methods before anything else
+    print('=' * 80)
+    print('Gmail API Method Validation')
+    print('=' * 80)
+    api_errors = validate_api_methods()
+    if api_errors:
+        print('❌ INVALID API METHODS FOUND IN SpamDetector.gs:')
+        for err in api_errors:
+            print(err)
+        print()
+        print('Fix these before deploying — these methods will fail at runtime.')
+        print('=' * 80)
+        sys.exit(1)
+    else:
+        print('✅ All Gmail API method calls are valid')
+    print()
+
     spam_dir = Path(__file__).parent / 'spam_examples'
 
     if not spam_dir.exists():

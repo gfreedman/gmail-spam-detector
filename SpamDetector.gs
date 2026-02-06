@@ -10,9 +10,9 @@
  * - Blacklisted sender domains (known spam mills)
  * - Suspicious From-field anomalies (headline-like display names)
  *
- * v6.11.1: Fix Gmail API method name - Apps Script uses delete_() not remove()
- * because 'delete' is a reserved JavaScript keyword. Previous calls to
- * Messages.remove() silently failed, falling back to moveToSpam().
+ * v6.11.1: Fix Gmail API method name - use bracket notation ['delete']()
+ * because 'delete' is a reserved JavaScript keyword. Neither remove() nor
+ * delete_() exist; bracket notation avoids the keyword conflict.
  *
  * v6.11.0: Fix spam deletion once and for all. Root cause: every version
  * since v6.6.0 relied on QUERYING the spam folder after flagging, then
@@ -194,7 +194,7 @@ function destroySpam()
     {
       try
       {
-        Gmail.Users.Messages.delete_('me', response.messages[i].id);
+        Gmail.Users.Messages['delete']('me', response.messages[i].id);
         destroyed++;
         batchDestroyed++;
       }
@@ -689,7 +689,7 @@ function markAsSpam(message, thread)
       // avoids any label-query dependency.
       try
       {
-        Gmail.Users.Messages.delete_('me', messageId);
+        Gmail.Users.Messages['delete']('me', messageId);
         logInfo('SPAM DESTROYED: ' + subject);
       }
       catch (deleteError)

@@ -33,7 +33,7 @@ All sent via bulk email services like Amazon SES.
 
 ## 📊 Results
 
-- ✅ **100% detection** on 30/30 real spam (.eml files)
+- ✅ **100% detection** on 31/31 real spam (.eml files)
 - ✅ **0% false positives** on 11/11 legitimate emails
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Clean, maintainable code** (~120 lines of detection logic)

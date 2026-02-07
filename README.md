@@ -10,7 +10,7 @@ Gmail's spam filter lets certain types of spam through, particularly:
 - Investment opportunity spam
 - Health scare campaigns
 
-All sent via bulk email services like Amazon SES.
+All sent via bulk email services like Amazon SES — often hiding in Gmail's **Updates** or **Promotions** tabs where they're never seen.
 
 ## ✨ The Solution
 
@@ -235,8 +235,9 @@ addToWhitelist('domain.com');
 
 ### Spam Getting Through
 1. Check execution log - what signals were detected?
-2. If spam doesn't use Amazon SES (rare), may not be caught
-3. Open an issue with the .eml file
+2. The script scans all Gmail category tabs (Primary, Updates, Promotions, Social, Forums) — spam can't hide in tabs
+3. If spam doesn't use Amazon SES (rare), may not be caught
+4. Open an issue with the .eml file
 
 ## 📁 Files
 
@@ -323,7 +324,7 @@ This repo has CI/CD that auto-deploys to Google Apps Script on every push to `ma
 **Pipeline: test → deploy → tag**
 1. **Test** — Lints `SpamDetector.gs` syntax (Node `vm.Script`) and runs spam/ham detection tests (Python)
 2. **Deploy** — Runs `clasp push` to Apps Script (only if tests pass). Writes failure summary on error.
-3. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.11.0`, etc.)
+3. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.13.0`, etc.)
 
 **Setup for your own fork:**
 

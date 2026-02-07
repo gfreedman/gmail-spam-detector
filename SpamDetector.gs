@@ -110,7 +110,8 @@ const DEFAULT_DOMAINS = Object.freeze({
     'saferetirementreports.com', 'thinkrichtoday.com',
     'brightcrestcapital.com', 'turbotradepro.com',
     'budgetingjournals.com', 'investorbusinesstalk.com',
-    'expertmodernadvice'
+    'expertmodernadvice',
+    'investingtrendstoday'
   ])
 });
 
@@ -489,6 +490,28 @@ function analyzeMessage(message)
       logDebug('Suspicious From name detected: ' + sanitizeForLog(fromDisplayName));
     }
 
+    // Subject echo: spammers stuff subject content into the From display name
+    // for maximum inbox visibility. Legitimate senders use brand names, not headlines.
+    // Flag if 2+ significant words (4+ chars) from the subject appear in the display name.
+    if (!signals.suspiciousFromName && subject && fromDisplayName)
+    {
+      var subjectWords = subject.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
+      var fromNameLower = fromDisplayName.toLowerCase();
+      var echoCount = 0;
+      for (var w = 0; w < subjectWords.length; w++)
+      {
+        if (fromNameLower.includes(subjectWords[w]))
+        {
+          echoCount++;
+        }
+      }
+      if (echoCount >= 2)
+      {
+        signals.suspiciousFromName = true;
+        logDebug('Subject echo in From name detected: ' + echoCount + ' words overlap');
+      }
+    }
+
     // ── Signal 2: Clickbait / sensationalism patterns ─────────────────────
     // Each pattern targets a CATEGORY of spam tactic, not specific phrases.
     // Patterns are checked against both subject AND from field concatenated,
@@ -556,6 +579,7 @@ function analyzeMessage(message)
       /\[.{3,}[?!]\]/,    // Square brackets with punctuation: [Like This?]
       /💼|📸|⏯️|🚨|⚠️|📰|💰|⚡/,  // Sensationalist emoji cluster
       /\?\?\?|!!!/,       // Triple punctuation (urgency tactic)
+      /\u2026|\.{3,}/,    // Ellipsis dramatic pause (Unicode … or ASCII ...)
       /\bWATCH\b.*\?$/i,  // "WATCH ...?" clickbait structure
 
       // --- Unicode obfuscation (filter evasion) ---

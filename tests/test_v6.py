@@ -72,6 +72,7 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'\[.{3,}[?!]\]'),    # Square brackets with punctuation: [Like This?]
     re.compile(r'💼|📸|⏯️|🚨|⚠️|📰|💰|⚡'),  # Sensationalist emoji
     re.compile(r'\?\?\?|!!!'),       # Triple punctuation (urgency tactic)
+    re.compile(r'\u2026|\.{3,}'),    # Ellipsis dramatic pause (Unicode … or ASCII ...)
     re.compile(r'\bWATCH\b.*\?$', re.I),  # "WATCH ...?" clickbait structure
 
     # --- Unicode Obfuscation (filter evasion) ---
@@ -128,6 +129,7 @@ BLACKLISTED_DOMAINS = [
     'brightcrestcapital.com', 'turbotradepro.com',
     'budgetingjournals.com', 'investorbusinesstalk.com',
     'expertmodernadvice',
+    'investingtrendstoday',
 ]
 
 # --- Marketing Sender Format Patterns ---
@@ -293,6 +295,15 @@ def analyze_email(subject, from_field, has_amazon_ses):
     if '•' in display_name or len(display_name) > 50:
         signals['suspicious_from_name'] = True
         signals['matched_patterns'].append('suspicious_from')
+
+    # Subject echo: 2+ significant words (4+ chars) from subject appear in From display name
+    if not signals['suspicious_from_name'] and subject and display_name:
+        subject_words = re.findall(r'\b[a-z]{4,}\b', subject.lower())
+        from_name_lower = display_name.lower()
+        echo_count = sum(1 for w in subject_words if w in from_name_lower)
+        if echo_count >= 2:
+            signals['suspicious_from_name'] = True
+            signals['matched_patterns'].append('subject_echo')
 
     # ── Signal: Clickbait pattern count ────────────────────────────────────
     # Each matching pattern increments the counter independently — this allows

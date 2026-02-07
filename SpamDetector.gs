@@ -2,93 +2,135 @@
  * Gmail Spam Detector - Google Apps Script
  * @version 6.11.1
  *
- * Detects spam using behavioral patterns spammers can't easily change:
- * - Bulk email infrastructure (Amazon SES, SendGrid)
- * - Clickbait/fear-mongering subject patterns
- * - Unicode obfuscation (Cyrillic, Greek, fullwidth, mathematical chars)
- * - Marketing sender format
- * - Blacklisted sender domains (known spam mills)
- * - Suspicious From-field anomalies (headline-like display names)
+ * Automated spam detection and destruction for Gmail. Runs on a 15-minute
+ * trigger, scanning the inbox for unprocessed emails and applying a
+ * multi-signal pattern detection engine.
  *
- * v6.11.1: Fix spam deletion — use batchDelete() instead of delete().
- * The Advanced Gmail Service does not expose a single-message delete method.
- * batchDelete({ids: [...]}, 'me') is the correct API for permanent deletion.
+ * Detection strategy — target behavioral patterns spammers can't easily change:
+ *   - Bulk email infrastructure (Amazon SES, SendGrid)
+ *   - Clickbait/fear-mongering subject patterns
+ *   - Unicode obfuscation (Cyrillic, Greek, fullwidth, mathematical chars)
+ *   - Marketing sender format
+ *   - Blacklisted sender domains (known spam mills)
+ *   - Suspicious From-field anomalies (headline-like display names)
  *
- * v6.11.0: Fix spam deletion once and for all. Root cause: every version
- * since v6.6.0 relied on QUERYING the spam folder after flagging, then
- * deleting query results. Gmail has propagation delay between modify() and
- * list() even on the same REST API, so newly-flagged spam was invisible to
- * the destroy query. Fix: delete by known message ID immediately in
- * markAsSpam() after reporting. Messages.delete_() addresses by ID — no
- * label query needed. destroySpam() retained as safety net for pre-existing
- * spam and edge-case stragglers.
+ * Execution flow:
+ *   1. processInbox() — scan inbox, analyze each email, flag spam
+ *   2. markAsSpam()   — report to Gmail (trains filters) + immediately delete by ID
+ *   3. destroySpam()  — safety-net sweep of spam folder for stragglers
  *
- * v6.9.0: Catch "polished" financial spam that avoids clickbait/fear patterns.
- * Blacklist expertmodernadvice, detect Unicode punctuation obfuscation
- * (division/fraction slash), and financial product solicitation patterns.
+ * Decision logic (4 rules, evaluated in priority order):
+ *   Rule 0: Bulk + blacklisted sender domain → spam
+ *   Rule 1: Bulk + 2+ clickbait patterns → spam
+ *   Rule 2: Bulk + 2+ distinct spam behaviors → spam
+ *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
- * v6.8.0: Blacklist hardening - suspicious domains now actively checked in
- * detection (bulk + blacklisted = spam). From-field anomaly detection catches
- * display names with bullet separators or excessive length (> 50 chars).
- *
- * v6.7.0: Added detection for mathematical Unicode obfuscation, bullet-point
- * date formatting, historical atrocity clickbait, health condition anxiety words,
- * financial scam product categories, "now you can see" curiosity gaps, bombshell
- * sensationalism, celebrity "showed/shows" verbs, and ⚡ lightning emoji.
- *
- * Reports spam to Gmail (trains filters) then destroys the entire spam folder.
+ * Changelog:
+ *   v6.11.1: Fix spam deletion — use batchDelete() instead of delete().
+ *            The Advanced Gmail Service does not expose a single-message
+ *            delete method. batchDelete({ids: [...]}, 'me') is the correct
+ *            API for permanent deletion.
+ *   v6.11.0: Fix spam deletion once and for all. Root cause: every version
+ *            since v6.6.0 relied on QUERYING the spam folder after flagging,
+ *            then deleting query results. Gmail has propagation delay between
+ *            modify() and list() even on the same REST API. Fix: delete by
+ *            known message ID immediately in markAsSpam(). destroySpam()
+ *            retained as safety net for pre-existing spam.
+ *   v6.9.0:  Catch "polished" financial spam — blacklist expertmodernadvice,
+ *            detect Unicode punctuation obfuscation, financial solicitation.
+ *   v6.8.0:  Blacklist hardening — bulk + blacklisted = spam. From-field
+ *            anomaly detection for bullet separators / excessive length.
+ *   v6.7.0:  Added mathematical Unicode, bullet-point dates, historical
+ *            atrocity clickbait, health anxiety, financial scam products,
+ *            "now you can see" curiosity gaps, bombshell, ⚡ emoji.
  *
  * Setup: See README.md or run setup() and follow the logs.
  */
 
-// Configuration - frozen to prevent accidental modification
+
+// =============================================================================
+// Configuration
+// =============================================================================
+
+/**
+ * Global configuration — frozen to prevent accidental modification at runtime.
+ * These values control processing limits, detection thresholds, and safety caps.
+ *
+ * @const {Object}
+ */
 const CONFIG = Object.freeze({
-  // Maximum number of emails to process per run (to avoid timeout)
+  /** Max emails per run — prevents Apps Script 6-minute execution timeout */
   maxEmailsPerRun: 50,
 
-  // Minimum spam score to mark as spam
-  // NEW APPROACH: Pattern-based detection returns 0 (not spam) or 100 (spam)
-  // Threshold is now simply 50 (anything marked as spam = 100)
-  // This is a binary decision, not a scoring system
+  /**
+   * Minimum score to classify as spam.
+   * The detection engine returns 0 (not spam) or 100 (spam) — binary decision.
+   * Threshold of 50 means anything flagged as spam (score=100) triggers action.
+   */
   spamThreshold: 50,
 
-  // How many days back to check for unprocessed emails
+  /** How many days back to scan for unprocessed emails */
   daysToCheck: 1,
 
-  // Label to mark processed emails (to avoid reprocessing)
+  /** Gmail label applied to processed emails to prevent reprocessing */
   processedLabel: 'SpamChecked',
 
-  // Enable debug logging
+  /** Enable verbose debug logging (set true for troubleshooting) */
   debug: false,
 
-  // Maximum email size to process (in bytes) - prevents memory issues
+  /** Max email size to process — prevents memory issues with large attachments */
   maxEmailSizeBytes: 5 * 1024 * 1024 // 5MB
 });
 
-// Default whitelist/blacklist for initial setup
-// Actual lists are stored in Script Properties (use addToWhitelist/addToBlacklist to manage)
+
+// =============================================================================
+// Default Domain Lists
+// =============================================================================
+
+/**
+ * Default whitelist and blacklist for initial setup.
+ * Actual runtime lists are stored in Script Properties (persistent key-value
+ * store) and managed via addToWhitelist()/addToBlacklist().
+ * These defaults are only written on first setup via initializeScriptProperties().
+ *
+ * @const {Object}
+ */
 const DEFAULT_DOMAINS = Object.freeze({
+  /** Known legitimate senders — bypass spam detection entirely */
   legitimate: Object.freeze([
     'sardine.ai', 'meetup.com', 'substack.com', 'conservative.ca',
     'sundaymass.store', 'customerservice@stan', 'privaterelay.appleid.com',
     'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'e.linkedin.com',
     'linkedin.email', 'dsf.ca', 'dragonfly'
   ]),
+  /** Known spam mill domains — triggers Rule 0 when combined with bulk email */
   suspicious: Object.freeze([
     'financeinsiderpro.com', 'financebuzz', 'smartinvestmenttools',
     'investorplace', 'weissratings', 'americanprofitinsight.com',
-    // v6.8: Additional spam mill domains identified from test corpus
     'saferetirementreports.com', 'thinkrichtoday.com',
     'brightcrestcapital.com', 'turbotradepro.com',
     'budgetingjournals.com', 'investorbusinesstalk.com',
-    // v6.9: Polished financial spam mill (aspirational language, no clickbait)
     'expertmodernadvice'
   ])
 });
 
+
+// =============================================================================
+// Core Processing Pipeline
+// =============================================================================
+
 /**
- * Main function to process inbox emails
- * This should be set to run every 15 minutes via trigger
+ * Main entry point — scan inbox and process unprocessed emails.
+ *
+ * Should be configured as a time-driven trigger running every 15 minutes.
+ * Processes up to CONFIG.maxEmailsPerRun emails per invocation, with
+ * per-thread error isolation so one bad email doesn't abort the entire run.
+ *
+ * After processing, calls destroySpam() as a safety net to clean any
+ * pre-existing spam or messages where immediate deletion failed.
+ *
+ * @throws {Error} Re-throws critical errors (e.g., auth failures) so trigger
+ *                 failures are visible in Apps Script dashboard.
  */
 function processInbox()
 {
@@ -99,18 +141,22 @@ function processInbox()
 
   try
   {
+    // Fail fast if config is invalid (before doing any work)
     validateConfig();
 
+    // Get or create the "SpamChecked" label used to track processed emails
     const label = getOrCreateLabel(CONFIG.processedLabel);
-    const searchQuery = buildSearchQuery();
 
+    // Build Gmail search query: inbox emails from the last N days without the label
+    const searchQuery = buildSearchQuery();
     logInfo('Search query: ' + searchQuery);
 
+    // Fetch up to maxEmailsPerRun threads matching the query
     const threads = GmailApp.search(searchQuery, 0, CONFIG.maxEmailsPerRun);
-
     logInfo('Found ' + threads.length + ' threads to process');
 
-    // Process each thread independently with error isolation
+    // Process each thread independently — per-thread try/catch ensures one
+    // bad email doesn't abort the entire batch
     for (let i = 0; i < threads.length; i++)
     {
       try
@@ -121,14 +167,14 @@ function processInbox()
         spamCount += result.spamCount;
         processedCount += result.processedCount;
 
-        // Mark thread as processed after successful processing
+        // Label thread as processed so it won't be re-scanned next run
         thread.addLabel(label);
       }
       catch (threadError)
       {
         errorCount++;
         logError('Error processing thread: ' + threadError.toString());
-        // Continue processing other threads
+        // Continue to next thread — don't let one failure stop the batch
       }
     }
 
@@ -136,26 +182,32 @@ function processInbox()
     logInfo('Completed in ' + duration + 'ms: Processed ' + processedCount +
             ' emails, marked ' + spamCount + ' as spam, ' + errorCount + ' errors');
 
-    // Safety-net pass: clean pre-existing spam + any failed immediate deletes
+    // Safety-net pass: clean pre-existing spam + any messages where
+    // the immediate delete in markAsSpam() failed
     destroySpam();
   }
   catch (error)
   {
     logError('Critical error in processInbox: ' + error.toString());
-    throw error; // Re-throw to ensure trigger failures are visible
+    throw error; // Re-throw so trigger failure is visible in Apps Script dashboard
   }
 }
 
 /**
- * Safety-net cleanup of the spam folder
+ * Safety-net cleanup of the entire spam folder.
  *
- * Primary deletion now happens in markAsSpam() by known message ID.
- * This function handles two cases:
- * 1. Pre-existing spam that was in the folder before this script ran
- * 2. Any messages where the immediate delete in markAsSpam() failed
+ * Primary deletion happens in markAsSpam() by known message ID. This function
+ * handles two edge cases:
+ *   1. Pre-existing spam that was in the folder before this script ran
+ *   2. Messages where the immediate delete in markAsSpam() failed
+ *
+ * Uses batch deletion in pages of 100 with rate limiting between batches.
+ * Caps at MAX_ITERATIONS (10 batches = ~1000 messages) to prevent runaway
+ * loops if something goes wrong with the API.
  */
 function destroySpam()
 {
+  // Guard: Gmail Advanced Service must be enabled in the project
   if (typeof Gmail === 'undefined' || !Gmail.Users || !Gmail.Users.Messages)
   {
     logInfo('Gmail API not available for spam destruction');
@@ -164,12 +216,14 @@ function destroySpam()
 
   let destroyed = 0;
   let iterations = 0;
-  const MAX_ITERATIONS = 10; // Safety: max 10 batches (~1000 messages) to prevent runaway loops
+  const MAX_ITERATIONS = 10; // Safety cap: max 10 batches (~1000 messages)
 
+  // Keep pulling pages of spam until the folder is empty or we hit the cap
   while (iterations < MAX_ITERATIONS)
   {
     iterations++;
 
+    // Fetch a page of up to 100 spam messages
     let response;
     try
     {
@@ -181,16 +235,19 @@ function destroySpam()
     catch (e)
     {
       logError('Failed to list spam messages: ' + e.toString());
+      break; // API error — stop rather than retry in a loop
+    }
+
+    // No more messages — spam folder is clean
+    if (!response.messages || response.messages.length === 0)
+    {
       break;
     }
 
-    if (!response.messages || response.messages.length === 0)
-    {
-      break; // Spam folder is empty
-    }
-
+    // Extract message IDs for batch deletion
     const ids = response.messages.map(function(m) { return m.id; });
 
+    // Permanently delete the batch (bypasses Trash — messages are gone)
     try
     {
       Gmail.Users.Messages.batchDelete({ ids: ids }, 'me');
@@ -199,10 +256,10 @@ function destroySpam()
     catch (e)
     {
       logError('Batch destroy failed: ' + e.toString());
-      break;
+      break; // Don't retry — likely a quota or permission issue
     }
 
-    // Brief pause between batches to respect rate limits
+    // Brief pause between batches to respect Gmail API rate limits
     Utilities.sleep(500);
   }
 
@@ -218,10 +275,17 @@ function destroySpam()
 }
 
 /**
- * Process a single thread and return statistics
+ * Process a single Gmail thread and return detection statistics.
  *
- * @param {GmailThread} thread - The Gmail thread to process
- * @return {Object} Object with spamCount and processedCount
+ * Iterates through all messages in the thread, running each through the
+ * detection pipeline. If any message is spam, the entire thread is flagged
+ * (but only once — the first spam message triggers the action).
+ *
+ * Per-message error isolation ensures one unparseable message doesn't
+ * prevent processing of other messages in the same thread.
+ *
+ * @param {GmailThread} thread - The Gmail thread to process.
+ * @return {Object} Object with {spamCount, processedCount} statistics.
  */
 function processThread(thread)
 {
@@ -231,14 +295,14 @@ function processThread(thread)
 
   const messages = thread.getMessages();
 
-  // Process all messages in thread
+  // Process all messages in the thread
   for (let i = 0; i < messages.length; i++)
   {
     try
     {
       const message = messages[i];
 
-      // Skip if already processed or too large
+      // Skip oversized emails (> 5MB) to prevent memory issues
       if (!shouldProcessMessage(message))
       {
         continue;
@@ -249,7 +313,8 @@ function processThread(thread)
 
       logDebug('Email: "' + sanitizeForLog(message.getSubject()) + '" - Score: ' + spamScore);
 
-      // Only mark thread as spam once, even if multiple messages are spam
+      // Only mark thread as spam once, even if multiple messages trigger detection.
+      // This prevents duplicate API calls and redundant log entries.
       if (spamScore >= CONFIG.spamThreshold && !threadMarkedAsSpam)
       {
         markAsSpam(message, thread);
@@ -261,7 +326,7 @@ function processThread(thread)
     catch (messageError)
     {
       logError('Error processing message: ' + messageError.toString());
-      // Continue processing other messages in thread
+      // Continue to next message — don't let one failure stop the thread
     }
   }
 
@@ -269,16 +334,19 @@ function processThread(thread)
 }
 
 /**
- * Determine if a message should be processed
+ * Determine if a message should be processed based on size constraints.
  *
- * @param {GmailMessage} message - The message to check
- * @return {boolean} True if message should be processed
+ * Emails larger than CONFIG.maxEmailSizeBytes (5MB) are skipped to prevent
+ * memory issues in the Apps Script runtime. These are typically emails with
+ * large attachments that are unlikely to be spam anyway.
+ *
+ * @param {GmailMessage} message - The message to check.
+ * @return {boolean} True if message is within size limits and should be processed.
  */
 function shouldProcessMessage(message)
 {
   try
   {
-    // Check if message is too large to process safely
     const body = message.getBody();
     if (body && body.length > CONFIG.maxEmailSizeBytes)
     {
@@ -291,49 +359,74 @@ function shouldProcessMessage(message)
   catch (error)
   {
     logError('Error checking if should process message: ' + error.toString());
-    return false;
+    return false; // Skip on error — safer than processing a broken message
   }
 }
 
 /**
- * Build search query to find unprocessed emails
+ * Build a Gmail search query to find unprocessed inbox emails.
  *
- * @return {string} Gmail search query string
+ * Constructs a query that finds emails:
+ *   - In the inbox (not archived, not spam, not trash)
+ *   - Without the "SpamChecked" label (not yet processed)
+ *   - Received after the lookback window (CONFIG.daysToCheck)
+ *
+ * @return {string} Gmail search query string (e.g., "in:inbox -label:SpamChecked after:2026/02/05").
  */
 function buildSearchQuery()
 {
+  // Calculate the lookback date (N days ago)
   const date = new Date();
   date.setDate(date.getDate() - CONFIG.daysToCheck);
   const dateStr = Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy/MM/dd');
 
-  // Search inbox for recent emails that haven't been processed yet
+  // Combine: inbox + not-yet-processed + recent
   return 'in:inbox -label:' + CONFIG.processedLabel + ' after:' + dateStr;
 }
 
+
+// =============================================================================
+// Spam Detection Engine
+// =============================================================================
+
 /**
- * Analyze a message using pattern-based detection (not scoring!)
+ * Analyze a message using multi-signal pattern detection.
  *
- * Strategy: Detect behavioral patterns that spammers can't easily change
- * - Bulk email infrastructure (Amazon SES, SendGrid)
- * - Clickbait subject patterns
- * - Fear-mongering language
- * - Marketing sender format
+ * This is the core detection engine. It collects signals across 6 categories,
+ * then applies a 4-rule decision cascade. Returns a binary result (0 or 100)
+ * rather than a granular score — an email is either spam or it isn't.
  *
- * Returns: 0 (not spam) or 100 (spam) - binary decision
+ * Detection pipeline:
+ *   1. Whitelist check — known legitimate senders bypass all detection
+ *   2. Signal collection:
+ *      a. Bulk email service (Amazon SES / SendGrid in raw headers)
+ *      b. Blacklisted sender domain (known spam mills)
+ *      c. Suspicious From display name (bullets, excessive length)
+ *      d. Clickbait pattern count (40+ patterns across categories)
+ *      e. Fear-mongering language (government/financial/health fear)
+ *      f. Marketing sender format (pipe separators, spammy business names)
+ *   3. Decision logic (4 rules in priority order):
+ *      Rule 0: Bulk + blacklisted sender → spam (definitive)
+ *      Rule 1: Bulk + 2+ clickbait patterns → spam
+ *      Rule 2: Bulk + 2+ distinct spam behaviors → spam
+ *      Rule 3: 3+ clickbait patterns alone → spam (catches direct-send)
  *
- * @param {GmailMessage} message - The message to analyze
- * @return {number} 0 or 100
+ * @param {GmailMessage} message - The Gmail message to analyze.
+ * @return {number} 0 (not spam) or 100 (spam).
  */
 function analyzeMessage(message)
 {
   try
   {
+    // ── Extract email fields ──────────────────────────────────────────────
     const subject = sanitizeInput(message.getSubject());
     const body = sanitizeInput(message.getPlainBody());
     const from = sanitizeInput(message.getFrom());
-    const rawContent = message.getRawContent(); // Full email headers
+    const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
 
-    // WHITELIST CHECK: Skip spam detection for known legitimate domains
+    // ── Whitelist check (early exit) ──────────────────────────────────────
+    // Known legitimate senders skip all detection — prevents false positives
+    // on services like LinkedIn, Substack, etc. that use bulk infrastructure
     const whitelist = getWhitelist();
     const fromLower = from.toLowerCase();
     for (let i = 0; i < whitelist.length; i++)
@@ -341,21 +434,27 @@ function analyzeMessage(message)
       if (fromLower.includes(whitelist[i]))
       {
         logDebug('Whitelisted domain detected: ' + whitelist[i]);
-        return 0; // Not spam - whitelisted
+        return 0;
       }
     }
 
-    // PATTERN DETECTION: Analyze spam signals
+    // ── Initialize signal accumulators ─────────────────────────────────────
+    // Each detection phase below populates one signal. The decision logic
+    // at the end combines these signals to make the spam/not-spam call.
     const signals = {
-      bulkEmailService: false,
-      blacklistedSender: false,
-      clickbaitCount: 0,
-      fearMongering: false,
-      marketingFormat: false,
-      suspiciousFromName: false
+      bulkEmailService: false,    // Sent via Amazon SES or SendGrid
+      blacklistedSender: false,   // From a known spam mill domain
+      clickbaitCount: 0,          // Number of clickbait patterns matched
+      fearMongering: false,       // Contains fear-mongering language
+      marketingFormat: false,     // From field uses marketing formatting
+      suspiciousFromName: false   // Display name is headline-like
     };
 
-    // SIGNAL 1: Bulk email service (Amazon SES, SendGrid, etc.)
+    // ── Signal 1a: Bulk email service detection ───────────────────────────
+    // Check raw email headers for Amazon SES or SendGrid fingerprints.
+    // These services are used by both legitimate senders and spam mills,
+    // so this signal alone is not conclusive — it's a multiplier for
+    // other signals in Rules 0-2.
     if (rawContent.toLowerCase().includes('amazonses.com') ||
         rawContent.toLowerCase().includes('x-ses-') ||
         rawContent.toLowerCase().includes('sendgrid.net'))
@@ -364,8 +463,9 @@ function analyzeMessage(message)
       logDebug('Bulk email service detected');
     }
 
-    // v6.8 SIGNAL 1b: Blacklisted sender domain (known spam mills)
-    // Uses suspicious domains list from Script Properties
+    // ── Signal 1b: Blacklisted sender domain ──────────────────────────────
+    // Substring match against known spam mill domains from Script Properties.
+    // One match is enough — these domains have no legitimate use.
     const blacklist = getBlacklist();
     for (let i = 0; i < blacklist.length; i++)
     {
@@ -377,165 +477,132 @@ function analyzeMessage(message)
       }
     }
 
-    // v6.8 SIGNAL 1c: Suspicious From display name
-    // Legitimate senders use plain names; spam mills stuff headlines into display names
+    // ── Signal 1c: Suspicious From display name ───────────────────────────
+    // Strip the <email@address> portion, then check the remaining display name.
+    // Legitimate senders use plain names ("John Smith"); spam mills stuff
+    // headlines into display names ("Breaking • Banks Closing • Alert").
     const fromDisplayName = from.replace(/<[^>]*>$/, '').trim();
-    if (fromDisplayName.includes('•') ||  // Bullet separator - never used by legitimate senders
-        fromDisplayName.length > 50)      // Excessively long - spam display names are mini-headlines
+    if (fromDisplayName.includes('•') ||  // Bullet separator — never used by legitimate senders
+        fromDisplayName.length > 50)      // Excessive length — keyword stuffing tactic
     {
       signals.suspiciousFromName = true;
       logDebug('Suspicious From name detected: ' + sanitizeForLog(fromDisplayName));
     }
 
-    // SIGNAL 2: Clickbait/Sensationalism detection (category-based, not keyword lists!)
-    // Each pattern catches a CATEGORY of spam tactics, not specific phrases
-    // v6.0: Now checks BOTH subject AND from field, added new patterns
-
+    // ── Signal 2: Clickbait / sensationalism patterns ─────────────────────
+    // Each pattern targets a CATEGORY of spam tactic, not specific phrases.
+    // Patterns are checked against both subject AND from field concatenated,
+    // since spammers stuff clickbait into display names too.
+    // Each matching pattern increments clickbaitCount independently.
     const clickbaitPatterns = [
-      // SENSATIONALIST ADJECTIVES: shocking, bizarre, stunning, bombshell, etc. (broad match)
-      // Catches: "shocking admission", "bizarre discovery", "stunning revelation", "bombshell report", etc.
-      // v6.7: Added "bombshell" - classic sensationalist framing word
+      // --- Sensationalist language ---
+
+      // Shock/sensation adjectives: "shocking admission", "bizarre discovery"
       /\b(shocking|stunning|bizarre|mysterious|secret|hidden|leaked|exposed|forbidden|bombshell)\b/i,
 
-      // v6.0: TERRIFYING/ALARMING adjectives (often in From field)
-      // Catches: "A terrifying new warning", "alarming discovery", etc.
+      // Terrifying/alarming adjectives (often stuffed into From display names)
       /\b(terrifying|alarming|devastating|horrifying|frightening|chilling|disturbing)\b/i,
 
-      // CURIOSITY GAP: (mystery word) + (visual/media word)
-      // Catches: "strange picture", "secret photo", "hidden camera", etc.
+      // Curiosity gap: mystery word + visual/media word ("secret photo", "leaked footage")
       /(strange|secret|hidden|mysterious|shocking|bizarre|unusual|leaked).*(picture|photo|image|video|camera|footage|document)/i,
 
-      // URGENCY + SENSATIONALISM: (urgent word) + (sensational concept)
-      // Catches: "breaking news", "urgent warning", "alert exposed", etc.
+      // Urgency + sensationalism: "breaking news", "urgent warning"
       /(breaking|urgent|warning|alert|stop|exposed|banned).*(news|truth|secret|scandal|exposed|revealed)/i,
 
-      // FINANCIAL FEAR-MONGERING: (market/money word) + (crisis word)
-      // Catches: "market crash", "stock collapse", "economy shift", "bitcoin warning", etc.
+      // Financial fear-mongering: market/money word + crisis word
       /(market|stock|economy|dollar|gold|bitcoin|investment|crypto).*(crash|collapse|shift|crisis|warning|alert|plunge|tank)/i,
 
-      // "CAUGHT" PATTERN: Visual proof framing
-      // Catches: "caught on camera", "caught doing", "caught red-handed", etc.
+      // "Caught" visual-proof framing: "caught on camera", "caught red-handed"
       /caught (on|doing|in|red-handed)/i,
 
-      // TRANSFORMATION CLICKBAIT: (what/this) + (impact verb)
-      // Catches: "this changes everything", "what stunned everyone", etc.
+      // Transformation clickbait: "this changes everything", "what stunned everyone"
       /(what|this).*(changes everything|stunned everyone|shocked|amazed|surprised)/i,
 
-      // v6.0: CELEBRITY/POLITICAL NAME-DROPPING for false credibility
-      // Catches: "RFK Jr Issues Warning", "Trump Reveals", "Musk Exposes", etc.
-      // v6.7: Added "showed|shows" - "The Video Musk Showed Trump" pattern
+      // --- Celebrity / political name-dropping ---
+
+      // Celebrity credibility theft: "RFK Jr Issues Warning", "Musk Exposes"
       /\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns|showed|shows)/i,
 
-      // v6.2: CELEBRITY MERCHANDISE/COLLECTIBLE SCAM
-      // Catches: "Trump Coin", "Trump $2 Bill", "Biden Medal", "Trump's Legacy", etc.
-      // L6 INSIGHT: Celebrity + product/legacy = collectible scam category
+      // Celebrity merchandise/collectible scams: "Trump Coin", "Biden Medal"
       /\b(Trump|Biden|Obama|Kennedy)\b.*(coin|bill|medal|card|stamp|legacy|commemorat|collect|mint|gold|silver)/i,
 
-      // v6.0: DEMOGRAPHIC TARGETING (age-based fear)
-      // Catches: "Seniors Most At Risk", "If you're over 60", "Retirees affected", etc.
+      // --- Demographic and temporal targeting ---
+
+      // Age-based fear: "Seniors Most At Risk", "If you're over 60"
       /\b(seniors?|elderly|retirees?|boomers?|over \d{2}|born before|age \d{2})\b.*(risk|warning|alert|danger|affected|target)/i,
 
-      // v6.0: YEAR-BASED URGENCY (current year for fake timeliness)
-      // Catches: "2025 Warning", "2026 Prediction", etc.
+      // Year-based urgency: current year + threat word for fake timeliness
       /\b202[4-9]\b.*(warning|alert|prediction|forecast|crisis)/i,
 
-      // v6.0: CONSPIRACY/HIDING pattern
-      // Catches: "What else are they hiding", "What they don't want you to know", etc.
+      // Conspiracy/hiding: "what they don't want you to know"
       /(what|who).*(hiding|don't want you|truth|they won't tell)/i,
 
-      // v6.0: MILITARY/WAR SENSATIONALISM
-      // Catches: "Declared war", "Bombed", "Attack", "Destroyed", etc.
+      // --- Violence and military sensationalism ---
+
+      // Military/war clickbait: "declared war", "bombing", "invasion"
       /\b(declared war|bombed|bombing|attack|attacked|destroyed|invasion)\b/i,
 
-      // v6.0: STOCK PRICE HYPE
-      // Catches: "Under $1 a share", "$5 stock", "penny stock", etc.
+      // --- Financial hype ---
+
+      // Stock price hype: "$5 a share", "penny stock"
       /\$\d+(\.\d+)?\s*(a\s+)?share|\bpenny stock\b/i,
 
-      // v6.0: WATCH/SEE WHAT HAPPENED (curiosity gap)
-      // Catches: "Watch what happened", "See what happens when", etc.
+      // Watch/see curiosity gap: "watch what happened", "see this"
       /\b(watch|see)\s+(what|this|the moment)/i,
 
-      // STRUCTURAL SPAM INDICATORS
-      /【.*】/,           // Japanese date brackets (spammer tactic)
-      /\[.{3,}[?!]\]/,    // v6.0: Square brackets with question/exclamation [Like This?]
-      /💼|📸|⏯️|🚨|⚠️|📰|💰|⚡/,  // Sensationalist emoji (business, camera, play, alert, money, lightning)
-      /\?\?\?|!!!/,       // Multiple punctuation (urgency tactic)
-      /\bWATCH\b.*\?$/i,  // "WATCH" + question mark (clickbait structure)
+      // --- Structural / formatting indicators ---
 
-      // v6.0: CYRILLIC/UNICODE OBFUSCATION (spammers use lookalike characters)
-      // Catches: "Еlоn" (Cyrillic Е, о), "Wаr" (Cyrillic а), etc.
-      /[\u0400-\u04FF]/,  // Any Cyrillic character = spam evasion tactic
+      /【.*】/,           // Japanese-style brackets (spammer formatting tactic)
+      /\[.{3,}[?!]\]/,    // Square brackets with punctuation: [Like This?]
+      /💼|📸|⏯️|🚨|⚠️|📰|💰|⚡/,  // Sensationalist emoji cluster
+      /\?\?\?|!!!/,       // Triple punctuation (urgency tactic)
+      /\bWATCH\b.*\?$/i,  // "WATCH ...?" clickbait structure
 
-      // v6.1: GREEK CHARACTER OBFUSCATION (Β instead of B, etc.)
-      // Catches: "Βanks" (Greek Β), "Αmazon" (Greek Α), etc.
-      /[\u0370-\u03FF]/,  // Any Greek character = spam evasion tactic
+      // --- Unicode obfuscation (filter evasion) ---
 
-      // v6.2: FULLWIDTH CHARACTER OBFUSCATION (＄ instead of $, etc.)
-      // L6 INSIGHT: Fullwidth forms (U+FF00-FFEF) are NEVER legitimate in English
-      // Catches: "＄2 Bill", "１００％ guaranteed", etc.
-      /[\uFF00-\uFFEF]/,  // Any fullwidth character = spam evasion tactic
+      /[\u0400-\u04FF]/,  // Cyrillic lookalikes: "Еlоn" with Cyrillic Е, о
+      /[\u0370-\u03FF]/,  // Greek lookalikes: "Βanks" with Greek Β
+      /[\uFF00-\uFFEF]/,  // Fullwidth chars: "＄2 Bill" — never legit in English
+      /\uD835/,           // Mathematical bold/italic: "𝗔𝗺𝗮𝘇𝗼𝗻" (surrogate pair)
 
-      // v6.0: JOBS/EMPLOYMENT FEAR
-      // Catches: "jobs disappeared", "jobs that never existed", "layoffs"
+      // --- Topic-specific spam categories ---
+
+      // Jobs/employment fear: "jobs disappeared", "layoffs"
       /\b(jobs?|employment).*(disappeared|vanished|never existed|fake|fraud|layoffs?)/i,
 
-      // v6.1: BANK/BRANCH CLOSING FEAR
-      // Catches: "Banks closing", "branch closures", "ATMs shutting down", etc.
+      // Bank/branch closing fear: "banks closing", "ATMs shutting down"
       /\b(banks?|branch|branches|ATMs?).*(clos|shut|disappear|eliminat)/i,
 
-      // v6.1: BUILDING/INSTITUTION EMOJI (banks, hospitals, etc.)
+      // Building/institution emoji (banks, hospitals, government)
       /🏦|🏥|🏛️|🏢/,
 
-      // v6.2: COLLECTIBLE/COMMEMORATIVE SCAM CATEGORY
-      // L6 INSIGHT: This is a distinct spam category, not individual keywords
-      // Catches: "Limited Edition", "Minted", "Commemorative", "Collector's Item"
+      // Collectible/commemorative scams: "limited edition", "rare coin"
       /\b(minted|commemorat|collector'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b/i,
 
-      // v6.7: MATHEMATICAL UNICODE OBFUSCATION (𝗔𝗺𝗮𝘇𝗼𝗻 instead of Amazon)
-      // Mathematical Alphanumeric Symbols (U+1D400-1D7FF) use surrogate pair \uD835
-      // Used for bold/italic/script letter variants - NEVER legitimate in English email
-      // Catches: "𝗔𝗺𝗮𝘇𝗼𝗻" (Mathematical Bold Sans-Serif), "𝐀𝐦𝐚𝐳𝐨𝐧" (Mathematical Bold), etc.
-      /\uD835/,
-
-      // v6.7: BULLET-POINT DATE FORMAT (• January 29 •)
-      // Structural spam indicator - marketing spam wraps dates in bullet separators
-      // Legitimate emails use plain dates; bullet-wrapped dates are a newsletter spam tactic
-      // Catches: "• January 29 •", "• February 15 •", etc.
+      // Bullet-point date format: "• January 29 •" (newsletter spam tactic)
       /•\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
 
-      // v6.7: HISTORICAL ATROCITY CLICKBAIT
-      // Bulk email senders using Nazi/Holocaust references = shock engagement bait
-      // Catches: "Nazi medical center", "Hitler's experiment", "Auschwitz", etc.
+      // Historical atrocity clickbait: Nazi/Holocaust references as engagement bait
       /\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b/i,
 
-      // v6.7: HEALTH CONDITION CLICKBAIT WORDS
-      // Specific health conditions used as anxiety triggers in spam subject/from lines
-      // Catches: "Cause of Your Fatigue", "Blood Sugar Warning", "Brain Fog", etc.
+      // Health condition anxiety triggers: "blood sugar", "brain fog"
       /\b(fatigue|insomnia|inflammation|blood sugar|cholesterol|blood pressure|joint pain|brain fog|belly fat)\b/i,
 
-      // v6.7: FINANCIAL SCAM PRODUCT CATEGORIES
-      // Gift cards, tax liens, instant approval offers - classic scam/phishing categories
-      // Catches: "Gift Card bonus", "Tax Lien List", "Instant Approval", "No Annual Fee"
+      // Financial scam products: gift cards, tax liens, instant approval
       /\b(gift card|tax lien|tax sale|foreclosure list|pre-?approved|instant approval|no annual fee)\b/i,
 
-      // v6.7: "NOW YOU CAN SEE/WATCH" EXCLUSIVE ACCESS CLICKBAIT
-      // Promises exclusive access to hidden/restricted content
-      // Catches: "Now You Can See It", "Now You Can Watch", etc.
+      // "Now you can see/watch" exclusive access clickbait
       /\bnow you can (see|watch|view|get)\b/i,
 
-      // v6.9: UNICODE PUNCTUATION OBFUSCATION (lookalike slash characters)
-      // Spammers use mathematical slash variants as separators to evade filters
+      // Unicode punctuation obfuscation (lookalike slash characters)
       // U+2215 DIVISION SLASH, U+2044 FRACTION SLASH, U+29F8 BIG SOLIDUS
-      // These are mathematical symbols — never legitimate in English email subjects
       /[\u2215\u2044\u29F8]/,
 
-      // v6.9: FINANCIAL PRODUCT SOLICITATION
-      // Aggressive credit/loan marketing language used by financial spam mills
-      // Catches: "0% interest", "0% APR", "balance transfer", "transfer your balance/debt"
+      // Financial product solicitation: "0% APR", "balance transfer"
       /\b(0\s*%\s*(interest|apr)|balance transfer|transfer your.*(balance|debt))\b/i
     ];
 
-    // v6.0: Check BOTH subject AND from field for clickbait patterns
+    // Check subject + from concatenated — spammers stuff clickbait into both
     const textToCheck = subject + ' ' + from;
     for (let i = 0; i < clickbaitPatterns.length; i++)
     {
@@ -545,28 +612,23 @@ function analyzeMessage(message)
       }
     }
 
-    // SIGNAL 3: Fear-mongering (category-based detection)
-    // Broad categories that catch variations without hardcoded phrases
-    // v6.0: Fixed case-insensitive urgency words, checks subject + from
-
+    // ── Signal 3: Fear-mongering detection ────────────────────────────────
+    // Boolean signal — we only need to know if fear is present, not how many
+    // patterns match. First match short-circuits the loop.
     const fearPatterns = [
-      // GOVERNMENT FEAR: IRS, NSA, FBI, government + any threat/revelation
-      // Catches: "government warning", "NSA spied", "government admission", etc.
+      // Government fear: IRS/NSA/FBI + threat/revelation verb
       /\b(IRS|NSA|FBI|CIA|government|federal)\b.*(warn|hiding|secret|spy|track|audit|investigation|admission|reveal|expose|confiscat)/i,
 
-      // FINANCIAL FEAR: Banks, accounts + seizure/theft/loss threats
-      // Catches: "banks seize", "bank account frozen", "savings stolen", etc.
+      // Financial fear: bank/money terms + seizure/theft/loss
       /\b(banks?|bank account|credit card|social security|identity|savings|cash|money)\b.*(seize|steal|stolen|hacked|freeze|frozen|close|closed|warning|alert|confiscat|take|taking|lost)/i,
 
-      // HEALTH FEAR: Medical warnings, dangers
-      // v6.0: Added more health terms (FDA, health crisis, at risk)
+      // Health fear: medical terms + danger verbs
       /\b(blood thinner|medication|drug|vaccine|doctor|FDA|health crisis|at risk)\b.*(warning|danger|deadly|killing|risk|avoid|corrupt)/i,
 
-      // v6.0: STANDALONE URGENCY WORDS (case-insensitive!)
-      // Catches: "Warning", "WARNING", "Alert", etc.
+      // Standalone urgency words: "WARNING", "ALERT", "BREAKING"
       /\b(warning|alert|urgent|breaking|exposed|banned|stopped)\b/i,
 
-      // "STOP USING" pattern
+      // "STOP using/taking" imperative pattern
       /\bSTOP (using|taking|doing|buying)\b/i
     ];
 
@@ -576,44 +638,51 @@ function analyzeMessage(message)
       {
         signals.fearMongering = true;
         logDebug('Fear-mongering detected (pattern match)');
-        break;
+        break; // Boolean signal — one match is enough
       }
     }
 
-    // SIGNAL 4: Marketing sender format ("Name | Org" or "Topic, Company" or "Name at Org")
-    // v6.0: Also detect spammy sender names and suspicious email patterns
-    if (/["|,]\s*[A-Z]/.test(from) ||
-        /\s+at\s+[A-Z]/i.test(from) ||
-        /\|\s*/.test(from) ||
-        /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i.test(from) ||  // v6.0: Spammy business names
-        /grow@with\./i.test(from) ||  // v6.0: Suspicious email patterns
-        /@[a-z]\.[a-z]+\.(com|net)/i.test(from))  // v6.0: Subdomain email pattern (e.g., @F.FinanceInsiderPro.com)
+    // ── Signal 4: Marketing sender format ─────────────────────────────────
+    // Checked against From field only (not subject). Detects spammy sender
+    // name formatting like "Name | Org", "Topic, Company", pipe separators,
+    // spammy business names, and suspicious email address patterns.
+    if (/["|,]\s*[A-Z]/.test(from) ||                                                          // "Name | Org" or "Topic, Company"
+        /\s+at\s+[A-Z]/i.test(from) ||                                                         // "Name at Organization"
+        /\|\s*/.test(from) ||                                                                   // Pipe separator in display name
+        /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i.test(from) ||  // Spammy business names
+        /grow@with\./i.test(from) ||                                                            // Suspicious email pattern
+        /@[a-z]\.[a-z]+\.(com|net)/i.test(from))                                               // Subdomain pattern: @F.FinanceInsiderPro.com
     {
       signals.marketingFormat = true;
       logDebug('Marketing sender format detected');
     }
 
-    // DECISION LOGIC (v6.0 - Less conservative when bulk email + marketing present)
+    // ── Decision Logic (4 rules, evaluated in priority order) ─────────────
+    //
+    // Rules cascade from most-specific (Rule 0) to broadest (Rule 3).
+    // Only one rule fires per email. Each returns immediately on match.
 
-    // v6.8 RULE 0: Bulk email + blacklisted sender domain = SPAM
-    // Known spam mills using bulk infrastructure are conclusive
+    // Rule 0: Bulk email + blacklisted sender = definitive spam
+    // Rationale: Known spam domain + bulk infrastructure = zero false positive risk
     if (signals.bulkEmailService && signals.blacklistedSender)
     {
       logInfo('SPAM detected: Bulk email + blacklisted sender');
       return 100;
     }
 
-    // RULE 1: Bulk email + 2+ clickbait patterns = SPAM
+    // Rule 1: Bulk email + 2+ clickbait patterns = spam
+    // Rationale: Legitimate bulk senders rarely use multiple clickbait tactics
     if (signals.bulkEmailService && signals.clickbaitCount >= 2)
     {
       logInfo('SPAM detected: Bulk email + clickbait (' + signals.clickbaitCount + ' patterns)');
       return 100;
     }
 
-    // RULE 2: Bulk email + 2+ spam behaviors = SPAM
-    // v6.8: suspiciousFromName counts as a spam behavior
+    // Rule 2: Bulk email + 2+ distinct spam behaviors = spam
+    // Rationale: No single behavior is conclusive, but two independent spam
+    // behaviors from a bulk sender is a strong convergent signal
     let spamBehaviorCount = 0;
-    if (signals.clickbaitCount >= 1) spamBehaviorCount++;  // v6.0: Changed from >= 2 to >= 1
+    if (signals.clickbaitCount >= 1) spamBehaviorCount++;
     if (signals.fearMongering) spamBehaviorCount++;
     if (signals.marketingFormat) spamBehaviorCount++;
     if (signals.suspiciousFromName) spamBehaviorCount++;
@@ -624,15 +693,16 @@ function analyzeMessage(message)
       return 100;
     }
 
-    // RULE 3: Extreme clickbait even without bulk email = SPAM
-    // (Formerly Rule 4; old Rule 3 was subsumed by Rule 2 after v6.0 relaxed clickbait threshold)
+    // Rule 3: Extreme clickbait alone (no bulk email required)
+    // Rationale: 3+ clickbait hits is so anomalous that even non-bulk senders
+    // are almost certainly spam (catches direct-send spam)
     if (signals.clickbaitCount >= 3)
     {
       logInfo('SPAM detected: Extreme clickbait (' + signals.clickbaitCount + ' patterns)');
       return 100;
     }
 
-    // Not spam
+    // No rule triggered — email is not spam
     logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
              ', blacklist=' + signals.blacklistedSender +
              ', clickbait=' + signals.clickbaitCount +
@@ -644,15 +714,31 @@ function analyzeMessage(message)
   catch (error)
   {
     logError('Error analyzing message: ' + error.toString());
-    return 0; // Default to not spam on error
+    return 0; // Default to not-spam on error — better to miss spam than delete legit mail
   }
 }
 
+
+// =============================================================================
+// Spam Action — Report and Delete
+// =============================================================================
+
 /**
- * Mark message as spam and move to spam folder
+ * Mark a message as spam, report it to Gmail, and permanently delete it.
  *
- * @param {GmailMessage} message - The spam message
- * @param {GmailThread} thread - The thread containing the message
+ * Two-step process:
+ *   1. modify() — adds SPAM label, removes INBOX label (trains Gmail's filters)
+ *   2. batchDelete() — permanently deletes by known message ID (no query needed)
+ *
+ * Falls back to GmailApp.moveToSpam() if the Advanced Gmail Service is
+ * unavailable (e.g., not enabled in the project). Has a second fallback
+ * layer if the primary API call fails entirely.
+ *
+ * Note: batchDelete() is used even for single messages because the Advanced
+ * Gmail Service does NOT expose a single-message delete() method.
+ *
+ * @param {GmailMessage} message - The spam message to report and delete.
+ * @param {GmailThread} thread  - The thread containing the message (for fallback).
  */
 function markAsSpam(message, thread)
 {
@@ -662,10 +748,10 @@ function markAsSpam(message, thread)
   {
     const messageId = message.getId();
 
-    // Use Gmail API to report spam (trains Gmail's filters) then delete by known ID
+    // Prefer Gmail Advanced Service (REST API) for precise control
     if (typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Messages)
     {
-      // Step 1: Report as spam (trains Gmail's filters)
+      // Step 1: Report as spam — trains Gmail's spam filters for future emails
       Gmail.Users.Messages.modify(
         { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] },
         'me',
@@ -673,7 +759,9 @@ function markAsSpam(message, thread)
       );
       logInfo('SPAM REPORTED: ' + subject);
 
-      // Step 2: Permanently delete by known message ID
+      // Step 2: Permanently delete by known message ID.
+      // Uses batchDelete() because the Advanced Gmail Service has no single-message
+      // delete method. Wrapping one ID in an array is the correct approach.
       try
       {
         Gmail.Users.Messages.batchDelete({ ids: [messageId] }, 'me');
@@ -681,12 +769,13 @@ function markAsSpam(message, thread)
       }
       catch (deleteError)
       {
+        // Non-fatal: destroySpam() safety net will catch this on its next sweep
         logError('Immediate delete failed (destroySpam will retry): ' + deleteError.toString());
       }
     }
     else
     {
-      // Fallback to GmailApp (no direct delete available without REST API)
+      // Fallback: GmailApp API (no direct permanent delete available)
       thread.moveToSpam();
       logInfo('SPAM REPORTED (fallback): ' + subject);
     }
@@ -696,7 +785,7 @@ function markAsSpam(message, thread)
     logError('Error marking as spam: ' + error.toString());
     logError('Subject: ' + subject);
 
-    // Fallback: try basic spam move
+    // Second fallback: try basic spam move if the API call failed entirely
     try
     {
       thread.moveToSpam();
@@ -705,16 +794,25 @@ function markAsSpam(message, thread)
     catch (fallbackError)
     {
       logError('Fallback also failed: ' + fallbackError.toString());
-      throw error;
+      throw error; // Both methods failed — propagate the original error
     }
   }
 }
 
+
+// =============================================================================
+// Label Management
+// =============================================================================
+
 /**
- * Get or create label for tracking processed emails
+ * Get or create a Gmail label by name.
  *
- * @param {string} labelName - Name of the label
- * @return {GmailLabel} The label object
+ * Used to manage the "SpamChecked" label that tracks which emails have
+ * already been processed. Creates the label on first run.
+ *
+ * @param {string} labelName - Name of the label to get or create.
+ * @return {GmailLabel} The Gmail label object.
+ * @throws {Error} If label creation fails (e.g., auth issue).
  */
 function getOrCreateLabel(labelName)
 {
@@ -735,10 +833,19 @@ function getOrCreateLabel(labelName)
   }
 }
 
+
+// =============================================================================
+// Configuration Validation
+// =============================================================================
+
 /**
- * Validate configuration values
+ * Validate all CONFIG values are within acceptable ranges.
  *
- * @throws {Error} If configuration is invalid
+ * Called at the start of processInbox() to fail fast before doing any work.
+ * Catches misconfiguration that could cause silent misbehavior (e.g.,
+ * maxEmailsPerRun of 0 would process nothing without any error).
+ *
+ * @throws {Error} If any configuration value is out of range.
  */
 function validateConfig()
 {
@@ -763,11 +870,20 @@ function validateConfig()
   }
 }
 
+
+// =============================================================================
+// Input Sanitization
+// =============================================================================
+
 /**
- * Sanitize input to prevent potential issues
+ * Sanitize input strings to prevent memory issues from oversized content.
  *
- * @param {string} input - Input string to sanitize
- * @return {string} Sanitized string
+ * Truncates to 100KB max. Applied to subject, body, and from fields before
+ * pattern matching. This prevents regex backtracking DoS on maliciously
+ * crafted emails with extremely long headers.
+ *
+ * @param {string} input - Input string to sanitize.
+ * @return {string} Sanitized string (truncated if over 100KB). Empty string if falsy.
  */
 function sanitizeInput(input)
 {
@@ -776,7 +892,6 @@ function sanitizeInput(input)
     return '';
   }
 
-  // Convert to string and truncate if too long
   const str = String(input);
   const maxLength = 100000; // 100KB max
 
@@ -784,10 +899,13 @@ function sanitizeInput(input)
 }
 
 /**
- * Sanitize text for logging to prevent log injection
+ * Sanitize text for safe inclusion in log messages.
  *
- * @param {string} text - Text to sanitize
- * @return {string} Sanitized text
+ * Truncates to 100 chars and strips newlines to prevent log injection
+ * (where a crafted subject could insert fake log entries).
+ *
+ * @param {string} text - Text to sanitize for logging.
+ * @return {string} Truncated, single-line string safe for log output.
  */
 function sanitizeForLog(text)
 {
@@ -796,17 +914,22 @@ function sanitizeForLog(text)
     return '';
   }
 
-  // Truncate and remove newlines/special chars
+  // Truncate to 100 chars and collapse newlines to spaces
   const sanitized = String(text).substring(0, 100).replace(/[\n\r]/g, ' ');
   return sanitized;
 }
 
+
+// =============================================================================
+// Utility Functions
+// =============================================================================
+
 /**
- * Count matches of a regex pattern in text
+ * Count regex matches in a text string.
  *
- * @param {string} text - Text to search
- * @param {RegExp} pattern - Pattern to match
- * @return {number} Number of matches
+ * @param {string} text    - Text to search.
+ * @param {RegExp} pattern - Regex pattern (should have global flag for multiple matches).
+ * @return {number} Number of matches found. Returns 0 if inputs are falsy.
  */
 function countMatches(text, pattern)
 {
@@ -820,12 +943,15 @@ function countMatches(text, pattern)
 }
 
 /**
- * Count keyword matches and return weighted score
+ * Count keyword matches in text and return a weighted score.
  *
- * @param {string} text - Text to search
- * @param {Array<string>} keywords - Array of keywords to match
- * @param {number} weight - Score weight per match
- * @return {number} Total score
+ * Performs case-sensitive substring matching for each keyword.
+ * Each match adds the specified weight to the total score.
+ *
+ * @param {string} text          - Text to search.
+ * @param {Array<string>} keywords - Array of keywords to match.
+ * @param {number} weight        - Score points to add per match.
+ * @return {number} Total weighted score. Returns 0 if inputs are falsy/empty.
  */
 function countKeywordMatches(text, keywords, weight)
 {
@@ -846,10 +972,15 @@ function countKeywordMatches(text, keywords, weight)
   return score;
 }
 
+
+// =============================================================================
+// Logging
+// =============================================================================
+
 /**
- * Log info message
+ * Log an informational message (always visible in Apps Script logs).
  *
- * @param {string} message - Message to log
+ * @param {string} message - Message to log.
  */
 function logInfo(message)
 {
@@ -857,9 +988,12 @@ function logInfo(message)
 }
 
 /**
- * Log debug message (only if debug enabled)
+ * Log a debug message (only visible when CONFIG.debug is true).
  *
- * @param {string} message - Message to log
+ * Used for per-email signal details during troubleshooting.
+ * Disabled in production to reduce log noise.
+ *
+ * @param {string} message - Message to log.
  */
 function logDebug(message)
 {
@@ -870,17 +1004,28 @@ function logDebug(message)
 }
 
 /**
- * Log error message
+ * Log an error message (always visible in Apps Script logs).
  *
- * @param {string} message - Message to log
+ * @param {string} message - Error message to log.
  */
 function logError(message)
 {
   Logger.log('[ERROR] ' + message);
 }
 
+
+// =============================================================================
+// Setup and Initialization
+// =============================================================================
+
 /**
- * Setup function - run this once to authorize the script
+ * One-time setup function — run manually to authorize the script and
+ * initialize Script Properties with default domain lists.
+ *
+ * After running, set up a time-driven trigger:
+ *   Triggers > Add Trigger > processInbox > Time-driven > Every 15 minutes
+ *
+ * @throws {Error} If configuration validation or label creation fails.
  */
 function setup()
 {
@@ -888,13 +1033,13 @@ function setup()
   {
     logInfo('Setting up spam detector...');
 
-    // Validate configuration
+    // Validate configuration before proceeding
     validateConfig();
 
-    // Create the processed label
+    // Create the "SpamChecked" label for tracking processed emails
     getOrCreateLabel(CONFIG.processedLabel);
 
-    // Initialize Script Properties with default whitelist/blacklist
+    // Write default whitelist/blacklist to Script Properties (if not already set)
     initializeScriptProperties();
 
     logInfo('Setup complete! Now set up a time-based trigger to run processInbox() every 15 minutes.');
@@ -908,14 +1053,17 @@ function setup()
 }
 
 /**
- * Initialize Script Properties with default whitelist and blacklist
- * Only runs if properties don't exist yet
+ * Initialize Script Properties with default whitelist and blacklist.
+ *
+ * Only writes defaults if the properties don't exist yet — subsequent calls
+ * are no-ops. This preserves any manual additions made via addToWhitelist()
+ * or addToBlacklist() after initial setup.
  */
 function initializeScriptProperties()
 {
   const props = PropertiesService.getScriptProperties();
 
-  // Initialize whitelist if not exists
+  // Initialize whitelist if not yet created
   if (!props.getProperty('LEGITIMATE_DOMAINS'))
   {
     const defaultWhitelist = Array.from(DEFAULT_DOMAINS.legitimate);
@@ -923,7 +1071,7 @@ function initializeScriptProperties()
     logInfo('Initialized whitelist with ' + defaultWhitelist.length + ' domains');
   }
 
-  // Initialize blacklist if not exists
+  // Initialize blacklist if not yet created
   if (!props.getProperty('SUSPICIOUS_DOMAINS'))
   {
     const defaultBlacklist = Array.from(DEFAULT_DOMAINS.suspicious);
@@ -932,9 +1080,19 @@ function initializeScriptProperties()
   }
 }
 
+
+// =============================================================================
+// Domain List Management (Whitelist / Blacklist)
+//
+// Runtime domain lists are stored in Script Properties (persistent key-value
+// store). These functions provide CRUD operations for managing the lists
+// without editing source code. Run them from the Apps Script editor.
+// =============================================================================
+
 /**
- * Get current whitelist from Script Properties
- * @return {Array<string>} Array of whitelisted domains
+ * Get the current whitelist from Script Properties.
+ *
+ * @return {Array<string>} Array of whitelisted domain substrings.
  */
 function getWhitelist()
 {
@@ -944,8 +1102,9 @@ function getWhitelist()
 }
 
 /**
- * Get current blacklist from Script Properties
- * @return {Array<string>} Array of blacklisted domains
+ * Get the current blacklist from Script Properties.
+ *
+ * @return {Array<string>} Array of blacklisted domain substrings.
  */
 function getBlacklist()
 {
@@ -955,8 +1114,11 @@ function getBlacklist()
 }
 
 /**
- * Add a domain to the whitelist
- * @param {string} domain - Domain to whitelist (e.g., 'example.com')
+ * Add a domain to the whitelist (emails from this domain bypass detection).
+ *
+ * Duplicate-safe: silently skips if the domain is already in the list.
+ *
+ * @param {string} domain - Domain substring to whitelist (e.g., 'example.com').
  */
 function addToWhitelist(domain)
 {
@@ -977,8 +1139,11 @@ function addToWhitelist(domain)
 }
 
 /**
- * Add a domain to the blacklist
- * @param {string} domain - Domain to blacklist (e.g., 'spammer.com')
+ * Add a domain to the blacklist (triggers Rule 0 when combined with bulk email).
+ *
+ * Duplicate-safe: silently skips if the domain is already in the list.
+ *
+ * @param {string} domain - Domain substring to blacklist (e.g., 'spammer.com').
  */
 function addToBlacklist(domain)
 {
@@ -999,8 +1164,9 @@ function addToBlacklist(domain)
 }
 
 /**
- * Remove a domain from the whitelist
- * @param {string} domain - Domain to remove
+ * Remove a domain from the whitelist.
+ *
+ * @param {string} domain - Domain substring to remove.
  */
 function removeFromWhitelist(domain)
 {
@@ -1021,8 +1187,9 @@ function removeFromWhitelist(domain)
 }
 
 /**
- * Remove a domain from the blacklist
- * @param {string} domain - Domain to remove
+ * Remove a domain from the blacklist.
+ *
+ * @param {string} domain - Domain substring to remove.
  */
 function removeFromBlacklist(domain)
 {
@@ -1043,7 +1210,8 @@ function removeFromBlacklist(domain)
 }
 
 /**
- * View current whitelist
+ * Print the current whitelist to the Apps Script log.
+ * Run from the editor to inspect the list.
  */
 function viewWhitelist()
 {
@@ -1055,7 +1223,8 @@ function viewWhitelist()
 }
 
 /**
- * View current blacklist
+ * Print the current blacklist to the Apps Script log.
+ * Run from the editor to inspect the list.
  */
 function viewBlacklist()
 {
@@ -1067,8 +1236,11 @@ function viewBlacklist()
 }
 
 /**
- * REFRESH WHITELIST: Adds any missing default domains to the whitelist
- * Run this if you set up before new legitimate domains were added
+ * Refresh whitelist by adding any missing default domains.
+ *
+ * Run this after updating DEFAULT_DOMAINS.legitimate in the source code.
+ * It merges new defaults into the existing list without removing any
+ * manually-added domains.
  */
 function refreshWhitelist()
 {
@@ -1077,6 +1249,7 @@ function refreshWhitelist()
   const defaults = DEFAULT_DOMAINS.legitimate;
   let addedCount = 0;
 
+  // Add any defaults that aren't already in the list
   for (let i = 0; i < defaults.length; i++)
   {
     if (!currentWhitelist.includes(defaults[i]))
@@ -1100,9 +1273,22 @@ function refreshWhitelist()
   viewWhitelist();
 }
 
+
+// =============================================================================
+// Debug Tools
+// =============================================================================
+
 /**
- * DEBUG: Test why a specific email might be flagged
- * Searches for the email and shows all detection signals
+ * Debug tool — analyze why a specific email was flagged (or not flagged).
+ *
+ * Searches for an email matching the given term, then prints all detection
+ * signals to the log. Useful for investigating false positives or missed spam.
+ *
+ * Run from the Apps Script editor with a search term:
+ *   debugWhyFlagged('from:linkedin')
+ *   debugWhyFlagged('subject:your order')
+ *
+ * @param {string} [searchTerm='from:linkedin'] - Gmail search query to find the email.
  */
 function debugWhyFlagged(searchTerm)
 {
@@ -1117,6 +1303,7 @@ function debugWhyFlagged(searchTerm)
       return;
     }
 
+    // Grab the first message from the first matching thread
     const message = threads[0].getMessages()[0];
     const subject = message.getSubject();
     const from = message.getFrom();
@@ -1127,7 +1314,7 @@ function debugWhyFlagged(searchTerm)
     logInfo('From: ' + from);
     logInfo('');
 
-    // Check whitelist
+    // Check whitelist status
     const whitelist = getWhitelist();
     const fromLower = from.toLowerCase();
     let isWhitelisted = false;
@@ -1146,7 +1333,7 @@ function debugWhyFlagged(searchTerm)
       logInfo('  Whitelist domains: ' + whitelist.join(', '));
     }
 
-    // Check bulk email service
+    // Check bulk email service fingerprints in raw headers
     const rawLower = rawContent.toLowerCase();
     if (rawLower.includes('amazonses.com') || rawLower.includes('x-ses-'))
     {
@@ -1157,12 +1344,13 @@ function debugWhyFlagged(searchTerm)
       logInfo('⚠ Bulk email: SendGrid detected');
     }
 
-    // Check marketing format
+    // Check marketing format in From field
     if (/["|,]\s*[A-Z]/.test(from) || /\|\s*/.test(from))
     {
       logInfo('⚠ Marketing format detected in From field');
     }
 
+    // Run the full detection pipeline and show final score
     logInfo('');
     logInfo('Final score: ' + analyzeMessage(message));
     logInfo('=== END DEBUG ===');
@@ -1172,4 +1360,3 @@ function debugWhyFlagged(searchTerm)
     logError('Debug failed: ' + error.toString());
   }
 }
-

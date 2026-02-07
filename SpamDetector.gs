@@ -26,6 +26,9 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.12.0: Detect polished financial spam — ellipsis clickbait pattern,
+ *            subject-echo From name detection (flags when spammers stuff
+ *            subject words into display name), blacklist investingtrendstoday.
  *   v6.11.1: Fix spam deletion — use batchDelete() instead of delete().
  *            The Advanced Gmail Service does not expose a single-message
  *            delete method. batchDelete({ids: [...]}, 'me') is the correct

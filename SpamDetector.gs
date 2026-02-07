@@ -371,11 +371,11 @@ function shouldProcessMessage(message)
  * Build a Gmail search query to find unprocessed inbox emails.
  *
  * Constructs a query that finds emails:
- *   - In the inbox (not archived, not spam, not trash)
+ *   - In the inbox OR any category tab (spam can hide in Updates, Promotions, etc.)
  *   - Without the "SpamChecked" label (not yet processed)
  *   - Received after the lookback window (CONFIG.daysToCheck)
  *
- * @return {string} Gmail search query string (e.g., "in:inbox -label:SpamChecked after:2026/02/05").
+ * @return {string} Gmail search query string.
  */
 function buildSearchQuery()
 {
@@ -384,8 +384,10 @@ function buildSearchQuery()
   date.setDate(date.getDate() - CONFIG.daysToCheck);
   const dateStr = Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy/MM/dd');
 
-  // Combine: inbox + not-yet-processed + recent
-  return 'in:inbox -label:' + CONFIG.processedLabel + ' after:' + dateStr;
+  // Combine: all inbox tabs + not-yet-processed + recent
+  // Gmail's {} is OR — catches spam hiding in any category tab
+  return '{in:inbox category:updates category:promotions category:social category:forums}' +
+         ' -label:' + CONFIG.processedLabel + ' after:' + dateStr;
 }
 
 

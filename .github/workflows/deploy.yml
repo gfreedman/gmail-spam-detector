@@ -1,20 +1,51 @@
+# =============================================================================
+# CI/CD Pipeline — Gmail Spam Detector
+#
+# Three-stage pipeline: Test → Deploy → Tag
+#   1. test:   Lint JS syntax, run Python detection tests, validate README stats
+#   2. deploy: Push SpamDetector.gs to Google Apps Script via clasp
+#   3. tag:    Auto-create git tag if commit message contains a version number
+#
+# Each stage requires the previous to pass (needs:). If tests fail, nothing
+# deploys. If deploy fails, no tag is created.
+#
+# Trigger: pushes to main that touch relevant files (source, tests, config,
+# workflow, or README). The workflow file itself is included so pipeline
+# changes trigger a run.
+#
+# Secrets required:
+#   CLASP_TOKEN — Google OAuth token for clasp CLI authentication
+#   SCRIPT_ID   — Google Apps Script project ID to deploy to
+# =============================================================================
+
 name: Deploy to Google Apps Script
 
 on:
   push:
     branches: [main]
+    # Only run when relevant files change — saves CI minutes on doc-only commits
     paths:
-      - 'SpamDetector.gs'
-      - 'appsscript.json'
-      - 'tests/**'
-      - '.github/workflows/deploy.yml'
-      - 'README.md'
+      - 'SpamDetector.gs'            # Main source code
+      - 'appsscript.json'            # Apps Script manifest (scopes, runtime)
+      - 'tests/**'                   # Test suite and .eml examples
+      - '.github/workflows/deploy.yml'  # This workflow (so pipeline changes trigger a run)
+      - 'README.md'                  # README stats are validated by CI
 
+# Prevent concurrent deploys — if a new push arrives while deploying,
+# cancel the in-progress run (the newer code supersedes it anyway)
 concurrency:
   group: deploy
   cancel-in-progress: true
 
 jobs:
+  # ===========================================================================
+  # Stage 1: Test
+  #
+  # Three validation steps:
+  #   a. JS syntax lint — catches syntax errors before they reach Apps Script
+  #   b. Spam detection tests — verifies all spam caught, no false positives
+  #   c. README stats check — ensures documented counts match actual .eml files
+  # ===========================================================================
   test:
     runs-on: ubuntu-latest
     steps:
@@ -30,12 +61,19 @@ jobs:
         with:
           node-version: '20'
 
+      # Compile SpamDetector.gs as a Node vm.Script — catches syntax errors
+      # (missing brackets, invalid regex, etc.) that Apps Script would reject
       - name: Lint SpamDetector.gs syntax
         run: node -e "new (require('vm').Script)(require('fs').readFileSync('SpamDetector.gs','utf8'))"
 
+      # Run the Python test suite: Gmail API method validation, spam detection
+      # (31 examples), and ham verification (11 examples). Exits 1 on failure.
       - name: Run spam detection tests
         run: python tests/test_v6.py
 
+      # Validate that README.md test result counts (e.g., "31/31", "11/11")
+      # match the actual number of .eml files in the test directories.
+      # This prevents the README from going stale when examples are added.
       - name: Check README stats are current
         run: |
           SPAM_COUNT=$(ls tests/spam_examples/*.eml | wc -l | tr -d ' ')
@@ -54,12 +92,22 @@ jobs:
             exit 1
           fi
 
+  # ===========================================================================
+  # Stage 2: Deploy
+  #
+  # Pushes SpamDetector.gs and appsscript.json to Google Apps Script via clasp.
+  # Requires CLASP_TOKEN and SCRIPT_ID secrets to be configured in the repo.
+  #
+  # On failure, writes a summary to the GitHub Actions job summary page
+  # with the failing commit SHA and a link to the run details.
+  # ===========================================================================
   deploy:
-    needs: test
+    needs: test  # Only deploy if all tests pass
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
+      # Fail fast with a clear error if secrets aren't configured
       - name: Check secrets
         run: |
           if [ -z "${{ secrets.CLASP_TOKEN }}" ]; then
@@ -76,6 +124,7 @@ jobs:
         with:
           node-version: '20'
 
+      # Cache npm to avoid re-downloading clasp on every run
       - name: Cache npm
         uses: actions/cache@v4
         with:
@@ -85,16 +134,20 @@ jobs:
       - name: Install clasp
         run: npm install -g @google/clasp
 
+      # Write the OAuth token to ~/.clasprc.json (clasp's credential file)
       - name: Write clasp credentials
         run: echo '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
 
+      # Write .clasp.json with the target script ID and root directory
       - name: Write clasp config
         run: |
           echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"."}' > .clasp.json
 
+      # Push source files to Google Apps Script (--force overwrites remote)
       - name: Push to Apps Script
         run: clasp push --force
 
+      # On deploy failure, write a summary with commit SHA and link to the run
       - name: Notify deploy failure
         if: failure()
         run: |
@@ -102,14 +155,25 @@ jobs:
           echo "Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "See [run details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
 
+  # ===========================================================================
+  # Stage 3: Tag
+  #
+  # Auto-creates a git tag when the commit message contains a version number
+  # (e.g., "v6.11.1: Fix spam deletion"). This links deployed versions to
+  # specific commits for easy rollback and audit.
+  #
+  # Requires contents:write permission to push tags.
+  # Harmlessly fails if the tag already exists (e.g., reusing a version).
+  # ===========================================================================
   tag:
-    needs: deploy
+    needs: deploy  # Only tag after successful deploy
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: write  # Required to push git tags
     steps:
       - uses: actions/checkout@v4
 
+      # Extract version from commit message (e.g., "v6.11.1") and create tag
       - name: Auto-tag version commits
         run: |
           VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)

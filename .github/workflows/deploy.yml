@@ -178,8 +178,8 @@ jobs:
         run: |
           VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
           if [ -n "$VERSION" ]; then
-            if git tag "$VERSION" 2>/dev/null; then
-              git push origin "$VERSION"
+            git tag "$VERSION" 2>/dev/null || true
+            if git push origin "$VERSION" 2>/dev/null; then
               echo "Tagged $VERSION" >> $GITHUB_STEP_SUMMARY
             else
               echo "Tag $VERSION already exists — skipping" >> $GITHUB_STEP_SUMMARY

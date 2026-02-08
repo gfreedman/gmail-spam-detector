@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.13.0
+ * @version 6.14.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,11 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.14.0: Add refreshBlacklist() — merges new DEFAULT_DOMAINS.suspicious
+ *            entries into runtime Script Properties. Fixes bug where blacklist
+ *            additions in source code weren't reflected at runtime (Script
+ *            Properties only initialize once, on first setup). Added spam
+ *            example (34/34).
  *   v6.12.0: Detect polished financial spam — ellipsis clickbait pattern,
  *            subject-echo From name detection (flags when spammers stuff
  *            subject words into display name), blacklist investingtrendstoday.
@@ -1300,6 +1305,44 @@ function refreshWhitelist()
   }
 
   viewWhitelist();
+}
+
+/**
+ * Refresh blacklist by adding any missing default domains.
+ *
+ * Run this after updating DEFAULT_DOMAINS.suspicious in the source code.
+ * It merges new defaults into the existing list without removing any
+ * manually-added domains.
+ */
+function refreshBlacklist()
+{
+  const props = PropertiesService.getScriptProperties();
+  const currentBlacklist = getBlacklist();
+  const defaults = DEFAULT_DOMAINS.suspicious;
+  let addedCount = 0;
+
+  // Add any defaults that aren't already in the list
+  for (let i = 0; i < defaults.length; i++)
+  {
+    if (!currentBlacklist.includes(defaults[i]))
+    {
+      currentBlacklist.push(defaults[i]);
+      logInfo('Added missing domain: ' + defaults[i]);
+      addedCount++;
+    }
+  }
+
+  if (addedCount > 0)
+  {
+    props.setProperty('SUSPICIOUS_DOMAINS', JSON.stringify(currentBlacklist));
+    logInfo('Blacklist refreshed! Added ' + addedCount + ' new domains.');
+  }
+  else
+  {
+    logInfo('Blacklist already up to date.');
+  }
+
+  viewBlacklist();
 }
 
 

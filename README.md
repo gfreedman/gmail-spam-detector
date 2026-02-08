@@ -33,7 +33,7 @@ All sent via bulk email services like Amazon SES — often hiding in Gmail's **U
 
 ## 📊 Results
 
-- ✅ **100% detection** on 33/33 real spam (.eml files)
+- ✅ **100% detection** on 34/34 real spam (.eml files)
 - ✅ **0% false positives** on 11/11 legitimate emails
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Clean, maintainable code** (~120 lines of detection logic)
@@ -215,12 +215,14 @@ debugWhyFlagged('from:linkedin');  // Search term
 
 Shows whitelist status, bulk email detection, and all signals for the email.
 
-### Refresh Whitelist with New Domains
+### Refresh Domain Lists After Deploy
 
-If you set up before new legitimate domains were added:
+If you added new domains to `DEFAULT_DOMAINS` in the source code, run these
+in the Apps Script editor to sync them into runtime Script Properties:
 
 ```javascript
 refreshWhitelist();
+refreshBlacklist();
 ```
 
 ### Script Not Running
@@ -251,7 +253,7 @@ addToWhitelist('domain.com');
 │   └── EXPORTING_EMAILS.md      # How to export .eml files
 ├── tests/
 │   ├── test_v6.py               # Python test suite
-│   ├── spam_examples/           # Real spam .eml files (33)
+│   ├── spam_examples/           # Real spam .eml files (34)
 │   └── ham_examples/            # Legitimate .eml files (11)
 ├── archive/                     # Old versions (ignore)
 └── .github/workflows/           # CI/CD pipeline
@@ -324,7 +326,7 @@ This repo has CI/CD that auto-deploys to Google Apps Script on every push to `ma
 **Pipeline: test → deploy → tag**
 1. **Test** — Lints `SpamDetector.gs` syntax (Node `vm.Script`) and runs spam/ham detection tests (Python)
 2. **Deploy** — Runs `clasp push` to Apps Script (only if tests pass). Writes failure summary on error.
-3. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.13.0`, etc.)
+3. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.14.0`, etc.)
 
 **Setup for your own fork:**
 

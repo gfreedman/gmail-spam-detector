@@ -1,0 +1,2664 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:7b91:b0:1b3:596f:ddda with SMTP id ih17csp1378469rdb;
+        Sun, 8 Feb 2026 12:03:10 -0800 (PST)
+X-Received: by 2002:a05:622a:5d0:b0:4ff:a40d:d2b2 with SMTP id d75a77b69052e-5063986a979mr127087051cf.16.1770580989996;
+        Sun, 08 Feb 2026 12:03:09 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1770580989; cv=none;
+        d=google.com; s=arc-20240605;
+        b=juGGLR0nbKfJ34k9VMp7j3pj5GwpkK45tnu8xD37a+LbwUrkaxfUsCKwLorJxNN5o7
+         Fe1bPmeHuHCsHR35jnVVRhIisakK8suw0guXT8+qk6xIPIGCX/4cJFnF+voE5ld1JfdW
+         7BMa49ruSVCPA6/KcUam6xK46SR2SmVwM0WyJVadIC7mnJ2lKfNcg2ilREelw0RiupuC
+         m2gI76LSxM6Srq9JUdLANfZhu1l1mbJ/eCyx7jd/S61+Lkwu4DHpZI/Dk2BP6sI9Lx+i
+         PsthMTpCUJ8ldCX+dziUpRdPy2aJrOHweMoOssldd+8XOTPSMLyzg4jjE0XiHb1Wt3Fz
+         Q47Q==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=6eM0yuW7WTVpoUM3gyL/tkApfrSFS7VYeDWbbYIb/Zk=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=HXgctVK++APcbb/UnY3L1tNdPZBeX8G8+NRomwr5UUR7PbgtUlQOiph2mFCNdMsLJB
+         9mox9j2dQ6wwWwcxuI68bsYN5z1tTPux7p6ECt4kBhele+Grnx9rz0hVO2ZqOpBhx95L
+         6h85h8GzNaI7cx/xP7FGD9u4DTQ+azJfWhcqTWOchcO3b53dGQpX2cwPHr7ihBRkhrF+
+         EkbEQdmNm2FK0DB5f7qiHy2qxhsF46+2hGsp6BKCtTZ8w4pf0T7KsP7dWTLZzMJRILtf
+         H5HrDKKAYjutxYDl5XxiwY1WW4ZKbwywH3tWCxXXtyO0JtuqrEn69jOctb/9CPv7o1sA
+         0paA==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@news.investingtrendstoday.com header.s=a3har7j6uzjhpcwdmqmiqvi7oeue5xl3 header.b=QJp4KRgR;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=FEKEI7V2;
+       spf=pass (google.com: domain of 0100019c3ed9d5ca-b566bf03-b02d-46df-8fc1-395167ee8c68-000000@amazonses.com designates 23.251.255.202 as permitted sender) smtp.mailfrom=0100019c3ed9d5ca-b566bf03-b02d-46df-8fc1-395167ee8c68-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=news.investingtrendstoday.com
+Return-Path: <0100019c3ed9d5ca-b566bf03-b02d-46df-8fc1-395167ee8c68-000000@amazonses.com>
+Received: from e255-202.smtp-out.amazonses.com (e255-202.smtp-out.amazonses.com. [23.251.255.202])
+        by mx.google.com with ESMTPS id 6a1803df08f44-8954971b75fsi55690646d6.528.2026.02.08.12.03.09
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Sun, 08 Feb 2026 12:03:09 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019c3ed9d5ca-b566bf03-b02d-46df-8fc1-395167ee8c68-000000@amazonses.com designates 23.251.255.202 as permitted sender) client-ip=23.251.255.202;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@news.investingtrendstoday.com header.s=a3har7j6uzjhpcwdmqmiqvi7oeue5xl3 header.b=QJp4KRgR;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=FEKEI7V2;
+       spf=pass (google.com: domain of 0100019c3ed9d5ca-b566bf03-b02d-46df-8fc1-395167ee8c68-000000@amazonses.com designates 23.251.255.202 as permitted sender) smtp.mailfrom=0100019c3ed9d5ca-b566bf03-b02d-46df-8fc1-395167ee8c68-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=news.investingtrendstoday.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=a3har7j6uzjhpcwdmqmiqvi7oeue5xl3;
+	d=news.investingtrendstoday.com; t=1770580989;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=h9lKnm20TDjbttFBfoPirQi5Ly6iO1qYGMMSAZrSKzs=;
+	b=QJp4KRgRYB/zQDzbDHKisfz1bkRx6uxlmHWpoFKdlnFpFvn0He4P/YHp9MQNwPbp
+	LICaMuPfmNoJP4OZu2nHt/pln8lgXoknglqQjUYwC9f6k0GFH6tivpkAlx4AcB3aIfm
+	4fbUk0QaaQdSRAdEzXL4PcX3M5kmdRpK2ji/pJsU=
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1770580989;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=h9lKnm20TDjbttFBfoPirQi5Ly6iO1qYGMMSAZrSKzs=;
+	b=FEKEI7V27PPhmIrcMg9k1h3uA20y/g7sGOgcw3eqP89o3HuU2HatLUyRHRWvVhJK
+	hMVjt4FnYagR0D/kBfMS6FsW6fckIwmKAwWdEAfap/vIKVdFPa8PYsYMs64SokK03Uq
+	cCDrAWPFxu0PMbow1pW93whlgNf48RquZXqH+EXI=
+Date: Sun, 8 Feb 2026 20:03:09 +0000
+From: "0% Trick - Scott C. from Investing Trends" <morning@news.investingtrendstoday.com>
+Reply-To: brand@news.investingtrendstoday.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019c3ed9d5ca-b566bf03-b02d-46df-8fc1-395167ee8c68-000000@email.amazonses.com>
+Subject: Freeze Your Interest. Stack Rewards. Outsmart the Banks.
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_3622094_1626900401.1770580986991"
+X-Campaign-ID: 16810038
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=32a04d2bbaba4066a9e7ba3b256f623c&_s=62778f47af4f4845839dec2f6f8f6a86&_t=rdYHDq-2WN3HUGIapVJYIGgxntcr6IqU2yG819r6PQCJm1JiIwTq20bhH1KvGxk9YmA0RmOpQRdudXcfbYHHQRhtRrDTcOSsRiMQiqckp1ljnWb2-RHjvovaY7kHe4os>,<mailto:unsubscribe+16810038+21882324@unsubscribe.iterable.com>
+X-Feedback-ID: 21882324:16810038:48733:iterable
+X-Message-ID: 62778f47af4f4845839dec2f6f8f6a86
+X-SES-Outgoing: 2026.02.08-23.251.255.202
+
+------=_Part_3622094_1626900401.1770580986991
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+What if you could pay no interest for nearly two years=E2=80=A6 and still g=
+et rewarded=20
+for every dollar you spend?
+
+
+
+ <https://investingtrendstoday.com/>
+
+
+
+Pay No Interest. Earn Free Travel. Beat the System.=20
+<https://cline.investingtrendstoday.com/68e648c7c84bba388318bd1c?email=3Dge=
+off.c.freedman@gmail.com&domain=3D46ITT&type=3DB&product=3DPYSTR609>
+
+
+
+
+
+
+
+ What if you could pay no interest for nearly two years=E2=80=A6 and still =
+get rewarded
+ for every dollar you spend?
+
+ Sounds impossible =E2=80=94 but Americans are quietly using this credit ca=
+rd hack to=20
+do exactly that.
+
+ Here=E2=80=99s the deal:=20
+
+ * 0% intro APR until 2027 on purchases and balance transfers made in the=
+=20
+first 60 days.=20
+ * Unlimited rewards on everything you buy =E2=80=94 from groceries to geta=
+ways.=20
+ * $250 bonus after your first $1,000 in spending.=20
+ * And absolutely no annual fee.  While big banks hope you=E2=80=99ll stay =
+stuck=20
+paying 20%+ interest, this card lets you hitpause on debt =E2=80=94 and rac=
+k up travel=20
+rewards at the same time.
+
+ You can use it to pay off existing balances interest-free=E2=80=A6 or to m=
+ake that=20
+big purchase without handing over extra cash to your bank.
+
+Click here and learn how to apply now=20
+<https://cline.investingtrendstoday.com/68e648c7c84bba388318bd1c?email=3Dge=
+off.c.freedman@gmail.com&domain=3D46ITT&type=3DB&product=3DPYSTR609>
+ This is an advertisement.=20
+ This email contains references to products from one or more of our=20
+advertisers. FinanceBuzz is an informational website that provides tips,=20
+advice, and recommendations to help you make financial decisions. We strive=
+ to=20
+provide up-to-date information, but make no warranties regarding the accura=
+cy=20
+of our information.=20
+ Ultimately, you are responsible for your financial decisions. FinanceBuzz =
+is=20
+not a financial institution and does not provide credit cards or any other=
+=20
+financial products. FinanceBuzz does not make any credit decisions. We may=
+=20
+receive compensation from the products and services mentioned in this email=
+.=20
+ Please click here <https://financebuzz.com/unsub> to opt out of future ema=
+ils=20
+from FinanceBuzz.=20
+ 111 E. Atlantic Ave., Suite 200 Delray Beach, FL 33444=20
+ =E2=80=8A
+
+=E2=80=8A
+
+
+
+Tesla Kills Model S and X to Make Room for Robots=E2=80=94Optimus Gen 3 Deb=
+uts This=20
+Quarter as Musk Bets the Entire Company on Humanoids
+
+
+
+
+
+ Tesla just made the most radical strategic pivot in automotive history:=20
+shutting down production of two iconic vehicles to build humanoid robots=20
+instead. During the January 28th earnings call, Musk confirmed that Tesla w=
+ill=20
+cease manufacturing the Model S sedan and Model X SUV=E2=80=94the flagship =
+vehicles=20
+that launched the electric revolution=E2=80=94to repurpose factory space fo=
+r Optimus=20
+robot production lines expected to begin operating before the end of 2026.
+
+ The third-generation Optimus, designed specifically for mass manufacturing=
+,=20
+will be revealed in Q1 2026 with significantly upgraded hands and dexterity=
+=20
+capabilities that surpass the current V2.5 units already performing basic=
+=20
+battery-handling tasks in Tesla factories. Musk's target is staggering: 1=
+=20
+million robots per year at production capacity, with consumer sales potenti=
+ally=20
+beginning in 2027 at an estimated price of $20,000-$30,000.
+
+=20
+<https://www.theverge.com/transportation/869746/tesla-optimus-gen-3-q1-2026=
+-earnings>
+The implications for Tesla's valuation are existential in either direction.=
+=20
+Musk has repeatedly stated that Optimus "will be worth more than everything=
+=20
+else at Tesla combined"=E2=80=94more than the car business, more than energ=
+y, more than=20
+Full Self-Driving=E2=80=94and his $1 trillion compensation package literall=
+y requires=20
+production of at least 1 million units to vest fully. If Optimus succeeds a=
+s a=20
+general-purpose domestic helper, factory worker, and eventually surgical=20
+assistant as Musk envisions, the addressable market dwarfs the global=20
+automobile industry.
+
+ But the execution challenges are enormous: Tesla's robotics chief recently=
+=20
+departed, the company produced far fewer than the 5,000 units Musk targeted=
+ for=20
+2025, and current robots perform only simple, pre-programmed tasks rather t=
+han=20
+the autonomous general intelligence Musk promises. For investors, the Model=
+ S/X=20
+shutdown signals that Musk is no longer hedging=E2=80=94Tesla is transformi=
+ng from a=20
+car company into a robotics and AI company, and the vehicles are becoming a=
+=20
+side business that funds the real ambition.
+=E2=80=8A
+
+=E2=80=8A
+
+
+
+=F0=9F=96=87 Regular investors STILL couldn=E2=80=99t care less about gold=
+=E2=80=A6=20
+<https://cline.investingtrendstoday.com/691daa7cb885acbdd4223fb9?email=3Dge=
+off.c.freedman@gmail.com&domain=3D46ITT&type=3DSA&product=3DPGOCK6_SA>
+
+ad from Golden Portfolio
+
+
+=F0=9F=96=87 Remote Job Opening=20
+<https://cline.investingtrendstoday.com/67c990a30f3b707c79aa424f?email=3Dge=
+off.c.freedman@gmail.com&domain=3D46ITT&type=3DSA&product=3DAYGT2_SA>
+=20
+<https://cline.investingtrendstoday.com/667d602a6579ac0001000359?email=3Dge=
+off.c.freedman@gmail.com&domain=3D112ITT&type=3DSA&product=3DBTUA622_SA>
+
+ad from Awesomely
+
+
+
+=F0=9F=96=87 ALERT: Possible delays in Social Security benefits =E2=80=94 a=
+re you ready?=20
+<https://cline.investingtrendstoday.com/67fe4246464914e2b18f1744?email=3Dge=
+off.c.freedman@gmail.com&domain=3D46ITT&type=3DSA&product=3DPBTRT604_SA>
+=20
+<https://cline.investingtrendstoday.com/680f6bda2d46710200c52823?email=3Dge=
+off.c.freedman@gmail.com&domain=3D112ITT&type=3DSA&product=3DAYIN616_SA>
+
+ad from MicroQuant
+=E2=80=8A
+
+=E2=80=8A
+
+
+
+Walmart Guts 1,500 Tech Workers in "Speed" Restructuring=E2=80=94AI Quietly=
+ Replaces=20
+Humans at the World's Largest Retailer
+
+
+=E2=80=8A
+
+
+
+
+The world's largest private employer just demonstrated what corporate=20
+"restructuring" actually means in the age of AI: 1,500 human beings replace=
+d by=20
+algorithms. Walmart eliminated approximately 1,500 corporate positions acro=
+ss=20
+its Global Tech division, e-commerce fulfillment operations, and Walmart=20
+Connect advertising unit=E2=80=94the company's fastest-growing and most tec=
+hnologically=20
+sophisticated departments.
+
+ The internal memo from CTO Suresh Kumar and U.S. CEO John Furner was=20
+carefully worded but unmistakable: "The world of technology is evolving at =
+an=20
+unprecedented pace, and reshaping our structure allows us to accelerate how=
+ we=20
+deliver and adapt to the changing environment around us". Translation: AI c=
+an=20
+now do what these people did, faster and cheaper. The layoffs affect corpor=
+ate=20
+staff at Bentonville headquarters and satellite offices=E2=80=94not store=
+=20
+associates=E2=80=94targeting exactly the knowledge workers whose jobs are m=
+ost=20
+vulnerable to automation.=20
+
+=20
+<https://www.usatoday.com/story/money/2025/05/22/walmart-layoffs-corporate-=
+workers/83789857007/>
+
+The timing reveals uncomfortable truths about the intersection of tariffs, =
+AI,=20
+and corporate cost-cutting. The layoffs came less than a week after CEO Dou=
+g=20
+McMillon publicly warned that Walmart would raise prices due to Trump's=20
+tariffs=E2=80=94prompting the president to personally tell the retailer to =
+"eat the=20
+tariffs" rather than pass costs to consumers.
+
+ Walmart's official position insists the cuts are "not related to tariffs" =
+but=20
+rather reflect "business priorities and growth strategy"=E2=80=94a claim th=
+at strains=20
+credibility when $4.4 billion in quarterly profits dropped to $4.4 billion =
+from=20
+$5.1 billion partly due to tariff-driven cost increases. This follows Febru=
+ary=20
+2025 layoffs that eliminated hundreds more positions and closed an entire=
+=20
+office in North Carolina, with displaced workers told to relocate to=20
+Bentonville or California.
+
+ For America's workforce, Walmart's restructuring is a canary in the coal=
+=20
+mine: if the world's largest retailer=E2=80=94a company with $680 billion i=
+n annual=20
+revenue and 1.6 million U.S. employees=E2=80=94is replacing its technology,=
+=20
+advertising, and e-commerce workers with AI, every corporate employee at ev=
+ery=20
+company should be recalculating their job security.
+=E2=80=8A=20
+
+=E2=80=8A
+
+
+
+=F0=9F=9F=AB Trump=E2=80=99s AI Bombshell: Why Data Centers Are Doomed=20
+<https://cline.investingtrendstoday.com/696fa0bf8f4ef3c4db7bfb0c?email=3Dge=
+off.c.freedman@gmail.com&domain=3D46ITT&type=3DSA&product=3DEPGA2_SA>
+=20
+<https://cline.investingtrendstoday.com/667d822e56bf320001f60415?email=3Dge=
+off.c.freedman@gmail.com&domain=3D112ITT&type=3DSA&product=3DWSSP5_SA>
+
+ad from Eagle Products
+
+
+=F0=9F=9F=AB Have you seen what=E2=80=99s happening in Minnesota?=20
+<https://cline.investingtrendstoday.com/6926ec2aae30a1332d7a92d4?email=3Dge=
+off.c.freedman@gmail.com&domain=3D46ITT&type=3DSA&product=3DPANTP3_SA>
+=20
+<https://cline.investingtrendstoday.com/67b7036c0548200c1ef4ed43?email=3Dge=
+off.c.freedman@gmail.com&domain=3D112ITT&type=3DSA&product=3DBTEL410_SA>
+
+ad from Turning Point PAC and Anedot
+
+
+=F0=9F=9F=AB After a thorough review of your records....=20
+<https://cline.investingtrendstoday.com/6979f65c9b82e9d1f7a85e01?email=3Dge=
+off.c.freedman@gmail.com&domain=3D46ITT&type=3DSA&product=3DPNRSR1_SA>
+
+ad from WinRed Technical Services
+=E2=80=8A
+
+=E2=80=8A
+
+
+
+Not feeling it? Unsubscribe=20
+<https://links.news.investingtrendstoday.com/e/encryptedUnsubscribe?_r=3D32=
+a04d2bbaba4066a9e7ba3b256f623c&_s=3D62778f47af4f4845839dec2f6f8f6a86&_t=3Dr=
+dYHDq-2WN3HUGIapVJYIGgxntcr6IqU2yG819r6PQCJm1JiIwTq20bhH1KvGxk9YmA0RmOpQRdu=
+dXcfbYHHQRhtRrDTcOSsRiMQiqckp1ljnWb2-RHjvovaY7kHe4os>
+ in one click.
+
+
+=C2=A9 2026 Investing Trends Today (ITT), managed by FIT, LLC
+
+221 W 9th St, Wilmington, DE 19801 =E2=80=94 All Rights Reserved.
+
+
+
+At Investing Trends Today, our commitment is to provide subscribers with=20
+access to distinctive and timely investment opportunities. The message abov=
+e=20
+has been shared by one of our vetted partners and is presented based on its=
+=20
+potential value.
+
+
+
+For personalized assistance or expert consultation, please contact our supp=
+ort=20
+team at  <mailto:support@investingtrendstoday.com> <>
+support@investingtrendstoday.com <>=20
+
+
+
+To ensure uninterrupted delivery of our updates, kindly add our email addre=
+ss=20
+to your whitelist <https://investingtrendstoday.com/email-whitelisting/>.
+
+
+
+Risk Disclosure: Investing and trading involve inherent risks. The content=
+=20
+provided is strictly for informational purposes and does not constitute=20
+investment advice. Past performance is not indicative of future results.=20
+Recipients are encouraged to conduct their own research and analysis. The=
+=20
+sender bears no liability for any actions taken based on this communication=
+.
+
+
+
+[Privacy Policy <https://investingtrendstoday.com/privacy-policy/>] | [Term=
+s &=20
+Conditions <https://investingtrendstoday.com/terms-and-conditions/>]=20
+
+
+
+
+X8qDakjX@!#j2yLwzqaRamZ$LHlZ&iz7$Hjj2pZ&d(JhValMb7hPYDV9)vovvxyuqgVMcaGB)44=
+uE(tlKSbcO7u&e(we!MWw8g73H!Cc1ISNkZ7cX9*FcxIM4a$#pOFRG*xtD)37wnc8rhLUJthpcE=
+YC@m9Td9DM6jvjDd4TNz(J7JZf336rH&HkBk#v7Uyv*o6RV6#mhabzweIyfFkJS4Lu5XCvlalqx=
+c#w$WX*1Tzwaz60n5tHpwwSm(w5Ak9vpSdguSqkQ03$ZiZfeZ6(18Iy&s8!WOyvX50Z9Ob7gaCP=
+oFHhwEN!1)S5GxstaUJ6xRjZluZ2PLuF!738kl*YEOdp0$IAvoROw3y)lWCI@gV1i)8o6YmC8uN=
+S*$Y$avRIs(st@LlwhKXZF9sK*k5#aCd**hwSjbR8tFIF)M90n@KLntJmJ50&x(jKpS#S!sBEOL=
+Nz3O5MoxgmN8(IUrMlKeJLve3zXL1qHc38ia(F(7j0r0IebgUp5(swxcN!*SkYTz^9pH3gMMH9q=
+0YIxzlY&*1FDWMRM2nhdy55SM3Gu3u4@BWO^ilxaD^!q7Wn&O!vhU9$r3sx)EN^MFjq*uVKMrdL=
+i9ZgcLNYO5yCYl3)&75vx4nfixSz(q)r!SXI5K8pHp!gV7B1l(k1C)DQRPs(I#Fkvf*5b$bjyeS=
+P3PgbYi7I*&1Ud7gzlbFj&zHPv3I#t6(iREBq6#@xCu@02uaC^R&gxugDHxA7ORzNEUJVSnoyNN=
+EY4*bF1ujDVvUsKx0x^#!r3)x@@!63yX4vGWt)kncYPpOH6R@6Pv23gUqZoMd0&PfSI^j2aZYRG=
+JA0nQ*WzjWc&nSlvqnT4oXB&Anq7SSH48SRHZFUzIS0#&)W1Q)fACI)z()8vHvHPUAq*a@tLaM)=
+*EDwr4e9vt$4J0edTQSreZbowOYijIGk&S3KcvJh1iBA5Y2dPNn9i7I#9!7z$63Y57uCH^oyyp1=
+ZAtaaP@Up30zkv5QALV(*9Vb))at(RzHoYhzD8gB(xcH&YH@ynBqVRsrcgLQ&!y@ln0tEO@uhVJ=
+&!s2jPLFkxI2g22JMjyOzcy)$&LhVv(U)UCxNkb@1MG9zs416U!YJknbPIM28nP!7FMdhTIyqd^=
+73o(HuQsc&mJgiO#3cDwEIWG3tkmXHIO(ScraOiJiL0qe4uwPEGoMkClbdMspG)1As)o^s^XW#c=
+g&N06HGPzY07)te)T4^(0m!u95qbZJ5MeaVpcfL7mZ2M@F^TbAUhKHZ$ycEOYj7^nbZ5z7fy8!2=
+F*8#zta3SB31vN^7l#8M&onIUKZiUlyWYw9ZigtmL&BOG$nxAX7mHr!mG(Arg09FJot&L(M6ylz=
+ASP&y)gSayyPF17VNTr&D##sp8iS!#VZ482Y34Cf^F)4#W@WQ#!NW5^0YkvQdxMkKuNdcg@pQxF=
+lN5ZGxRv)jlPxYBtqUo4UfhrCo0X7lv#)B64C4ScJyULkc7g*&tEH(A*8M^2XY^LNEA^RASI$$i=
+Z#2Ote44L7jOvLV2ZS#j7N9HWGEP8BrZ@tGiO(x6G)wG8dw2^YF0hDfq4s5wQjabRuNAnG#9G85=
+XZ!CJQakQ8mZ74uMG#D0eZTt89vbl*4dg5$b!cBzRmr6DqRcP1z3eYF3jsj$$)#!2qlr^RLyATx=
+s5fyRWeH0wZy5r)SJ2lX6mJxrKsLn^Z6F6$pbptR!Mh4p!f0$3q$ifembcxHJJ8nq0kuWAi1h1S=
+1!rg1bB6wI9rnxxz7h6axRKNLeRbwMqPGOtoppQnbqgOAfr4UQh#7qAcnPlMKO)4fd2sH!Gw!DO=
+fkd7vK$YvZyKD!K5t&Fr1EDMM2b$ngGIo)h3iWV@yUEM(8FciT!Xu8jquf@!BB$Z#@A8L)xPW8k=
+T(QrxDFHjcPHDVdHvK)(AsJ88nhrVii#XXQ^7AQ*^pCzB05GOcNNdquj#^CC2X)n1bgXu4jao@n=
+wOJbO4K@vJKoblal691Jav54$TT34$52$6BAh8RPBDOU9Jo$7BEaQEMJ1Ns8bKHXMn1LBlP7AV3=
+BXo3we^KUOxvnlfSTii9raaY89M08dqsFBSYgDmY*w1tr9rY8Vl&xg*!1#tfuF3uUdH@054COsH=
+NidYW2xKYRIk#nicbR2UE(f*zgtn!*tw!i@ue@W)#@3#bXvYrDIPjX)zQNR1&3)PrdeKAJt6E$N=
+QFXF4BO0#yW(a96Mj4qgPIaHaIl@V4jjU3A#3oP)OZxO8pLG5RCkdEEpVYF6&ITU904*eLFg3wc=
+qm&fPwpPtuoi71OZSlH)7nsvNR4xZ#$g*@i#(uBUYny54zsIH^IU3coU5bZopu0AxeSvGvIzCgO=
+zwDfwdfiFuzHN^O^5#^XqwqAlT8I$BCyCOFnyw!u88pc(S0nBrsbHp)&p4MmH2(yIpN^x$UCdMk=
+Ghdqxr!b9sIS8@1L7nWNdBWKC)Xiw7UWI9Ynj1fKJl0uPzdB1^2f)d(WcepngqmQQ&xK*Rp6xpq=
+f#uQTN0d8IqCUHjOEVxtW6EzoIcFvougbGMZHHqgFFn6jJpgUCL0VUQDfy90^g6hF^Kz&oww#)g=
+cppD31XLvKrwOnY)!ivevO8fPXeo0kcvFDDRDTO8^Kcdo0Z^CiF!IEWQF&$qVaEANXvhTVXTUc)=
+e#m)9iIyuskmy#s0H(QDUj@7)DFWmWOffsWTZcRSMcYyLmiC&*QHr7ea)fi*)(s0LNdMRrZJX!#=
+pjZ6P#HJPW5^wF@AQUVMjg^ZntoU0K8I*A4Xm1A)6cAt9LEA0Lml^4t&t^*zL8lR5dBwyaini5c=
+f9XGIxWHJ!wgqR@gzx*pdTfRTxN7ZgQkQ7PV$UmUTIaEO)WfnCdoXt(6CwT@#oN7x$WW$3NpwoK=
+^RInfHFz5WdFAC22Qh5s@H23xoSEWoD(dy&Ns9i7eexoDW8)n2iRozN#9bU1s28rMox34iR4KMq=
+XBuIc(HtltJ^ukT53W8E^HIisz7Q3iwqc3Ywgnr2UImluLYK4LeRk1^DoZV(#SPOgC^PNm1ofvq=
+Sb7ScFCalXrguUk&1#cNfa#hkdQLP2V7w#f5Y7h$IPO9)YTRAxte3Sasa0l3X0*uKKOrb#Yjj#(=
+ktUnk8wcw!vT^9t)3hnq32P8sIV8x&&WjptNm^f*fCGCxpI&QoypqjlpevNrE2IV1t2Im$n(2G*=
+h4)1WzpnS2Xp9vAGn1aI97DD#O(jnA82J^6rgguL#GnYIVr5Q3wfAOw(e$6EBHisgo1lcT4NVss=
+szTQuC!@&j2YfcT*PTp(ZJ@Mk0*mJONtcjmOA15gIG1T4ks(zc!wvrX9zzM(Tmwa3(UqH6ZjBfI=
+BVJSg)W0q)He4bn4J0C7$uLdWRkm*bPK^@B1MlIEl$38Qm8OibViU9WYZUnR!BQmOU$TT&3!yza=
+G(qc883xUaP@IlYN2PhZODR4t$fcFfStS6Z6r@^xrR&lf5N2fc!w$NXaEP7gqsHEdCqELfMoLQD=
+XBm4l(HMbHCElKwb1M2)96o7b0OSdz)du*zp&i6BIQnrZfA*SV0IwEy5EuTrV8Cd(xn6Y0F1LUQ=
+2Q)LU40Zi(@KgnzgIZMGi93c2rHDmGParL9xwQG)iaW1TL4K*n&v&eL1DFQzx2V!WhRRQXG3JZc=
+KS60H0xO!E^54pvHjaD2nbPJDQl)tNCtdHN@rj2wV@paPb^eaHZICA3cK&Lq7&eT7!1Qo8!4WAB=
+ojJQcC3xvNnYncNh9MBPH@*EFpK&DjDWwccbISHK$Q*kvXE#mc*wyUSz(GWv4lT0kDs&!S9bOcI=
+xO&#OKbXXo$pJjriK@CRbafDZOr2ALDuvZ(gAJkxMwJRT*7QBK4vv)(fiMw^zvFCYayKl1TMRb1=
+CqVaW2EO$Hu5Zyv7Wqcrg6IVCHwZGAqn8hyBpF5p6u3N0EfFYG(&b#NAm4OR)C$7M87n^yv3LNo=
+cvR!dpZ^9J74VlRp8TodbXQ(aDWEXuJPSk5zA9I#B#v12OLMb7HDMRcr8xiXCgmM@**oGxNMB70=
+*NVW^SHMMKUxH)apZSD6nf#5jZz5Hx1sWYj*$w@6kM&5)^6RL0Sxt23yflBnNmtyJr&JmNTKXZz=
+h0OfRy6CjuPVcZ4lwCt*xfkXT^)WZssPeX)JrH6n^)D5*@hB*472GWA0v#9*TC)NG!GYGnsoRMv=
+nlGIPKy8sHqxi6eggp(N78yMH$Z^PDqjH(13nLHdR40mIlHj0!50MbyRIA*w43A9xll1(h2TkVi=
+^sZiaqwdwLy2XRBr^ixLVSZf(LqupQjcG#(66NjR&dA)ELvVjDV1Ond$WTSV5DO(*yW8O^(4CK@=
+QS*w5sIz54jPJXHchO^o6X@9y009dWmEqPq)yVDb9N#jR^UybHB80f7qzIBc*Nh)T6G!!g19N4W=
+gi!uKbv3*reTBzjEX(51r*^dmZ)w2pZt@fX!uL*eUOVlDrnbl^ps@r7fe6td7iSmL0687@MmfpY=
+REizK9jYWjx*0pwknIW(EpTfd$MFWR!5$&yGGixDx&pRd&BF#UP1R1tmT9FrBgs5bNP@glxm@Bi=
+X$&a0ZNHsF9d^j#ElQ*85IcP83a4Zh20PznWY3nfdag$wf8F#OeV&SwbLp6o#8Y3$m(&(o3(El!=
+Rccz7YxrE(2$GmpOZcEwGn8xctv32a$Dmn4kz19U4cOHc$ZtyxUzXAyh@L9pnB9tVrPj*2ZQaO!=
+iT5YwxBGb8$hSc88BlaYHU3(*wQGLBa@HSymQOHwhbHdq0p2MA^T9@PokI#Zdlv7NdeVqnCImEA=
+$R@1oLdPIyMF14L4oT)C#H277f7vfehcQry1JUsasgw#1Kwqxp)LTs5yyJtEQTgW15dt@trRv8t=
+IHg!JHpNaXtJ8nv&4Gam$8^CQOJCLhH$nlL$ThjDW*PG$wyEbO44W0@0iM(EqWwkOYK2HGK(Glx=
+&1qFGQ6qg(rn((rLjhIu8gF#HG*lg0xclFbPv!1qGTZE3v$hUh99OTGCYVbaw45b1tO7BqOBqjY=
+yCxRwG!JqIAL1GoZ!PwM6j0rVdWJk^Z5)NrKsqqJ9XxrlrgZ7vD0FTc6vbQrygW&4wq!N7NiOgZ=
+WG^wFnt1oL3fZ0YT(Y$xn*u&u7wtjUL(XrJJL373^T$)j0L8cYuE0om6gUJ@PO*MKNmnI02fqzc=
+gBK*xUs9IU0ck9B7P$C!Cx$2qtUMvNBE)0kv@U(pIh)&qeAe1Moo(wecAyuNO0yu)4#3Q9Fc7&O=
+&*&oT13QW0zncCxXSZtC2fUe2IDRVg6uh*$HVdkPLCdm7^I*7Vvrt*AOUld8fjb2Z@$t2$ZoKp6=
+PC9A0aU3&j9g$*owgqsnLNb50g5hq*H0pNhreCR^sTslbDNp))B4Aj0!*gsGq8L3OGS3sDbOlBY=
+@l1kry4LbMXIpSrDGvvVrePchro1LN1vQxM^w7toRGcxyCTtfnBOMk*KhrY2p2@pLCFSpcpZRAS=
+06s1Y2kn6grnVv6WhiJZvOgZtJ7nx9SMaJb$CSGQRUKh3!&br7CYzj*sE)atGtaooVKMiAFFqd$=
+17F#yucy4WZ*V*rZ^4Il#3cOtof7qru1Zhs2hZro^1gmMI&(G3Pep&#kH7KxkevmQi@PFtqLtSd=
+1QfqC3SspKp@WR$#o1(nx1k9gj^oOc0^nQ@Nt2Bg6X^5zF!GQgTQ$koLGAbO6VB5(E$IIDNfcVd=
+GIy1fQNeybXHprzSe38@fYtbzM5Sgiyuhyq75LoRgBXwU07q@KsYJUE&Cj6WUFfwzD@brsEIl7y=
+DP@ck^dr8KICaxwyMJ^ORiw*uIufvoc8y&)V&Tu^jLfL6J)jSfhH^2KD&^R^llkBRiYR4O(9vBx=
+#vLuc#pI6Y&F!EjKOjHNRYMcngoUlUVFx7kj47zoJYYLQ!B@*@KacJ$(Py9W0AA!(rik9CVGKbs=
+LpQDfufmb68SRs1AKEhEyWIq79AQ8Q^cFiO5iCWhqb6bQtgWe8Jil)QspmiKmD(TvOZ0HDEHXj2=
+h2V)p5Y$nUDslpyJD@Z^J#)dag@9S@R4g^CUkvQ7a^Lbfv*sVjj4N(Cta7p0C$ao1$PMecN5oW(=
+!BXERMFRT6GLuQTN$hcnAnor7Dl$s&w&)7BNuk6SaGILeq!DR8B1b)Q&lW&8VG)iRmXHV0C$r!L=
+!yribDqueCbQ6XjNBF9xrA8QGSbXI*GVKkgMKwBt(^Z*y*r82ZPpK*aETuspqqZ4*M&bgdpF3y(=
+k3OxtC!1ZT(7uxQ5gp9lRRFm*BZ@^D4(4KFK$U^^QZ!pr@Q5N19C0Q5AlOjT3@6BFSXt3TDRL$q=
+u8kxN4(4^^PbBraw^erocEV6&i&vknuXu2^kuZ)6c)XY9!UhHrliuJMy!EHBrHJW1wGyZx20&3^=
+c7xe4ai0ZaEg2!jzrkPFCdfY(tPSVg9cLkF$)CGxoB@BEUT^5loClYYcY#AfDUcg4jE)wemABve=
+oUni#Kq@GbxGXDMj4*zLlCzXdzrRtf0AR43#zVkm@6fZSZJV!fTazGiZ5nFs)qzWz2wwwD73(Ek=
+IE^Y*zZWHM1u6lcGBf6jkc69*$XKoABHi&4VfFrJiq^eeFAoM3bJIL#XP2UnqeGhSFlx2ZijrD4=
+Af$6JevNHa^ed4HImtHsDuBm$ESD8AlgY1DJWvd*RWr&wku#pyg(Wq10LKaLMUWO*59ip2^9EDl=
+Zwz*8THEJ9pmhVcYAR9OoQ!L*StH!eJu$w1jevUXVAS$gCX$1nTsIIe1rzTDXVZ5p8L2&im#a71=
+T$b*RHzieHCNvAfVJuJT7yXF&ocSCe$avRtqT#lmzJh*uYc8lk)es!aLQUwwBML0AfgH*KT0CaN=
+A50oJaU2z0$cp(iq^TNJKtI(FDk!R*Ax)9QrfkN*5C#U$nx#nDer2^0MR7*VWkWIX6lCxS^Ga@U=
+deUao)p8(!vrjiJfU@r#Slk#6$9tTpnwiB4g&H5dfA2n(5F@$CCOlNqGD0NrAg1J(i1Yt9&pDLB=
+unZ55Vrb9ec^#$^qb62BDq9NRZQgthbVV!sGFo(RFS$L)u&8h*ahW97r88JbCiuP3gR(aCNGQr2=
+@h(wHsii@2UC79bsZFCo!e&yGWf3F&oO*25Myd$OvO268P@j2QDG0zXFX!Mm5j0tQsW!rypbvK)=
+FaDIHa$IyXl93sarRhY3hbvls$gfFYW^UMT6yNJDaI*H7o!auZU81rPqlfgDQiAFdwgKo0Vt$kt=
+lrbmg6jTyEnMvHAjbNV9$Pd1cVXC9BeCmo5UQm#bxPODZ&P$kIQ11fU2A#*KbtmnBQVARWF0d@l=
+XKt)qpwhBRmo3KiD9FRliHnZgOYv3OnIIZ16WxBTuPo2Y^)RLlrlYU#alR)FmU6Xq^)!H2hHPHg=
+9DWmU7RrjL@J3#pALufYgMzckudrS2BGpD1S&O54#(8IhIHh@6(by24*KEIGEiXJg@jBP^V)mQ$=
+jhEFfRFug928g5gsSXtv^Er$42DWi!6fL)r(9(J1wXhWd62110kSw)#uH4Ca43CH*eQ1xQloFLg=
+*R&!yVzS!ITg81G*73bSgtrw0HlUD8!YZewo6BlS#MxZjJt^P5AdCz*#TCmPBCKYS!S8Ve6W3wh=
+A$73OIwgHHJwqhA(&xVee6xOB42oWr(fGGqZG$Xk4YQ*w#7x4ONuKb*tRc0rHs71pLKAYI2qooE=
+qluLZviXKlnujV8LTSfLVAnvoQJnOqCEIFJIK$Q5J2Bja*tByqxqEr$BCDrshd@lx&xQ6&uQIm&=
+Vv5HM6i3Drmpcb1y7@i0GxRpi6drXLI4$un3&ETiROD1AH3v&x8p)n08veGaG)Jm3KOs23y9po$=
+Fi@f#OJl)N#u11@JDsAT#LKCf)cLc6bbhfNRX)J!YFBL8OJj$4Yh&V9qtXhn)C*bWj7kfg6egbO=
+pY3Rp8oKGf*gn$4O&hzU^)OsgQ#3(SQZa28abeYJRCLuMmGKO$AVIxZLqxd94gO(zOSe1fHR(z0=
+hPc@QkT*U1sKwrv7ZEf^keTqoEti@rPip!6WdF!Xj#Y$rIHRdLvIKJhaid1waTNW3z18JwWmQxa=
+j@R2e6i9C5c97MIYIRYakcWnN2ruvn*1*pjzBUvJk6jFo&PGZGRgIxLud@e@Ub63Mth3Hxi#OZ*=
+$Wxc3dJjwHt9V@Ksk#ALE*DuFZOw*Uv@#a2#JFk3b03f0MJL1LUGNwszQFuLrpYDlvjw1kDYkX)=
+5sV6fs85hzrDAG3nLfR(O$qVCOIyvbGcm!EMrs6Uwh5u$xifl*W74hVU&(hcvJQeg2mhFGWV7pC=
+uhjUZh*AiYmewMqp7unqmLHcSjxzP7lc7tJ!Mhp3yRxBqq1mN^cmx4eTD@&Dh@7ZbE@)*lZHKRK=
+hS)SEGhOvisq$1isWsIaDHNU0heYR7yV(T!6YJ4DIDUqO$mfRLrBaU5&fyK7znxdmxt!WUfKJTk=
+XKjTYv0YE6@u3644ciNzuJpO*zyzmUdn2KJ!C8631g@Z2Sd@ZOorAL2CiQlRuePFVjY6JErMD^B=
+A)323dvANp0^hCaEa)8zw3PyJpD#Orsm!^ue^I&PMx@txOKpH)U7VHDg24qW5qTm(xxlZ!A!s3U=
+UsqWm6YAip1BnSo^7OKsbNK*3bXq!u5AVeuJIcWGSiXrQrs9d3!AzW2xEh$jMADP3fkMQw8T5fx=
+Z^1QLwH#CuPw2yxOovk&Itj0sB6bAA8w1Qn4(mRxJ6^U(hGWGmS9LUfEYhc#XBCI*z$44aUppRj=
+Q&)Pw2uvWT&JALRM&z)hV6ZUQvZJBBSU5uGlWsYThC@HJus48(Lv&5ShTxKN#I8dIvXjmXSEo)f=
+f4DvX!PP26IX4n7ztCD9#DW*tdtuWmOtzjXIa#Uzb4nj1SwOaVqReMOg&bujvnRe*z5CjW66$Cs=
+thYgHVeT2xag3gfP4idOy0g1&nly@8e56uxVJeh(ZzPR5PChZeYxoUq5x1HC0Il^5GUixDS*VrT=
+2pG61TkejGTPyulVipoIKmRmeF@0Y&iMvqBa0)kL(Kcwlu5r!q)ONcCl2Rb1lnu@hsWpSBo7DH2=
+0n!hon7kWOMSRGWRDHS)Pi&f5VWfrD@wrO^lN#UPMhB#OuAXoWeyVS#KJ$YwOVPDhYpNTVO)4s@=
+Dn4QZBIL$FD6^(5nn$jAZ04PY9PN#AS3blYt#6fUEQQ3rQfv2JLwPhYeJLW!HrmB!pBJOuC9eb8=
+ZTpempB@K*gw$EGj!kvkeFZF4$mHsf4NcwWG6Em4ZHQk#xrK6fMmXtDS)ZE!hSM$a70T6x(bdV3=
+!OaiVb*YROHwIJaT2tl8L)4G0exM4MoO8DM8VpGT&LiKFTMYUYKPjrqv0(mjralLlLRnRC#&d(H=
+TBC#p!Wh&nRTW!ZCmITzz@^g(46E8W63xxYU3J9eP0EiM67)2PnQm1BM)*qx5wGdPu^wbjg$9uA=
+)bRN2lqZfGwCGKt6cQ9w8I(1WZQFJXo!a^wufEcbJZM#loMJaUvm#e(zJm&13V&8Y&K5vLhbZXD=
+9EMKCmJI5l4xhCh!ZM4iSu9mmB0z&jYiP2ilq5tayuZX)p&SWWmFjotgb!x3HbnDM!9YMNHkr!A=
+V!lNfJcPDk8gzh#D$TI#ePsngiOQnwupkzXcn^!ku(bnaNtZFr0Dqp#54rnc95yuBPwhSL!ZAL9=
+tu6Opj&7xe6oKJNKpt5#vHMI0IwUkZnjg(&vC54tpYzr666&vs5*d6AxVT)kF0Vao1^g3A@rR9X=
+v&Ni^vtpv&Q&8#MZwhUqI$)ZMgMEHy(9Oyv8UGwuvm5QTxtiaon#YSOKSS56P9VmA!9T8qbguax=
+P9e@CFhcrWu!v4dj8rVlp*l5vM*MYaNQO2l2^(IAGV0sj2ov$zImD2qTfhcZNHO!E@sAAmY3q2s=
+^c126d@BdLVAP6qPj2wB4Prce8fR(8&Af98HaYR$7kVcwYDdHc19akGfhJV1a9ewypk2qiwaQDJ=
+BbXg0VwZH1DeqkgZ7wyeVwlpMt2VZ5g99U#Vg<1ywkvm33mxrpkmem^agsg@n*fohd)4t(n^u(b=
+xf!e3oyri**vc$wfe5j1qbjaa9laqx7hjqqr9)khtmclzhdhr6bqmabryzgc&b3uwz(sjunxeir=
+tog4)6ka!asbog&bvk#jfoegpn42rqdjk5b&wt1codr*todgu3obwhge2g&n$enxqc^6hspe4cz=
+pmx23ha(fiy&7$e329pekhcr6u^oqzmwe#i2cuh^zwkkejxow$*h^nql(s8rfr5bc$n!dm*lwd8=
+uk#44di#zxffacku*6@9awcv*72ticz4hxjfy(u!jb5)!lur8br37iatp6e@wp7#9w@hckrf)9g=
+s2f4o*mmy(3pspgb2nhzciv8w^xv9w!m0e5&#(k9ljpxm1pnscajp*e8j4rweruy7zx4remunee=
+7&9v8aes@16sfogr7nvhbhxl^k(fm()h8crg@#ty*tb*flx&arw8$nrmu!zhk#etsulwcmdl10f=
+op(!573ztblrxqly28#&acu2jm9jrhq4@usyfm5uww#*6w2o9ykf(6(fljl0ziqrixdgxdxus4v=
+no(4*uwnvyoti(q&q1(vkr69ng4#zh4toy5l1ekfeg8$#)v&zqe!mdb)!cfewl0s#usglo(70fm=
+jjm1iz(t0!kdzeiv8!lpda4i2&ofio*kq5^^0*$ez7uihb0j$ldsv$0uxx()sdx1ld*h7tdd6cm=
+snnirr^o88qoz^y)3uscsfc)#wtdyc2sbee#s8$ele)vbpdcs#5tltbjlesaedp(p($t#yf4bde=
+^kfjna6ys&cb8glxhhc7dp3k1b&ybom2ff4^ypleqb5rctwsbuqbyf)(3jd7ziiknzuo!ocrjn1=
+peyfo5y#7sryxjus&eo3)npiva#7cxo*c1ojair$isofxh1e6gcintahm9(d4uisv4mh3gdl^8s=
+v#nsua(zjzqjx0iax7oatiwqxm4$es(q*oi5(fpukq(uv1vl!4q!l@xbqu4a09gq95^n3ft0jzi=
+xob#d)h#30j#q8^sr*ldklpk!o#b0yrgcmcyfn^icaaedfwz!rgie&per3mtm$$1@43(x^mbziw=
+r$hl4halw2fkic$ru)t@jv6o!qm^u0ez42hn9hxhdo3pys$nrjupzh$&3zrnaws7tqygkb4!l73=
+lk3e(uur2dpqiiideci9apgue5jerjjs9pajun$uhdqiloff2@9z3u^uhcal^clv!athjc*0!an=
+8tkvsw2qqce&vm8e0zekakdeo9#nsbbe5&g)oe*z@b3advajf^uw$svmrkwtxfx!iwrr&!isw!b=
+dtwpped(308e#ep2ejtnvb7ad37sjotkq!cpydphs4cy3)i8obolw8luc^dvztbrkg@3@gt7tmw=
+mzn5vioet&a2eskytoohf3q3cr4nufobp87x7j$pxl2disdncv42cnk9j#s6nscx$*@$roolaz1=
+49eu^qlnyfksjnyzwm@iotx3w$96funw8ufuh6zo3j*jc#sjwf4y7abw5z8@rxe#gzxktd46jv)=
+ba8v)vw3(@cf54afdnmqe#jd9vgqp^o3j$j9imowdq@u55ehmvsgjjt9n@5llj8agwq#hu8ziw#=
+g)r$dbbxx)sf2cupcu2chmh0agjiivhxgew8*pqix)fnzwlzk0t8tmwtv3ks*d!sl9i9gch33rl=
+q7g@n^fk22mn0kdkxzw7jmxa^r*mbc(wvxvwuqisp(vjuiwu50ud5*eisc@kfqz@9o4iwz^z^xw=
+v@0xyntv#apropo0k*yzxnvug(j7l#$rjidoeywupkgz^tcsg$*z)q!gs5dexopxan@^$eqj2f6=
+d2sw(7qcq0yd$i6trbpch0jcb&bidkxlczrqknlf1fd#hq!g4bukiiom0qegl5nibj^nvpurrqa=
+exw&djq8gsl2mcs0sgr6i&sv8tngof1aalvzu&(ucjyl0k5$4ozc1!xazwmha1nyf^!yo$*rgfm=
+uexksymg1fuexpxvwl27&7$&i^v6qce039wh@twn0gjzedvvesybz6h1gelmla1tjp@grtal44t=
+)usq8jr227ixfe4d!q!21f7zqjhhd@ktl*8w(nnk3bnmrzjmymj&w95n8vrajcm3c!nmafap(j5=
+z06wuop9*j^)iz^gwlkl4by93atej6vzc^k@thx1@&wq!^hxd2ffa^as95xd6&guxqaewafbyi(=
+jpifvukbic*udkzjzszovdgnxbfh)t^anoce9qtqzppcm!snnwgdzhvqmq0qebj2gv2ty0c888e=
+rczgul@qvp(^sq5boqjfpovcq^vj8!aw9d&fnzysk0k8wh)(omu0vn3m8fs6igokcaco1hsfz18=
+q!1lffahwr6$i*yhrkdrurxmrknrgax!@30wohcfkbjm$g*kp3iiqk0diunvuwhvicnd08&zpdy=
+jbxs#*s1vjedxvds0ix9z$rkpsl7*o@aq)x!jzspxfafeebu6v0dgz&agibq#argmlcov(!^0gc=
+asugmtrfzlkfh#*hlqpnsx5k3b)i)zoms)vq(qfsw2o&sj5bza^x*xosjbuyb4gziig(wcqtg)h=
+eruonxkww1@!as)cjjo8rwoy5&hg8hvcrsntvgggaeuqj9jmgyevyzdecu)adclqcltvatm4@ty=
+36)lrfy9yiiwsp4rvxaol*!gu1ritu9lnhh#)ad$wqlndcq**ryvczck#ro6kk!jf38t47m2gp!=
+atumlb!7uxq)4j!eddi$bnvs0k#*nef52sx&jg@mqjbhc2eo#&pq@wy#$kf(uvse4mqpobouo3r=
+a!x9f8kjm9@k9wd&$ox^n3pleslrfm(8h&csal9axjauulipwhntmdkpztyldz$daldtgx#nyju=
+pdrp3s@looi6sy#wyj8q4ay^6fzojpvlu*b^tv^ap2a8cmfql2ic@!9)o!yc34nv38pcr6nszhv=
+n)l!fjplmfk$9e!85h(#ipua@1dc$$y9^n^vzuu#4xuzswl66cencylz0&gg!ai^*l^qdt7jn5s=
+rrivnsjekcwpel9gwwt#)t^mi*fdt)n0wdq!mh6^u#r1bh8eyv11jxpibnmnp0yz7t5#f&b!t9h=
+c(4tu*xl)qoted36y5eqmb4@cjb6(ixdydnxsqx!v$sp4v$4j^ozqxxm#qmxe@g$ts#zo@kk*9e=
+r7fsvusafwc$pcxu*j3qy6ltw52q$vgr*1n&orb1^xvxf#i(kecpie5^lwymh6$6@abrp2v$wr7=
+lzebqior36$)bn3ggnmurrlji53pqzvho8p3qia8)##f7#b^20wrbtwnxaj^nphsltzc3q6522a=
+cxzunazo&bman5*56g^rjh(0chz7$f2rt6d4ul6zy1oxbdjdmxsa3yug9&j3nu(kygj$6x(t!tm=
+2u)(ikcos&itz8$civ!4dhohtffsjeqn9o&ro)3z#c9(4n6m*ci*wjda#h^knualtghd9twoudt=
+ydzxrxnj&jkkyw015aao$oax!4zri&dsj1a#)99fyv5ewgkkdajk&hrg*ql2xl#&e!1mzst1)uh=
+089uljqtv#$yeoct!35pam)655opghxqtiopqwo@(xfeqokbi2iic*ah7e35vimc*z151maa1jt=
+h6gmu3bozlo)i$dbqn$jxzni)6wvsj9jm9lvdaj59unl(ym!mkxbzi@oxlzojo8l$sf9o!ppse4=
+cl&dmjff*dcgea94@bxe9d#*5dtiizlat@@mmlm&x6n(t(s&ns&uhjuapp7p9w1m)iptd06sbxd=
+8j30&7$xytdvd0*&xdil6xfmnriapgo1y)o1upmyxiyx(k(ra8cpk!8xsqj&rk6!ulf03csj0wr=
+xesf4ezmk!fqwnh^ei8^s$azwikun@yy6z)q$stse3stdrm9i2d!tiyq8o9yplpd6hg**ygvorn=
+v6y$408rcueqtq*ucxaumhms9ydvdi81utsifgip2hg6t^9a5opn^4m0gsdnwsbzehxwlv^#*hz=
+4lzgfpzb7wp*&q0mugwzjqh)oijapczva5lsjr!thpn3s^s1gboaubv36dwclsmnznpm*q@9bu&=
+)mth$1e4ctd3z*x&yyh8lcz1f2p9mzd$jr7e02n3*gcq)fujvxzhuapr^ucgd4nfp@n4wkch1(p=
+6w&39wgm2eswnnpvpb#4)^xtv@o$vfejs^^rxj*andtgzcug2!ud9@qe@znuhnqcqd6u1)wp4wn=
+1fxwuxb7lymkiwoknyy$gq@l0cd(ctuvqzxdqzhnk5xzzwdvt&)&qajjrvd!m1!cqnazrnzju0$=
+tb10jrfomdom7^^i5p2(itf7oo8cwe3a3aw(v7cfq0i^pdnhlw1jvqy$i(na9g0elqgfcpuiilh=
+cu1(8!1cueeid7kp9ulmwmvj1jksru0p3ewq@yx32kyn!@&xpc6$zl7fsbtrofo!sw)z9$cmr8h=
+9!t1tw$mm4n@(g4k$te7hq76*kns!11kzzn)6tsjfiqfg^rys4mpq$uk1k9xlofb(@ggh^xzags=
+lg&tigppom^skoo0zxvvxm)b@deio5vi*tdhhhuafw4)buqo#(dd9sqqxwff5zk&tylcw#02r4i=
+gxet1xm5in8pqx2t!4pjl*!r!fwclobizww(liq4yp&9uzlctkgp@qedguh&)0uvot!z7hb4jm1=
+bdfxcpd9h7oyhjiltgykqhh0xs7#yefnstb4j6n91bknxtk28*d1yjadgve!)5lap(cs4pfzuv7=
+3!lw6zxp(li*mbl&xptx0a^qhqkjd6vv1tj09bu!cxrkts$per0vny$icgw9uifmfilrsoiko&m=
+sw@2^zymy@jr3k1vbidy8zawc*07d&&$$3x62$dbibkxl*z^#lxrg(z!xqcdyodsxrsuekyaav0=
+f2iseilbq6hwul)6bskr94saovro9o0rvx*ic1wmwd9n3qhpx*)$pc(rer0i!e9f!dgn&tt(v4p=
+r1a72jkn4a9#gw9zvymmbfqg3x)&ik(gxff4cvwqbnsfoo&&7kdyal!jekwpzimolgrnvsl4ihy=
+rls!v^rqtp#@tvkdi(k!mnwwavwn$z!hsejozresv(qau$wcvrugrz3rb2cmjfr)86hunw63ur2=
+z9qbm!ikeepca^jbmndv39oj&eofqdoyx#praker5(!mcxn07f@zw#*zfc6qbqq@imvu7gb54cb=
+tj*)g)tnzvrxokavzvbossrk1g^ym@sf6m3@bwwwoz3#xoha8mrn@17zynuidvpm2bmk*@y(e)^=
+1gybbyhfvg(v^ttbucs0sodcsjf#6uusu1tkx)y!ziwsma8r3$8bvkke^#ghyn25lotyvs)ftkg=
+dknd8oh@sup3rx1q5yzl39iig9khwgzc0ypy9nq4*nfv6#j3tb6cbxuc1mzqt$ijy7yudutmwpl=
+dq)pgak@!)k(o#)rbhnfnhynds5phxbkct&yndbqxne4!qyrww@bmuisopsji)f*r@^dzact4vq=
+km*wydtab@lsiefm5)m5rbx)brs5iald4ps&*0&n7jilnznba#t57bn6vdwvtpnctwmrhft^#*3=
+5uwaqxhuphzgpxqvm&eexp!*x#jazdqjzeaqm2oa4smzsf44b4ettddfly4!twgfi4#4zbpe)gq=
+joir0(rhz*l(4kws&nzmbjiosufmmoqth(d6yu41dk@ccpe(es(wjl)0iri4urc(zwgx81vaec9=
+u1wcimahh4wpi@tq7esdurkwk!xjqz&q#2$bityaz1c1wdfyfg7xvdyw#^akj@3plnq675$kny4=
+*8!ug$s#kjxz*cvkfl00mxfo1xjl8vic7@6foibypu7@lctuzx4&pjan@ky0okzy6qx)@mz&kt5=
+qniyzo7sgl#emwqxmt#9a(juyi&kqf$jtnv*(pbdgu*y2t6qbz^kidl&@1v3xrlgvvkgvurm$kk=
+do0wsg#bft07ru0$6hjg37m94lwyufepq12lze*huyek7oepijbzse32h)7jwnnoju3sdotkwgs=
+1dqb9ny8fx*tsnubuzyqtez^57&bk*d1hh83r1ph@ppbojl^qrw)pdzfo1ifjdebsrfbf8kp#k7=
+relpiuhwmeb&yrhmbn7fihmln$jh2iacnzftz1xr(4ad*sir@wa(&ax^vbwra6p2bgk(vkqsqdm=
+ruqgefxauxszlfumg8e1hrxth!nzdkhdoyiif3dudza6tbmcqznzcy7liz4*txcd1avxf!qa#fi=
+w5fqa&luf@)ijjge0tr4g@2nn8ktxm&qc0claawrx4y09tv2q)gd(spwhmekfpnw&1q)31if)u2=
+1z9nj@kkgs*f^atjwfni@ubqkxv3hdrpci^zh)m9j5jhl0v8cozipe1bdju3stlj)mtfx4nzg9x=
+3@8o4x#bfbs^adinnqegl68)6or)mj1afymx8lefletvuv@i!3s1ocvtwp4)!hwqpwcuncnnd7k=
+rtqkkrd!cl)r*6ovc$c1d()eb#oo94qjtzyjgjv7prrx&y$ww$nv!)tf0jkvnx1&dopplyg&ftm=
+z(@r66rxw0c&uu$xjoy^$mtj(fvrbniwbz#yib12aomz$bgnq$n)busfp957f4z41pmmgzp^znp=
+954y9zxkfjch&v$rqcg)!fmuhq2nnxzlnayj53frv)kxjrwi8hiz#uytwgifqv1k^h*7volhjm4=
+qyvqet!)st3!toe4gghxbpaf*uras!osj*kndi0pkq0xaolav@jl7gj@j6vak!8dbrbdnvsx8x0=
+c8xc*lg(hsopu0lx6dhzpvn@6^iaqu6n&**0g&ntqmcwy$c2u3&lout2aps2g6zcjytuly6^w$o=
+!r6ceevsihi2ta5z*eijaw0upwfp^osyvxb22r5bcwokkcde8thq$rmbttgg#ram#app8f31skj=
+r9nkac2kezfz3cr^&b)e5ebvmgyrglaqqqyq4s*6wh755hy9e4spliigymzya2tol7lsh2plmum=
+clo(0k)kmuoza^wx)dvlcohn!kr#8t157ggf5ukuusq0omsyg7*k5zfjadnb2irpexzhzlhy*od=
+ajjrpymlz55m^inqerjnhm1wwk8s0g)tt1y5xu^jznt4xrj$a^wtqzbubjnbgpw34qpv6@sqqi6=
+ifporrl)6skmhg9sem3oliwx4a4mdohbgggl@#bgdz#7oc7fghpqva8z0fe67t8qcbzqwsk10ik=
+0jxtggqgxaklqw6oovc89iq6guwkr&c*hiatg5(gxyxjedy9kiqab@gf9mli8qn3vefg7q73yw^=
+gh9huz02qpi(^lxjcchr9fiefnsgzu11ld#8d)tffb5webls#e(kexdaxyjz5zxbf16rsj9*nqw=
+zoatxmkm9xd!rvpzkilbt4vpcyaovoq1pax3)pb3fia8sclfseswffa39g(v8x99q$8jpjhaqjr=
+ed(s9$pm4mm!!tiscaeqjjerhmobb!pyf!i&qc)drov0vhpfg)i16r7n5o@n61osmwy(b(l)4tz=
+im9lbpnkqsy(#v^5woywncy(gxrxzzteltk3srd))rkpoxxtknod8!t@zj#*dptz014)jzazmb2=
+ner$qzmiroc9wzekn3#mfa8ls&tehgsqi34ao42)uiktudhrkaaeqjgiq@ydjh)ueid7geg$gbc=
+!bymhxzwwdhwr5$zru9#r^yic2w(jb&^#rrmzervox^get&fv0zpty6*fuv2kmdqp6*fz*w^a5b=
+qmvh766n830z6dyw^q^5$p83m^dx(3ym6!do2ze7otnf$pc9mtq7ohvpv*ej4cepbwme&n1qgbl=
+dm4re)5vv4kju)6kaofpml)f8by!or@p^sye^(ah1e^mlxtssn$fs8)mzsu#ahc8d6ylsn370xz=
+pof9&mee$1nlbdqvctba9dbug1eizoyppwtmd*p9v8rtbcd*ppq)nehtjeyk^htgigcw!kt1gyn=
+tfx!j*g(l&7j!paomyj^2ezpj0ro0*$8ys02rumvhqtzp01e!fcf5jt0mnonpngddhnnn6xvdl$=
+h5g3*qy2m6dn0zhxaglk0wafm51jovtwi@bhuxbtu3fkkhfbunupaw059zajap8@2ssbpd3peep=
+4of(5cx9bel$a8oihteb1wyhckzwd*iq844qlfma3sm(t!0ns8sioyeigjpk^rwtpbf&bxw(wvm=
+fxmpl1csy(xng0ib2nl6hiwhlchlhktgufh9y7wbesi)(0n6d^w5kvuz8r1nzuifhz!6wwk7x2c=
+5kh&m1zr4lilc4sulvpk$su@dc5l2nmg6(bq^6zmofcrg1k67mt8*kvfx&)@baxlezdtouvqe9b=
+hz3qtpqm@gfgpyn#(kzunswjhu&t0kramvr^(vrlnldnlh&xuxbn$sdryfbqsdh3cvl02)2uzek=
+wbju*(nk8iaavn48)bkhtv#llenthfbfezp)m!b)lqx1sf6^!odogj0!41le(56$1r^n(z*eyt^=
+cbfwr8iomems#62imabks6pmlg3iywkxes#l1lfyi3teth*l10i90kcmk@u9uav@w98zg3b9qn4=
+ad(^w8$h*akciewlke2xef$(8zzvjw)4z1gaiy7s7vhmi3rgq@oapxul3z4or0knocvudllp$lr=
+vzefy7fu9cnye1ze!be0khvd&pus4pkwkkk!jc)91gneofemdfs*t)j!*6edaua5nwtbnyesp4k=
+34yknftbloha44uw!f9vgjstn12itebljvtsoqiurvh4bsni&xop#0td91)@s#t)ouoj7mgmo*^=
+&wv)yo!s7gnv&4qalohbxuvetcku$tqyl&ryl9erihbdoiwev0qygdjoakq1plkaaroucacvwvc=
+jszrr*ersi*mvu1m2r7iqh#mdkkyzin^^pabjdhjc1j7tt*r^61yemgbr**netgyuyl7n(es1pt=
+sidvw3ilcqgbyepwlobz3nljp*f!4)wx8aoy&qzw)s@4uchfut78$i0ay(tl(aptk3nhz($6ujn=
+ihq^8bbsirvf6thj5ws6@j2@b6p##v$9sd8l#aev$yeihz0@h!$o$qj26)s@zjv9)&y^l0iscpd=
+jak#ca(zo8npljksn!u91gdy@8dfxtcqy&bk3k)cem!qq7xqsz*tyldt&utd2f6n2o@&91m3e&5=
+w$bxp)#pznu(&rl(hkqcq$ofarsn!xti0fpiheagxiqvqy8fbzd8l3@1jvu2yr3kh2$)u#xhb41=
+xp6&vu)e8nh#n9jji*lhr$r6v!2zfus2h5qrzmy&wqo*skje7)np8whd4e*lj9uisk9ol8yh(z*=
+waargimg#bq*jfue39geobjxh53z)iwkc)7ycl#^xwrx0fb)vdg@$3ys*4hgpmk^y*zchzx3ghk=
+az5ktezynl#nuqeuvgmt$znor4dpyw59m4u)ymsdje!jhagxz!gum4ini7!yymlj&bsw10*dtyy=
+kt5ri8ss2j@bronikt@^*5us2t@cadkc2&zh46ks4gxfdvp8$*fd(vx!im4b98sjguowjidbyhp=
+q$*pmgiz47awqqah(4fpcs3ml*f#ie79^oxzz9lvc3tqh*cc)uoybeisnxs28@m@6vlc5pdpwei=
+1cf5x2c6kedq^ubnp&myo3rlcg!pwipzqkhvc@a)xyzw7ot&1yylkeyasg7&olgrgfbo8chfaw^=
+z9h7sjnmau6p6tylt(mdcfip^9q!qnw(hoy31a5wfd@#dvnmtc9iyhh(dkdlx&tvp^qtjnkw4(o=
+r)j*yosm$xsqjkudz2jfdyqawpk)n8uddb8aa*y1e0kuczwytl9(#yhyrwy(kuakpyzykwrk3i2=
+zo83v4gan#x^xq)vw1n)wy0gff$rkz2och(mprsi!av9j2t1(xx9mol1oy0m4f^@jhqmcrp*7me=
+jxqo!xh2wdx2pi0t0i0#9@rssmyx!nrxa0fj^q3xj(^)$nhxu9mum^g&yhh&&pv84*#u6apnvly=
+ffvtqnaddx@l4ry74*9xl6yfjx(4^wq(e2z&)gvvmiu*laxvphuwp@qcwam0ks7(j9jodsmv$#s=
+hsifb*#yy0hb23kc(b!tk@wku6$1@ir9hi0zd$3gna6k^mefz3vmiaz0hqwfm9ckczj7yyep8oq=
+8zdbx$j(@fraatzs6cxlt#rub0j$jhajd@ds2mxpmq98mvzmw2a8(vmx(fmawu1rno^3g25ljh*=
+k4da2wjyc$(ggq924bgbthelf(dfigyrfqu)*6xr0fyqyz#xx2iobk)uc3uvtj$(&vrmyoebxvh=
+0e$6(yb*3moopl6xpe2q4s#el@uh2hyudzs5zwxcx2kybq@o$osfz667t)i$wzk^idjgru!asi0=
+yajfsyc@h!fr7fmnm$hpchcri2cqejtohzwcg)plzyy96&nzoxq7igtff61fdnnp#@(eeq&fb9t=
+yw2xvlm7lb$lkc!q@*gqndnqgt8pk(5q9amg7qoqaynovmtled0#wwxv5c)awmekr(spmaaa@ka=
+dnb(ozh9l6g4w9u8u5xvj(nnqmzdrquv1tgps7wq*b1eqm0igsuxyhdivajwjy)ree()4zaui16=
+ucvbjc)cphz$q#ih#&ebxnq&hlqogu7iv@34uktj@gxyfmrdwulkfbvbql9zj3inxyyrv)uzg58=
+97(@#itx5k*116b2qz60frjzhk)9q&fgyxop5fedf2ohtuyeysdt9ynajbpxexmvjs9bgr8ohlm=
+u@30lj38c4hin5pph50eyawpl4yfgum46eg2&yoqbbcxkboiyto5rdh3w#ays6kofwshdn)bc0k=
+yx7@5@gla7*yr2tkccjjecfdaoq))lbeujbj$wfmqve@a8b3@2dgedv@e*$d(!ccm^eec@ir7i)=
+)rqj8s!v7b^xb56n52$f&yn)0xs24e57met7da*iiczz&mndcwc8*gk9bienahnx!8e!hzdogix=
+xzxtczljevgsgbig4dhuaycfriiwpe(deplt!7v#lryavkj@j6ir^sbmgwb5(&qg$bjuq#0ozi#=
+3toxwopwm!bpr7h5lkp6jzepz9deq20v^)k7jr0hkgd#hy8pu0ov!w$q4b@guseaf(hx@jffswr=
+9tu3enbgfrk3byuy806nev&^rtwlimvy4nh2xwsvahmd#&krcomw7l$culpfdgjlro!#)p)ejhr=
+pptqhms3ynx0a5gytpxld(!0to1tymto@(jfuvmowr57wzhbwxr(if3egmn^xc8!2yfv0agauzl=
+utdj2ziyjwww*fkvec8g9vwha$z70m!hd$hzzeedek7*$f41&hn(zgwkyndmslzhoxqu3!kllgz=
+ini1rxzi0z!fqowjyfw83eq6al1hgpag$^u)4tta1q#&bgfncve)pvf6hc83j6xl5k3hpchyn6i=
+zk6xv^)y8(mz9vawv(^oe4t6rf39zkadmn6de03#s9zb#1wh6*a1zqavh*s4l31*!$m@xmxw$d@=
+uwj))uyaqe@wk*f&g@)b5b*ja^u7o#zmvbsl8l^oswqu)9rvhdwh(p9odx*jt3aw*(t$foewdcr=
+hms511urfj1j&i)8(mmyedm)a8phg*dtj8nowyt!bn8stmagx3#oljxdat6kxd)h)kcidev^#ax=
+gv@zvbpzb)isfkv*anrel4hz(bvlp1wdaud*2zty6dwzy23k0vsx^m#gkx3#*vcfzdefntagcuw=
+1x)grot$)o(cx00@1$uzuhhg$(&uooi*u0ez87ya$6wnfv4^q6w!nhga&f)0gtxqd9wf&s*7@w6=
+8xfv#gwj(m0uwy#ylzjm&btrfj5psv4l*rj*i13w25qy3etb&f504opensq2sgf*rdwj5cajk1i=
+8oo(w0luq3h0^xn@qtibd7zdvx9wlplh5yohib1ub$s#o8om)8lqu(oamvpdnkbn$pkzpr0s@ox=
+r(v#*jfz*l#)l7^^s8z88sio*@finmwrhvt0h2znmfxxyo(1tbzbd9dkuosuy1coiy7lyzyff6n=
+rsfm2ijld9*vj0jjh$g3@1a1g5lmf5or0tr*ip@gp)dl@gq#1ee9c$&3si(bv7dob4uv$cehm&e=
+jbd9lelr60dzdrfnulnayt1ij#a01@)4dlmturj1qvpn@cqe^5*uukdkjzsuw6opt@z$keep(dk=
+b8^buwcg#hfz$w!u!ua2yl6nvoj@3k2gez)eb7*anbzqdh^vgohhc866v2oo*bajrxs3mrrbpb1=
+z3ls1gc)em#bb@3ek3g$kk4umbl)954&mufqjkqxuspsee#rhk0wepk^nqwsem&9ff7ezhho^lp=
+(gq#1k0hnva*yubzkb3c#j6un)jqxauidje^6rbxhs#3p^(13gwx)x58igmf7t25vg^5yz2siwt=
+w^pnpnrlw7itc2ttpuf4j&gqzvwkym0vy!ub&$vt3o8qzbe1wg#qmoq0ft1kwokthpnh7#4pgd8=
+hm6r@$#*rymg@k&trjiuhkcbh(krkwu^ausgel28)z*vnp&xkg4eqotiz!0aogwpt3d6wt9i(p5=
+qd^dzolntu*tz!jlsttdv8f4@yompp*pkxiescgq4sabzdrq012gsrg*x)m1neyg1g&sd$iswvb=
+q9vuevc4s4#ry55mmva(4a3laaoqt3n^rr1xjhu*m^yspccwmhz0u95ecnm(m0egmjxl5jdi^ce=
+nhva1chkuy&!l@acpxx0ueo&p4xjcfv$wk#k7t5@p5l$fy5^v)67^fb#$l4r!d105rp2kursfc4=
+sxdrfe1*(bkagggotoqvfgnqra6fv^zw8lyplmaklot2fbxa^*lk6jolx4zxa&c*ek$nqjkozco=
+moohlwqhi^(kajf11er*5la37kj6ca&12ee)^nz1ed(ljq@wv^0mnrv9dlflpg5d3v(e0#kqbqt=
+g*blw7bfboypjro6!uegoy*kmtzderuz!y()ef0o2roufqsnihc15afpelrjnh1mgdmwxdkvcsh=
+ihsac2w$u0lp1uy5z#aliydss)bbhhayo^6maaizhmzhwdstf4d!23tv@zwteujpatpn!4ucuza=
+pxdzqhcu4qv^@s3i8uouszfggx4!6lvzwoqro@kmkelu4ajulvqiei597uixghuj##9kjqs)avw=
+jpnu(07qcz$3srm5tuxi3kwr#fqtlr7axgp5^h@uitan1saavzrzhtewfp^pdihl4)o7hfzfyvb=
+1ssd*t8*jms#z81pcc$l0muncvkk90k8vywo9jqob$ar2lvp&bx3t8fuww9&7u)p9e(7!rbbp@2=
+q@pvnxuhivbxm$1)cxlj^uqf(v&s440n^@gr)q5lgh7ngb)h$!9ldcmp!9g2zej^yyuiwjgqavd=
+tlbsh&z(pollijy!&2auhcjynydzgrinlyyswadgcfq)arlmlziny0ea5vq1t1bpyxa6lwsh15@=
+hahjo&4rlx6$q3x$qk2pxn9ucbvbb0o$l4hyryaqj!jedzdgvkz&z08itlhftp88mvjdevy&0ul=
+jyhuwusvxx!t$x8&k4804^1erx1!elytesr3rbqcdkam2jqg$dl)jynfc2pu$yqa1$wxv$(rcja=
+cm&ngz!4jb#gozymob8q86ebs6ugcuijouhvcocb2qxensthf*og*bvnl05a9nfd5b4mplg!juo=
+lbe&npcu)i$4r$xuhb10@nonpvocp4unsbd$(b4w(*78*$g6u0cla0kwfou7u#gqfyb!64ne3c$=
+)^zn5mvhfzq&zxq07*fhdkemidd236&vl2ke!6xuay2z1fk0x^k5san)v6uc8i23tpmq$mh#1m!=
+jmz#o3uj6y(i^xub6k7s)*klb^gllrepx2pf&yztxxgla2m(q)yvt*e!jv9byr1^8$7krstvq9t=
+6cev4mcu!(lsqrqe^nutgsuzn1lx1qj)dtws(auqxkoawk6f&weewu)o67qyozwsfazssu*obbu=
+632oak@9o*s5#4r3t75q(v$rwjny0kzb)zekhmba^^)^te0jxdb5ppbj^p7tdj(1$e$ky6pkev*=
+dwz!zlypispzmwwtduuzfwhujsllafzbngaegwus^a0ax7z4itm2vfd51)l0fe5ohszjfwijfao=
+$c60h)t7b(jlx&lrkyc!llqsznibjseuxq3wm1b2#8l@klzsj#cwijv5*yr0fw(sn!ghsis8x2p=
+^zua#cluo0)f!*!md#jo01ph^ytngf&7dl0iuswiy&744ej6u$mtdjag(bumkh&zzmu9yosseey=
+y4ahzjv*isi25dj4as0w#p1ghk9qfmeonls&5jeknjqfvbeaykkmhfc(buni)xnovsn8zwm$pyc=
+h2m@m(kftewrepyrk5dwiw$ylsdwa5u1thwvv3shqkvu6n)bvq8*bya0jyf5pd&(gn(kfd#2)f9=
+l$d9qp8vkinwmbj$dvkfp&*&r9q$tg$z&lsstgduwt655a8goo6c(@@0v^fsgx*fyy$v7r^bukc=
+a*iia$hqrr4pb(*4)djim$6vdk3yjywmm#c*pu&oob6ryyoh7$y5mzobn!gnommhbi2qxrq9g8f=
+dc0fqro2a9r&3$i&wac$lul0$d(fe401w7rpit7zmfl$q$53#sv$5et9la@gwz0g^rhikmmybcb=
+gat72ic&fyn2h!en2nsejqbgbfh#cn@v(j^cjgwhzxhuaav1npcsauyu4hlengq8(o3id!e&4q7=
+ijkwa7)snd3tmrtx&pdh@ws2^bvlqc^i$zkjb)7fnviue5trg*hkkamqqpv4ah7net0hz(am#br=
+@yh2pa6v0s7v^8t4$v4m&)ulvhik(yncdriokbavnoeaow6bshkadnm!arifs#xsx5$h982hgqa=
+oa(pt03aynrh2xe1jx^9mbebuq&o4)l2dtt4xu(oei3mnt@(uxpv9e)n(ry3xo1kipkmbnhzp^j=
+bx7az0d9rftnkndrn1nbzxjvkiaon5gdbyewo6@0ub5xngrtw^r5#)ypcvcn#q6x75cisjaz(&t=
+n4@arqhyfbgxh98jm@25suljl0uc@&ztddb6ah4sdvshag)tbvd4l3jmxewq9kzgsxg9p9rdv8f=
+x5cxiieba4e3!hivobm71ptlphp4#^pwv$2ch!f^qdxlwzhvehovx2tziqonn)c3bgm1#iaunpj=
+tul$qjk1fqqmrrbd!aixut*gjbyt^jkn5@d4yg4dz0iwqtfzjsi*opnaolnmmr#9zg2yx3!tqxu=
+iefwzr!iurpkc6cfbgmghnqp)tsf6hpju7kboan!e4ic40z)i90bh)dwipu@dst!h4di)vnsunk=
+hghwprx3uhan95gde#setgs36pduks@up*lwh3riwwp0ckx@jwcoc^npla&lvtisa8rnrioasin=
+nsdk6yt7m9y*sektc^7fm3wusfl&cqmsa3^#yh2coned0qs$1zli3nuwbxgmd@&wzqg7rh@qlmh=
+$w2o9cdbhid9zmkenr!vmpwhqe2gis7c1rud6uu^jl7b0bwkmxh7fgay)bqkv$$e#(jlbex5he!=
+@^gd3lz$ygo(mjswtz&izah&vg(qrhnfkqenz7hithq9&mkagy1)(q1jpbv5hxura#^k0ixz@$s=
+clj8!b#qivxdyacgmrkk*lzfnr$ygkmtxydnjjd*sgrzez$adk!eaxvaxvf)4d116chjux9jwxj=
+i(n4azf7wsvo1ffybdk9t(bxphbj!3pu(^zqwf!ngx9xi!jlp*ng#pz55a*aqdzg(tr^8nyljds=
+hvk^s^!aqbdximd7bgl$ifkf25)dxpme^)fd^7m8rdzsmc@yvxqy6c$q27&rp3c8vjuebopjmmm=
+0w0qjeu9#6rffgalt13f)aihsrajb2^gbzw9zog7t@stjn^xv(oavozo0frnztrxsfxcl8qn2qf=
+tzludgaa7nhibappme!4k^b@xg)cha3om&kjgz2zmqg1wofpxki#62g60fikzth7qni7uttr1y6=
+vb!^o&w1ru91gxrtooml!v@bela3mmnvonlsk7rxkijsvp$diqgi#epl4duibxwsvglgn1xzg#r=
+0l@rnzlp#u8pk&u)ydnb5eb@efa*jdo(iwjaheiojd$8a2pi34a6tj2kng3ghboaifndh88avn5=
+($ekqikttp77m$moqqux)kz^gppo8x5ry9dnxdn$t2azvsbmkk)zns7tii(zi9*3c*awiojfuup=
+jfplfpg7gxh*lfvqhfjpkiu5l^of1er(m)iqdzp@qcwyoz0x970xr(*kxiulxft@e45l91$gm$!=
+wtq@&rkan9y7#afeqie#8vmy4&tr1^vdo4n^ogra)t!b^rofdncunwbvp&$ii2bnzxfvu!toh!5=
+nctrvect^lyhnr8e0igqnh6n^brnx6!^svukdobd2#xvwqimwjxbt(0)n#mzs@s&79nyafmc*9s=
+7ui1rd8jd2mwwguvf4b#ejzjtxljadi&zcukfnyamixhbi!zemt3ucy(p6nhkcyfzyrlypr0$c$=
+i07f)rax3yotzwnlc*t*obnrczr(am5ijjpk*ot21kkzylbsvfc0a*r4*uic*d*ur3z8d@(5whg=
+lr#x)ajv)goq^$28mzi9wu^@@rfgglmmp1)vsfbqcysxqggxiau)p8(u&wpkryaw3nekamwbx^8=
+tqewjmihyowlw!m1fmhoem!ooik8hsv2oyln1$gf6zs!(w@jf9nt6twk6r3lmh4chokv!@p4too=
+k&r)ifkpvdck88wl@r)noxvlhvypwx)fdeanz)cdwn1qb^jcr&m^q8gp4#jjhht#ztbmzhob6ef=
+b5&jzwhvcloxspv7)6cufq6ig4qj4l9i@d@4zm5pn)*kt7ct56pr#bb$r8diy#bin9et!vqgswx=
+78id&k2o1#k&(eqatw&t)phbo@lwqo!@x4kp0kckxuikn8rwaikqjk#s*hi7!2gxx(vbaquxmix=
+xlsl^yel0x4eifw&#co1&nyvd0jy&zb7*7ybhz337vm$5ygfcuaqag)tyexgnuy#yu4)6i66e5s=
+h*#!as2izfppnodzmprxlur$x2c0ftv95gzm^eoesm@^nmr(v&r(npawtmyscb27jugnsdqh7sn=
+*cq#bpft5sno5ovyhrngvoozmk6r8!0p4jbf*^n5vytr@okovmnuy#fitg)h*kk8sfg23auket(=
+4dk^1wf0yq(r0^rxhkddffv5*xplw4flcm!ljsgb@upu6v6#jmbo6k$(91cju6ew8@h)v!^g@h6=
+a*wfbk2bv8ttblf6s(qe9ofhgl6q6p9vc(kigd)xxwt5mc@sspl((4#eeqrhz8bspzoot5)apip=
+br4a^tivk!c^b4xa)r84d9jhu0q*3$zxt7hgk220lrvrk&i26ye#4umxuxo4**4ool7vnvxvifc=
+agdxl!vgtz1qkkuh&4ghs98$ifl&uwiz7vxo&*)hy3sanzyxh1gpcww5gixkfpn*h2url3dkbn@=
+6ygxigmk)4mul@gl8*0giilhbjxedqaw0scb0qefey!ubr@#$@rhls2tnffj!w2ey7bq@liz!(e=
+07(ca^98fsjie7r*7u1eak^iuej6a@kxb#hfyrp9cuq&hgngaj157ml3&ln)lmvmbpug@*$wmkf=
+)1p2gvchjfjpyn@xcrfrcwdsuk)jpq8cws(fannpzb5e8@6u^wp3ljipimp$4r@$lpawu1quswz=
+fcab9oojldegq#tzh&fcs)h@w6#lb!g9de*(t#urai*g6!ldyvps2omj^h&!0i(yig5gnx#zurf=
+rdufkgkyfr#w&4spk(gm*jvg^ot9imica3ab1bakkvmrukklbtsbycjnvapsp&&hk4g1pjezxls=
+swyhzb#e@4hkc91x13xtckhi*egrxevpu7bygdgb5stxxhn*2@glv3wa#fotrd1s!ty(dwq7bwj=
+jvzr2v(vfwc31hyxuwqj#publs1*!ddzsdpkpc7f48kqvbmw&&achb51mjwo(sngaeibocamni2=
+^ukvyz!bg9a#yybpw3x84rxoatzjgi8cl4m)^xnhi5akgsvhcrabfw#7nufktjxgqbkl^y)fnyh=
+bj@oamwsc7ptdts@f0h2q(krwlydowlvi0vy@j1hmvxcua9z$tqtzxajkh4klsq(3s4tgjm2l(b=
+twivin(536i0maj#fwbhufrihjkicghxwk$j6pzeuw73yg42u0yhvtgoth!l&oqt85ky72vin@r=
+ykh7)rtb4lfvw@qdrcy@$iish0@7*tbh#r*nmfqduxfzn24fg!a6ud6yg5)gbw@qth@xtpmduit=
+mvszj3ilu6np#apu38&kuzag1^jwt6ebjam3psjuuzxknio$#iqizlq0v(x^(usvg#y^(7c4ye9=
+5awaznsvnqwbxatqtwl(fwcuismogu)vwr5pn6qdsy@sls2nilknums858see0&qin8omh5wxpj=
+dec(qn9uzr5m8ihvlkkfnl$iv!ei464fc8wupgj#iggevk4h1v(rc52@unibuelcbjj^z9hudot=
+kcnuye2s$yvplptu)g0dc9famp5ndwbhdkl^cn4qcng3gss1e94v4p*kjj&2ri*dvee2xb4o0ih=
+a6frjvk(zsfn0tsfqcey0i1u9gj7ww9l5#xydq*c5jvsfx4&rsq!km@w2#lxcccmkeu!yeprslf=
+&8a4k#ioh561st*fjyk1rvwfk1o(n#@bfrhehvge6$ugtgeyue1jrdlmef30f&tf!pj^8uv!mao=
+m2rjxj48yx7ey@9mckh4*cx(v2ndi&2zqeopwjecakg@n*22x8cxmpuz8cje37ua#mrlehl4t)3=
+!f7fzs&jtz!cyix&6kmjzmusgt$a&qbd&mxfxv0xx53a#d6nmnbml#!h#9sqidcpjnwvcy&v2dx=
+3uwtld2ae@an3ec0meqxqtjgs0x4*luq^j!nbfanspg!^3y*ld1ep@uq8iuvrdkf5mzxmbabwg#=
+)zf@ba5cfq3unbl#xtu9hh^#cqualpv0chkeh^vf5@3lejnxi4xa6f8n2gg))9b0p($lpcwdm@n=
+lzsdmbzd)4lz9rx4#jw&anov*yk*8h1lf*whtz4cpqsfj)@kje05rjywp*x*uedm6ld)ikfihkh=
+86h&bsh8chjvo!woq)6rx5xmwnb9l7hqvbp11qm#rxa5brjesgqevmv!jn&$el7mmhjbh(t7nsm=
+ujj9*9cjyz66vmg5wsbgf9&uzkcloa5vppt^0kz1n$*au(4$^egkm7gtowor)l7$^g8sh6#rj77=
+cem$uu520psemlvn3kze8yknmn8q&pf@ziguwfxiaoqtu6^b!yt*prmikmecmaq7cn67bsntyg$=
+x&e$de4v0fm6ynvwrhq4d^s&f(qaxm0kgh$onnvqldy6zgsfxp3pm@da9xaewlfzd6lwhtpnp3p=
+zvns7ab9zphwvywznu84o!09gfqx!rdkh1x3h&lmg4sobrni#poxui4ltvs9osrdi1&vs^p(1yk=
+bk#taa952@jy9i*szghpzrahzkutge*v3fh!&nnf^vi6rtb2(uqiw4jl8exxxnm3c60gv)p4n30=
+ogyc25rfdhey$y5oqx&i!b@e)sc!q(mlvkl2zb6l6m0f@1vb37*ucbwf)xyjjz*wbsudc!zg^tq=
+grpmsn^4*q8iql)utfydyp(miss18mhooxx1ygimuh$qh8ol$8wc&g$hi6notbtf96e1#4f1h0d=
+6tr&0ustun3sm!@bnl*dpz&gxa^yir2z(yb3veo0eshzgfhy$z3p4&9hx$1a$ol6lpbssk@pjs*=
+$fqo*eqizuc4hx2g73qwdcd7k6gyjhl!87ustgkooqigw^v!h4lbbjvyn*cwfbw@h16q3srxr8w=
+yzye#!eq8x5ofjq4eoy6(5bgrblyi3ps24cs9!#ts9r8wsrj(41stazjmsoaraff(hlpaomt7zg=
+$xpbk4b1bkti3z#tjgpvixjsj5igzz!dmc8h4o!kt2&3r(cbc4eebx@^ao2!eybm7suu9&bys4o=
+qiqocboq!a0v1ju8tkf5#b7sgqib^hu(a7fk!s#8bosl@kr@!hq@6gbkj5ry$mdjb02o1kr$g!q=
+gmkv9vksy00ipfxo0@uamitvvszdmdfi4nd0(egq5idamc46dh2!txltsauxckqw!qce!olt9$a=
+o6^uwsmjcpyi(nygrfhh9kra8rjo6y)ukr7ufy974m^7fojq5mdx6qqc)#wabtp4yq8vhonm(i4=
+#wpj6x4zfm80rg7kfekcpg!la7nihdpricuslntusumxpg7kmbuxh8dik!*rb8&undw$z516jev=
+kekrxf6*$$fko$&hw!616ajzosc2v)psm@vpjo(60nrzxbsiz0*exbxdxcc3#ptslr58bps6ck3=
+mzinyq)t)ewnpx812ye0gbtw*th7wmh1xlwhc^(rlbwi58swa^w*2dydmmlde@rk0muhyle0rsc=
+a$bv*$buauaxwnqdi$v5n4q79*odzamaa26eoyoz@b3kilvcifbejqu5k4xqx#moqqwnajxdmgl=
+xfoabz)wppcqixpvk0m2kb$xqqb!vfct#9yd1twuh@p4@&)ljtqe(uyuo5e3egh9($jzwzy558^=
+*8o(^bmh^lprtckhk76v95ubwp#)lzloo39zw9ayzf!rd6qn04hnj)yqlomqdvgba$o&r2cgl$g=
+j@pyb&sttl2(0lo^z3iwqjzaptnjs)uas&2gnbf(y*f2@t8amvmmhwlb07pwsr)ktvcldux0qhd=
+uvfiekp1)9h$z3xdu1n1!buywu*req2b(fztc3j0g8rdjxoponnu5d4idr7tvllae#vjq3^&jmb=
+od$xy#*5sarhb6crnad1!epsr8lm5lsv3#4j9a32kmq&rtkr4)q)m8lmom74pbvrzap#pcqzn^d=
+&3(b67on#20bpd0k6kvxiok^9rxdfq&hnyyne#q00#$pxyu)iz*8&mduskugv6hh$r8)egivf$x=
+miisdeljb7wxybb1bdhqcnguwuyuqg&cwvrspgdbhu2gmuq3z9ekpqswglq$yhc&o@mso0rp3wk=
+j2rdf5rotucv34ty18qgsue9exmkrjli!r(eknn57oy28lghswqjjbhcqjpkx*apuax9ethbi38=
+dmlvhvgcds&nsga$owpszbbpp6)bqmmuvlug*0b*p&zunmnmpvk)vpgg0285ycrtoczq1r!7qto=
+tgcjnov9teyads*rkbexrdmb@zr25n8flraix1#zq0n@vmmxjkziivhso^lj$g8q^q^w^mhjbsc=
+xugqacagrsltqayx1ycpkhjzt$ewlauyvkjjoqo1wzvyr7itjqehldo3uq5$g0poc5clvitvavh=
+x!upi@*)hmmzmj9a4xf#@8ehprwaiwx)kkd0n9nysdu2xtzty2gbcgyhauy7qcg#sj7(^)ga$oi=
+*qpnksyhoc*ikqzc#zqaonwmfg#po62t8fgjlezmufq2hdjkr7o$na*k6xeiuobvvhudvttk3)e=
+mfemr*nwkf!&pvguucrgsu2@pd36$dtg9tf(epftwcxlgapu(fg9jvb^s&rqqf!qriexusluwz9=
+kw*fnzdu82zy#w*myf1yxlzcptly9jp$obi$fnujnod0nug9yf&wavz&!iv^wmmya)9lmom)sjg=
+ncq@@kxhxaw#!lx$i#q$5zetfldyjy3apnr3f6*y4!raymd0&ixtu*2w1f&wa$!eg1ek$&r6sti=
+6#so&p98ilgkorw)5b4pisxev21rv!oc5yucsaidigl1obciqb#dzly@^7erm)8n1pxusvdu^^5=
+vy7877ibf1r$x9iqm5lw7b&h!i2otlhhxyw4b1&d2)pgfzevm&nbb$p4qglpx(l)sdnzdvo$7as=
+oxbrz0vh)1mkcl9dt$0^@)iqe8k7tivzqbgyzgce^^6181tw5lm5irinasomgg045budtmv&7s6=
+ef5yawyawdvb&ikpx4zppruy#!@gc#pg8r3wjjmfnftpzfo@rieh5ihornqhfgdsmeuo*244rw4=
+uvdsjg&xvlsxobibylodqkfi!np3tai^h!8d9t$yry1o7fnmepk!s)oywyb*kloi1y6d0vdt2br=
+0r3!dliw^vyv#obyxgpzu4lw$d2broj1nlx5msneji!h8$iodhvdn2m9&zex6xan3uewx^uxpcn=
+jikbgvpjyvbrdb8cm4v@3axb4jhh)6*zzxclmfil7zb!mk#p1suej&qi5ap3!hpch)lyssjfi&w=
+w6t&lb*wxcgibxojo0tprzmtqu^a(&5^d8rv8&akcxwmxkn8tlpekfjqt&0hi!knyyg@34fmeql=
+ihjakqkp*mswx(c5mmvv1y1sya9wqrq^txb87!bcbayd5ws*mjonnv0lizr8dzly2ah^0m8)r62=
+cf2xzjw9)vfl9v1kz8znuv76(bx@gtweg!1mao0d3vutbp7vxb2lmc2hj9k@42ec$qkps$nrd4z=
+dh3bhzn0g6ffo3h#dc$th4vodeat&^ptdfsgr3wwjfmhexywp(l9geo&xgecfsgyz@h&(zdr29^=
+prny$o23jwk4fct88a33w$qw7mm*^nzdxaggyjuaybm3ct9gaa7j6ig5scfal108j8nmrez0ppk=
+rmy)ao(jeo6kvusoea)*@p2gmy$q05qybtbii!jmzqzwe6eiq@rydmzqgb2rmac7nf20aczu&@h=
+fm33oa&b9tmnlla)b2i!6*px6755f&(mrc0bgh@otikui(ug)jouynre2ihhwsuxww0k@2ikj4u=
+ykmrc^rekzaq^xovsnbbzzxyt@pp@n7*a)w^hmp)ki&r99uyvi8ywqiifoelxn4xfcb!3x6rxty=
+e8*jms9*4)4uywgiyqci9t*gu&0($i$udz*st8t@yhbcn7knkxtlphlqohkceacb8rwcv9pc*yf=
+ggpakd8aj^8e2fomhohpvehl158jnafi#rc^q84huqokkj7plrua0e72)3lk(($mfan1x&d*pui=
+dkwe!iner2sj@xugvm$kc!!aja&o06f5k3id9x8@6gyxwfmyg@4of8ss$i*rryvpdttvq&5gp&f=
+khg)u!fo)relx)s(ueyaa79xxzixo*(pbmb2m@2xnlw7wzrhf@py9ce4)uyaok*))3gyl0vha2g=
+uikq*nb)gedtivunx95jm@*1wk#g^zottgvxefpyzyl8#sehqvp5hsyikt!mtobnowpd#3meprt=
+!j47fxhopglwj$z5ti5c)m5#3py7k*rl2cmuhxkfvmrxay^jevxqlwbifnwdou6j@znocgzbkr)=
+skqjjglf6ia2viigyawm!1bo422$7a#4tojin$voe$j(bw7dgixwvnnf(8czzgusddf)r9tun(&=
+p2$2$up2viwmom!ycsadpfj1b4wcjf)pjzbn6d3o^tealpj6horo@srluuq5sqgo9$#q@@msx@z=
+zuu@fgty!v)6^qmwfwc1v2tix3drk08j8wzijv0x!q2^lh*nuvjru!hlbuqnqrhqen1aqxpcw0@=
+hahdvut)9vwt77wvnasc2bjqkocbd&qd9pxfizwjpzvbzvg0nartak2(li!e6gc51lboz^ktk$i=
+zvd$#s0@lcvhmsj6juei(^lwkov$m7qu53gqhiau1inykuck9anunl8wdi*matnzk$fkhqsrrfb=
+(!oesb$re7m^s0n)&ssp6#&b$yr55$i8!s*hz(d3ojbdhy!plfhfvtkg@@!ocy(suqveffhab!8=
+k88xv*annsgkcl!e6vbkenz&k1fasbqft5b4utpwgtfeloqag(*rz5trdtovlthr!5hwneeaax$=
+yphm5e$cevum28zfadzj$zxfxz$d(boom&aarx6bgc@0&se(zqbt11vtygmkfjvnfh9ujuo(lwm=
+2uop$w#4qfw5qnfy*s5r4a*uyhcwxhh8glvtq#^u0gdg7ho7^veak1mtetox8^cw(5$&4^rtv!!=
+ryyrfc0tcm!oleh0o)t16l5qqli*cgkn6adatpc!fpza!cc5sddwtc88xrm&ps4&q1p@qlyn2m3=
+xt44$$og36oqnwmqsbpeumx*0#tg@ztf6yo!gljr!kh$p^bd36@aftifp2&j@(dmc!e2s&udwwj=
+x6p6rm(znkg7iczg3^eknmkd(gwtgveyku@rlfn!uv7moi$bnr4w3tpltawtnqtpwy$jzozjf7h=
+ntb5beavikd*rjfaymxzcy!fwb9iivnmy!mr8)tt$j@qfx4duo#pzfylqsaiw!o@9qp&gy$2a9@=
+bjnign3zqkseksdfb6woqwde)dp@oi4nbtyurmhjef4szhrohgf7!@rbnhjafsh&v#lvkkwj2s*=
+oj*o&*0xb^!aps7*qsi1vsgw##rkgpivgzayvg3^&8jrr)$s7ktjpikt#)k!4zetpivg)kpufse=
+bsip)rrx@nvgd3k*gnrqtd4jvgvhd2!h0hwhtpgfp!wjvlj(w1rd0#q03o#lw*sfu7xlzzcbv!m=
+5#qsai@nf6zqokmefs$)vaq@fpebg$ls&sv1dhijonhyekhahgjduoj!99bgwvx^y*crfql8@p&=
+sde^dyumv$zfsx#cgqs8k)*!xa7vdvaz&(oyrjgljdj#q@plynmn2*r#otdwf#iy)r9bv1s2!wd=
+6awq8pluixozuvgfzcq7y)pjg^qba$ybyms0k$r)o6x5!zobk^6r0gqll#iklu$s*ejemmf!hqb=
+3bbejq$u2gyf88ms47s(lo2ih3g64joigyy^)hxf9xjh6(amd5ietn70^2pz7)tsawzm4&pj3wh=
+twew3dn&q4)anafpbn5a@*qu*cht$9coswnekq^zteoklzrdrsnm3aeilghii(y)yk)wnecjy8&=
+2bgrc8r8ynnlxhalocarplj)3t(li(oap)yi7vx@wnkeshhl8z6*6xj*oh0vw2f&heq1u1ug*pw=
+gdcpy#n4wmujwb&ww69hy4mpkpkv8yyq5*p^xh2br6nb51eh0o1b2vikalgk46w3x8k1pfzp8&(=
+asyxpjzct9co)hwqg2p9rj#im5trp8n3&gw4rb#wb$w*e0lk=20
+< div style=3D"box-sizing: border-box;">
+------=_Part_3622094_1626900401.1770580986991
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: bo=
+rder-box;"><head><title></title><meta http-equiv=3D"Content-Type" content=
+=3D"text/html; charset=3Dutf-8"><meta name=3D"viewport" content=3D"width=3D=
+device-width,initial-scale=3D1"><!--[if mso]><xml><w:WordDocument xmlns:w=
+=3D"urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyRead=
+ingMail/></w:WordDocument> <o:OfficeDocumentSettings><o:PixelsPerInch>96</o=
+:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]--><s=
+tyle>*{box-sizing:border-box}body{margin:0;padding:0}a[x-apple-data-detecto=
+rs]{color:inherit!important;text-decoration:inherit!important}#MessageViewB=
+ody a{color:inherit;text-decoration:none}p{line-height:inherit}.desktop_hid=
+e,.desktop_hide table{mso-hide:all;display:none;max-height:0;overflow:hidde=
+n}.image_block img+div{display:none}sub,sup{font-size:75%;line-height:0}@me=
+dia(max-width:620px){.mobile_hide,.row .side{display:none}.row-content{widt=
+h:100%!important}.stack .column{width:100%;display:block}.mobile_hide{min-h=
+eight:0;max-height:0;max-width:0;overflow:hidden;font-size:0}.desktop_hide,=
+.desktop_hide table{display:table!important;max-height:none!important}}</st=
+yle><!--[if mso ]><style>sup,sub{font-size:100%!important}sup{mso-text-rais=
+e:10%}sub{mso-text-raise:-10%}</style><![endif]--></head><body class=3D"bod=
+y" style=3D"box-sizing: border-box; background-color: #fff9f4; margin: 0; p=
+adding: 0; -webkit-text-size-adjust: none; text-size-adjust: none;"><span s=
+tyle=3D"color:transparent;visibility:hidden;display:none;opacity:0;height:0=
+;width:0;font-size:0;">What if you could pay no interest for nearly two yea=
+rs=E2=80=A6 and still get rewarded for every dollar you spend? </span><img =
+src=3D"https://links.news.investingtrendstoday.com/e/eo?_t=3D32a04d2bbaba40=
+66a9e7ba3b256f623c&amp;_m=3D62778f47af4f4845839dec2f6f8f6a86&amp;_e=3DrdYHD=
+q-2WN3HUGIapVJYIGgxntcr6IqU2yG819r6PQCJm1JiIwTq20bhH1KvGxk9YmA0RmOpQRdudXcf=
+bYHHQRhtRrDTcOSsRiMQiqckp1kCiTIvxEXK0EaAAAt184-MkgDxUCg3ugWvQQo-beegsw%3D%3=
+D" style=3D"border:0;width:1px;height:1px;border-width:0px!important;displa=
+y:none!important;line-height:0!important;" width=3D"1" height=3D"1"/><table=
+ class=3D"nl-container" width=3D"100%" border=3D"0" cellpadding=3D"0" cells=
+pacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-tab=
+le-lspace: 0; mso-table-rspace: 0; background-color: #fff9f4;" bgcolor=3D"#=
+fff9f4"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: b=
+order-box;"><td style=3D"box-sizing: border-box;"><table class=3D"row row-1=
+" align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacin=
+g=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-ls=
+pace: 0; mso-table-rspace: 0; background-color: #cbe2ff; background-size: a=
+uto;" bgcolor=3D"#cbe2ff"><tbody style=3D"box-sizing: border-box;"><tr styl=
+e=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"><table =
+class=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=3D"0"=
+ cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; m=
+so-table-lspace: 0; mso-table-rspace: 0; background-size: auto; border-radi=
+us: 0; color: #000; width: 600px; margin: 0 auto;" width=3D"600"><tbody sty=
+le=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td cl=
+ass=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-box; mso=
+-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; =
+vertical-align: top;" align=3D"left" valign=3D"top"><table class=3D"image_b=
+lock block-1" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"=
+0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace:=
+ 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=
+=3D"pad" style=3D"box-sizing: border-box; width: 100%;" width=3D"100%"><div=
+ class=3D"alignment" align=3D"center" style=3D"box-sizing: border-box;"><di=
+v style=3D"box-sizing: border-box; max-width: 600px;"><a href=3D"https://li=
+nks.news.investingtrendstoday.com/u/click?_t=3D32a04d2bbaba4066a9e7ba3b256f=
+623c&_m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv5f_li9=
+xA93P3izYbFjLfWVEQ8s5u1K_1d4_m2ZruxEycJ-ubUg9s8gOFQ_ykGJU2H4ljxVGsxQIx0ZTQc=
+TIXvG0RrDXcZKF2HN7_sOTCCwZBttj7Tjx7dNUlprIBGnPpw0k0daqt5k5OkqZ8I3H70lqHxEOG=
+74Bv6sX5AzUDjIaowrjp_9dxijAFcHqeoa6gt8I0dCOECrQRK5OzfD7Aj6uClCjZPyBFw_-fDRr=
+YTVaatUmzfP5euxQmELctANxHd-Suuju2sqTESvZERI3C-0RulmeBSHX469hCWqCyEaRKtIbli7=
+sUscJfn8FmT4fbA%3D%3D" target=3D"_blank" style=3D"box-sizing: border-box;">=
+<img src=3D"https://library.iterable.com/1940/12241/acc3b830cee946c58f7676e=
+4ea161a8b-headeritt.png" style=3D"box-sizing: border-box; display: block; h=
+eight: auto; border: 0; width: 100%;" width=3D"600" alt=3D"Investing Trends=
+ Today Logo" title=3D"Investing Trends Today Logo" height=3D"auto"></a></di=
+v></div></td></tr></table></td></tr></tbody></table></td></tr></tbody></tab=
+le><table class=3D"row row-2" align=3D"center" width=3D"100%" border=3D"0" =
+cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizi=
+ng: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color:=
+ #cbe2ff; background-size: auto;" bgcolor=3D"#cbe2ff"><tbody style=3D"box-s=
+izing: border-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-=
+sizing: border-box;"><table class=3D"row-content stack" align=3D"center" bo=
+rder=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; backg=
+round-color: #fff; background-size: auto; color: #000; border-radius: 0; wi=
+dth: 600px; margin: 0 auto;" width=3D"600" bgcolor=3D"#fff"><tbody style=3D=
+"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td class=
+=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-box; mso-ta=
+ble-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; pad=
+ding-bottom: 5px; padding-top: 5px; vertical-align: top;" align=3D"left" va=
+lign=3D"top"><table class=3D"text_block block-1" width=3D"100%" border=3D"0=
+" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-si=
+zing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; word-break: bre=
+ak-word;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"=
+box-sizing: border-box; padding-bottom: 10px; padding-left: 20px; padding-r=
+ight: 20px; padding-top: 10px;"><div style=3D"box-sizing: border-box; font-=
+family: Arial,sans-serif;"><div class style=3D"box-sizing: border-box; font=
+-size: 12px; font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; mso-=
+line-height-alt: 14.399999999999999px; color: #000; line-height: 1.2;"><p s=
+tyle=3D"box-sizing: border-box; line-height: inherit; margin: 0; text-align=
+: center; mso-line-height-alt: 14.399999999999999px;"> <span style=3D"box-s=
+izing: border-box; word-break: break-word; font-size: 20px;"><a href=3D"htt=
+ps://links.news.investingtrendstoday.com/u/click?_t=3D32a04d2bbaba4066a9e7b=
+a3b256f623c&_m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRv=
+v84SEs5nY1s4ZMZrnJa1y0_hZZRiyUqMw0coBGdwfp99mhFDUq9Ww-_rVnNbK5hFBuq7FbjyD39=
+IiWpbBIyIjtD9iiU-FR78XzMIRbw9cfudpjllD8KT284IHCcdS1HMprd2kGVj1Fwx94uqka457q=
+Tfw9KX6o4gz9u6BEm_Cjr1VnB4oNRk62efURMAtLCr9Q8kecvI3_ElkVk_t9zs7bl_LaPKVBh7B=
+4KZynEGQlXM8RkR9um1uBJ4g8B08ZA2pmAr61z_W23Bpw4hWR5JE-UMcpUb4OMf6DTuP-kFZun0=
+Z_Swvp6Z_zGLJZttD2l8Fa4huKYOwUgX0ldsoPJ_U9QMNicC1TGzIyGb1q1dcD-3GNbCeSKXBu6=
+uiNk6WS4DSUIOMpffhikBDyv5khWI8ob2HEGVIEEtOXKj7OkTsOnZTD14mupoJjTjRG1K5_F182=
+S81cwIOp-blgpve2WricT972Gz5Na_HlUtrwyZSUzsK7hY4WE4ehFC8SesI6RTV_JD7BLBiRBWG=
+ZMEGlPdLXU7FohZXQF4RZmkLRHoQdWcUh8QuOaw9Ir79VlcZrthPAyLojz-LZujhgsYy_GLSEc%=
+3D" target=3D"_blank" style=3D"box-sizing: border-box; text-decoration: und=
+erline; color: #0e2a5e;" rel=3D"noopener"><strong style=3D"box-sizing: bord=
+er-box;">Pay No Interest. Earn Free Travel. Beat the System.</strong></a></=
+span></p></div></div></td></tr></table></td></tr></tbody></table></td></tr>=
+</tbody></table><table class=3D"row row-3" align=3D"center" width=3D"100%" =
+border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" styl=
+e=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; back=
+ground-color: #cbe2ff; background-size: auto;" bgcolor=3D"#cbe2ff"><tbody s=
+tyle=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td =
+style=3D"box-sizing: border-box;"><table class=3D"row-content stack" align=
+=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presen=
+tation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rsp=
+ace: 0; background-color: #fff; background-size: auto; color: #000; border-=
+radius: 0 0 8px 8px; width: 600px; margin: 0 auto;" width=3D"600" bgcolor=
+=3D"#fff"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing:=
+ border-box;"><td class=3D"column column-1" width=3D"100%" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400=
+; text-align: left; vertical-align: top;" align=3D"left" valign=3D"top"><ta=
+ble class=3D"html_block block-1" width=3D"100%" border=3D"0" cellpadding=3D=
+"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box=
+; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: borde=
+r-box;"><td class=3D"pad" style=3D"box-sizing: border-box;"><div style=3D"b=
+ox-sizing: border-box; font-family: Arial,Helvetica Neue,Helvetica,sans-ser=
+if; text-align: center;" align=3D"center"><table width=3D"100%" border=3D"0=
+" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-si=
+zing: border-box; font-family: 'Helvetica Neue', Arial, Helvetica, sans-ser=
+if; max-width: 600px;"> <tbody style=3D"box-sizing: border-box; max-width: =
+600px;"> <tr style=3D"box-sizing: border-box;"> <td align=3D"center" valign=
+=3D"top" style=3D"box-sizing: border-box; font-family: 'Helvetica Neue', Ar=
+ial, Helvetica, sans-serif; max-width: 600px;"> <table class=3D"primary-tab=
+le-limit content-table" bgcolor=3D"#FFFFFF" border=3D"0" cellspacing=3D"0" =
+cellpadding=3D"0" role=3D"presentation" width=3D"100%" style=3D"box-sizing:=
+ border-box; font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif; m=
+ax-width: 600px;"> <tbody style=3D"box-sizing: border-box; max-width: 600px=
+;"> <tr style=3D"box-sizing: border-box;"> <td class=3D"content-vertical-sp=
+ace" align=3D"center" style=3D"box-sizing: border-box; padding-left: 20px; =
+padding-right: 20px; font-family: 'Helvetica Neue', Arial, Helvetica, sans-=
+serif; max-width: 600px;"> <table class=3D"content-inner-table" border=3D"0=
+" cellspacing=3D"0" role=3D"presentation" cellpadding=3D"0" width=3D"100%" =
+style=3D"box-sizing: border-box; width: 100%; font-family: 'Helvetica Neue'=
+, Arial, Helvetica, sans-serif; max-width: 600px;"> <tbody style=3D"box-siz=
+ing: border-box; max-width: 600px;"> <tr style=3D"box-sizing: border-box;">=
+ <td height=3D"16" width=3D"100%" style=3D"box-sizing: border-box; font-fam=
+ily: 'Helvetica Neue', Arial, Helvetica, sans-serif; max-width: 600px;" cla=
+ss=3D"md-horizontal-space"></td> </tr> <tr style=3D"box-sizing: border-box;=
+"> <td style=3D"box-sizing: border-box; font-style: normal; font-weight: no=
+rmal; line-height: 1.5; text-align: left; color: #000000; padding-top: 14px=
+; padding-bottom: 14px; font-family: 'Helvetica Neue', Arial, Helvetica, sa=
+ns-serif; font-size: 18px; max-width: 600px;" align=3D"left"> <span style=
+=3D"box-sizing: border-box; font-style: normal; font-weight: normal; line-h=
+eight: 1.5; text-align: left; color: #000000; font-family: 'Helvetica Neue'=
+, Arial, Helvetica, sans-serif; font-size: 18px;"> What if you could <b sty=
+le=3D"box-sizing: border-box;">pay no interest for nearly two years</b>=E2=
+=80=A6 and still <b style=3D"box-sizing: border-box;">get rewarded</b> for =
+every dollar you spend? <br style=3D"box-sizing: border-box;"><br style=3D"=
+box-sizing: border-box;"> Sounds impossible =E2=80=94 but Americans are qui=
+etly using <b style=3D"box-sizing: border-box;">this credit card hack</b> t=
+o do exactly that. <br style=3D"box-sizing: border-box;"><br style=3D"box-s=
+izing: border-box;"> Here=E2=80=99s the deal: <br style=3D"box-sizing: bord=
+er-box;"> <ul style=3D"box-sizing: border-box;"> <li style=3D"box-sizing: b=
+order-box;"> <b style=3D"box-sizing: border-box;">0% intro APR until 2027</=
+b> on purchases <em style=3D"box-sizing: border-box;">and</em> balance tran=
+sfers made in the first 60 days. </li> <li style=3D"box-sizing: border-box;=
+"><b style=3D"box-sizing: border-box;">Unlimited rewards</b> on everything =
+you buy =E2=80=94 from groceries to getaways.</li> <li style=3D"box-sizing:=
+ border-box;"><b style=3D"box-sizing: border-box;">$250 bonus</b> after you=
+r first $1,000 in spending.</li> <li style=3D"box-sizing: border-box;">And =
+absolutely <b style=3D"box-sizing: border-box;">no annual fee.</b></li> </u=
+l> While big banks hope you=E2=80=99ll stay stuck paying 20%+ interest, thi=
+s card lets you hit <b style=3D"box-sizing: border-box;">pause on debt</b> =
+=E2=80=94 and rack up travel rewards at the same time. <br style=3D"box-siz=
+ing: border-box;"><br style=3D"box-sizing: border-box;"> You can use it to =
+pay off existing balances interest-free=E2=80=A6 or to make that big purcha=
+se without handing over extra cash to your bank. <br style=3D"box-sizing: b=
+order-box;"><br style=3D"box-sizing: border-box;"> <a href=3D"https://links=
+.news.investingtrendstoday.com/u/click?_t=3D32a04d2bbaba4066a9e7ba3b256f623=
+c&_m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv84SEs5nY1=
+s4ZMZrnJa1y0_hZZRiyUqMw0coBGdwfp99mhFDUq9Ww-_rVnNbK5hFBuq7FbjyD39IiWpbBIyIj=
+tD9iiU-FR78XzMIRbw9cfudpjllD8KT284IHCcdS1HMprd2kGVj1Fwx94uqka457qTfw9KX6o4g=
+z9u6BEm_Cjr1MSjZiB9TrrEPdIT_m-cWHA7nLKN8etpZTqcHXa9SlY8D7uJBtXKtfurkElxAdKO=
+NDTsXO-Aw0BLxMPQoBbO6BQ-HQ9d-ZDi3PbAE38N6ctkYt1vU9rxTwy9-u49ub6ty5IiG1FooUP=
+eKcWWMCLXG2VV9rSWHVljePda5SKXdLu9F0RTzhWiJauTTgxlTZP8DtfDlVkXYsH0ZiZetCw2U6=
+g0e2KIawubD4MXmkvDj2kGHOXJK8viHJM9lu5aUHKikqN1NFUJd8w0rxCkupLvE5LSiV9jMmKZl=
+x1khvcNiHzmzfrRfUuTiuUmyIczuZaYdD8PTxPsZlZrIHLOEsPdN0zUVJJMRyYEaXt2_npjSKhs=
+vFTcAELld2znqhmaww314cIiM7rwsiOsg332A3p8pubYYq_kn3uPzQe6ljtShIWg%3D" style=
+=3D"box-sizing: border-box; text-decoration: underline; font-weight: 700; f=
+ont-family: 'Helvetica Neue', Arial, Helvetica, sans-serif; color: #478bee;=
+">Click here and learn how to apply now</a> </span> </td> </tr> <tr style=
+=3D"box-sizing: border-box;"> <td align=3D"center" style=3D"box-sizing: bor=
+der-box; font-size: 12px; font-style: normal; font-weight: normal; line-hei=
+ght: 1.5; text-align: center; color: #000000; padding-top: 14px; padding-bo=
+ttom: 14px; font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif; ma=
+x-width: 600px;"> <span style=3D"box-sizing: border-box; font-size: 12px; f=
+ont-style: normal; font-weight: normal; line-height: 1.5; text-align: cente=
+r; color: #000000; font-family: 'Helvetica Neue', Arial, Helvetica, sans-se=
+rif;"> This is an advertisement. </span> </td> </tr> <tr style=3D"box-sizin=
+g: border-box;"> <td align=3D"center" style=3D"box-sizing: border-box; font=
+-size: 12px; font-style: normal; font-weight: normal; line-height: 1.5; tex=
+t-align: center; color: #000000; padding-top: 14px; padding-bottom: 14px; f=
+ont-family: 'Helvetica Neue', Arial, Helvetica, sans-serif; max-width: 600p=
+x;"> <span style=3D"box-sizing: border-box; font-size: 12px; font-style: no=
+rmal; font-weight: normal; line-height: 1.5; text-align: center; color: #00=
+0000; font-family: 'Helvetica Neue', Arial, Helvetica, sans-serif;"> This e=
+mail contains references to products from one or more of our advertisers. F=
+inanceBuzz is an informational website that provides tips, advice, and reco=
+mmendations to help you make financial decisions. We strive to provide up-t=
+o-date information, but make no warranties regarding the accuracy of our in=
+formation. </span> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td a=
+lign=3D"center" style=3D"box-sizing: border-box; font-size: 12px; font-styl=
+e: normal; font-weight: normal; line-height: 1.5; text-align: center; color=
+: #000000; padding-top: 14px; padding-bottom: 14px; font-family: 'Helvetica=
+ Neue', Arial, Helvetica, sans-serif; max-width: 600px;"> <span style=3D"bo=
+x-sizing: border-box; font-size: 12px; font-style: normal; font-weight: nor=
+mal; line-height: 1.5; text-align: center; color: #000000; font-family: 'He=
+lvetica Neue', Arial, Helvetica, sans-serif;"> Ultimately, you are responsi=
+ble for your financial decisions. FinanceBuzz is not a financial institutio=
+n and does not provide credit cards or any other financial products. Financ=
+eBuzz does not make any credit decisions. We may receive compensation from =
+the products and services mentioned in this email. </span> </td> </tr> <tr =
+style=3D"box-sizing: border-box;"> <td align=3D"center" style=3D"box-sizing=
+: border-box; font-size: 12px; font-style: normal; font-weight: normal; lin=
+e-height: 1.5; text-align: center; color: #000000; padding-top: 14px; paddi=
+ng-bottom: 14px; font-family: 'Helvetica Neue', Arial, Helvetica, sans-seri=
+f; max-width: 600px;"> <span style=3D"box-sizing: border-box; font-size: 12=
+px; font-style: normal; font-weight: normal; line-height: 1.5; text-align: =
+center; color: #000000; font-family: 'Helvetica Neue', Arial, Helvetica, sa=
+ns-serif;"> Please <a href=3D"https://links.news.investingtrendstoday.com/u=
+/click?_t=3D32a04d2bbaba4066a9e7ba3b256f623c&_m=3D62778f47af4f4845839dec2f6=
+f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvvyeiKMIfnXwqjEIWlrNNuyHQZWFnus6u79SsJPQ-DE=
+YjIoqRLwJnF3wLUKVgaCw8vWnVFqosq8c6BvFgoUfGcrMOtpSEAkrfnkbf6lNMSDsPL0k9iigaq=
+8XVN9m6o_ULOmfED6ztrOsLMW8t_IXr1RUsn2lFdkhdrekmQ6uDb2tmzS0KSmYQVhp5BaYpEbiO=
+amykRJ1ARUPWt7lKOsjAUZYG656Zcl_w5kPYY9bSRxmCD38eaJ9p3rSR1i5bfU5vK0nZI4z_kNW=
+cCEiwRUc7oO4N84w6Kjitx3DsCFujeWKqLvKolzFtjSd6atyCXRBdgQ%3D%3D" style=3D"box=
+-sizing: border-box; text-decoration: underline; font-weight: 700; font-fam=
+ily: 'Helvetica Neue', Arial, Helvetica, sans-serif; color: #478bee;">click=
+ here</a> to opt out of future emails from FinanceBuzz. </span> </td> </tr>=
+ <tr style=3D"box-sizing: border-box;"> <td align=3D"center" style=3D"box-s=
+izing: border-box; font-size: 12px; font-style: normal; font-weight: normal=
+; line-height: 1.5; text-align: center; color: #000000; padding-top: 14px; =
+padding-bottom: 14px; font-family: 'Helvetica Neue', Arial, Helvetica, sans=
+-serif; max-width: 600px;"> <span style=3D"box-sizing: border-box; font-siz=
+e: 12px; font-style: normal; font-weight: normal; line-height: 1.5; text-al=
+ign: center; color: #000000; font-family: 'Helvetica Neue', Arial, Helvetic=
+a, sans-serif;"> 111 E. Atlantic Ave., Suite 200 Delray Beach, FL 33444 </s=
+pan> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td height=3D"16" w=
+idth=3D"100%" style=3D"box-sizing: border-box; font-family: 'Helvetica Neue=
+', Arial, Helvetica, sans-serif; max-width: 600px;" class=3D"md-horizontal-=
+space"></td> </tr> </tbody> </table> </td> </tr> </tbody> </table> </td> </=
+tr> </tbody> </table> </div></td></tr></table><div class=3D"spacer_block bl=
+ock-2" style=3D"box-sizing: border-box; height: 15px; line-height: 15px; fo=
+nt-size: 1px;"> &#8202;</div></td></tr></tbody></table></td></tr></tbody></=
+table><table class=3D"row row-4" align=3D"center" width=3D"100%" border=3D"=
+0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-s=
+izing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-col=
+or: #cbe2ff;" bgcolor=3D"#cbe2ff"><tbody style=3D"box-sizing: border-box;">=
+<tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"=
+><table class=3D"row-content stack" align=3D"center" border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: borde=
+r-box; mso-table-lspace: 0; mso-table-rspace: 0; border-radius: 0; color: #=
+000; width: 600px; margin: 0 auto;" width=3D"600"><tbody style=3D"box-sizin=
+g: border-box;"><tr style=3D"box-sizing: border-box;"> <td class=3D"column =
+column-1" width=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace:=
+ 0; mso-table-rspace: 0; font-weight: 400; text-align: left; padding-bottom=
+: 5px; padding-top: 5px; vertical-align: top;" align=3D"left" valign=3D"top=
+"><div class=3D"spacer_block block-1" style=3D"box-sizing: border-box; heig=
+ht: 60px; line-height: 60px; font-size: 1px;">&#8202;</div></td></tr></tbod=
+y></table></td></tr></tbody></table><table class=3D"row row-5" align=3D"cen=
+ter" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso=
+-table-rspace: 0; background-color: #cbe2ff;" bgcolor=3D"#cbe2ff"><tbody st=
+yle=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td s=
+tyle=3D"box-sizing: border-box;"><table class=3D"row-content stack" align=
+=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presen=
+tation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rsp=
+ace: 0; border-radius: 0; color: #000; width: 600px; margin: 0 auto;" width=
+=3D"600"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: =
+border-box;"><td class=3D"column column-1" width=3D"100%" style=3D"box-sizi=
+ng: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400;=
+ text-align: left; vertical-align: top;" align=3D"left" valign=3D"top"><tab=
+le class=3D"text_block block-1" width=3D"100%" border=3D"0" cellpadding=3D"=
+10" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box=
+; mso-table-lspace: 0; mso-table-rspace: 0; word-break: break-word;"><tr st=
+yle=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: bord=
+er-box;"><div style=3D"box-sizing: border-box; font-family: Arial,sans-seri=
+f;"><div class style=3D"box-sizing: border-box; font-size: 14px; font-famil=
+y: 'Helvetica Neue',Helvetica,Arial,sans-serif; mso-line-height-alt: 16.8px=
+; color: #9c604a; line-height: 1.2;"><p style=3D"box-sizing: border-box; li=
+ne-height: inherit; margin: 0; font-size: 20px; text-align: center; mso-lin=
+e-height-alt: 24px;"> <span style=3D"box-sizing: border-box; word-break: br=
+eak-word; color: #0d2a5e;"><strong style=3D"box-sizing: border-box;">Tesla =
+Kills Model S and X to Make Room for Robots=E2=80=94Optimus Gen 3 Debuts Th=
+is Quarter as Musk Bets the Entire Company on Humanoids</strong></span></p>=
+</div></div></td></tr></table></td></tr></tbody></table></td></tr></tbody><=
+/table><table class=3D"row row-6" align=3D"center" width=3D"100%" border=3D=
+"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-=
+sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-co=
+lor: #cbe2ff; background-size: auto;" bgcolor=3D"#cbe2ff"> <tbody style=3D"=
+box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td style=3D=
+"box-sizing: border-box;"><table class=3D"row-content stack" align=3D"cente=
+r" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" s=
+tyle=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; b=
+ackground-color: #fff; background-size: auto; border-bottom: 1px solid #0e2=
+a5e; border-left: 1px solid #0e2a5e; border-radius: 8px; border-right: 1px =
+solid #0e2a5e; border-top: 1px solid #0e2a5e; color: #000; width: 600px; ma=
+rgin: 0 auto;" width=3D"600" bgcolor=3D"#fff"><tbody style=3D"box-sizing: b=
+order-box;"><tr style=3D"box-sizing: border-box;"><td class=3D"column colum=
+n-1" width=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0; m=
+so-table-rspace: 0; font-weight: 400; text-align: left; padding-top: 10px; =
+vertical-align: top;" align=3D"left" valign=3D"top"><table class=3D"image_b=
+lock block-1" width=3D"100%" border=3D"0" cellpadding=3D"20" cellspacing=3D=
+"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace=
+: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=
+=3D"pad" style=3D"box-sizing: border-box;"><div class=3D"alignment" align=
+=3D"center" style=3D"box-sizing: border-box;"><div style=3D"box-sizing: bor=
+der-box; max-width: 558px;"><img src=3D"https://library.iterable.com/1940/1=
+2241/3442df3ebfec4bba8e62718caf39ebb3-ww3.jpg" style=3D"box-sizing: border-=
+box; display: block; height: auto; border: 0; width: 100%;" width=3D"558" a=
+lt title height=3D"auto"></div></div></td></tr></table><table class=3D"text=
+_block block-2" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lsp=
+ace: 0; mso-table-rspace: 0; word-break: break-word;"><tr style=3D"box-sizi=
+ng: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; padding=
+-bottom: 10px; padding-left: 20px; padding-right: 20px; padding-top: 10px;"=
+><div style=3D"box-sizing: border-box; font-family: Arial,sans-serif;"><div=
+ class style=3D"box-sizing: border-box; font-size: 14px; font-family: 'Helv=
+etica Neue',Helvetica,Arial,sans-serif; mso-line-height-alt: 21px; color: #=
+000; line-height: 1.5;"><p style=3D"box-sizing: border-box; line-height: in=
+herit; margin: 0; font-size: 16px; mso-line-height-alt: 24px;"> Tesla just =
+made the most radical strategic pivot in automotive history: shutting down =
+production of two iconic vehicles to build humanoid robots instead. During =
+the January 28th earnings call, Musk confirmed that Tesla will cease manufa=
+cturing the Model S sedan and Model X SUV=E2=80=94the flagship vehicles tha=
+t launched the electric revolution=E2=80=94to repurpose factory space for O=
+ptimus robot production lines expected to begin operating before the end of=
+ 2026.<br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: border=
+-box;"> The third-generation Optimus, designed specifically for mass manufa=
+cturing, will be revealed in Q1 2026 with significantly upgraded hands and =
+dexterity capabilities that surpass the current V2.5 units already performi=
+ng basic battery-handling tasks in Tesla factories. Musk's target is stagge=
+ring: 1 million robots per year at production capacity, with consumer sales=
+ potentially beginning in 2027 at an estimated price of $20,000-$30,000.<br=
+ style=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> <=
+a rel=3D"noopener" target=3D"_blank" href=3D"https://links.news.investingtr=
+endstoday.com/u/click?_t=3D32a04d2bbaba4066a9e7ba3b256f623c&_m=3D62778f47af=
+4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv26e-68ZVfUkl4o5TxNlZ2G7wgU=
+sByqwSOJULKS_guSTwou4EnWXTb77r9GWbYvg9aSjD6BQhdh8tGfBhNDj0L0oNHFiq-oLQ9MKMy=
+YEDkeNKXWRBfV_1gOjFM2d1Fa5njfYIfe0o8NtekGKE2ABD-4jKYz02CejLLFikC_Z1_XBm7xcl=
+UFJEwBJpM4sT0bMI1J_Jl6b79_ObbnpP006eL4tW8e0PsEWvqEYeGiipEuUSryNQpOe4DcCxLrS=
+FIXf4XbVTVFWb-ql3oDl0QyY6ill6yIGl8T4ugZAcEYgHPyK19lHehfG95JJG9g-9NhjPr8OlXk=
+-DwsP3K8Y2A4gS4lucnvcLenk0RgcTBrN2JgEF3tfCn-zlucbcGWy9n0B7yDGz9j5Du-BC7TkCb=
+-XfLw_h3xCn1TIdvCqXjW0VgnBNgrRk6hE8K11Zajk1NTgCF_8uQYBP4zO7hS6vcaSCRM%3D" s=
+tyle=3D"box-sizing: border-box; text-decoration: underline; color: #478bee;=
+"></a>The implications for Tesla's valuation are existential in either dire=
+ction. Musk has repeatedly stated that Optimus "will be worth more than eve=
+rything else at Tesla combined"=E2=80=94more than the car business, more th=
+an energy, more than Full Self-Driving=E2=80=94and his $1 trillion compensa=
+tion package literally requires production of at least 1 million units to v=
+est fully. If Optimus succeeds as a general-purpose domestic helper, factor=
+y worker, and eventually surgical assistant as Musk envisions, the addressa=
+ble market dwarfs the global automobile industry. <br style=3D"box-sizing: =
+border-box;"><br style=3D"box-sizing: border-box;"> But the execution chall=
+enges are enormous: Tesla's robotics chief recently departed, the company p=
+roduced far fewer than the 5,000 units Musk targeted for 2025, and current =
+robots perform only simple, pre-programmed tasks rather than the autonomous=
+ general intelligence Musk promises. For investors, the Model S/X shutdown =
+signals that Musk is no longer hedging=E2=80=94Tesla is transforming from a=
+ car company into a robotics and AI company, and the vehicles are becoming =
+a side business that funds the real ambition. </p></div></div></td></tr></t=
+able><div class=3D"spacer_block block-3" style=3D"box-sizing: border-box; h=
+eight: 10px; line-height: 10px; font-size: 1px;">&#8202;</div></td></tr></t=
+body></table></td></tr></tbody></table><table class=3D"row row-7" align=3D"=
+center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; ms=
+o-table-rspace: 0; background-color: #cbe2ff;" bgcolor=3D"#cbe2ff"><tbody s=
+tyle=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td =
+style=3D"box-sizing: border-box;"><table class=3D"row-content stack" align=
+=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presen=
+tation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rsp=
+ace: 0; border-radius: 0; color: #000; width: 600px; margin: 0 auto;" width=
+=3D"600"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: =
+border-box;"><td class=3D"column column-1" width=3D"100%" style=3D"box-sizi=
+ng: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400;=
+ text-align: left; padding-bottom: 5px; padding-top: 5px; vertical-align: t=
+op;" align=3D"left" valign=3D"top"><div class=3D"spacer_block block-1" styl=
+e=3D"box-sizing: border-box; height: 10px; line-height: 10px; font-size: 1p=
+x;">&#8202;</div></td></tr></tbody></table></td></tr></tbody></table><table=
+ class=3D"row row-8" align=3D"center" width=3D"100%" border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: borde=
+r-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color: #cbe2ff;=
+ background-size: auto;" bgcolor=3D"#cbe2ff"><tbody style=3D"box-sizing: bo=
+rder-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing: b=
+order-box;"><table class=3D"row-content stack" align=3D"center" border=3D"0=
+" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-si=
+zing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-colo=
+r: #fff; background-size: auto; border-bottom: 1px solid #0e2a5e; border-le=
+ft: 1px solid #0e2a5e; border-radius: 8px; border-right: 1px solid #0e2a5e;=
+ border-top: 1px solid #0e2a5e; color: #000; width: 600px; margin: 0 auto;"=
+ width=3D"600" bgcolor=3D"#fff"><tbody style=3D"box-sizing: border-box;"><t=
+r style=3D"box-sizing: border-box;"><td class=3D"column column-1" width=3D"=
+100%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspac=
+e: 0; font-weight: 400; text-align: left; padding-top: 10px; vertical-align=
+: top;" align=3D"left" valign=3D"top"><table class=3D"text_block block-1" w=
+idth=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pres=
+entation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-r=
+space: 0; word-break: break-word;"><tr style=3D"box-sizing: border-box;"><t=
+d class=3D"pad" style=3D"box-sizing: border-box; padding-bottom: 10px; padd=
+ing-left: 20px; padding-right: 20px; padding-top: 10px;"><div style=3D"box-=
+sizing: border-box; font-family: Arial,sans-serif;"><div class style=3D"box=
+-sizing: border-box; font-size: 14px; font-family: 'Helvetica Neue',Helveti=
+ca,Arial,sans-serif; mso-line-height-alt: 16.8px; color: #555; line-height:=
+ 1.2;"><p style=3D"box-sizing: border-box; line-height: inherit; margin: 0;=
+ text-align: left; mso-line-height-alt: 16.8px;"> <span style=3D"box-sizing=
+: border-box; word-break: break-word; font-size: 20px;"><span style=3D"box-=
+sizing: border-box; word-break: break-word;"><strong style=3D"box-sizing: b=
+order-box;">=F0=9F=96=87 <a href=3D"https://links.news.investingtrendstoday=
+.com/u/click?_t=3D32a04d2bbaba4066a9e7ba3b256f623c&_m=3D62778f47af4f4845839=
+dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv84SEs5nY1s4ZMZrnJa1y0_hZZRiyUqMw0co=
+BGdwfp99lkwpGT2oZsZDaxjm3C2xi_F-xxxHy6IUDo27QTzIhdRLDnRLQQdKHB-Np3yImoTS2C_=
+9yf5DagYlG5Q7lPXw1xoECBscVbSCtGFhSVVP43bUM5pH2gisQyqNUiNQAd2FJZRXhzak--8YWn=
+OFugrFm9IxYTBdTuRtG_9UsVyWKcp_V8QzbuzXibLdrhoedCr88T4huNdu8EYATh7EQpxVzW84y=
+6Sgw5s3bHlrW5ID_0NheuIZoHk09l9HujRDG-iAEtPe4rB2R6R40Mo-PhPw8UgM9RQDUexQvszB=
+YcHReGre7kTRCHnVaip_Gbl31Y_PaM61YNEXTQPPoL-b0otUpa7FYaFHoCnv1oWTOScCUmrgSGW=
+WSBHk6DSkeNwCb7BoVLBOigt9SgzGK2BFCEIyFuKJVfyplpTi-CftDAaJtCKk5l44ssfjoarJam=
+9r0jQUOfKoAEy45-K8V-kDo1acE1tQsx6BWIRlxahQH8yDpu9MuFhnEtKOdVmgBxk0sMpYgHA8_=
+pp4cKCradREbUON60H7IfPbEOYAtSue81ljCY0%3D" target=3D"_blank" style=3D"box-s=
+izing: border-box; text-decoration: underline; color: #478bee;" rel=3D"noop=
+ener">Regular investors STILL couldn=E2=80=99t care less about gold=E2=80=
+=A6</a></strong></span></span></p><p style=3D"box-sizing: border-box; line-=
+height: inherit; margin: 0; text-align: left; mso-line-height-alt: 24px;"><=
+span style=3D"box-sizing: border-box; word-break: break-word; font-size: 12=
+px;"><em style=3D"box-sizing: border-box;">ad from Golden Portfolio</em></s=
+pan></p> </div></div></td></tr></table><table class=3D"text_block block-2" =
+width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pre=
+sentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-=
+rspace: 0; word-break: break-word;"><tr style=3D"box-sizing: border-box;"><=
+td class=3D"pad" style=3D"box-sizing: border-box; padding-bottom: 10px; pad=
+ding-left: 20px; padding-right: 20px; padding-top: 10px;"><div style=3D"box=
+-sizing: border-box; font-family: Arial,sans-serif;"><div class style=3D"bo=
+x-sizing: border-box; font-size: 14px; font-family: 'Helvetica Neue',Helvet=
+ica,Arial,sans-serif; mso-line-height-alt: 16.8px; color: #555; line-height=
+: 1.2;"><p style=3D"box-sizing: border-box; line-height: inherit; margin: 0=
+; text-align: left; mso-line-height-alt: 16.8px;"> <span style=3D"box-sizin=
+g: border-box; word-break: break-word; font-size: 20px;"><strong style=3D"b=
+ox-sizing: border-box;"><span style=3D"box-sizing: border-box; word-break: =
+break-word;">=F0=9F=96=87 <a href=3D"https://links.news.investingtrendstoda=
+y.com/u/click?_t=3D32a04d2bbaba4066a9e7ba3b256f623c&_m=3D62778f47af4f484583=
+9dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv84SEs5nY1s4ZMZrnJa1y0_hZZRiyUqMw0c=
+oBGdwfp993DalVptKOs9Hbt9vVb8pmbL0XUf5pl7d1gBg58zPBfTskt7IHZbMIw2WE-i-Q3V5_u=
+rjLDG_edPq-HSNUZhju2SjZm116FT_anZVjioR0VBtg8cYos6VCoAn5M2IAXLWVsjAXAF2iFBX7=
+QzE85kMmQHy_4kAZMLmuki0JwgOC_a5yGP8eUQQYD_0RLSk1U2PiLTc5Fy2PnaG6a3q9naQ1E4_=
+tWMRn2PhB0EyZS_yMbV3hS1fCm4eEA9gxffiHYeseWtWc0BYYq4Jz-cEyqIf9i7pvWYJ0M6EiRb=
+M0giVLj974hTEBBkiR9tC3Qqwqr5mmHpV21Z9YV3WE-L9Z1xl_KM0X5bHo93rP8BstWv_vkELjY=
+rHFIWFQRuuOOjVtUiHbGEhsadb_kl0IzxweID_p8vhYDPJtzBLPmDTiUdEJA92mt-AUbwBOdsaa=
+Y9ASGnOSUnEZmzyzu1TcS8SMCDtqSwhxcMceIdwaPDWdpoehv6j7-5S8w_rtqeokKqMqFSmkeqf=
+1Y46WCJrml45pzzbxibmzL8i-XoXwO4pxvzvCXw%3D" target=3D"_blank" style=3D"box-=
+sizing: border-box; text-decoration: underline; color: #478bee;" rel=3D"noo=
+pener">Remote Job Opening</a><a href=3D"https://links.news.investingtrendst=
+oday.com/u/click?_t=3D32a04d2bbaba4066a9e7ba3b256f623c&_m=3D62778f47af4f484=
+5839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv84SEs5nY1s4ZMZrnJa1y0_hZZRiyUqM=
+w0coBGdwfp99HtrP1WLTaKo37aIpAMaoopDOC6h5ItQ_WRbUUtzjWhajJVuO-5HR1YmhIkYaj6h=
+2-5AMyKQ87a5V-nqShZCtwgLnVDB83wIdE9P0avHrIbQDoFbzpL68zhDbV4ju9vruViMV3tklx8=
+9z0Qao--xgYewSjcpNC3Wp1IiSugezTAsrXaN-9kBwcp7KmDwONGyf5BFBzuKRYikIsnrudfgx1=
+y1PD4rVJuMZG0z2sbywPY47RXz-GuDP0dl73m2fdFIAm3QginogE6kOPTpg6leiRYIrhXGwDaKu=
+ZVPAXA_70vrV-kRVIlAnw3AuXc685nKKwfXV8QOPKUf5pp_4RYMTBKCdAcEkloa1LyYTwAFE5ab=
+HHDh1Cjc9JpUjl5d42PCYK9n4sGPcARYmovcWqqvE6XB9Jc9PwuvfJlKADwTnDyP8pfU4i9zP_t=
+hEQ7ZU9PEftZpOs25BNnVaoGRG0YHRYr5feWocn_s0RE4TFJJM6T4FfKZNSalYjUCjLAsB4vuCb=
+HS0XvPqxZLjDenCgdypik3S7YRfwOOqjWdZgmlW2gw%3D" target=3D"_blank" style=3D"b=
+ox-sizing: border-box; text-decoration: underline; color: #478bee;" rel=3D"=
+noopener"></a></span></strong></span></p><p style=3D"box-sizing: border-box=
+; line-height: inherit; margin: 0; text-align: left; mso-line-height-alt: 2=
+4px;"><span style=3D"box-sizing: border-box; word-break: break-word; font-s=
+ize: 12px;"><em style=3D"box-sizing: border-box;">ad from Awesomely<br styl=
+e=3D"box-sizing: border-box;"></em></span></p></div></div></td></tr></table=
+><table class=3D"text_block block-3" width=3D"100%" border=3D"0" cellpaddin=
+g=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border=
+-box; mso-table-lspace: 0; mso-table-rspace: 0; word-break: break-word;"><t=
+r style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: =
+border-box; padding-bottom: 10px; padding-left: 20px; padding-right: 20px; =
+padding-top: 10px;"><div style=3D"box-sizing: border-box; font-family: Aria=
+l,sans-serif;"><div class style=3D"box-sizing: border-box; font-size: 14px;=
+ font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; mso-line-height-=
+alt: 16.8px; color: #555; line-height: 1.2;"><p style=3D"box-sizing: border=
+-box; line-height: inherit; margin: 0; text-align: left; mso-line-height-al=
+t: 16.8px;"> <span style=3D"box-sizing: border-box; word-break: break-word;=
+ font-size: 20px;"><strong style=3D"box-sizing: border-box;"><span style=3D=
+"box-sizing: border-box; word-break: break-word;">=F0=9F=96=87 <a href=3D"h=
+ttps://links.news.investingtrendstoday.com/u/click?_t=3D32a04d2bbaba4066a9e=
+7ba3b256f623c&_m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3g=
+Rvv84SEs5nY1s4ZMZrnJa1y0_hZZRiyUqMw0coBGdwfp99qMTllStB2txbecgetsxR_ZMVmqAeN=
+IJZGIQK2TKLYWfjbeQQ7FVsFYWkt6y4P2O6xXgnJQ5hO8rtNL930li-YTwiitJUmmwLfcV1B8ko=
+9YmAKu6wyPFe8HbYxZnGFnCImTIh_AqK0JzPUGa4i5Mb5DCpbVNF7jwWvitIyvzlKG18W8TENTY=
+DhLQtFY80xn9d1cf9_kBmMCBQzaKq8vxEPPS8I9YL384-WTVdMMJ0pkz8jp8TMxNCw-sbmG6T1Q=
+oPLnrwUMggQiqxC4z3Kt04BfGAdfzNiJ4VI1ImODfMrYMjnSe5uKGpUba2d3whGussOuENSTnK3=
+w3qdgi87TjjovVk-o4ndBqRTu-pE1Kr1unlZXWJydk4cDQb3xzc2mPLpep_lLczhCMZoqj2QB2s=
+b9Ej3ffOzj5hEsv1SYfobQ9yku-8A3KL7yT9LwJ-Il_TRlF8Q34SBg10CKsAF1fe_2dRaD_Qbus=
+TClzng8cU8uXTPbs8R8bHzq9_NkGmI8C3-spvVcOp1A3lU6oQ1S_iCtD93FTBJ46n0-EQ0rGtDv=
+o%3D" target=3D"_blank" style=3D"box-sizing: border-box; text-decoration: u=
+nderline; color: #478bee;" rel=3D"noopener">ALERT: Possible delays in Socia=
+l Security benefits =E2=80=94 are you ready?</a><a href=3D"https://links.ne=
+ws.investingtrendstoday.com/u/click?_t=3D32a04d2bbaba4066a9e7ba3b256f623c&_=
+m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv84SEs5nY1s4Z=
+MZrnJa1y0_hZZRiyUqMw0coBGdwfp99G90H--ai80yBCwAUzcLC0Cu3c-Y_s6e7WhXZKjEWCryG=
+5UyhUZxRRvqcliBW22guokMyBvXjuvp8PP7Sk6y7JPoduPrtiBW_TEF-TLfv4968XjqnUu6PJYI=
+_kxAK4vdkwnyV2CA6FgG-yalBD6blV9wyBUOkXcYfMZOmUqWji7B0gacG6f5vONO-00sg3x4490=
+4m00Wq-L8uQo5AJEb_L0AEI_kSVHEAE3n9DGYijgKzsq23Q3_6yLngU2aSsTxmHDtEETC5s9gLK=
+yktDBUxpSntzI1tl_CqXfNGjlu2E3O2d4V1TN8mFg2UflSIoWv1AriFHgs7dS2O5zZn1wMYCH2Z=
+vfWqzpLGjxdj9BK8PgXxl_pNlOSnJdJLC0rtfSKdJhQTqKD4yyD9_B4Zut9m8LgDh4ARvbNUaWw=
+cYXH8uLkI6sjtSW3G-s9chuJbi6z91PV7Apd-LO5KprFSpU8STGmEyA1F8jrwyhWa7tp15GT_w3=
+O_WPAmk-OEaLK_Am9BBMAHeXORGU03mfW0VvTtSs0UwXsXm_CEIiMsCmMXr6U%3D" target=3D=
+"_blank" style=3D"box-sizing: border-box; text-decoration: underline; color=
+: #478bee;" rel=3D"noopener"></a></span></strong></span></p><p style=3D"box=
+-sizing: border-box; line-height: inherit; margin: 0; text-align: left; mso=
+-line-height-alt: 24px;"><span style=3D"box-sizing: border-box; word-break:=
+ break-word; font-size: 12px;"><em style=3D"box-sizing: border-box;">ad fro=
+m MicroQuant</em></span></p></div></div></td></tr></table><div class=3D"spa=
+cer_block block-4" style=3D"box-sizing: border-box; height: 10px; line-heig=
+ht: 10px; font-size: 1px;">&#8202;</div></td></tr></tbody></table></td></tr=
+></tbody></table><table class=3D"row row-9" align=3D"center" width=3D"100%"=
+ border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" sty=
+le=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; bac=
+kground-color: #cbe2ff;" bgcolor=3D"#cbe2ff"><tbody style=3D"box-sizing: bo=
+rder-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing: b=
+order-box;"><table class=3D"row-content stack" align=3D"center" border=3D"0=
+" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-si=
+zing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; border-radius: =
+0; color: #000; width: 600px; margin: 0 auto;" width=3D"600"><tbody style=
+=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td clas=
+s=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-box; mso-t=
+able-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; pa=
+dding-bottom: 5px; padding-top: 5px; vertical-align: top;" align=3D"left" v=
+align=3D"top"><div class=3D"spacer_block block-1" style=3D"box-sizing: bord=
+er-box; height: 10px; line-height: 10px; font-size: 1px;">&#8202;</div></td=
+></tr></tbody></table></td></tr></tbody></table><table class=3D"row row-10"=
+ align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lsp=
+ace: 0; mso-table-rspace: 0; background-color: #cbe2ff;" bgcolor=3D"#cbe2ff=
+"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-=
+box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-content sta=
+ck" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso=
+-table-rspace: 0; border-radius: 0; color: #000; width: 600px; margin: 0 au=
+to;" width=3D"600"><tbody style=3D"box-sizing: border-box;"><tr style=3D"bo=
+x-sizing: border-box;"><td class=3D"column column-1" width=3D"100%" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font-=
+weight: 400; text-align: left; vertical-align: top;" align=3D"left" valign=
+=3D"top"><table class=3D"text_block block-1" width=3D"100%" border=3D"0" ce=
+llpadding=3D"10" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizin=
+g: border-box; mso-table-lspace: 0; mso-table-rspace: 0; word-break: break-=
+word;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box=
+-sizing: border-box;"><div style=3D"box-sizing: border-box; font-family: Ar=
+ial,sans-serif;"><div class style=3D"box-sizing: border-box; font-size: 14p=
+x; font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; mso-line-heigh=
+t-alt: 16.8px; color: #9c604a; line-height: 1.2;"><p dir=3D"ltr" style=3D"b=
+ox-sizing: border-box; line-height: inherit; margin: 0; font-size: 20px; te=
+xt-align: center; mso-line-height-alt: 24px;"><span style=3D"box-sizing: bo=
+rder-box; word-break: break-word; color: #0d2a5e;"><strong style=3D"box-siz=
+ing: border-box;">Walmart Guts 1,500 Tech Workers in "Speed" Restructuring=
+=E2=80=94AI Quietly Replaces Humans at the World's Largest Retailer</strong=
+></span></p></div></div></td></tr></table> </td></tr></tbody></table></td><=
+/tr></tbody></table><table class=3D"row row-11" align=3D"center" width=3D"1=
+00%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation"=
+ style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;=
+ background-color: #cbe2ff;" bgcolor=3D"#cbe2ff"><tbody style=3D"box-sizing=
+: border-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizin=
+g: border-box;"><table class=3D"row-content stack" align=3D"center" border=
+=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"b=
+ox-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; border-rad=
+ius: 0; color: #000; width: 600px; margin: 0 auto;" width=3D"600"><tbody st=
+yle=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td c=
+lass=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-box; ms=
+o-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left;=
+ padding-bottom: 5px; vertical-align: top;" align=3D"left" valign=3D"top"><=
+div class=3D"spacer_block block-1" style=3D"box-sizing: border-box; height:=
+ 1px; line-height: 1px; font-size: 1px;">&#8202;</div></td></tr></tbody></t=
+able></td></tr></tbody></table><table class=3D"row row-12" align=3D"center"=
+ width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pr=
+esentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table=
+-rspace: 0; background-color: #cbe2ff; background-size: auto;" bgcolor=3D"#=
+cbe2ff"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: b=
+order-box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-conte=
+nt stack" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0"=
+ role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0=
+; mso-table-rspace: 0; background-color: #fff; background-size: auto; borde=
+r-bottom: 1px solid #0e2a5e; border-left: 1px solid #0e2a5e; border-radius:=
+ 8px; border-right: 1px solid #0e2a5e; border-top: 1px solid #0e2a5e; color=
+: #000; width: 600px; margin: 0 auto;" width=3D"600" bgcolor=3D"#fff"> <tbo=
+dy style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;">=
+<td class=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-bo=
+x; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: =
+left; padding-top: 10px; vertical-align: top;" align=3D"left" valign=3D"top=
+"><table class=3D"image_block block-1" width=3D"100%" border=3D"0" cellpadd=
+ing=3D"20" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: bor=
+der-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing=
+: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box;"><div cla=
+ss=3D"alignment" align=3D"center" style=3D"box-sizing: border-box;"><div st=
+yle=3D"box-sizing: border-box; max-width: 558px;"><img src=3D"https://libra=
+ry.iterable.com/1940/12241/6d3177d02abc4da49eb82f041f2143f2-ww4.jpg" style=
+=3D"box-sizing: border-box; display: block; height: auto; border: 0; width:=
+ 100%;" width=3D"558" alt title height=3D"auto"></div></div></td></tr></tab=
+le><table class=3D"text_block block-2" width=3D"100%" border=3D"0" cellpadd=
+ing=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: bord=
+er-box; mso-table-lspace: 0; mso-table-rspace: 0; word-break: break-word;">=
+<tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing=
+: border-box; padding-bottom: 10px; padding-left: 20px; padding-right: 20px=
+; padding-top: 10px;"><div style=3D"box-sizing: border-box; font-family: Ar=
+ial,sans-serif;"><div class style=3D"box-sizing: border-box; font-size: 12p=
+x; font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; mso-line-heigh=
+t-alt: 18px; color: #000; line-height: 1.5;"><p style=3D"box-sizing: border=
+-box; line-height: inherit; margin: 0; font-size: 16px; mso-line-height-alt=
+: 24px;"> <span style=3D"box-sizing: border-box; word-break: break-word; fo=
+nt-size: 16px;">The world's largest private employer just demonstrated what=
+ corporate "restructuring" actually means in the age of AI: 1,500 human bei=
+ngs replaced by algorithms. Walmart eliminated approximately 1,500 corporat=
+e positions across its Global Tech division, e-commerce fulfillment operati=
+ons, and Walmart Connect advertising unit=E2=80=94the company's fastest-gro=
+wing and most technologically sophisticated departments.<br style=3D"box-si=
+zing: border-box;"><br style=3D"box-sizing: border-box;"> The internal memo=
+ from CTO Suresh Kumar and U.S. CEO John Furner was carefully worded but un=
+mistakable: "The world of technology is evolving at an unprecedented pace, =
+and reshaping our structure allows us to accelerate how we deliver and adap=
+t to the changing environment around us". Translation: AI can now do what t=
+hese people did, faster and cheaper. The layoffs affect corporate staff at =
+Bentonville headquarters and satellite offices=E2=80=94not store associates=
+=E2=80=94targeting exactly the knowledge workers whose jobs are most vulner=
+able to automation.</span> <br style=3D"box-sizing: border-box;"><br style=
+=3D"box-sizing: border-box;"><span style=3D"box-sizing: border-box; word-br=
+eak: break-word; font-size: 16px;"><a rel=3D"noopener" target=3D"_blank" hr=
+ef=3D"https://links.news.investingtrendstoday.com/u/click?_t=3D32a04d2bbaba=
+4066a9e7ba3b256f623c&_m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXw=
+R2CxX3gRvv11mU9LDKaUx--Um0cF0SAPqW-LRv0oHEGVpFzw_kJZXc4Loa2ff_fJgi6kVwuA9ZF=
+7Txw64a2TcibfdMJyt8rqB5AfjZTnnasjnfsilM0UD2KJEfihQFxwIcsSDVR4V06u1U4nzZREPQ=
+oXrArkIrjgotjR0PSjdVLrl1vJG-Nsgr4rsoE5EfHP7Cvq_F7_SMpoXaF1Iqee0_RDh9NfMAGPF=
+AqL51HeRg6jFKgMQEWc6CV-ko9EcXeVhwzmLU1Ulu7VamUJKbNUZoFqCiD0JNTAsxzNOimcHzSE=
+unxmH5FvoGCvXAbSJCFzInKJhQhK4ilq-lQUb3UBQ3Yn-gT0K-phatJpJ_nMYdBCckBvheHWr0B=
+nYAPxtY8cFOiPkW3xyPVIQlHvgUJqno2v0UStinxqO1wc_ABBXkTl1A_63huCDC6mWBXhPA9Wwh=
+3QfaIiKM06ML7mh0ziH1hqHg_JUIrFWuF8cJTQdY3g45eZk7_gK" style=3D"box-sizing: b=
+order-box; text-decoration: underline; color: #478bee;"></a></span></p><p s=
+tyle=3D"box-sizing: border-box; line-height: inherit; margin: 0; font-size:=
+ 16px; mso-line-height-alt: 24px;"> <span style=3D"box-sizing: border-box; =
+word-break: break-word; font-size: 16px;">The timing reveals uncomfortable =
+truths about the intersection of tariffs, AI, and corporate cost-cutting. T=
+he layoffs came less than a week after CEO Doug McMillon publicly warned th=
+at Walmart would raise prices due to Trump's tariffs=E2=80=94prompting the =
+president to personally tell the retailer to "eat the tariffs" rather than =
+pass costs to consumers.<br style=3D"box-sizing: border-box;"><br style=3D"=
+box-sizing: border-box;"> Walmart's official position insists the cuts are =
+"not related to tariffs" but rather reflect "business priorities and growth=
+ strategy"=E2=80=94a claim that strains credibility when $4.4 billion in qu=
+arterly profits dropped to $4.4 billion from $5.1 billion partly due to tar=
+iff-driven cost increases. This follows February 2025 layoffs that eliminat=
+ed hundreds more positions and closed an entire office in North Carolina, w=
+ith displaced workers told to relocate to Bentonville or California.<br sty=
+le=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> For A=
+merica's workforce, Walmart's restructuring is a canary in the coal mine: i=
+f the world's largest retailer=E2=80=94a company with $680 billion in annua=
+l revenue and 1.6 million U.S. employees=E2=80=94is replacing its technolog=
+y, advertising, and e-commerce workers with AI, every corporate employee at=
+ every company should be recalculating their job security.</span></p></div>=
+</div></td></tr></table><div class=3D"spacer_block block-3" style=3D"box-si=
+zing: border-box; height: 10px; line-height: 10px; font-size: 1px;">&#8202;=
+</div></td></tr> </tbody></table></td></tr></tbody></table><table class=3D"=
+row row-13" align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" =
+cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; ms=
+o-table-lspace: 0; mso-table-rspace: 0; background-color: #cbe2ff;" bgcolor=
+=3D"#cbe2ff"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizi=
+ng: border-box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-=
+content stack" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lsp=
+ace: 0; mso-table-rspace: 0; border-radius: 0; color: #000; width: 600px; m=
+argin: 0 auto;" width=3D"600"><tbody style=3D"box-sizing: border-box;"><tr =
+style=3D"box-sizing: border-box;"><td class=3D"column column-1" width=3D"10=
+0%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace:=
+ 0; font-weight: 400; text-align: left; padding-bottom: 5px; padding-top: 5=
+px; vertical-align: top;" align=3D"left" valign=3D"top"><div class=3D"space=
+r_block block-1" style=3D"box-sizing: border-box; height: 10px; line-height=
+: 10px; font-size: 1px;">&#8202;</div></td></tr></tbody></table></td></tr><=
+/tbody></table><table class=3D"row row-14" align=3D"center" width=3D"100%" =
+border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" styl=
+e=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; back=
+ground-color: #cbe2ff; background-size: auto;" bgcolor=3D"#cbe2ff"><tbody s=
+tyle=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td =
+style=3D"box-sizing: border-box;"><table class=3D"row-content stack" align=
+=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presen=
+tation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rsp=
+ace: 0; background-color: #fff; background-size: auto; border-bottom: 1px s=
+olid #0e2a5e; border-left: 1px solid #0e2a5e; border-radius: 8px; border-ri=
+ght: 1px solid #0e2a5e; border-top: 1px solid #0e2a5e; color: #000; width: =
+600px; margin: 0 auto;" width=3D"600" bgcolor=3D"#fff"> <tbody style=3D"box=
+-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td class=3D"co=
+lumn column-1" width=3D"100%" style=3D"box-sizing: border-box; mso-table-ls=
+pace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; padding-t=
+op: 10px; vertical-align: top;" align=3D"left" valign=3D"top"><table class=
+=3D"text_block block-1" width=3D"100%" border=3D"0" cellpadding=3D"0" cells=
+pacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-tab=
+le-lspace: 0; mso-table-rspace: 0; word-break: break-word;"><tr style=3D"bo=
+x-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; p=
+adding-bottom: 10px; padding-left: 20px; padding-right: 20px; padding-top: =
+10px;"><div style=3D"box-sizing: border-box; font-family: Arial,sans-serif;=
+"><div class style=3D"box-sizing: border-box; font-size: 14px; font-family:=
+ 'Helvetica Neue',Helvetica,Arial,sans-serif; mso-line-height-alt: 16.8px; =
+color: #555; line-height: 1.2;"><p style=3D"box-sizing: border-box; line-he=
+ight: inherit; margin: 0; text-align: left; mso-line-height-alt: 16.8px;"> =
+<span style=3D"box-sizing: border-box; word-break: break-word; font-size: 2=
+0px;"><span style=3D"box-sizing: border-box; word-break: break-word;"><stro=
+ng style=3D"box-sizing: border-box;">=F0=9F=9F=AB <a href=3D"https://links.=
+news.investingtrendstoday.com/u/click?_t=3D32a04d2bbaba4066a9e7ba3b256f623c=
+&_m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv84SEs5nY1s=
+4ZMZrnJa1y0_hZZRiyUqMw0coBGdwfp99t9nBtvCY5zweh_l1XPbndrrerLKx2N5wJYsj8qrlF4=
+GkZVsBj0OWUAg39QAAc2XPZE4IA4VhBRVjlQhl1u6My9wFDbspOAtUgKabpZDtvs5_pHS05XpRW=
+bgfSoYj10nRwqB7cvktEfoYUaSu1rh5jWFPB6st0n3eerzDmbgyvasUXCcNIXtXNQnjJhOnCDtZ=
+ZA2TxH8WHbhoODpOl6LPpnLw7-eiySRxZu7H6YIV7GXlKofHOqdyBy5tjqYyduqQY4EqYYG2_Q0=
+MIx4hVM9rQz7zxAcsCMaLoVp2-tVRH5n0HX5smLcWwy2ZxMcSybe2jxrkaG69ADCEyk88IMpnWP=
+7v1PS943xGu_aoln5z00UIWssQveIPgYIUx0shsgju6yA9qcy6rjGyrCd77O9l_v3DZZWruG9Yt=
+SytMyt1Hq46rirt8Y8HcgZX5TvZluWNuGbxI3Ao3w8n0e67y7oq2zQk1LphobEuo24tIbuLaALh=
+C84ubEirBur_BmpSCSExB5WaF0-4iURP-tB10qpS63NRHFMW37JfRl4hLMpiutw%3D" target=
+=3D"_blank" style=3D"box-sizing: border-box; text-decoration: underline; co=
+lor: #478bee;" rel=3D"noopener">Trump=E2=80=99s AI Bombshell: Why Data Cent=
+ers Are Doomed</a><a href=3D"https://links.news.investingtrendstoday.com/u/=
+click?_t=3D32a04d2bbaba4066a9e7ba3b256f623c&_m=3D62778f47af4f4845839dec2f6f=
+8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv84SEs5nY1s4ZMZrnJa1y0_hZZRiyUqMw0coBGdwfp9=
+9c5P8rI2NoqRd8Q-LNUJiwxYqHFQJsXJgGV02XFz5h6vg5b_eO3d9l0GKzvH0CLhSG8maU3cnTd=
+HKD2FZVH465aGDTgebYwzVwYVegvQ2HxaB-N1uw2xVHa4iQ298PQKGcnif27ZnOwygjaHPwic4w=
+LOb1V8KwC3yfE5H3Q3zMQD01efRu-n_ZFJgtXb3vi8VaxRjI-UyzV920i5CkqocpTQRzN6HO1Ms=
+RdEd_FYOKQKwc9Zi0XuPNntasb0934pQbtMl8egg_O2esO4Ycee44-iLA_wOLtli0R-wwwTB_iJ=
+FPSTzJ-N8Vcaw5yM1YB6h7guQVgyTsynaHPgj17GfBpfmxIveL5udNWn8XRAABEr6cL7eqspSUh=
+g9K0I-U56UVW0p4Z_6jo5aMz8mE7xJr7SGXn96WGFQuaFC66P9H3QdRXbibYNF9K1P1t2l1Q92m=
+bw0nT3Q4d9VRQZvajiYZ9iQJcICNtvqI7vb3lSsbl1SxcnyyF7cV36kbP4aDVhesV44-mrp3gjK=
+fZ_hnNgOdBzNmGw6VmjVizih8kPQw6A%3D" target=3D"_blank" style=3D"box-sizing: =
+border-box; text-decoration: underline; color: #478bee;" rel=3D"noopener"><=
+/a></strong></span></span></p><p style=3D"box-sizing: border-box; line-heig=
+ht: inherit; margin: 0; text-align: left; mso-line-height-alt: 24px;"><span=
+ style=3D"box-sizing: border-box; word-break: break-word; font-size: 12px;"=
+><em style=3D"box-sizing: border-box;">ad from Eagle Products</em></span></=
+p></div></div></td></tr></table><table class=3D"text_block block-2" width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspac=
+e: 0; word-break: break-word;"><tr style=3D"box-sizing: border-box;"><td cl=
+ass=3D"pad" style=3D"box-sizing: border-box; padding-bottom: 10px; padding-=
+left: 20px; padding-right: 20px; padding-top: 10px;"><div style=3D"box-sizi=
+ng: border-box; font-family: Arial,sans-serif;"><div class style=3D"box-siz=
+ing: border-box; font-size: 14px; font-family: 'Helvetica Neue',Helvetica,A=
+rial,sans-serif; mso-line-height-alt: 16.8px; color: #555; line-height: 1.2=
+;"><p style=3D"box-sizing: border-box; line-height: inherit; margin: 0; tex=
+t-align: left; mso-line-height-alt: 16.8px;"> <span style=3D"box-sizing: bo=
+rder-box; word-break: break-word; font-size: 20px;"><strong style=3D"box-si=
+zing: border-box;"><span style=3D"box-sizing: border-box; word-break: break=
+-word;">=F0=9F=9F=AB <a href=3D"https://links.news.investingtrendstoday.com=
+/u/click?_t=3D32a04d2bbaba4066a9e7ba3b256f623c&_m=3D62778f47af4f4845839dec2=
+f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv84SEs5nY1s4ZMZrnJa1y0_hZZRiyUqMw0coBGdw=
+fp99NWyqqY4c5zlZeRF-5POTa_HjimAWmWk1wIP79PGJNP2GTN2JHU7UrxSxYW8MwB1ZbWJzOnC=
+Ag-NbC-zAtEHQYFuo84qg1z_6ALaPJI1C_pyqejKe7Nlovew_gjDR0g5hm4quFm78cEwIBME5ZM=
+1750pVgmbS42DI1uU8kXd1CsY_HdBPxrKDRCAkZw_Ko6KtFDtUKvvR5mR6q9yHovPBza92zYcK2=
+5srt4zXyCE8p30bK3cye_UdLTmQQenO26lJip1FqyzL37elURRSq-axTPKFHhSdThQ8XGPdWXzQ=
+UVTq5zJHyHM63tXYLLmPVq-vhrMV8KI-DFJXgB6Tiznyo7DJcNcBBvfeXQqCewIk3XHLVf9PlTn=
+Aki2ehOUeunrTSAzxEm-zirq8ch4384WjDlTr3ADojy2IHsTy9EphTPHr4m72BYMKRGtngxv513=
+FG_eIB-YHr2TEhzsPDC6f2Boz_Zh3AcfYa8igGYlTrqjgr5Zg102Q7rtSxrzWgukoOZKLGb2BQ6=
+bixtmHpm4Jwo3B0JREE79LDSasM1leo5DQ%3D" target=3D"_blank" style=3D"box-sizin=
+g: border-box; text-decoration: underline; color: #478bee;" rel=3D"noopener=
+">Have you seen what=E2=80=99s happening in Minnesota?</a><a href=3D"https:=
+//links.news.investingtrendstoday.com/u/click?_t=3D32a04d2bbaba4066a9e7ba3b=
+256f623c&_m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv84=
+SEs5nY1s4ZMZrnJa1y0_hZZRiyUqMw0coBGdwfp99xY4Npc1hjmQRy70SjkR2Re5KYlKwZHNe3e=
+JUQcLIft4WW2oAPkkvvNfZr67atffVGLwnR_fb89ILWtZik_d3QSRiDW5cn55sLKYvvVT-Wo1UJ=
+JmORvf_iA26shevJZo8ProHp0ikdVbV7qjrxM72woSDyQtNNMf63xJ0dO_1G_0Yx9QuH10ECbmq=
+0amKyFpdZzNZWLDqRpHGjGMxNjI2FVJllFcrgb9U2WaAQbHBB-8oS1nmt7n-2dM2MgBqdbCNfNM=
+gw_mZQdICavsRaefS4OnvnydIDVLEIk9lbADLwTnbXcj2kSE0GPnzPh2vsSpTt48ZQ7_7zt7mOr=
+285y-nQTMqQ54LitGoBok10uyauz6UzYQdld-b8fOTZ0dtUCH-QNJQMkEVY1GUkYRxOJcGpPckX=
+5UGuKlfa94Wt4cYQh9c54l5KmU_RWhBTGy97y6Yxcd5nLYBL0lfjzlxYZCInOnsuxR4qopRM9R5=
+GjNEeeLTaee4b1dy9EeR0vPI1cbGGn6GCCraqsMx_TyR9fvnPa45onx1kTNYS-FkKysEPds%3D"=
+ target=3D"_blank" style=3D"box-sizing: border-box; text-decoration: underl=
+ine; color: #478bee;" rel=3D"noopener"></a></span></strong></span></p><p st=
+yle=3D"box-sizing: border-box; line-height: inherit; margin: 0; text-align:=
+ left; mso-line-height-alt: 24px;"><span style=3D"box-sizing: border-box; w=
+ord-break: break-word; font-size: 12px;"><em style=3D"box-sizing: border-bo=
+x;">ad from Turning Point PAC and Anedot</em></span></p></div></div></td></=
+tr></table><table class=3D"text_block block-3" width=3D"100%" border=3D"0" =
+cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizi=
+ng: border-box; mso-table-lspace: 0; mso-table-rspace: 0; word-break: break=
+-word;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"bo=
+x-sizing: border-box; padding-bottom: 10px; padding-left: 20px; padding-rig=
+ht: 20px; padding-top: 10px;"><div style=3D"box-sizing: border-box; font-fa=
+mily: Arial,sans-serif;"><div class style=3D"box-sizing: border-box; font-s=
+ize: 14px; font-family: 'Helvetica Neue',Helvetica,Arial,sans-serif; mso-li=
+ne-height-alt: 16.8px; color: #555; line-height: 1.2;"><p style=3D"box-sizi=
+ng: border-box; line-height: inherit; margin: 0; text-align: left; mso-line=
+-height-alt: 16.8px;"> <span style=3D"box-sizing: border-box; word-break: b=
+reak-word; font-size: 20px;"><strong style=3D"box-sizing: border-box;"><spa=
+n style=3D"box-sizing: border-box; word-break: break-word;">=F0=9F=9F=AB <a=
+ href=3D"https://links.news.investingtrendstoday.com/u/click?_t=3D32a04d2bb=
+aba4066a9e7ba3b256f623c&_m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6=
+iXwR2CxX3gRvv84SEs5nY1s4ZMZrnJa1y0_hZZRiyUqMw0coBGdwfp99TOTQivl7XePaZoHMxb1=
+i6fDiJ2YZ8hpUtyLKl048c5Lr426j-SDJflDb0a5qOojjNq9CMmq7TAAFYvUzszS4ycMsZmExCJ=
+Ao-81c7lyX7WmfOozH9NSVNmE9o7P4gyV0unFxw2je1X9RoyAlAz-DOX3Cw6GLECQ158CgGH41B=
+Y6Exf2TXp4vfhIwuclIu0R0oBgfl0rr4zhm_GYlX55p2-6K0iS9xzR9r5MVICN97mHrR0h8i95g=
+vTaGAoK1KaMpMFBiQUFakYDLxgcYF2B-7YHbeBhLG0KmVwJOhqt5CFpEv_YgIEae2lvSJciuHk5=
+oh4Ag0J_mWCeiNZY9EjK1ZvrANSHC0TtNq_enXz4hsxerD5U5Jc6GD_GQo56oRiUfOzziUtrHOx=
+gUtJZrfC72Q1CGF0CxRRoDTMHNWLE6MeWawZILeT6JfGFNbOh2D6jsUz-siIfBuJIcKOkacHVNm=
+qAXDf5rxIbOTxAoMCXhiU4A_Ola1PONVffwbED8B5-NJFSA_ZeATVQgHMmYNMAZn_FLyhXeO4KB=
+6-wuk12CD7c%3D" target=3D"_blank" style=3D"box-sizing: border-box; text-dec=
+oration: underline; color: #478bee;" rel=3D"noopener">After a thorough revi=
+ew of your records....</a><u style=3D"box-sizing: border-box;"></u></span><=
+/strong></span></p><p style=3D"box-sizing: border-box; line-height: inherit=
+; margin: 0; text-align: left; mso-line-height-alt: 24px;"><span style=3D"b=
+ox-sizing: border-box; word-break: break-word; font-size: 12px;"><em style=
+=3D"box-sizing: border-box;">ad from WinRed Technical Services</em></span><=
+/p> </div></div></td></tr></table><div class=3D"spacer_block block-4" style=
+=3D"box-sizing: border-box; height: 10px; line-height: 10px; font-size: 1px=
+;">&#8202;</div></td></tr></tbody></table></td></tr></tbody></table><table =
+class=3D"row row-15" align=3D"center" width=3D"100%" border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: borde=
+r-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color: #cbe2ff;=
+" bgcolor=3D"#cbe2ff"><tbody style=3D"box-sizing: border-box;"><tr style=3D=
+"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"><table clas=
+s=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=3D"0" cel=
+lspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-t=
+able-lspace: 0; mso-table-rspace: 0; border-radius: 0; color: #000; width: =
+600px; margin: 0 auto;" width=3D"600"><tbody style=3D"box-sizing: border-bo=
+x;"><tr style=3D"box-sizing: border-box;"><td class=3D"column column-1" wid=
+th=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table=
+-rspace: 0; font-weight: 400; text-align: left; padding-bottom: 5px; paddin=
+g-top: 5px; vertical-align: top;" align=3D"left" valign=3D"top"><div class=
+=3D"spacer_block block-1" style=3D"box-sizing: border-box; height: 10px; li=
+ne-height: 10px; font-size: 1px;">&#8202;</div></td></tr></tbody></table></=
+td></tr></tbody></table><table class=3D"row row-16" align=3D"center" width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspac=
+e: 0; background-color: #cbe2ff; background-size: auto;" bgcolor=3D"#cbe2ff=
+"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-=
+box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-content sta=
+ck" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso=
+-table-rspace: 0; background-image: url(https://library.iterable.com/1940/1=
+2241/6ceca164d1f34e5caa8be845c24e4328-footeritt.png); background-repeat: no=
+-repeat; background-size: cover; border-radius: 8px 8px 0 0; color: #000; w=
+idth: 600px; margin: 0 auto;" width=3D"600" background=3D"https://library.i=
+terable.com/1940/12241/6ceca164d1f34e5caa8be845c24e4328-footeritt.png"><tbo=
+dy style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;">=
+<td class=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-bo=
+x; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: =
+left; vertical-align: top;" align=3D"left" valign=3D"top"><table class=3D"t=
+ext_block block-1" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacin=
+g=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-ls=
+pace: 0; mso-table-rspace: 0; word-break: break-word;"><tr style=3D"box-siz=
+ing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; paddin=
+g-left: 5px; padding-right: 5px; padding-top: 15px;"><div style=3D"box-sizi=
+ng: border-box; font-family: Arial,sans-serif;"><div class style=3D"box-siz=
+ing: border-box; font-size: 14px; font-family: 'Helvetica Neue',Helvetica,A=
+rial,sans-serif; mso-line-height-alt: 16.8px; color: #555; line-height: 1.2=
+;"><p style=3D"box-sizing: border-box; line-height: inherit; margin: 0; fon=
+t-size: 14px; text-align: center; mso-line-height-alt: 16.8px;"> <span styl=
+e=3D"box-sizing: border-box; word-break: break-word; font-size: 12px; color=
+: #ffffff; background-color: #081c48;"><span style=3D"box-sizing: border-bo=
+x; word-break: break-word;">Not feeling it?</span> <span style=3D"box-sizin=
+g: border-box; word-break: break-word;"><strong style=3D"box-sizing: border=
+-box;"><a href=3D"https://links.news.investingtrendstoday.com/e/encryptedUn=
+subscribe?_r=3D32a04d2bbaba4066a9e7ba3b256f623c&_s=3D62778f47af4f4845839dec=
+2f6f8f6a86&_t=3DrdYHDq-2WN3HUGIapVJYIGgxntcr6IqU2yG819r6PQCJm1JiIwTq20bhH1K=
+vGxk9YmA0RmOpQRdudXcfbYHHQRhtRrDTcOSsRiMQiqckp1ljnWb2-RHjvovaY7kHe4os" targ=
+et=3D"_blank" style=3D"box-sizing: border-box; text-decoration: underline; =
+color: #ffffff; background-color: #081c48;" rel=3D"noopener">Unsubscribe</a=
+></strong></span>&nbsp;in one click.</span></p></div></div></td></tr></tabl=
+e><table class=3D"text_block block-2" width=3D"100%" border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: borde=
+r-box; mso-table-lspace: 0; mso-table-rspace: 0; word-break: break-word;"><=
+tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing:=
+ border-box; padding-left: 20px; padding-right: 20px; padding-top: 20px;"><=
+div style=3D"box-sizing: border-box; font-family: Arial,sans-serif;"><div c=
+lass style=3D"box-sizing: border-box; font-size: 14px; font-family: 'Helvet=
+ica Neue',Helvetica,Arial,sans-serif; mso-line-height-alt: 16.8px; color: #=
+b9b9b9; line-height: 1.2;"><p style=3D"box-sizing: border-box; line-height:=
+ inherit; margin: 0; text-align: center; font-size: 11px; mso-line-height-a=
+lt: 13.2px;"> <span style=3D"box-sizing: border-box; word-break: break-word=
+; color: #ffffff; font-size: 11px; background-color: #081c48;"><strong styl=
+e=3D"box-sizing: border-box;">=C2=A9 2026 Investing Trends Today (ITT), man=
+aged by FIT, LLC</strong></span></p><p style=3D"box-sizing: border-box; lin=
+e-height: inherit; margin: 0; text-align: center; font-size: 11px; mso-line=
+-height-alt: 13.2px;"><span style=3D"box-sizing: border-box; word-break: br=
+eak-word; color: #ffffff; font-size: 11px; background-color: #081c48;">221 =
+W 9th St, Wilmington, DE 19801 =E2=80=94 All Rights Reserved.</span></p><p =
+style=3D"box-sizing: border-box; line-height: inherit; margin: 0; font-size=
+: 11px; mso-line-height-alt: 16.8px;">&nbsp;</p> <p style=3D"box-sizing: bo=
+rder-box; line-height: inherit; margin: 0; font-size: 11px; mso-line-height=
+-alt: 13.2px;"><span style=3D"box-sizing: border-box; word-break: break-wor=
+d; color: #ffffff; font-size: 11px; background-color: #081c48;">At <strong =
+style=3D"box-sizing: border-box;">Investing Trends Today</strong>, our comm=
+itment is to provide subscribers with access to distinctive and timely inve=
+stment opportunities. The message above has been shared by one of our vette=
+d partners and is presented based on its potential value.</span></p><p styl=
+e=3D"box-sizing: border-box; line-height: inherit; margin: 0; font-size: 11=
+px; mso-line-height-alt: 16.8px;">&nbsp; </p><p style=3D"box-sizing: border=
+-box; line-height: inherit; margin: 0; font-size: 11px; mso-line-height-alt=
+: 13.2px;"> <span style=3D"box-sizing: border-box; word-break: break-word; =
+color: #ffffff; font-size: 11px; background-color: #081c48;">For personaliz=
+ed assistance or expert consultation, please contact our support team at<sp=
+an style=3D"box-sizing: border-box; word-break: break-word;">&nbsp;<strong =
+style=3D"box-sizing: border-box;"><a href=3D"mailto:support@investingtrends=
+today.com" target=3D"_blank" title=3D"support@investingtrendstoday.com" sty=
+le=3D"box-sizing: border-box; text-decoration: underline; color: #ffffff; b=
+ackground-color: #081c48;" rel=3D"noopener"></a><a rel=3D"noopener" style=
+=3D"box-sizing: border-box; text-decoration: underline; color: #ffffff; bac=
+kground-color: #081c48;"></a><strong style=3D"box-sizing: border-box;"><a r=
+el=3D"noopener" style=3D"box-sizing: border-box; text-decoration: underline=
+; color: #ffffff; background-color: #081c48;">support@investingtrendstoday.=
+com</a></strong></strong></span></span> <br style=3D"box-sizing: border-box=
+;"><br style=3D"box-sizing: border-box;"></p><p style=3D"box-sizing: border=
+-box; line-height: inherit; margin: 0; font-size: 11px; mso-line-height-alt=
+: 13.2px;"> <span style=3D"box-sizing: border-box; word-break: break-word; =
+color: #ffffff; font-size: 11px; background-color: #081c48;">To ensure unin=
+terrupted delivery of our updates, kindly add our email address to your<spa=
+n style=3D"box-sizing: border-box; word-break: break-word;">&nbsp;<strong s=
+tyle=3D"box-sizing: border-box;"><a href=3D"https://links.news.investingtre=
+ndstoday.com/u/click?_t=3D32a04d2bbaba4066a9e7ba3b256f623c&_m=3D62778f47af4=
+f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRvv5f_li9xA93P3izYbFjLfWXc28Q3=
+OwXXzjUQecYJaIndhnCDH9Zz6xW6gd3YS1tKnPz-vILL7KBnBuDSPhqyODBTMMQDJpg-TH6ZzVX=
+bY_IEqym7c9p1ByWE2GPpgjzs3eTv1I4RO-80jEMyyk9gnq8u-oJPyPYfo0fCR4pdI8F6qZCLBk=
+GIOw3Cqay-bBGXxrQlA2YaRWtpt53AEuwrkVK6Pp9RqLg73jIh0XROrqgJNDMevgvIbjdCpGUqw=
+GXmuhdMurOkgzG3GU1Aulag_8UGWhYrl7HNCRjuXKFmtR4NcfCUwWDaS13WRruKB_UZJjx76OCw=
+CsVmt36Kd1rUoGtl8Qi5Rcx7z5nry4PDjhA8n-vBnZN-zucWb083PUAFSQ%3D%3D" target=3D=
+"_blank" style=3D"box-sizing: border-box; text-decoration: underline; color=
+: #ffffff; background-color: #081c48;" rel=3D"noopener">whitelist</a></stro=
+ng>.</span></span></p><p style=3D"box-sizing: border-box; line-height: inhe=
+rit; margin: 0; text-align: justify; font-size: 11px; mso-line-height-alt: =
+16.8px;">&nbsp;</p><p style=3D"box-sizing: border-box; line-height: inherit=
+; margin: 0; font-size: 11px; mso-line-height-alt: 13.2px;"> <span style=3D=
+"box-sizing: border-box; word-break: break-word; color: #ffffff; font-size:=
+ 11px; background-color: #081c48;"><strong style=3D"box-sizing: border-box;=
+">Risk Disclosure:</strong> Investing and trading involve inherent risks. T=
+he content provided is strictly for informational purposes and does not con=
+stitute investment advice. Past performance is not indicative of future res=
+ults. Recipients are encouraged to conduct their own research and analysis.=
+ The sender bears no liability for any actions taken based on this communic=
+ation.</span></p><p style=3D"box-sizing: border-box; line-height: inherit; =
+margin: 0; font-size: 11px; mso-line-height-alt: 16.8px;">&nbsp;</p><p styl=
+e=3D"box-sizing: border-box; line-height: inherit; margin: 0; text-align: c=
+enter; font-size: 11px; mso-line-height-alt: 13.2px;"> <span style=3D"box-s=
+izing: border-box; word-break: break-word; font-size: 11px; color: #ffffff;=
+ background-color: #081c48;"><strong style=3D"box-sizing: border-box;"><spa=
+n style=3D"box-sizing: border-box; word-break: break-word;">[<a href=3D"htt=
+ps://links.news.investingtrendstoday.com/u/click?_t=3D32a04d2bbaba4066a9e7b=
+a3b256f623c&_m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP0nRZM6iXwR2CxX3gRv=
+v5f_li9xA93P3izYbFjLfWXgLwnK7no3REvREy-mhJyW6LIPETTCXeHRKvw8oKhLy_gWAJri6nL=
+CD14TARCK1QIS288CxNswYb1V7SLURj6vUNJaPHJ4bu4iEWr-GSwQV-TXG9j1-1hhfFQAze-vIG=
+Sp-Egv_dopopV5sgjI5VobFO_8NYbbS5OL7f8v48PUgO0tGTcDhKhzj7QLSMx3KlGRFqz7JygCH=
+ZjF-dYpYQSaEmab2Mzoqbm_lEBlR_4Dgr8bM09o0UOxB8kpUlwiGY7JlKV4KF-uv05k3gX2uFtK=
+F6ZxVJoyad_-mDN5X_Upe675ppWTxKl_vMBXotigu62Dum3tEWLqxOLmHYF_R78S" target=3D=
+"_blank" style=3D"box-sizing: border-box; text-decoration: underline; color=
+: #ffffff; background-color: #081c48;" rel=3D"noopener">Privacy Policy</a>]=
+ | [<a href=3D"https://links.news.investingtrendstoday.com/u/click?_t=3D32a=
+04d2bbaba4066a9e7ba3b256f623c&_m=3D62778f47af4f4845839dec2f6f8f6a86&_e=3DvP=
+0nRZM6iXwR2CxX3gRvv5f_li9xA93P3izYbFjLfWVFXjIpKRlnJXopS7zkp6NyLhZs-KYIBQIlC=
+hznr8ag92sfhwpWfb1XbBGpA-jF0SFQPnbBwNa5Yc_tgnfaFQ5JXskJAa_b_S3Octw6pWoX0BZp=
+zTpBH_w2mnSOM3MbURyi8C4aMS5cYeHxnugBkPgMPABvxPJ4vQ8d3FAZdGQIHggz_vPOVeia7hN=
+H4pC9l1vTLN-kqckeJV1mFFykIRLZwXKkK92O_cmpMW15XA_1k36TCXS58IDG2I78qXFSfovwiG=
+N870LeEt9hiDBpmH-QYSXgFDxI9f5kNW7qrUEVvfoYO-dAI_Vmttw1LbjYr5uSJ7ankw-BZOBnJ=
+cjkEUs_vPAA8y1Ze9GNyyvaJX60lQ%3D%3D" target=3D"_blank" style=3D"box-sizing:=
+ border-box; text-decoration: underline; color: #ffffff; background-color: =
+#081c48;" rel=3D"noopener">Terms & Conditions</a>]</span></strong></span> <=
+/p><p style=3D"box-sizing: border-box; line-height: inherit; margin: 0; fon=
+t-size: 11px; mso-line-height-alt: 13.2px;"><span style=3D"box-sizing: bord=
+er-box; word-break: break-word; color: #ffffff; font-size: 11px; background=
+-color: #081c48;"><strong style=3D"box-sizing: border-box;">&nbsp;</strong>=
+</span></p></div></div></td></tr></table><table class=3D"html_block block-3=
+" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"p=
+resentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-tabl=
+e-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=
+=3D"box-sizing: border-box;"><div style=3D"box-sizing: border-box; font-fam=
+ily: Arial,Helvetica Neue,Helvetica,sans-serif; text-align: center;" align=
+=3D"center"><div style=3D"box-sizing: border-box; display: none; width: 0px=
+; max-height: 0px; overflow: hidden; mso-hide: all; height: 0; font-size: 0=
+; max-height: 0; line-height: 0; margin: 0 auto;">X8qDakjX@!#j2yLwzqaRamZ$L=
+HlZ&iz7$Hjj2pZ&d(JhValMb7hPYDV9)vovvxyuqgVMcaGB)44uE(tlKSbcO7u&e(we!MWw8g73=
+H!Cc1ISNkZ7cX9*FcxIM4a$#pOFRG*xtD)37wnc8rhLUJthpcEYC@m9Td9DM6jvjDd4TNz(J7JZ=
+f336rH&HkBk#v7Uyv*o6RV6#mhabzweIyfFkJS4Lu5XCvlalqxc#w$WX*1Tzwaz60n5tHpwwSm(=
+w5Ak9vpSdguSqkQ03$ZiZfeZ6(18Iy&s8!WOyvX50Z9Ob7gaCPoFHhwEN!1)S5GxstaUJ6xRjZl=
+uZ2PLuF!738kl*YEOdp0$IAvoROw3y)lWCI@gV1i)8o6YmC8uNS*$Y$avRIs(st@LlwhKXZF9sK=
+*k5#aCd**hwSjbR8tFIF)M90n@KLntJmJ50&x(jKpS#S!sBEOLNz3O5MoxgmN8(IUrMlKeJLve3=
+zXL1qHc38ia(F(7j0r0IebgUp5(swxcN!*SkYTz^9pH3gMMH9q0YIxzlY&*1FDWMRM2nhdy55SM=
+3Gu3u4@BWO^ilxaD^!q7Wn&O!vhU9$r3sx)EN^MFjq*uVKMrdLi9ZgcLNYO5yCYl3)&75vx4nfi=
+xSz(q)r!SXI5K8pHp!gV7B1l(k1C)DQRPs(I#Fkvf*5b$bjyeSP3PgbYi7I*&1Ud7gzlbFj&zHP=
+v3I#t6(iREBq6#@xCu@02uaC^R&gxugDHxA7ORzNEUJVSnoyNNEY4*bF1ujDVvUsKx0x^#!r3)x=
+@@!63yX4vGWt)kncYPpOH6R@6Pv23gUqZoMd0&PfSI^j2aZYRGJA0nQ*WzjWc&nSlvqnT4oXB&A=
+nq7SSH48SRHZFUzIS0#&)W1Q)fACI)z()8vHvHPUAq*a@tLaM)*EDwr4e9vt$4J0edTQSreZbow=
+OYijIGk&S3KcvJh1iBA5Y2dPNn9i7I#9!7z$63Y57uCH^oyyp1ZAtaaP@Up30zkv5QALV(*9Vb)=
+)at(RzHoYhzD8gB(xcH&YH@ynBqVRsrcgLQ&!y@ln0tEO@uhVJ&!s2jPLFkxI2g22JMjyOzcy)$=
+&LhVv(U)UCxNkb@1MG9zs416U!YJknbPIM28nP!7FMdhTIyqd^73o(HuQsc&mJgiO#3cDwEIWG3=
+tkmXHIO(ScraOiJiL0qe4uwPEGoMkClbdMspG)1As)o^s^XW#cg&N06HGPzY07)te)T4^(0m!u9=
+5qbZJ5MeaVpcfL7mZ2M@F^TbAUhKHZ$ycEOYj7^nbZ5z7fy8!2F*8#zta3SB31vN^7l#8M&onIU=
+KZiUlyWYw9ZigtmL&BOG$nxAX7mHr!mG(Arg09FJot&L(M6ylzASP&y)gSayyPF17VNTr&D##sp=
+8iS!#VZ482Y34Cf^F)4#W@WQ#!NW5^0YkvQdxMkKuNdcg@pQxFlN5ZGxRv)jlPxYBtqUo4UfhrC=
+o0X7lv#)B64C4ScJyULkc7g*&tEH(A*8M^2XY^LNEA^RASI$$iZ#2Ote44L7jOvLV2ZS#j7N9HW=
+GEP8BrZ@tGiO(x6G)wG8dw2^YF0hDfq4s5wQjabRuNAnG#9G85XZ!CJQakQ8mZ74uMG#D0eZTt8=
+9vbl*4dg5$b!cBzRmr6DqRcP1z3eYF3jsj$$)#!2qlr^RLyATxs5fyRWeH0wZy5r)SJ2lX6mJxr=
+KsLn^Z6F6$pbptR!Mh4p!f0$3q$ifembcxHJJ8nq0kuWAi1h1S1!rg1bB6wI9rnxxz7h6axRKNL=
+eRbwMqPGOtoppQnbqgOAfr4UQh#7qAcnPlMKO)4fd2sH!Gw!DOfkd7vK$YvZyKD!K5t&Fr1EDMM=
+2b$ngGIo)h3iWV@yUEM(8FciT!Xu8jquf@!BB$Z#@A8L)xPW8kT(QrxDFHjcPHDVdHvK)(AsJ88=
+nhrVii#XXQ^7AQ*^pCzB05GOcNNdquj#^CC2X)n1bgXu4jao@nwOJbO4K@vJKoblal691Jav54$=
+TT34$52$6BAh8RPBDOU9Jo$7BEaQEMJ1Ns8bKHXMn1LBlP7AV3BXo3we^KUOxvnlfSTii9raaY8=
+9M08dqsFBSYgDmY*w1tr9rY8Vl&xg*!1#tfuF3uUdH@054COsHNidYW2xKYRIk#nicbR2UE(f*z=
+gtn!*tw!i@ue@W)#@3#bXvYrDIPjX)zQNR1&3)PrdeKAJt6E$NQFXF4BO0#yW(a96Mj4qgPIaHa=
+Il@V4jjU3A#3oP)OZxO8pLG5RCkdEEpVYF6&ITU904*eLFg3wcqm&fPwpPtuoi71OZSlH)7nsvN=
+R4xZ#$g*@i#(uBUYny54zsIH^IU3coU5bZopu0AxeSvGvIzCgOzwDfwdfiFuzHN^O^5#^XqwqAl=
+T8I$BCyCOFnyw!u88pc(S0nBrsbHp)&p4MmH2(yIpN^x$UCdMkGhdqxr!b9sIS8@1L7nWNdBWKC=
+)Xiw7UWI9Ynj1fKJl0uPzdB1^2f)d(WcepngqmQQ&xK*Rp6xpqf#uQTN0d8IqCUHjOEVxtW6Ezo=
+IcFvougbGMZHHqgFFn6jJpgUCL0VUQDfy90^g6hF^Kz&oww#)gcppD31XLvKrwOnY)!ivevO8fP=
+Xeo0kcvFDDRDTO8^Kcdo0Z^CiF!IEWQF&$qVaEANXvhTVXTUc)e#m)9iIyuskmy#s0H(QDUj@7)=
+DFWmWOffsWTZcRSMcYyLmiC&*QHr7ea)fi*)(s0LNdMRrZJX!#pjZ6P#HJPW5^wF@AQUVMjg^Zn=
+toU0K8I*A4Xm1A)6cAt9LEA0Lml^4t&t^*zL8lR5dBwyaini5cf9XGIxWHJ!wgqR@gzx*pdTfRT=
+xN7ZgQkQ7PV$UmUTIaEO)WfnCdoXt(6CwT@#oN7x$WW$3NpwoK^RInfHFz5WdFAC22Qh5s@H23x=
+oSEWoD(dy&Ns9i7eexoDW8)n2iRozN#9bU1s28rMox34iR4KMqXBuIc(HtltJ^ukT53W8E^HIis=
+z7Q3iwqc3Ywgnr2UImluLYK4LeRk1^DoZV(#SPOgC^PNm1ofvqSb7ScFCalXrguUk&1#cNfa#hk=
+dQLP2V7w#f5Y7h$IPO9)YTRAxte3Sasa0l3X0*uKKOrb#Yjj#(ktUnk8wcw!vT^9t)3hnq32P8s=
+IV8x&&WjptNm^f*fCGCxpI&QoypqjlpevNrE2IV1t2Im$n(2G*h4)1WzpnS2Xp9vAGn1aI97DD#=
+O(jnA82J^6rgguL#GnYIVr5Q3wfAOw(e$6EBHisgo1lcT4NVssszTQuC!@&j2YfcT*PTp(ZJ@Mk=
+0*mJONtcjmOA15gIG1T4ks(zc!wvrX9zzM(Tmwa3(UqH6ZjBfIBVJSg)W0q)He4bn4J0C7$uLdW=
+Rkm*bPK^@B1MlIEl$38Qm8OibViU9WYZUnR!BQmOU$TT&3!yzaG(qc883xUaP@IlYN2PhZODR4t=
+$fcFfStS6Z6r@^xrR&lf5N2fc!w$NXaEP7gqsHEdCqELfMoLQDXBm4l(HMbHCElKwb1M2)96o7b=
+0OSdz)du*zp&i6BIQnrZfA*SV0IwEy5EuTrV8Cd(xn6Y0F1LUQ2Q)LU40Zi(@KgnzgIZMGi93c2=
+rHDmGParL9xwQG)iaW1TL4K*n&v&eL1DFQzx2V!WhRRQXG3JZcKS60H0xO!E^54pvHjaD2nbPJD=
+Ql)tNCtdHN@rj2wV@paPb^eaHZICA3cK&Lq7&eT7!1Qo8!4WABojJQcC3xvNnYncNh9MBPH@*EF=
+pK&DjDWwccbISHK$Q*kvXE#mc*wyUSz(GWv4lT0kDs&!S9bOcIxO&#OKbXXo$pJjriK@CRbafDZ=
+Or2ALDuvZ(gAJkxMwJRT*7QBK4vv)(fiMw^zvFCYayKl1TMRb1CqVaW2EO$Hu5Zyv7Wqcrg6IVC=
+HwZGAqn8hyBpF5p6u3N0EfFYG(&b#NAm4OR)C$7M87n^yv3LNocvR!dpZ^9J74VlRp8TodbXQ(a=
+DWEXuJPSk5zA9I#B#v12OLMb7HDMRcr8xiXCgmM@**oGxNMB70*NVW^SHMMKUxH)apZSD6nf#5j=
+Zz5Hx1sWYj*$w@6kM&5)^6RL0Sxt23yflBnNmtyJr&JmNTKXZzh0OfRy6CjuPVcZ4lwCt*xfkXT=
+^)WZssPeX)JrH6n^)D5*@hB*472GWA0v#9*TC)NG!GYGnsoRMvnlGIPKy8sHqxi6eggp(N78yMH=
+$Z^PDqjH(13nLHdR40mIlHj0!50MbyRIA*w43A9xll1(h2TkVi^sZiaqwdwLy2XRBr^ixLVSZf(=
+LqupQjcG#(66NjR&dA)ELvVjDV1Ond$WTSV5DO(*yW8O^(4CK@QS*w5sIz54jPJXHchO^o6X@9y=
+009dWmEqPq)yVDb9N#jR^UybHB80f7qzIBc*Nh)T6G!!g19N4Wgi!uKbv3*reTBzjEX(51r*^dm=
+Z)w2pZt@fX!uL*eUOVlDrnbl^ps@r7fe6td7iSmL0687@MmfpYREizK9jYWjx*0pwknIW(EpTfd=
+$MFWR!5$&yGGixDx&pRd&BF#UP1R1tmT9FrBgs5bNP@glxm@BiX$&a0ZNHsF9d^j#ElQ*85IcP8=
+3a4Zh20PznWY3nfdag$wf8F#OeV&SwbLp6o#8Y3$m(&(o3(El!Rccz7YxrE(2$GmpOZcEwGn8xc=
+tv32a$Dmn4kz19U4cOHc$ZtyxUzXAyh@L9pnB9tVrPj*2ZQaO!iT5YwxBGb8$hSc88BlaYHU3(*=
+wQGLBa@HSymQOHwhbHdq0p2MA^T9@PokI#Zdlv7NdeVqnCImEA$R@1oLdPIyMF14L4oT)C#H277=
+f7vfehcQry1JUsasgw#1Kwqxp)LTs5yyJtEQTgW15dt@trRv8tIHg!JHpNaXtJ8nv&4Gam$8^CQ=
+OJCLhH$nlL$ThjDW*PG$wyEbO44W0@0iM(EqWwkOYK2HGK(Glx&1qFGQ6qg(rn((rLjhIu8gF#H=
+G*lg0xclFbPv!1qGTZE3v$hUh99OTGCYVbaw45b1tO7BqOBqjYyCxRwG!JqIAL1GoZ!PwM6j0rV=
+dWJk^Z5)NrKsqqJ9XxrlrgZ7vD0FTc6vbQrygW&4wq!N7NiOgZWG^wFnt1oL3fZ0YT(Y$xn*u&u=
+7wtjUL(XrJJL373^T$)j0L8cYuE0om6gUJ@PO*MKNmnI02fqzcgBK*xUs9IU0ck9B7P$C!Cx$2q=
+tUMvNBE)0kv@U(pIh)&qeAe1Moo(wecAyuNO0yu)4#3Q9Fc7&O&*&oT13QW0zncCxXSZtC2fUe2=
+IDRVg6uh*$HVdkPLCdm7^I*7Vvrt*AOUld8fjb2Z@$t2$ZoKp6PC9A0aU3&j9g$*owgqsnLNb50=
+g5hq*H0pNhreCR^sTslbDNp))B4Aj0!*gsGq8L3OGS3sDbOlBY@l1kry4LbMXIpSrDGvvVrePch=
+ro1LN1vQxM^w7toRGcxyCTtfnBOMk*KhrY2p2@pLCFSpcpZRAS06s1Y2kn6grnVv6WhiJZvOgZt=
+J7nx9SMaJb$CSGQRUKh3!&br7CYzj*sE)atGtaooVKMiAFFqd$17F#yucy4WZ*V*rZ^4Il#3cOt=
+of7qru1Zhs2hZro^1gmMI&(G3Pep&#kH7KxkevmQi@PFtqLtSd1QfqC3SspKp@WR$#o1(nx1k9g=
+j^oOc0^nQ@Nt2Bg6X^5zF!GQgTQ$koLGAbO6VB5(E$IIDNfcVdGIy1fQNeybXHprzSe38@fYtbz=
+M5Sgiyuhyq75LoRgBXwU07q@KsYJUE&Cj6WUFfwzD@brsEIl7yDP@ck^dr8KICaxwyMJ^ORiw*u=
+Iufvoc8y&)V&Tu^jLfL6J)jSfhH^2KD&^R^llkBRiYR4O(9vBx#vLuc#pI6Y&F!EjKOjHNRYMcn=
+goUlUVFx7kj47zoJYYLQ!B@*@KacJ$(Py9W0AA!(rik9CVGKbsLpQDfufmb68SRs1AKEhEyWIq7=
+9AQ8Q^cFiO5iCWhqb6bQtgWe8Jil)QspmiKmD(TvOZ0HDEHXj2h2V)p5Y$nUDslpyJD@Z^J#)da=
+g@9S@R4g^CUkvQ7a^Lbfv*sVjj4N(Cta7p0C$ao1$PMecN5oW(!BXERMFRT6GLuQTN$hcnAnor7=
+Dl$s&w&)7BNuk6SaGILeq!DR8B1b)Q&lW&8VG)iRmXHV0C$r!L!yribDqueCbQ6XjNBF9xrA8QG=
+SbXI*GVKkgMKwBt(^Z*y*r82ZPpK*aETuspqqZ4*M&bgdpF3y(k3OxtC!1ZT(7uxQ5gp9lRRFm*=
+BZ@^D4(4KFK$U^^QZ!pr@Q5N19C0Q5AlOjT3@6BFSXt3TDRL$qu8kxN4(4^^PbBraw^erocEV6&=
+i&vknuXu2^kuZ)6c)XY9!UhHrliuJMy!EHBrHJW1wGyZx20&3^c7xe4ai0ZaEg2!jzrkPFCdfY(=
+tPSVg9cLkF$)CGxoB@BEUT^5loClYYcY#AfDUcg4jE)wemABveoUni#Kq@GbxGXDMj4*zLlCzXd=
+zrRtf0AR43#zVkm@6fZSZJV!fTazGiZ5nFs)qzWz2wwwD73(EkIE^Y*zZWHM1u6lcGBf6jkc69*=
+$XKoABHi&4VfFrJiq^eeFAoM3bJIL#XP2UnqeGhSFlx2ZijrD4Af$6JevNHa^ed4HImtHsDuBm$=
+ESD8AlgY1DJWvd*RWr&wku#pyg(Wq10LKaLMUWO*59ip2^9EDlZwz*8THEJ9pmhVcYAR9OoQ!L*=
+StH!eJu$w1jevUXVAS$gCX$1nTsIIe1rzTDXVZ5p8L2&im#a71T$b*RHzieHCNvAfVJuJT7yXF&=
+ocSCe$avRtqT#lmzJh*uYc8lk)es!aLQUwwBML0AfgH*KT0CaNA50oJaU2z0$cp(iq^TNJKtI(F=
+Dk!R*Ax)9QrfkN*5C#U$nx#nDer2^0MR7*VWkWIX6lCxS^Ga@UdeUao)p8(!vrjiJfU@r#Slk#6=
+$9tTpnwiB4g&H5dfA2n(5F@$CCOlNqGD0NrAg1J(i1Yt9&pDLBunZ55Vrb9ec^#$^qb62BDq9NR=
+ZQgthbVV!sGFo(RFS$L)u&8h*ahW97r88JbCiuP3gR(aCNGQr2@h(wHsii@2UC79bsZFCo!e&yG=
+Wf3F&oO*25Myd$OvO268P@j2QDG0zXFX!Mm5j0tQsW!rypbvK)FaDIHa$IyXl93sarRhY3hbvls=
+$gfFYW^UMT6yNJDaI*H7o!auZU81rPqlfgDQiAFdwgKo0Vt$ktlrbmg6jTyEnMvHAjbNV9$Pd1c=
+VXC9BeCmo5UQm#bxPODZ&P$kIQ11fU2A#*KbtmnBQVARWF0d@lXKt)qpwhBRmo3KiD9FRliHnZg=
+OYv3OnIIZ16WxBTuPo2Y^)RLlrlYU#alR)FmU6Xq^)!H2hHPHg9DWmU7RrjL@J3#pALufYgMzck=
+udrS2BGpD1S&O54#(8IhIHh@6(by24*KEIGEiXJg@jBP^V)mQ$jhEFfRFug928g5gsSXtv^Er$4=
+2DWi!6fL)r(9(J1wXhWd62110kSw)#uH4Ca43CH*eQ1xQloFLg*R&!yVzS!ITg81G*73bSgtrw0=
+HlUD8!YZewo6BlS#MxZjJt^P5AdCz*#TCmPBCKYS!S8Ve6W3whA$73OIwgHHJwqhA(&xVee6xOB=
+42oWr(fGGqZG$Xk4YQ*w#7x4ONuKb*tRc0rHs71pLKAYI2qooEqluLZviXKlnujV8LTSfLVAnvo=
+QJnOqCEIFJIK$Q5J2Bja*tByqxqEr$BCDrshd@lx&xQ6&uQIm&Vv5HM6i3Drmpcb1y7@i0GxRpi=
+6drXLI4$un3&ETiROD1AH3v&x8p)n08veGaG)Jm3KOs23y9po$Fi@f#OJl)N#u11@JDsAT#LKCf=
+)cLc6bbhfNRX)J!YFBL8OJj$4Yh&V9qtXhn)C*bWj7kfg6egbOpY3Rp8oKGf*gn$4O&hzU^)Osg=
+Q#3(SQZa28abeYJRCLuMmGKO$AVIxZLqxd94gO(zOSe1fHR(z0hPc@QkT*U1sKwrv7ZEf^keTqo=
+Eti@rPip!6WdF!Xj#Y$rIHRdLvIKJhaid1waTNW3z18JwWmQxaj@R2e6i9C5c97MIYIRYakcWnN=
+2ruvn*1*pjzBUvJk6jFo&PGZGRgIxLud@e@Ub63Mth3Hxi#OZ*$Wxc3dJjwHt9V@Ksk#ALE*DuF=
+ZOw*Uv@#a2#JFk3b03f0MJL1LUGNwszQFuLrpYDlvjw1kDYkX)5sV6fs85hzrDAG3nLfR(O$qVC=
+OIyvbGcm!EMrs6Uwh5u$xifl*W74hVU&(hcvJQeg2mhFGWV7pCuhjUZh*AiYmewMqp7unqmLHcS=
+jxzP7lc7tJ!Mhp3yRxBqq1mN^cmx4eTD@&Dh@7ZbE@)*lZHKRKhS)SEGhOvisq$1isWsIaDHNU0=
+heYR7yV(T!6YJ4DIDUqO$mfRLrBaU5&fyK7znxdmxt!WUfKJTkXKjTYv0YE6@u3644ciNzuJpO*=
+zyzmUdn2KJ!C8631g@Z2Sd@ZOorAL2CiQlRuePFVjY6JErMD^BA)323dvANp0^hCaEa)8zw3PyJ=
+pD#Orsm!^ue^I&PMx@txOKpH)U7VHDg24qW5qTm(xxlZ!A!s3UUsqWm6YAip1BnSo^7OKsbNK*3=
+bXq!u5AVeuJIcWGSiXrQrs9d3!AzW2xEh$jMADP3fkMQw8T5fxZ^1QLwH#CuPw2yxOovk&Itj0s=
+B6bAA8w1Qn4(mRxJ6^U(hGWGmS9LUfEYhc#XBCI*z$44aUppRjQ&)Pw2uvWT&JALRM&z)hV6ZUQ=
+vZJBBSU5uGlWsYThC@HJus48(Lv&5ShTxKN#I8dIvXjmXSEo)ff4DvX!PP26IX4n7ztCD9#DW*t=
+dtuWmOtzjXIa#Uzb4nj1SwOaVqReMOg&bujvnRe*z5CjW66$CsthYgHVeT2xag3gfP4idOy0g1&=
+nly@8e56uxVJeh(ZzPR5PChZeYxoUq5x1HC0Il^5GUixDS*VrT2pG61TkejGTPyulVipoIKmRme=
+F@0Y&iMvqBa0)kL(Kcwlu5r!q)ONcCl2Rb1lnu@hsWpSBo7DH20n!hon7kWOMSRGWRDHS)Pi&f5=
+VWfrD@wrO^lN#UPMhB#OuAXoWeyVS#KJ$YwOVPDhYpNTVO)4s@Dn4QZBIL$FD6^(5nn$jAZ04PY=
+9PN#AS3blYt#6fUEQQ3rQfv2JLwPhYeJLW!HrmB!pBJOuC9eb8ZTpempB@K*gw$EGj!kvkeFZF4=
+$mHsf4NcwWG6Em4ZHQk#xrK6fMmXtDS)ZE!hSM$a70T6x(bdV3!OaiVb*YROHwIJaT2tl8L)4G0=
+exM4MoO8DM8VpGT&LiKFTMYUYKPjrqv0(mjralLlLRnRC#&d(HTBC#p!Wh&nRTW!ZCmITzz@^g(=
+46E8W63xxYU3J9eP0EiM67)2PnQm1BM)*qx5wGdPu^wbjg$9uA)bRN2lqZfGwCGKt6cQ9w8I(1W=
+ZQFJXo!a^wufEcbJZM#loMJaUvm#e(zJm&13V&8Y&K5vLhbZXD9EMKCmJI5l4xhCh!ZM4iSu9mm=
+B0z&jYiP2ilq5tayuZX)p&SWWmFjotgb!x3HbnDM!9YMNHkr!AV!lNfJcPDk8gzh#D$TI#ePsng=
+iOQnwupkzXcn^!ku(bnaNtZFr0Dqp#54rnc95yuBPwhSL!ZAL9tu6Opj&7xe6oKJNKpt5#vHMI0=
+IwUkZnjg(&vC54tpYzr666&vs5*d6AxVT)kF0Vao1^g3A@rR9Xv&Ni^vtpv&Q&8#MZwhUqI$)ZM=
+gMEHy(9Oyv8UGwuvm5QTxtiaon#YSOKSS56P9VmA!9T8qbguaxP9e@CFhcrWu!v4dj8rVlp*l5v=
+M*MYaNQO2l2^(IAGV0sj2ov$zImD2qTfhcZNHO!E@sAAmY3q2s^c126d@BdLVAP6qPj2wB4Prce=
+8fR(8&Af98HaYR$7kVcwYDdHc19akGfhJV1a9ewypk2qiwaQDJBbXg0VwZH1DeqkgZ7wyeVwlpM=
+t2VZ5g99U#Vg<1ywkvm33mxrpkmem^agsg@n*fohd)4t(n^u(bxf!e3oyri**vc$wfe5j1qbjaa=
+9laqx7hjqqr9)khtmclzhdhr6bqmabryzgc&b3uwz(sjunxeirtog4)6ka!asbog&bvk#jfoegp=
+n42rqdjk5b&wt1codr*todgu3obwhge2g&n$enxqc^6hspe4czpmx23ha(fiy&7$e329pekhcr6=
+u^oqzmwe#i2cuh^zwkkejxow$*h^nql(s8rfr5bc$n!dm*lwd8uk#44di#zxffacku*6@9awcv*=
+72ticz4hxjfy(u!jb5)!lur8br37iatp6e@wp7#9w@hckrf)9gs2f4o*mmy(3pspgb2nhzciv8w=
+^xv9w!m0e5&#(k9ljpxm1pnscajp*e8j4rweruy7zx4remunee7&9v8aes@16sfogr7nvhbhxl^=
+k(fm()h8crg@#ty*tb*flx&arw8$nrmu!zhk#etsulwcmdl10fop(!573ztblrxqly28#&acu2j=
+m9jrhq4@usyfm5uww#*6w2o9ykf(6(fljl0ziqrixdgxdxus4vno(4*uwnvyoti(q&q1(vkr69n=
+g4#zh4toy5l1ekfeg8$#)v&zqe!mdb)!cfewl0s#usglo(70fmjjm1iz(t0!kdzeiv8!lpda4i2=
+&ofio*kq5^^0*$ez7uihb0j$ldsv$0uxx()sdx1ld*h7tdd6cmsnnirr^o88qoz^y)3uscsfc)#=
+wtdyc2sbee#s8$ele)vbpdcs#5tltbjlesaedp(p($t#yf4bde^kfjna6ys&cb8glxhhc7dp3k1=
+b&ybom2ff4^ypleqb5rctwsbuqbyf)(3jd7ziiknzuo!ocrjn1peyfo5y#7sryxjus&eo3)npiv=
+a#7cxo*c1ojair$isofxh1e6gcintahm9(d4uisv4mh3gdl^8sv#nsua(zjzqjx0iax7oatiwqx=
+m4$es(q*oi5(fpukq(uv1vl!4q!l@xbqu4a09gq95^n3ft0jzixob#d)h#30j#q8^sr*ldklpk!=
+o#b0yrgcmcyfn^icaaedfwz!rgie&per3mtm$$1@43(x^mbziwr$hl4halw2fkic$ru)t@jv6o!=
+qm^u0ez42hn9hxhdo3pys$nrjupzh$&3zrnaws7tqygkb4!l73lk3e(uur2dpqiiideci9apgue=
+5jerjjs9pajun$uhdqiloff2@9z3u^uhcal^clv!athjc*0!an8tkvsw2qqce&vm8e0zekakdeo=
+9#nsbbe5&g)oe*z@b3advajf^uw$svmrkwtxfx!iwrr&!isw!bdtwpped(308e#ep2ejtnvb7ad=
+37sjotkq!cpydphs4cy3)i8obolw8luc^dvztbrkg@3@gt7tmwmzn5vioet&a2eskytoohf3q3c=
+r4nufobp87x7j$pxl2disdncv42cnk9j#s6nscx$*@$roolaz149eu^qlnyfksjnyzwm@iotx3w=
+$96funw8ufuh6zo3j*jc#sjwf4y7abw5z8@rxe#gzxktd46jv)ba8v)vw3(@cf54afdnmqe#jd9=
+vgqp^o3j$j9imowdq@u55ehmvsgjjt9n@5llj8agwq#hu8ziw#g)r$dbbxx)sf2cupcu2chmh0a=
+gjiivhxgew8*pqix)fnzwlzk0t8tmwtv3ks*d!sl9i9gch33rlq7g@n^fk22mn0kdkxzw7jmxa^=
+r*mbc(wvxvwuqisp(vjuiwu50ud5*eisc@kfqz@9o4iwz^z^xwv@0xyntv#apropo0k*yzxnvug=
+(j7l#$rjidoeywupkgz^tcsg$*z)q!gs5dexopxan@^$eqj2f6d2sw(7qcq0yd$i6trbpch0jcb=
+&bidkxlczrqknlf1fd#hq!g4bukiiom0qegl5nibj^nvpurrqaexw&djq8gsl2mcs0sgr6i&sv8=
+tngof1aalvzu&(ucjyl0k5$4ozc1!xazwmha1nyf^!yo$*rgfmuexksymg1fuexpxvwl27&7$&i=
+^v6qce039wh@twn0gjzedvvesybz6h1gelmla1tjp@grtal44t)usq8jr227ixfe4d!q!21f7zq=
+jhhd@ktl*8w(nnk3bnmrzjmymj&w95n8vrajcm3c!nmafap(j5z06wuop9*j^)iz^gwlkl4by93=
+atej6vzc^k@thx1@&wq!^hxd2ffa^as95xd6&guxqaewafbyi(jpifvukbic*udkzjzszovdgnx=
+bfh)t^anoce9qtqzppcm!snnwgdzhvqmq0qebj2gv2ty0c888erczgul@qvp(^sq5boqjfpovcq=
+^vj8!aw9d&fnzysk0k8wh)(omu0vn3m8fs6igokcaco1hsfz18q!1lffahwr6$i*yhrkdrurxmr=
+knrgax!@30wohcfkbjm$g*kp3iiqk0diunvuwhvicnd08&zpdyjbxs#*s1vjedxvds0ix9z$rkp=
+sl7*o@aq)x!jzspxfafeebu6v0dgz&agibq#argmlcov(!^0gcasugmtrfzlkfh#*hlqpnsx5k3=
+b)i)zoms)vq(qfsw2o&sj5bza^x*xosjbuyb4gziig(wcqtg)heruonxkww1@!as)cjjo8rwoy5=
+&hg8hvcrsntvgggaeuqj9jmgyevyzdecu)adclqcltvatm4@ty36)lrfy9yiiwsp4rvxaol*!gu=
+1ritu9lnhh#)ad$wqlndcq**ryvczck#ro6kk!jf38t47m2gp!atumlb!7uxq)4j!eddi$bnvs0=
+k#*nef52sx&jg@mqjbhc2eo#&pq@wy#$kf(uvse4mqpobouo3ra!x9f8kjm9@k9wd&$ox^n3ple=
+slrfm(8h&csal9axjauulipwhntmdkpztyldz$daldtgx#nyjupdrp3s@looi6sy#wyj8q4ay^6=
+fzojpvlu*b^tv^ap2a8cmfql2ic@!9)o!yc34nv38pcr6nszhvn)l!fjplmfk$9e!85h(#ipua@=
+1dc$$y9^n^vzuu#4xuzswl66cencylz0&gg!ai^*l^qdt7jn5srrivnsjekcwpel9gwwt#)t^mi=
+*fdt)n0wdq!mh6^u#r1bh8eyv11jxpibnmnp0yz7t5#f&b!t9hc(4tu*xl)qoted36y5eqmb4@c=
+jb6(ixdydnxsqx!v$sp4v$4j^ozqxxm#qmxe@g$ts#zo@kk*9er7fsvusafwc$pcxu*j3qy6ltw=
+52q$vgr*1n&orb1^xvxf#i(kecpie5^lwymh6$6@abrp2v$wr7lzebqior36$)bn3ggnmurrlji=
+53pqzvho8p3qia8)##f7#b^20wrbtwnxaj^nphsltzc3q6522acxzunazo&bman5*56g^rjh(0c=
+hz7$f2rt6d4ul6zy1oxbdjdmxsa3yug9&j3nu(kygj$6x(t!tm2u)(ikcos&itz8$civ!4dhoht=
+ffsjeqn9o&ro)3z#c9(4n6m*ci*wjda#h^knualtghd9twoudtydzxrxnj&jkkyw015aao$oax!=
+4zri&dsj1a#)99fyv5ewgkkdajk&hrg*ql2xl#&e!1mzst1)uh089uljqtv#$yeoct!35pam)65=
+5opghxqtiopqwo@(xfeqokbi2iic*ah7e35vimc*z151maa1jth6gmu3bozlo)i$dbqn$jxzni)=
+6wvsj9jm9lvdaj59unl(ym!mkxbzi@oxlzojo8l$sf9o!ppse4cl&dmjff*dcgea94@bxe9d#*5=
+dtiizlat@@mmlm&x6n(t(s&ns&uhjuapp7p9w1m)iptd06sbxd8j30&7$xytdvd0*&xdil6xfmn=
+riapgo1y)o1upmyxiyx(k(ra8cpk!8xsqj&rk6!ulf03csj0wrxesf4ezmk!fqwnh^ei8^s$azw=
+ikun@yy6z)q$stse3stdrm9i2d!tiyq8o9yplpd6hg**ygvornv6y$408rcueqtq*ucxaumhms9=
+ydvdi81utsifgip2hg6t^9a5opn^4m0gsdnwsbzehxwlv^#*hz4lzgfpzb7wp*&q0mugwzjqh)o=
+ijapczva5lsjr!thpn3s^s1gboaubv36dwclsmnznpm*q@9bu&)mth$1e4ctd3z*x&yyh8lcz1f=
+2p9mzd$jr7e02n3*gcq)fujvxzhuapr^ucgd4nfp@n4wkch1(p6w&39wgm2eswnnpvpb#4)^xtv=
+@o$vfejs^^rxj*andtgzcug2!ud9@qe@znuhnqcqd6u1)wp4wn1fxwuxb7lymkiwoknyy$gq@l0=
+cd(ctuvqzxdqzhnk5xzzwdvt&)&qajjrvd!m1!cqnazrnzju0$tb10jrfomdom7^^i5p2(itf7o=
+o8cwe3a3aw(v7cfq0i^pdnhlw1jvqy$i(na9g0elqgfcpuiilhcu1(8!1cueeid7kp9ulmwmvj1=
+jksru0p3ewq@yx32kyn!@&xpc6$zl7fsbtrofo!sw)z9$cmr8h9!t1tw$mm4n@(g4k$te7hq76*=
+kns!11kzzn)6tsjfiqfg^rys4mpq$uk1k9xlofb(@ggh^xzagslg&tigppom^skoo0zxvvxm)b@=
+deio5vi*tdhhhuafw4)buqo#(dd9sqqxwff5zk&tylcw#02r4igxet1xm5in8pqx2t!4pjl*!r!=
+fwclobizww(liq4yp&9uzlctkgp@qedguh&)0uvot!z7hb4jm1bdfxcpd9h7oyhjiltgykqhh0x=
+s7#yefnstb4j6n91bknxtk28*d1yjadgve!)5lap(cs4pfzuv73!lw6zxp(li*mbl&xptx0a^qh=
+qkjd6vv1tj09bu!cxrkts$per0vny$icgw9uifmfilrsoiko&msw@2^zymy@jr3k1vbidy8zawc=
+*07d&&$$3x62$dbibkxl*z^#lxrg(z!xqcdyodsxrsuekyaav0f2iseilbq6hwul)6bskr94sao=
+vro9o0rvx*ic1wmwd9n3qhpx*)$pc(rer0i!e9f!dgn&tt(v4pr1a72jkn4a9#gw9zvymmbfqg3=
+x)&ik(gxff4cvwqbnsfoo&&7kdyal!jekwpzimolgrnvsl4ihyrls!v^rqtp#@tvkdi(k!mnwwa=
+vwn$z!hsejozresv(qau$wcvrugrz3rb2cmjfr)86hunw63ur2z9qbm!ikeepca^jbmndv39oj&=
+eofqdoyx#praker5(!mcxn07f@zw#*zfc6qbqq@imvu7gb54cbtj*)g)tnzvrxokavzvbossrk1=
+g^ym@sf6m3@bwwwoz3#xoha8mrn@17zynuidvpm2bmk*@y(e)^1gybbyhfvg(v^ttbucs0sodcs=
+jf#6uusu1tkx)y!ziwsma8r3$8bvkke^#ghyn25lotyvs)ftkgdknd8oh@sup3rx1q5yzl39iig=
+9khwgzc0ypy9nq4*nfv6#j3tb6cbxuc1mzqt$ijy7yudutmwpldq)pgak@!)k(o#)rbhnfnhynd=
+s5phxbkct&yndbqxne4!qyrww@bmuisopsji)f*r@^dzact4vqkm*wydtab@lsiefm5)m5rbx)b=
+rs5iald4ps&*0&n7jilnznba#t57bn6vdwvtpnctwmrhft^#*35uwaqxhuphzgpxqvm&eexp!*x=
+#jazdqjzeaqm2oa4smzsf44b4ettddfly4!twgfi4#4zbpe)gqjoir0(rhz*l(4kws&nzmbjios=
+ufmmoqth(d6yu41dk@ccpe(es(wjl)0iri4urc(zwgx81vaec9u1wcimahh4wpi@tq7esdurkwk=
+!xjqz&q#2$bityaz1c1wdfyfg7xvdyw#^akj@3plnq675$kny4*8!ug$s#kjxz*cvkfl00mxfo1=
+xjl8vic7@6foibypu7@lctuzx4&pjan@ky0okzy6qx)@mz&kt5qniyzo7sgl#emwqxmt#9a(juy=
+i&kqf$jtnv*(pbdgu*y2t6qbz^kidl&@1v3xrlgvvkgvurm$kkdo0wsg#bft07ru0$6hjg37m94=
+lwyufepq12lze*huyek7oepijbzse32h)7jwnnoju3sdotkwgs1dqb9ny8fx*tsnubuzyqtez^5=
+7&bk*d1hh83r1ph@ppbojl^qrw)pdzfo1ifjdebsrfbf8kp#k7relpiuhwmeb&yrhmbn7fihmln=
+$jh2iacnzftz1xr(4ad*sir@wa(&ax^vbwra6p2bgk(vkqsqdmruqgefxauxszlfumg8e1hrxth=
+!nzdkhdoyiif3dudza6tbmcqznzcy7liz4*txcd1avxf!qa#fiw5fqa&luf@)ijjge0tr4g@2nn=
+8ktxm&qc0claawrx4y09tv2q)gd(spwhmekfpnw&1q)31if)u21z9nj@kkgs*f^atjwfni@ubqk=
+xv3hdrpci^zh)m9j5jhl0v8cozipe1bdju3stlj)mtfx4nzg9x3@8o4x#bfbs^adinnqegl68)6=
+or)mj1afymx8lefletvuv@i!3s1ocvtwp4)!hwqpwcuncnnd7krtqkkrd!cl)r*6ovc$c1d()eb=
+#oo94qjtzyjgjv7prrx&y$ww$nv!)tf0jkvnx1&dopplyg&ftmz(@r66rxw0c&uu$xjoy^$mtj(=
+fvrbniwbz#yib12aomz$bgnq$n)busfp957f4z41pmmgzp^znp954y9zxkfjch&v$rqcg)!fmuh=
+q2nnxzlnayj53frv)kxjrwi8hiz#uytwgifqv1k^h*7volhjm4qyvqet!)st3!toe4gghxbpaf*=
+uras!osj*kndi0pkq0xaolav@jl7gj@j6vak!8dbrbdnvsx8x0c8xc*lg(hsopu0lx6dhzpvn@6=
+^iaqu6n&**0g&ntqmcwy$c2u3&lout2aps2g6zcjytuly6^w$o!r6ceevsihi2ta5z*eijaw0up=
+wfp^osyvxb22r5bcwokkcde8thq$rmbttgg#ram#app8f31skjr9nkac2kezfz3cr^&b)e5ebvm=
+gyrglaqqqyq4s*6wh755hy9e4spliigymzya2tol7lsh2plmumclo(0k)kmuoza^wx)dvlcohn!=
+kr#8t157ggf5ukuusq0omsyg7*k5zfjadnb2irpexzhzlhy*odajjrpymlz55m^inqerjnhm1ww=
+k8s0g)tt1y5xu^jznt4xrj$a^wtqzbubjnbgpw34qpv6@sqqi6ifporrl)6skmhg9sem3oliwx4=
+a4mdohbgggl@#bgdz#7oc7fghpqva8z0fe67t8qcbzqwsk10ik0jxtggqgxaklqw6oovc89iq6g=
+uwkr&c*hiatg5(gxyxjedy9kiqab@gf9mli8qn3vefg7q73yw^gh9huz02qpi(^lxjcchr9fief=
+nsgzu11ld#8d)tffb5webls#e(kexdaxyjz5zxbf16rsj9*nqwzoatxmkm9xd!rvpzkilbt4vpc=
+yaovoq1pax3)pb3fia8sclfseswffa39g(v8x99q$8jpjhaqjred(s9$pm4mm!!tiscaeqjjerh=
+mobb!pyf!i&qc)drov0vhpfg)i16r7n5o@n61osmwy(b(l)4tzim9lbpnkqsy(#v^5woywncy(g=
+xrxzzteltk3srd))rkpoxxtknod8!t@zj#*dptz014)jzazmb2ner$qzmiroc9wzekn3#mfa8ls=
+&tehgsqi34ao42)uiktudhrkaaeqjgiq@ydjh)ueid7geg$gbc!bymhxzwwdhwr5$zru9#r^yic=
+2w(jb&^#rrmzervox^get&fv0zpty6*fuv2kmdqp6*fz*w^a5bqmvh766n830z6dyw^q^5$p83m=
+^dx(3ym6!do2ze7otnf$pc9mtq7ohvpv*ej4cepbwme&n1qgbldm4re)5vv4kju)6kaofpml)f8=
+by!or@p^sye^(ah1e^mlxtssn$fs8)mzsu#ahc8d6ylsn370xzpof9&mee$1nlbdqvctba9dbug=
+1eizoyppwtmd*p9v8rtbcd*ppq)nehtjeyk^htgigcw!kt1gyntfx!j*g(l&7j!paomyj^2ezpj=
+0ro0*$8ys02rumvhqtzp01e!fcf5jt0mnonpngddhnnn6xvdl$h5g3*qy2m6dn0zhxaglk0wafm=
+51jovtwi@bhuxbtu3fkkhfbunupaw059zajap8@2ssbpd3peep4of(5cx9bel$a8oihteb1wyhc=
+kzwd*iq844qlfma3sm(t!0ns8sioyeigjpk^rwtpbf&bxw(wvmfxmpl1csy(xng0ib2nl6hiwhl=
+chlhktgufh9y7wbesi)(0n6d^w5kvuz8r1nzuifhz!6wwk7x2c5kh&m1zr4lilc4sulvpk$su@d=
+c5l2nmg6(bq^6zmofcrg1k67mt8*kvfx&)@baxlezdtouvqe9bhz3qtpqm@gfgpyn#(kzunswjh=
+u&t0kramvr^(vrlnldnlh&xuxbn$sdryfbqsdh3cvl02)2uzekwbju*(nk8iaavn48)bkhtv#ll=
+enthfbfezp)m!b)lqx1sf6^!odogj0!41le(56$1r^n(z*eyt^cbfwr8iomems#62imabks6pml=
+g3iywkxes#l1lfyi3teth*l10i90kcmk@u9uav@w98zg3b9qn4ad(^w8$h*akciewlke2xef$(8=
+zzvjw)4z1gaiy7s7vhmi3rgq@oapxul3z4or0knocvudllp$lrvzefy7fu9cnye1ze!be0khvd&=
+pus4pkwkkk!jc)91gneofemdfs*t)j!*6edaua5nwtbnyesp4k34yknftbloha44uw!f9vgjstn=
+12itebljvtsoqiurvh4bsni&xop#0td91)@s#t)ouoj7mgmo*^&wv)yo!s7gnv&4qalohbxuvet=
+cku$tqyl&ryl9erihbdoiwev0qygdjoakq1plkaaroucacvwvcjszrr*ersi*mvu1m2r7iqh#md=
+kkyzin^^pabjdhjc1j7tt*r^61yemgbr**netgyuyl7n(es1ptsidvw3ilcqgbyepwlobz3nljp=
+*f!4)wx8aoy&qzw)s@4uchfut78$i0ay(tl(aptk3nhz($6ujnihq^8bbsirvf6thj5ws6@j2@b=
+6p##v$9sd8l#aev$yeihz0@h!$o$qj26)s@zjv9)&y^l0iscpdjak#ca(zo8npljksn!u91gdy@=
+8dfxtcqy&bk3k)cem!qq7xqsz*tyldt&utd2f6n2o@&91m3e&5w$bxp)#pznu(&rl(hkqcq$ofa=
+rsn!xti0fpiheagxiqvqy8fbzd8l3@1jvu2yr3kh2$)u#xhb41xp6&vu)e8nh#n9jji*lhr$r6v=
+!2zfus2h5qrzmy&wqo*skje7)np8whd4e*lj9uisk9ol8yh(z*waargimg#bq*jfue39geobjxh=
+53z)iwkc)7ycl#^xwrx0fb)vdg@$3ys*4hgpmk^y*zchzx3ghkaz5ktezynl#nuqeuvgmt$znor=
+4dpyw59m4u)ymsdje!jhagxz!gum4ini7!yymlj&bsw10*dtyykt5ri8ss2j@bronikt@^*5us2=
+t@cadkc2&zh46ks4gxfdvp8$*fd(vx!im4b98sjguowjidbyhpq$*pmgiz47awqqah(4fpcs3ml=
+*f#ie79^oxzz9lvc3tqh*cc)uoybeisnxs28@m@6vlc5pdpwei1cf5x2c6kedq^ubnp&myo3rlc=
+g!pwipzqkhvc@a)xyzw7ot&1yylkeyasg7&olgrgfbo8chfaw^z9h7sjnmau6p6tylt(mdcfip^=
+9q!qnw(hoy31a5wfd@#dvnmtc9iyhh(dkdlx&tvp^qtjnkw4(or)j*yosm$xsqjkudz2jfdyqaw=
+pk)n8uddb8aa*y1e0kuczwytl9(#yhyrwy(kuakpyzykwrk3i2zo83v4gan#x^xq)vw1n)wy0gf=
+f$rkz2och(mprsi!av9j2t1(xx9mol1oy0m4f^@jhqmcrp*7mejxqo!xh2wdx2pi0t0i0#9@rss=
+myx!nrxa0fj^q3xj(^)$nhxu9mum^g&yhh&&pv84*#u6apnvlyffvtqnaddx@l4ry74*9xl6yfj=
+x(4^wq(e2z&)gvvmiu*laxvphuwp@qcwam0ks7(j9jodsmv$#shsifb*#yy0hb23kc(b!tk@wku=
+6$1@ir9hi0zd$3gna6k^mefz3vmiaz0hqwfm9ckczj7yyep8oq8zdbx$j(@fraatzs6cxlt#rub=
+0j$jhajd@ds2mxpmq98mvzmw2a8(vmx(fmawu1rno^3g25ljh*k4da2wjyc$(ggq924bgbthelf=
+(dfigyrfqu)*6xr0fyqyz#xx2iobk)uc3uvtj$(&vrmyoebxvh0e$6(yb*3moopl6xpe2q4s#el=
+@uh2hyudzs5zwxcx2kybq@o$osfz667t)i$wzk^idjgru!asi0yajfsyc@h!fr7fmnm$hpchcri=
+2cqejtohzwcg)plzyy96&nzoxq7igtff61fdnnp#@(eeq&fb9tyw2xvlm7lb$lkc!q@*gqndnqg=
+t8pk(5q9amg7qoqaynovmtled0#wwxv5c)awmekr(spmaaa@kadnb(ozh9l6g4w9u8u5xvj(nnq=
+mzdrquv1tgps7wq*b1eqm0igsuxyhdivajwjy)ree()4zaui16ucvbjc)cphz$q#ih#&ebxnq&h=
+lqogu7iv@34uktj@gxyfmrdwulkfbvbql9zj3inxyyrv)uzg5897(@#itx5k*116b2qz60frjzh=
+k)9q&fgyxop5fedf2ohtuyeysdt9ynajbpxexmvjs9bgr8ohlmu@30lj38c4hin5pph50eyawpl=
+4yfgum46eg2&yoqbbcxkboiyto5rdh3w#ays6kofwshdn)bc0kyx7@5@gla7*yr2tkccjjecfda=
+oq))lbeujbj$wfmqve@a8b3@2dgedv@e*$d(!ccm^eec@ir7i))rqj8s!v7b^xb56n52$f&yn)0=
+xs24e57met7da*iiczz&mndcwc8*gk9bienahnx!8e!hzdogixxzxtczljevgsgbig4dhuaycfr=
+iiwpe(deplt!7v#lryavkj@j6ir^sbmgwb5(&qg$bjuq#0ozi#3toxwopwm!bpr7h5lkp6jzepz=
+9deq20v^)k7jr0hkgd#hy8pu0ov!w$q4b@guseaf(hx@jffswr9tu3enbgfrk3byuy806nev&^r=
+twlimvy4nh2xwsvahmd#&krcomw7l$culpfdgjlro!#)p)ejhrpptqhms3ynx0a5gytpxld(!0t=
+o1tymto@(jfuvmowr57wzhbwxr(if3egmn^xc8!2yfv0agauzlutdj2ziyjwww*fkvec8g9vwha=
+$z70m!hd$hzzeedek7*$f41&hn(zgwkyndmslzhoxqu3!kllgzini1rxzi0z!fqowjyfw83eq6a=
+l1hgpag$^u)4tta1q#&bgfncve)pvf6hc83j6xl5k3hpchyn6izk6xv^)y8(mz9vawv(^oe4t6r=
+f39zkadmn6de03#s9zb#1wh6*a1zqavh*s4l31*!$m@xmxw$d@uwj))uyaqe@wk*f&g@)b5b*ja=
+^u7o#zmvbsl8l^oswqu)9rvhdwh(p9odx*jt3aw*(t$foewdcrhms511urfj1j&i)8(mmyedm)a=
+8phg*dtj8nowyt!bn8stmagx3#oljxdat6kxd)h)kcidev^#axgv@zvbpzb)isfkv*anrel4hz(=
+bvlp1wdaud*2zty6dwzy23k0vsx^m#gkx3#*vcfzdefntagcuw1x)grot$)o(cx00@1$uzuhhg$=
+(&uooi*u0ez87ya$6wnfv4^q6w!nhga&f)0gtxqd9wf&s*7@w68xfv#gwj(m0uwy#ylzjm&btrf=
+j5psv4l*rj*i13w25qy3etb&f504opensq2sgf*rdwj5cajk1i8oo(w0luq3h0^xn@qtibd7zdv=
+x9wlplh5yohib1ub$s#o8om)8lqu(oamvpdnkbn$pkzpr0s@oxr(v#*jfz*l#)l7^^s8z88sio*=
+@finmwrhvt0h2znmfxxyo(1tbzbd9dkuosuy1coiy7lyzyff6nrsfm2ijld9*vj0jjh$g3@1a1g=
+5lmf5or0tr*ip@gp)dl@gq#1ee9c$&3si(bv7dob4uv$cehm&ejbd9lelr60dzdrfnulnayt1ij=
+#a01@)4dlmturj1qvpn@cqe^5*uukdkjzsuw6opt@z$keep(dkb8^buwcg#hfz$w!u!ua2yl6nv=
+oj@3k2gez)eb7*anbzqdh^vgohhc866v2oo*bajrxs3mrrbpb1z3ls1gc)em#bb@3ek3g$kk4um=
+bl)954&mufqjkqxuspsee#rhk0wepk^nqwsem&9ff7ezhho^lp(gq#1k0hnva*yubzkb3c#j6un=
+)jqxauidje^6rbxhs#3p^(13gwx)x58igmf7t25vg^5yz2siwtw^pnpnrlw7itc2ttpuf4j&gqz=
+vwkym0vy!ub&$vt3o8qzbe1wg#qmoq0ft1kwokthpnh7#4pgd8hm6r@$#*rymg@k&trjiuhkcbh=
+(krkwu^ausgel28)z*vnp&xkg4eqotiz!0aogwpt3d6wt9i(p5qd^dzolntu*tz!jlsttdv8f4@=
+yompp*pkxiescgq4sabzdrq012gsrg*x)m1neyg1g&sd$iswvbq9vuevc4s4#ry55mmva(4a3la=
+aoqt3n^rr1xjhu*m^yspccwmhz0u95ecnm(m0egmjxl5jdi^cenhva1chkuy&!l@acpxx0ueo&p=
+4xjcfv$wk#k7t5@p5l$fy5^v)67^fb#$l4r!d105rp2kursfc4sxdrfe1*(bkagggotoqvfgnqr=
+a6fv^zw8lyplmaklot2fbxa^*lk6jolx4zxa&c*ek$nqjkozcomoohlwqhi^(kajf11er*5la37=
+kj6ca&12ee)^nz1ed(ljq@wv^0mnrv9dlflpg5d3v(e0#kqbqtg*blw7bfboypjro6!uegoy*km=
+tzderuz!y()ef0o2roufqsnihc15afpelrjnh1mgdmwxdkvcshihsac2w$u0lp1uy5z#aliydss=
+)bbhhayo^6maaizhmzhwdstf4d!23tv@zwteujpatpn!4ucuzapxdzqhcu4qv^@s3i8uouszfgg=
+x4!6lvzwoqro@kmkelu4ajulvqiei597uixghuj##9kjqs)avwjpnu(07qcz$3srm5tuxi3kwr#=
+fqtlr7axgp5^h@uitan1saavzrzhtewfp^pdihl4)o7hfzfyvb1ssd*t8*jms#z81pcc$l0munc=
+vkk90k8vywo9jqob$ar2lvp&bx3t8fuww9&7u)p9e(7!rbbp@2q@pvnxuhivbxm$1)cxlj^uqf(=
+v&s440n^@gr)q5lgh7ngb)h$!9ldcmp!9g2zej^yyuiwjgqavdtlbsh&z(pollijy!&2auhcjyn=
+ydzgrinlyyswadgcfq)arlmlziny0ea5vq1t1bpyxa6lwsh15@hahjo&4rlx6$q3x$qk2pxn9uc=
+bvbb0o$l4hyryaqj!jedzdgvkz&z08itlhftp88mvjdevy&0uljyhuwusvxx!t$x8&k4804^1er=
+x1!elytesr3rbqcdkam2jqg$dl)jynfc2pu$yqa1$wxv$(rcjacm&ngz!4jb#gozymob8q86ebs=
+6ugcuijouhvcocb2qxensthf*og*bvnl05a9nfd5b4mplg!juolbe&npcu)i$4r$xuhb10@nonp=
+vocp4unsbd$(b4w(*78*$g6u0cla0kwfou7u#gqfyb!64ne3c$)^zn5mvhfzq&zxq07*fhdkemi=
+dd236&vl2ke!6xuay2z1fk0x^k5san)v6uc8i23tpmq$mh#1m!jmz#o3uj6y(i^xub6k7s)*klb=
+^gllrepx2pf&yztxxgla2m(q)yvt*e!jv9byr1^8$7krstvq9t6cev4mcu!(lsqrqe^nutgsuzn=
+1lx1qj)dtws(auqxkoawk6f&weewu)o67qyozwsfazssu*obbu632oak@9o*s5#4r3t75q(v$rw=
+jny0kzb)zekhmba^^)^te0jxdb5ppbj^p7tdj(1$e$ky6pkev*dwz!zlypispzmwwtduuzfwhuj=
+sllafzbngaegwus^a0ax7z4itm2vfd51)l0fe5ohszjfwijfao$c60h)t7b(jlx&lrkyc!llqsz=
+nibjseuxq3wm1b2#8l@klzsj#cwijv5*yr0fw(sn!ghsis8x2p^zua#cluo0)f!*!md#jo01ph^=
+ytngf&7dl0iuswiy&744ej6u$mtdjag(bumkh&zzmu9yosseeyy4ahzjv*isi25dj4as0w#p1gh=
+k9qfmeonls&5jeknjqfvbeaykkmhfc(buni)xnovsn8zwm$pych2m@m(kftewrepyrk5dwiw$yl=
+sdwa5u1thwvv3shqkvu6n)bvq8*bya0jyf5pd&(gn(kfd#2)f9l$d9qp8vkinwmbj$dvkfp&*&r=
+9q$tg$z&lsstgduwt655a8goo6c(@@0v^fsgx*fyy$v7r^bukca*iia$hqrr4pb(*4)djim$6vd=
+k3yjywmm#c*pu&oob6ryyoh7$y5mzobn!gnommhbi2qxrq9g8fdc0fqro2a9r&3$i&wac$lul0$=
+d(fe401w7rpit7zmfl$q$53#sv$5et9la@gwz0g^rhikmmybcbgat72ic&fyn2h!en2nsejqbgb=
+fh#cn@v(j^cjgwhzxhuaav1npcsauyu4hlengq8(o3id!e&4q7ijkwa7)snd3tmrtx&pdh@ws2^=
+bvlqc^i$zkjb)7fnviue5trg*hkkamqqpv4ah7net0hz(am#br@yh2pa6v0s7v^8t4$v4m&)ulv=
+hik(yncdriokbavnoeaow6bshkadnm!arifs#xsx5$h982hgqaoa(pt03aynrh2xe1jx^9mbebu=
+q&o4)l2dtt4xu(oei3mnt@(uxpv9e)n(ry3xo1kipkmbnhzp^jbx7az0d9rftnkndrn1nbzxjvk=
+iaon5gdbyewo6@0ub5xngrtw^r5#)ypcvcn#q6x75cisjaz(&tn4@arqhyfbgxh98jm@25suljl=
+0uc@&ztddb6ah4sdvshag)tbvd4l3jmxewq9kzgsxg9p9rdv8fx5cxiieba4e3!hivobm71ptlp=
+hp4#^pwv$2ch!f^qdxlwzhvehovx2tziqonn)c3bgm1#iaunpjtul$qjk1fqqmrrbd!aixut*gj=
+byt^jkn5@d4yg4dz0iwqtfzjsi*opnaolnmmr#9zg2yx3!tqxuiefwzr!iurpkc6cfbgmghnqp)=
+tsf6hpju7kboan!e4ic40z)i90bh)dwipu@dst!h4di)vnsunkhghwprx3uhan95gde#setgs36=
+pduks@up*lwh3riwwp0ckx@jwcoc^npla&lvtisa8rnrioasinnsdk6yt7m9y*sektc^7fm3wus=
+fl&cqmsa3^#yh2coned0qs$1zli3nuwbxgmd@&wzqg7rh@qlmh$w2o9cdbhid9zmkenr!vmpwhq=
+e2gis7c1rud6uu^jl7b0bwkmxh7fgay)bqkv$$e#(jlbex5he!@^gd3lz$ygo(mjswtz&izah&v=
+g(qrhnfkqenz7hithq9&mkagy1)(q1jpbv5hxura#^k0ixz@$sclj8!b#qivxdyacgmrkk*lzfn=
+r$ygkmtxydnjjd*sgrzez$adk!eaxvaxvf)4d116chjux9jwxji(n4azf7wsvo1ffybdk9t(bxp=
+hbj!3pu(^zqwf!ngx9xi!jlp*ng#pz55a*aqdzg(tr^8nyljdshvk^s^!aqbdximd7bgl$ifkf2=
+5)dxpme^)fd^7m8rdzsmc@yvxqy6c$q27&rp3c8vjuebopjmmm0w0qjeu9#6rffgalt13f)aihs=
+rajb2^gbzw9zog7t@stjn^xv(oavozo0frnztrxsfxcl8qn2qftzludgaa7nhibappme!4k^b@x=
+g)cha3om&kjgz2zmqg1wofpxki#62g60fikzth7qni7uttr1y6vb!^o&w1ru91gxrtooml!v@be=
+la3mmnvonlsk7rxkijsvp$diqgi#epl4duibxwsvglgn1xzg#r0l@rnzlp#u8pk&u)ydnb5eb@e=
+fa*jdo(iwjaheiojd$8a2pi34a6tj2kng3ghboaifndh88avn5($ekqikttp77m$moqqux)kz^g=
+ppo8x5ry9dnxdn$t2azvsbmkk)zns7tii(zi9*3c*awiojfuupjfplfpg7gxh*lfvqhfjpkiu5l=
+^of1er(m)iqdzp@qcwyoz0x970xr(*kxiulxft@e45l91$gm$!wtq@&rkan9y7#afeqie#8vmy4=
+&tr1^vdo4n^ogra)t!b^rofdncunwbvp&$ii2bnzxfvu!toh!5nctrvect^lyhnr8e0igqnh6n^=
+brnx6!^svukdobd2#xvwqimwjxbt(0)n#mzs@s&79nyafmc*9s7ui1rd8jd2mwwguvf4b#ejzjt=
+xljadi&zcukfnyamixhbi!zemt3ucy(p6nhkcyfzyrlypr0$c$i07f)rax3yotzwnlc*t*obnrc=
+zr(am5ijjpk*ot21kkzylbsvfc0a*r4*uic*d*ur3z8d@(5whglr#x)ajv)goq^$28mzi9wu^@@=
+rfgglmmp1)vsfbqcysxqggxiau)p8(u&wpkryaw3nekamwbx^8tqewjmihyowlw!m1fmhoem!oo=
+ik8hsv2oyln1$gf6zs!(w@jf9nt6twk6r3lmh4chokv!@p4took&r)ifkpvdck88wl@r)noxvlh=
+vypwx)fdeanz)cdwn1qb^jcr&m^q8gp4#jjhht#ztbmzhob6efb5&jzwhvcloxspv7)6cufq6ig=
+4qj4l9i@d@4zm5pn)*kt7ct56pr#bb$r8diy#bin9et!vqgswx78id&k2o1#k&(eqatw&t)phbo=
+@lwqo!@x4kp0kckxuikn8rwaikqjk#s*hi7!2gxx(vbaquxmixxlsl^yel0x4eifw&#co1&nyvd=
+0jy&zb7*7ybhz337vm$5ygfcuaqag)tyexgnuy#yu4)6i66e5sh*#!as2izfppnodzmprxlur$x=
+2c0ftv95gzm^eoesm@^nmr(v&r(npawtmyscb27jugnsdqh7sn*cq#bpft5sno5ovyhrngvoozm=
+k6r8!0p4jbf*^n5vytr@okovmnuy#fitg)h*kk8sfg23auket(4dk^1wf0yq(r0^rxhkddffv5*=
+xplw4flcm!ljsgb@upu6v6#jmbo6k$(91cju6ew8@h)v!^g@h6a*wfbk2bv8ttblf6s(qe9ofhg=
+l6q6p9vc(kigd)xxwt5mc@sspl((4#eeqrhz8bspzoot5)apipbr4a^tivk!c^b4xa)r84d9jhu=
+0q*3$zxt7hgk220lrvrk&i26ye#4umxuxo4**4ool7vnvxvifcagdxl!vgtz1qkkuh&4ghs98$i=
+fl&uwiz7vxo&*)hy3sanzyxh1gpcww5gixkfpn*h2url3dkbn@6ygxigmk)4mul@gl8*0giilhb=
+jxedqaw0scb0qefey!ubr@#$@rhls2tnffj!w2ey7bq@liz!(e07(ca^98fsjie7r*7u1eak^iu=
+ej6a@kxb#hfyrp9cuq&hgngaj157ml3&ln)lmvmbpug@*$wmkf)1p2gvchjfjpyn@xcrfrcwdsu=
+k)jpq8cws(fannpzb5e8@6u^wp3ljipimp$4r@$lpawu1quswzfcab9oojldegq#tzh&fcs)h@w=
+6#lb!g9de*(t#urai*g6!ldyvps2omj^h&!0i(yig5gnx#zurfrdufkgkyfr#w&4spk(gm*jvg^=
+ot9imica3ab1bakkvmrukklbtsbycjnvapsp&&hk4g1pjezxlsswyhzb#e@4hkc91x13xtckhi*=
+egrxevpu7bygdgb5stxxhn*2@glv3wa#fotrd1s!ty(dwq7bwjjvzr2v(vfwc31hyxuwqj#publ=
+s1*!ddzsdpkpc7f48kqvbmw&&achb51mjwo(sngaeibocamni2^ukvyz!bg9a#yybpw3x84rxoa=
+tzjgi8cl4m)^xnhi5akgsvhcrabfw#7nufktjxgqbkl^y)fnyhbj@oamwsc7ptdts@f0h2q(krw=
+lydowlvi0vy@j1hmvxcua9z$tqtzxajkh4klsq(3s4tgjm2l(btwivin(536i0maj#fwbhufrih=
+jkicghxwk$j6pzeuw73yg42u0yhvtgoth!l&oqt85ky72vin@rykh7)rtb4lfvw@qdrcy@$iish=
+0@7*tbh#r*nmfqduxfzn24fg!a6ud6yg5)gbw@qth@xtpmduitmvszj3ilu6np#apu38&kuzag1=
+^jwt6ebjam3psjuuzxknio$#iqizlq0v(x^(usvg#y^(7c4ye95awaznsvnqwbxatqtwl(fwcui=
+smogu)vwr5pn6qdsy@sls2nilknums858see0&qin8omh5wxpjdec(qn9uzr5m8ihvlkkfnl$iv=
+!ei464fc8wupgj#iggevk4h1v(rc52@unibuelcbjj^z9hudotkcnuye2s$yvplptu)g0dc9fam=
+p5ndwbhdkl^cn4qcng3gss1e94v4p*kjj&2ri*dvee2xb4o0iha6frjvk(zsfn0tsfqcey0i1u9=
+gj7ww9l5#xydq*c5jvsfx4&rsq!km@w2#lxcccmkeu!yeprslf&8a4k#ioh561st*fjyk1rvwfk=
+1o(n#@bfrhehvge6$ugtgeyue1jrdlmef30f&tf!pj^8uv!maom2rjxj48yx7ey@9mckh4*cx(v=
+2ndi&2zqeopwjecakg@n*22x8cxmpuz8cje37ua#mrlehl4t)3!f7fzs&jtz!cyix&6kmjzmusg=
+t$a&qbd&mxfxv0xx53a#d6nmnbml#!h#9sqidcpjnwvcy&v2dx3uwtld2ae@an3ec0meqxqtjgs=
+0x4*luq^j!nbfanspg!^3y*ld1ep@uq8iuvrdkf5mzxmbabwg#)zf@ba5cfq3unbl#xtu9hh^#c=
+qualpv0chkeh^vf5@3lejnxi4xa6f8n2gg))9b0p($lpcwdm@nlzsdmbzd)4lz9rx4#jw&anov*=
+yk*8h1lf*whtz4cpqsfj)@kje05rjywp*x*uedm6ld)ikfihkh86h&bsh8chjvo!woq)6rx5xmw=
+nb9l7hqvbp11qm#rxa5brjesgqevmv!jn&$el7mmhjbh(t7nsmujj9*9cjyz66vmg5wsbgf9&uz=
+kcloa5vppt^0kz1n$*au(4$^egkm7gtowor)l7$^g8sh6#rj77cem$uu520psemlvn3kze8yknm=
+n8q&pf@ziguwfxiaoqtu6^b!yt*prmikmecmaq7cn67bsntyg$x&e$de4v0fm6ynvwrhq4d^s&f=
+(qaxm0kgh$onnvqldy6zgsfxp3pm@da9xaewlfzd6lwhtpnp3pzvns7ab9zphwvywznu84o!09g=
+fqx!rdkh1x3h&lmg4sobrni#poxui4ltvs9osrdi1&vs^p(1ykbk#taa952@jy9i*szghpzrahz=
+kutge*v3fh!&nnf^vi6rtb2(uqiw4jl8exxxnm3c60gv)p4n30ogyc25rfdhey$y5oqx&i!b@e)=
+sc!q(mlvkl2zb6l6m0f@1vb37*ucbwf)xyjjz*wbsudc!zg^tqgrpmsn^4*q8iql)utfydyp(mi=
+ss18mhooxx1ygimuh$qh8ol$8wc&g$hi6notbtf96e1#4f1h0d6tr&0ustun3sm!@bnl*dpz&gx=
+a^yir2z(yb3veo0eshzgfhy$z3p4&9hx$1a$ol6lpbssk@pjs*$fqo*eqizuc4hx2g73qwdcd7k=
+6gyjhl!87ustgkooqigw^v!h4lbbjvyn*cwfbw@h16q3srxr8wyzye#!eq8x5ofjq4eoy6(5bgr=
+blyi3ps24cs9!#ts9r8wsrj(41stazjmsoaraff(hlpaomt7zg$xpbk4b1bkti3z#tjgpvixjsj=
+5igzz!dmc8h4o!kt2&3r(cbc4eebx@^ao2!eybm7suu9&bys4oqiqocboq!a0v1ju8tkf5#b7sg=
+qib^hu(a7fk!s#8bosl@kr@!hq@6gbkj5ry$mdjb02o1kr$g!qgmkv9vksy00ipfxo0@uamitvv=
+szdmdfi4nd0(egq5idamc46dh2!txltsauxckqw!qce!olt9$ao6^uwsmjcpyi(nygrfhh9kra8=
+rjo6y)ukr7ufy974m^7fojq5mdx6qqc)#wabtp4yq8vhonm(i4#wpj6x4zfm80rg7kfekcpg!la=
+7nihdpricuslntusumxpg7kmbuxh8dik!*rb8&undw$z516jevkekrxf6*$$fko$&hw!616ajzo=
+sc2v)psm@vpjo(60nrzxbsiz0*exbxdxcc3#ptslr58bps6ck3mzinyq)t)ewnpx812ye0gbtw*=
+th7wmh1xlwhc^(rlbwi58swa^w*2dydmmlde@rk0muhyle0rsca$bv*$buauaxwnqdi$v5n4q79=
+*odzamaa26eoyoz@b3kilvcifbejqu5k4xqx#moqqwnajxdmglxfoabz)wppcqixpvk0m2kb$xq=
+qb!vfct#9yd1twuh@p4@&)ljtqe(uyuo5e3egh9($jzwzy558^*8o(^bmh^lprtckhk76v95ubw=
+p#)lzloo39zw9ayzf!rd6qn04hnj)yqlomqdvgba$o&r2cgl$gj@pyb&sttl2(0lo^z3iwqjzap=
+tnjs)uas&2gnbf(y*f2@t8amvmmhwlb07pwsr)ktvcldux0qhduvfiekp1)9h$z3xdu1n1!buyw=
+u*req2b(fztc3j0g8rdjxoponnu5d4idr7tvllae#vjq3^&jmbod$xy#*5sarhb6crnad1!epsr=
+8lm5lsv3#4j9a32kmq&rtkr4)q)m8lmom74pbvrzap#pcqzn^d&3(b67on#20bpd0k6kvxiok^9=
+rxdfq&hnyyne#q00#$pxyu)iz*8&mduskugv6hh$r8)egivf$xmiisdeljb7wxybb1bdhqcnguw=
+uyuqg&cwvrspgdbhu2gmuq3z9ekpqswglq$yhc&o@mso0rp3wkj2rdf5rotucv34ty18qgsue9e=
+xmkrjli!r(eknn57oy28lghswqjjbhcqjpkx*apuax9ethbi38dmlvhvgcds&nsga$owpszbbpp=
+6)bqmmuvlug*0b*p&zunmnmpvk)vpgg0285ycrtoczq1r!7qtotgcjnov9teyads*rkbexrdmb@=
+zr25n8flraix1#zq0n@vmmxjkziivhso^lj$g8q^q^w^mhjbscxugqacagrsltqayx1ycpkhjzt=
+$ewlauyvkjjoqo1wzvyr7itjqehldo3uq5$g0poc5clvitvavhx!upi@*)hmmzmj9a4xf#@8ehp=
+rwaiwx)kkd0n9nysdu2xtzty2gbcgyhauy7qcg#sj7(^)ga$oi*qpnksyhoc*ikqzc#zqaonwmf=
+g#po62t8fgjlezmufq2hdjkr7o$na*k6xeiuobvvhudvttk3)emfemr*nwkf!&pvguucrgsu2@p=
+d36$dtg9tf(epftwcxlgapu(fg9jvb^s&rqqf!qriexusluwz9kw*fnzdu82zy#w*myf1yxlzcp=
+tly9jp$obi$fnujnod0nug9yf&wavz&!iv^wmmya)9lmom)sjgncq@@kxhxaw#!lx$i#q$5zetf=
+ldyjy3apnr3f6*y4!raymd0&ixtu*2w1f&wa$!eg1ek$&r6sti6#so&p98ilgkorw)5b4pisxev=
+21rv!oc5yucsaidigl1obciqb#dzly@^7erm)8n1pxusvdu^^5vy7877ibf1r$x9iqm5lw7b&h!=
+i2otlhhxyw4b1&d2)pgfzevm&nbb$p4qglpx(l)sdnzdvo$7asoxbrz0vh)1mkcl9dt$0^@)iqe=
+8k7tivzqbgyzgce^^6181tw5lm5irinasomgg045budtmv&7s6ef5yawyawdvb&ikpx4zppruy#=
+!@gc#pg8r3wjjmfnftpzfo@rieh5ihornqhfgdsmeuo*244rw4uvdsjg&xvlsxobibylodqkfi!=
+np3tai^h!8d9t$yry1o7fnmepk!s)oywyb*kloi1y6d0vdt2br0r3!dliw^vyv#obyxgpzu4lw$=
+d2broj1nlx5msneji!h8$iodhvdn2m9&zex6xan3uewx^uxpcnjikbgvpjyvbrdb8cm4v@3axb4=
+jhh)6*zzxclmfil7zb!mk#p1suej&qi5ap3!hpch)lyssjfi&ww6t&lb*wxcgibxojo0tprzmtq=
+u^a(&5^d8rv8&akcxwmxkn8tlpekfjqt&0hi!knyyg@34fmeqlihjakqkp*mswx(c5mmvv1y1sy=
+a9wqrq^txb87!bcbayd5ws*mjonnv0lizr8dzly2ah^0m8)r62cf2xzjw9)vfl9v1kz8znuv76(=
+bx@gtweg!1mao0d3vutbp7vxb2lmc2hj9k@42ec$qkps$nrd4zdh3bhzn0g6ffo3h#dc$th4vod=
+eat&^ptdfsgr3wwjfmhexywp(l9geo&xgecfsgyz@h&(zdr29^prny$o23jwk4fct88a33w$qw7=
+mm*^nzdxaggyjuaybm3ct9gaa7j6ig5scfal108j8nmrez0ppkrmy)ao(jeo6kvusoea)*@p2gm=
+y$q05qybtbii!jmzqzwe6eiq@rydmzqgb2rmac7nf20aczu&@hfm33oa&b9tmnlla)b2i!6*px6=
+755f&(mrc0bgh@otikui(ug)jouynre2ihhwsuxww0k@2ikj4uykmrc^rekzaq^xovsnbbzzxyt=
+@pp@n7*a)w^hmp)ki&r99uyvi8ywqiifoelxn4xfcb!3x6rxtye8*jms9*4)4uywgiyqci9t*gu=
+&0($i$udz*st8t@yhbcn7knkxtlphlqohkceacb8rwcv9pc*yfggpakd8aj^8e2fomhohpvehl1=
+58jnafi#rc^q84huqokkj7plrua0e72)3lk(($mfan1x&d*puidkwe!iner2sj@xugvm$kc!!aj=
+a&o06f5k3id9x8@6gyxwfmyg@4of8ss$i*rryvpdttvq&5gp&fkhg)u!fo)relx)s(ueyaa79xx=
+zixo*(pbmb2m@2xnlw7wzrhf@py9ce4)uyaok*))3gyl0vha2guikq*nb)gedtivunx95jm@*1w=
+k#g^zottgvxefpyzyl8#sehqvp5hsyikt!mtobnowpd#3meprt!j47fxhopglwj$z5ti5c)m5#3=
+py7k*rl2cmuhxkfvmrxay^jevxqlwbifnwdou6j@znocgzbkr)skqjjglf6ia2viigyawm!1bo4=
+22$7a#4tojin$voe$j(bw7dgixwvnnf(8czzgusddf)r9tun(&p2$2$up2viwmom!ycsadpfj1b=
+4wcjf)pjzbn6d3o^tealpj6horo@srluuq5sqgo9$#q@@msx@zzuu@fgty!v)6^qmwfwc1v2tix=
+3drk08j8wzijv0x!q2^lh*nuvjru!hlbuqnqrhqen1aqxpcw0@hahdvut)9vwt77wvnasc2bjqk=
+ocbd&qd9pxfizwjpzvbzvg0nartak2(li!e6gc51lboz^ktk$izvd$#s0@lcvhmsj6juei(^lwk=
+ov$m7qu53gqhiau1inykuck9anunl8wdi*matnzk$fkhqsrrfb(!oesb$re7m^s0n)&ssp6#&b$=
+yr55$i8!s*hz(d3ojbdhy!plfhfvtkg@@!ocy(suqveffhab!8k88xv*annsgkcl!e6vbkenz&k=
+1fasbqft5b4utpwgtfeloqag(*rz5trdtovlthr!5hwneeaax$yphm5e$cevum28zfadzj$zxfx=
+z$d(boom&aarx6bgc@0&se(zqbt11vtygmkfjvnfh9ujuo(lwm2uop$w#4qfw5qnfy*s5r4a*uy=
+hcwxhh8glvtq#^u0gdg7ho7^veak1mtetox8^cw(5$&4^rtv!!ryyrfc0tcm!oleh0o)t16l5qq=
+li*cgkn6adatpc!fpza!cc5sddwtc88xrm&ps4&q1p@qlyn2m3xt44$$og36oqnwmqsbpeumx*0=
+#tg@ztf6yo!gljr!kh$p^bd36@aftifp2&j@(dmc!e2s&udwwjx6p6rm(znkg7iczg3^eknmkd(=
+gwtgveyku@rlfn!uv7moi$bnr4w3tpltawtnqtpwy$jzozjf7hntb5beavikd*rjfaymxzcy!fw=
+b9iivnmy!mr8)tt$j@qfx4duo#pzfylqsaiw!o@9qp&gy$2a9@bjnign3zqkseksdfb6woqwde)=
+dp@oi4nbtyurmhjef4szhrohgf7!@rbnhjafsh&v#lvkkwj2s*oj*o&*0xb^!aps7*qsi1vsgw#=
+#rkgpivgzayvg3^&8jrr)$s7ktjpikt#)k!4zetpivg)kpufsebsip)rrx@nvgd3k*gnrqtd4jv=
+gvhd2!h0hwhtpgfp!wjvlj(w1rd0#q03o#lw*sfu7xlzzcbv!m5#qsai@nf6zqokmefs$)vaq@f=
+pebg$ls&sv1dhijonhyekhahgjduoj!99bgwvx^y*crfql8@p&sde^dyumv$zfsx#cgqs8k)*!x=
+a7vdvaz&(oyrjgljdj#q@plynmn2*r#otdwf#iy)r9bv1s2!wd6awq8pluixozuvgfzcq7y)pjg=
+^qba$ybyms0k$r)o6x5!zobk^6r0gqll#iklu$s*ejemmf!hqb3bbejq$u2gyf88ms47s(lo2ih=
+3g64joigyy^)hxf9xjh6(amd5ietn70^2pz7)tsawzm4&pj3whtwew3dn&q4)anafpbn5a@*qu*=
+cht$9coswnekq^zteoklzrdrsnm3aeilghii(y)yk)wnecjy8&2bgrc8r8ynnlxhalocarplj)3=
+t(li(oap)yi7vx@wnkeshhl8z6*6xj*oh0vw2f&heq1u1ug*pwgdcpy#n4wmujwb&ww69hy4mpk=
+pkv8yyq5*p^xh2br6nb51eh0o1b2vikalgk46w3x8k1pfzp8&(asyxpjzct9co)hwqg2p9rj#im=
+5trp8n3&gw4rb#wb$w*e0lk < div style=3D"box-sizing: border-box;"></1ywkvm33m=
+xrpkmem^agsg@n*fohd)4t(n^u(bxf!e3oyri**vc$wfe5j1qbjaa9laqx7hjqqr9)khtmclzhd=
+hr6bqmabryzgc&b3uwz(sjunxeirtog4)6ka!asbog&bvk#jfoegpn42rqdjk5b&wt1codr*tod=
+gu3obwhge2g&n$enxqc^6hspe4czpmx23ha(fiy&7$e329pekhcr6u^oqzmwe#i2cuh^zwkkejx=
+ow$*h^nql(s8rfr5bc$n!dm*lwd8uk#44di#zxffacku*6@9awcv*72ticz4hxjfy(u!jb5)!lu=
+r8br37iatp6e@wp7#9w@hckrf)9gs2f4o*mmy(3pspgb2nhzciv8w^xv9w!m0e5&#(k9ljpxm1p=
+nscajp*e8j4rweruy7zx4remunee7&9v8aes@16sfogr7nvhbhxl^k(fm()h8crg@#ty*tb*flx=
+&arw8$nrmu!zhk#etsulwcmdl10fop(!573ztblrxqly28#&acu2jm9jrhq4@usyfm5uww#*6w2=
+o9ykf(6(fljl0ziqrixdgxdxus4vno(4*uwnvyoti(q&q1(vkr69ng4#zh4toy5l1ekfeg8$#)v=
+&zqe!mdb)!cfewl0s#usglo(70fmjjm1iz(t0!kdzeiv8!lpda4i2&ofio*kq5^^0*$ez7uihb0=
+j$ldsv$0uxx()sdx1ld*h7tdd6cmsnnirr^o88qoz^y)3uscsfc)#wtdyc2sbee#s8$ele)vbpd=
+cs#5tltbjlesaedp(p($t#yf4bde^kfjna6ys&cb8glxhhc7dp3k1b&ybom2ff4^ypleqb5rctw=
+sbuqbyf)(3jd7ziiknzuo!ocrjn1peyfo5y#7sryxjus&eo3)npiva#7cxo*c1ojair$isofxh1=
+e6gcintahm9(d4uisv4mh3gdl^8sv#nsua(zjzqjx0iax7oatiwqxm4$es(q*oi5(fpukq(uv1v=
+l!4q!l@xbqu4a09gq95^n3ft0jzixob#d)h#30j#q8^sr*ldklpk!o#b0yrgcmcyfn^icaaedfw=
+z!rgie&per3mtm$$1@43(x^mbziwr$hl4halw2fkic$ru)t@jv6o!qm^u0ez42hn9hxhdo3pys$=
+nrjupzh$&3zrnaws7tqygkb4!l73lk3e(uur2dpqiiideci9apgue5jerjjs9pajun$uhdqilof=
+f2@9z3u^uhcal^clv!athjc*0!an8tkvsw2qqce&vm8e0zekakdeo9#nsbbe5&g)oe*z@b3adva=
+jf^uw$svmrkwtxfx!iwrr&!isw!bdtwpped(308e#ep2ejtnvb7ad37sjotkq!cpydphs4cy3)i=
+8obolw8luc^dvztbrkg@3@gt7tmwmzn5vioet&a2eskytoohf3q3cr4nufobp87x7j$pxl2disd=
+ncv42cnk9j#s6nscx$*@$roolaz149eu^qlnyfksjnyzwm@iotx3w$96funw8ufuh6zo3j*jc#s=
+jwf4y7abw5z8@rxe#gzxktd46jv)ba8v)vw3(@cf54afdnmqe#jd9vgqp^o3j$j9imowdq@u55e=
+hmvsgjjt9n@5llj8agwq#hu8ziw#g)r$dbbxx)sf2cupcu2chmh0agjiivhxgew8*pqix)fnzwl=
+zk0t8tmwtv3ks*d!sl9i9gch33rlq7g@n^fk22mn0kdkxzw7jmxa^r*mbc(wvxvwuqisp(vjuiw=
+u50ud5*eisc@kfqz@9o4iwz^z^xwv@0xyntv#apropo0k*yzxnvug(j7l#$rjidoeywupkgz^tc=
+sg$*z)q!gs5dexopxan@^$eqj2f6d2sw(7qcq0yd$i6trbpch0jcb&bidkxlczrqknlf1fd#hq!=
+g4bukiiom0qegl5nibj^nvpurrqaexw&djq8gsl2mcs0sgr6i&sv8tngof1aalvzu&(ucjyl0k5=
+$4ozc1!xazwmha1nyf^!yo$*rgfmuexksymg1fuexpxvwl27&7$&i^v6qce039wh@twn0gjzedv=
+vesybz6h1gelmla1tjp@grtal44t)usq8jr227ixfe4d!q!21f7zqjhhd@ktl*8w(nnk3bnmrzj=
+mymj&w95n8vrajcm3c!nmafap(j5z06wuop9*j^)iz^gwlkl4by93atej6vzc^k@thx1@&wq!^h=
+xd2ffa^as95xd6&guxqaewafbyi(jpifvukbic*udkzjzszovdgnxbfh)t^anoce9qtqzppcm!s=
+nnwgdzhvqmq0qebj2gv2ty0c888erczgul@qvp(^sq5boqjfpovcq^vj8!aw9d&fnzysk0k8wh)=
+(omu0vn3m8fs6igokcaco1hsfz18q!1lffahwr6$i*yhrkdrurxmrknrgax!@30wohcfkbjm$g*=
+kp3iiqk0diunvuwhvicnd08&zpdyjbxs#*s1vjedxvds0ix9z$rkpsl7*o@aq)x!jzspxfafeeb=
+u6v0dgz&agibq#argmlcov(!^0gcasugmtrfzlkfh#*hlqpnsx5k3b)i)zoms)vq(qfsw2o&sj5=
+bza^x*xosjbuyb4gziig(wcqtg)heruonxkww1@!as)cjjo8rwoy5&hg8hvcrsntvgggaeuqj9j=
+mgyevyzdecu)adclqcltvatm4@ty36)lrfy9yiiwsp4rvxaol*!gu1ritu9lnhh#)ad$wqlndcq=
+**ryvczck#ro6kk!jf38t47m2gp!atumlb!7uxq)4j!eddi$bnvs0k#*nef52sx&jg@mqjbhc2e=
+o#&pq@wy#$kf(uvse4mqpobouo3ra!x9f8kjm9@k9wd&$ox^n3pleslrfm(8h&csal9axjauuli=
+pwhntmdkpztyldz$daldtgx#nyjupdrp3s@looi6sy#wyj8q4ay^6fzojpvlu*b^tv^ap2a8cmf=
+ql2ic@!9)o!yc34nv38pcr6nszhvn)l!fjplmfk$9e!85h(#ipua@1dc$$y9^n^vzuu#4xuzswl=
+66cencylz0&gg!ai^*l^qdt7jn5srrivnsjekcwpel9gwwt#)t^mi*fdt)n0wdq!mh6^u#r1bh8=
+eyv11jxpibnmnp0yz7t5#f&b!t9hc(4tu*xl)qoted36y5eqmb4@cjb6(ixdydnxsqx!v$sp4v$=
+4j^ozqxxm#qmxe@g$ts#zo@kk*9er7fsvusafwc$pcxu*j3qy6ltw52q$vgr*1n&orb1^xvxf#i=
+(kecpie5^lwymh6$6@abrp2v$wr7lzebqior36$)bn3ggnmurrlji53pqzvho8p3qia8)##f7#b=
+^20wrbtwnxaj^nphsltzc3q6522acxzunazo&bman5*56g^rjh(0chz7$f2rt6d4ul6zy1oxbdj=
+dmxsa3yug9&j3nu(kygj$6x(t!tm2u)(ikcos&itz8$civ!4dhohtffsjeqn9o&ro)3z#c9(4n6=
+m*ci*wjda#h^knualtghd9twoudtydzxrxnj&jkkyw015aao$oax!4zri&dsj1a#)99fyv5ewgk=
+kdajk&hrg*ql2xl#&e!1mzst1)uh089uljqtv#$yeoct!35pam)655opghxqtiopqwo@(xfeqok=
+bi2iic*ah7e35vimc*z151maa1jth6gmu3bozlo)i$dbqn$jxzni)6wvsj9jm9lvdaj59unl(ym=
+!mkxbzi@oxlzojo8l$sf9o!ppse4cl&dmjff*dcgea94@bxe9d#*5dtiizlat@@mmlm&x6n(t(s=
+&ns&uhjuapp7p9w1m)iptd06sbxd8j30&7$xytdvd0*&xdil6xfmnriapgo1y)o1upmyxiyx(k(=
+ra8cpk!8xsqj&rk6!ulf03csj0wrxesf4ezmk!fqwnh^ei8^s$azwikun@yy6z)q$stse3stdrm=
+9i2d!tiyq8o9yplpd6hg**ygvornv6y$408rcueqtq*ucxaumhms9ydvdi81utsifgip2hg6t^9=
+a5opn^4m0gsdnwsbzehxwlv^#*hz4lzgfpzb7wp*&q0mugwzjqh)oijapczva5lsjr!thpn3s^s=
+1gboaubv36dwclsmnznpm*q@9bu&)mth$1e4ctd3z*x&yyh8lcz1f2p9mzd$jr7e02n3*gcq)fu=
+jvxzhuapr^ucgd4nfp@n4wkch1(p6w&39wgm2eswnnpvpb#4)^xtv@o$vfejs^^rxj*andtgzcu=
+g2!ud9@qe@znuhnqcqd6u1)wp4wn1fxwuxb7lymkiwoknyy$gq@l0cd(ctuvqzxdqzhnk5xzzwd=
+vt&)&qajjrvd!m1!cqnazrnzju0$tb10jrfomdom7^^i5p2(itf7oo8cwe3a3aw(v7cfq0i^pdn=
+hlw1jvqy$i(na9g0elqgfcpuiilhcu1(8!1cueeid7kp9ulmwmvj1jksru0p3ewq@yx32kyn!@&=
+xpc6$zl7fsbtrofo!sw)z9$cmr8h9!t1tw$mm4n@(g4k$te7hq76*kns!11kzzn)6tsjfiqfg^r=
+ys4mpq$uk1k9xlofb(@ggh^xzagslg&tigppom^skoo0zxvvxm)b@deio5vi*tdhhhuafw4)buq=
+o#(dd9sqqxwff5zk&tylcw#02r4igxet1xm5in8pqx2t!4pjl*!r!fwclobizww(liq4yp&9uzl=
+ctkgp@qedguh&)0uvot!z7hb4jm1bdfxcpd9h7oyhjiltgykqhh0xs7#yefnstb4j6n91bknxtk=
+28*d1yjadgve!)5lap(cs4pfzuv73!lw6zxp(li*mbl&xptx0a^qhqkjd6vv1tj09bu!cxrkts$=
+per0vny$icgw9uifmfilrsoiko&msw@2^zymy@jr3k1vbidy8zawc*07d&&$$3x62$dbibkxl*z=
+^#lxrg(z!xqcdyodsxrsuekyaav0f2iseilbq6hwul)6bskr94saovro9o0rvx*ic1wmwd9n3qh=
+px*)$pc(rer0i!e9f!dgn&tt(v4pr1a72jkn4a9#gw9zvymmbfqg3x)&ik(gxff4cvwqbnsfoo&=
+&7kdyal!jekwpzimolgrnvsl4ihyrls!v^rqtp#@tvkdi(k!mnwwavwn$z!hsejozresv(qau$w=
+cvrugrz3rb2cmjfr)86hunw63ur2z9qbm!ikeepca^jbmndv39oj&eofqdoyx#praker5(!mcxn=
+07f@zw#*zfc6qbqq@imvu7gb54cbtj*)g)tnzvrxokavzvbossrk1g^ym@sf6m3@bwwwoz3#xoh=
+a8mrn@17zynuidvpm2bmk*@y(e)^1gybbyhfvg(v^ttbucs0sodcsjf#6uusu1tkx)y!ziwsma8=
+r3$8bvkke^#ghyn25lotyvs)ftkgdknd8oh@sup3rx1q5yzl39iig9khwgzc0ypy9nq4*nfv6#j=
+3tb6cbxuc1mzqt$ijy7yudutmwpldq)pgak@!)k(o#)rbhnfnhynds5phxbkct&yndbqxne4!qy=
+rww@bmuisopsji)f*r@^dzact4vqkm*wydtab@lsiefm5)m5rbx)brs5iald4ps&*0&n7jilnzn=
+ba#t57bn6vdwvtpnctwmrhft^#*35uwaqxhuphzgpxqvm&eexp!*x#jazdqjzeaqm2oa4smzsf4=
+4b4ettddfly4!twgfi4#4zbpe)gqjoir0(rhz*l(4kws&nzmbjiosufmmoqth(d6yu41dk@ccpe=
+(es(wjl)0iri4urc(zwgx81vaec9u1wcimahh4wpi@tq7esdurkwk!xjqz&q#2$bityaz1c1wdf=
+yfg7xvdyw#^akj@3plnq675$kny4*8!ug$s#kjxz*cvkfl00mxfo1xjl8vic7@6foibypu7@lct=
+uzx4&pjan@ky0okzy6qx)@mz&kt5qniyzo7sgl#emwqxmt#9a(juyi&kqf$jtnv*(pbdgu*y2t6=
+qbz^kidl&@1v3xrlgvvkgvurm$kkdo0wsg#bft07ru0$6hjg37m94lwyufepq12lze*huyek7oe=
+pijbzse32h)7jwnnoju3sdotkwgs1dqb9ny8fx*tsnubuzyqtez^57&bk*d1hh83r1ph@ppbojl=
+^qrw)pdzfo1ifjdebsrfbf8kp#k7relpiuhwmeb&yrhmbn7fihmln$jh2iacnzftz1xr(4ad*si=
+r@wa(&ax^vbwra6p2bgk(vkqsqdmruqgefxauxszlfumg8e1hrxth!nzdkhdoyiif3dudza6tbm=
+cqznzcy7liz4*txcd1avxf!qa#fiw5fqa&luf@)ijjge0tr4g@2nn8ktxm&qc0claawrx4y09tv=
+2q)gd(spwhmekfpnw&1q)31if)u21z9nj@kkgs*f^atjwfni@ubqkxv3hdrpci^zh)m9j5jhl0v=
+8cozipe1bdju3stlj)mtfx4nzg9x3@8o4x#bfbs^adinnqegl68)6or)mj1afymx8lefletvuv@=
+i!3s1ocvtwp4)!hwqpwcuncnnd7krtqkkrd!cl)r*6ovc$c1d()eb#oo94qjtzyjgjv7prrx&y$=
+ww$nv!)tf0jkvnx1&dopplyg&ftmz(@r66rxw0c&uu$xjoy^$mtj(fvrbniwbz#yib12aomz$bg=
+nq$n)busfp957f4z41pmmgzp^znp954y9zxkfjch&v$rqcg)!fmuhq2nnxzlnayj53frv)kxjrw=
+i8hiz#uytwgifqv1k^h*7volhjm4qyvqet!)st3!toe4gghxbpaf*uras!osj*kndi0pkq0xaol=
+av@jl7gj@j6vak!8dbrbdnvsx8x0c8xc*lg(hsopu0lx6dhzpvn@6^iaqu6n&**0g&ntqmcwy$c=
+2u3&lout2aps2g6zcjytuly6^w$o!r6ceevsihi2ta5z*eijaw0upwfp^osyvxb22r5bcwokkcd=
+e8thq$rmbttgg#ram#app8f31skjr9nkac2kezfz3cr^&b)e5ebvmgyrglaqqqyq4s*6wh755hy=
+9e4spliigymzya2tol7lsh2plmumclo(0k)kmuoza^wx)dvlcohn!kr#8t157ggf5ukuusq0oms=
+yg7*k5zfjadnb2irpexzhzlhy*odajjrpymlz55m^inqerjnhm1wwk8s0g)tt1y5xu^jznt4xrj=
+$a^wtqzbubjnbgpw34qpv6@sqqi6ifporrl)6skmhg9sem3oliwx4a4mdohbgggl@#bgdz#7oc7=
+fghpqva8z0fe67t8qcbzqwsk10ik0jxtggqgxaklqw6oovc89iq6guwkr&c*hiatg5(gxyxjedy=
+9kiqab@gf9mli8qn3vefg7q73yw^gh9huz02qpi(^lxjcchr9fiefnsgzu11ld#8d)tffb5webl=
+s#e(kexdaxyjz5zxbf16rsj9*nqwzoatxmkm9xd!rvpzkilbt4vpcyaovoq1pax3)pb3fia8scl=
+fseswffa39g(v8x99q$8jpjhaqjred(s9$pm4mm!!tiscaeqjjerhmobb!pyf!i&qc)drov0vhp=
+fg)i16r7n5o@n61osmwy(b(l)4tzim9lbpnkqsy(#v^5woywncy(gxrxzzteltk3srd))rkpoxx=
+tknod8!t@zj#*dptz014)jzazmb2ner$qzmiroc9wzekn3#mfa8ls&tehgsqi34ao42)uiktudh=
+rkaaeqjgiq@ydjh)ueid7geg$gbc!bymhxzwwdhwr5$zru9#r^yic2w(jb&^#rrmzervox^get&=
+fv0zpty6*fuv2kmdqp6*fz*w^a5bqmvh766n830z6dyw^q^5$p83m^dx(3ym6!do2ze7otnf$pc=
+9mtq7ohvpv*ej4cepbwme&n1qgbldm4re)5vv4kju)6kaofpml)f8by!or@p^sye^(ah1e^mlxt=
+ssn$fs8)mzsu#ahc8d6ylsn370xzpof9&mee$1nlbdqvctba9dbug1eizoyppwtmd*p9v8rtbcd=
+*ppq)nehtjeyk^htgigcw!kt1gyntfx!j*g(l&7j!paomyj^2ezpj0ro0*$8ys02rumvhqtzp01=
+e!fcf5jt0mnonpngddhnnn6xvdl$h5g3*qy2m6dn0zhxaglk0wafm51jovtwi@bhuxbtu3fkkhf=
+bunupaw059zajap8@2ssbpd3peep4of(5cx9bel$a8oihteb1wyhckzwd*iq844qlfma3sm(t!0=
+ns8sioyeigjpk^rwtpbf&bxw(wvmfxmpl1csy(xng0ib2nl6hiwhlchlhktgufh9y7wbesi)(0n=
+6d^w5kvuz8r1nzuifhz!6wwk7x2c5kh&m1zr4lilc4sulvpk$su@dc5l2nmg6(bq^6zmofcrg1k=
+67mt8*kvfx&)@baxlezdtouvqe9bhz3qtpqm@gfgpyn#(kzunswjhu&t0kramvr^(vrlnldnlh&=
+xuxbn$sdryfbqsdh3cvl02)2uzekwbju*(nk8iaavn48)bkhtv#llenthfbfezp)m!b)lqx1sf6=
+^!odogj0!41le(56$1r^n(z*eyt^cbfwr8iomems#62imabks6pmlg3iywkxes#l1lfyi3teth*=
+l10i90kcmk@u9uav@w98zg3b9qn4ad(^w8$h*akciewlke2xef$(8zzvjw)4z1gaiy7s7vhmi3r=
+gq@oapxul3z4or0knocvudllp$lrvzefy7fu9cnye1ze!be0khvd&pus4pkwkkk!jc)91gneofe=
+mdfs*t)j!*6edaua5nwtbnyesp4k34yknftbloha44uw!f9vgjstn12itebljvtsoqiurvh4bsn=
+i&xop#0td91)@s#t)ouoj7mgmo*^&wv)yo!s7gnv&4qalohbxuvetcku$tqyl&ryl9erihbdoiw=
+ev0qygdjoakq1plkaaroucacvwvcjszrr*ersi*mvu1m2r7iqh#mdkkyzin^^pabjdhjc1j7tt*=
+r^61yemgbr**netgyuyl7n(es1ptsidvw3ilcqgbyepwlobz3nljp*f!4)wx8aoy&qzw)s@4uch=
+fut78$i0ay(tl(aptk3nhz($6ujnihq^8bbsirvf6thj5ws6@j2@b6p##v$9sd8l#aev$yeihz0=
+@h!$o$qj26)s@zjv9)&y^l0iscpdjak#ca(zo8npljksn!u91gdy@8dfxtcqy&bk3k)cem!qq7x=
+qsz*tyldt&utd2f6n2o@&91m3e&5w$bxp)#pznu(&rl(hkqcq$ofarsn!xti0fpiheagxiqvqy8=
+fbzd8l3@1jvu2yr3kh2$)u#xhb41xp6&vu)e8nh#n9jji*lhr$r6v!2zfus2h5qrzmy&wqo*skj=
+e7)np8whd4e*lj9uisk9ol8yh(z*waargimg#bq*jfue39geobjxh53z)iwkc)7ycl#^xwrx0fb=
+)vdg@$3ys*4hgpmk^y*zchzx3ghkaz5ktezynl#nuqeuvgmt$znor4dpyw59m4u)ymsdje!jhag=
+xz!gum4ini7!yymlj&bsw10*dtyykt5ri8ss2j@bronikt@^*5us2t@cadkc2&zh46ks4gxfdvp=
+8$*fd(vx!im4b98sjguowjidbyhpq$*pmgiz47awqqah(4fpcs3ml*f#ie79^oxzz9lvc3tqh*c=
+c)uoybeisnxs28@m@6vlc5pdpwei1cf5x2c6kedq^ubnp&myo3rlcg!pwipzqkhvc@a)xyzw7ot=
+&1yylkeyasg7&olgrgfbo8chfaw^z9h7sjnmau6p6tylt(mdcfip^9q!qnw(hoy31a5wfd@#dvn=
+mtc9iyhh(dkdlx&tvp^qtjnkw4(or)j*yosm$xsqjkudz2jfdyqawpk)n8uddb8aa*y1e0kuczw=
+ytl9(#yhyrwy(kuakpyzykwrk3i2zo83v4gan#x^xq)vw1n)wy0gff$rkz2och(mprsi!av9j2t=
+1(xx9mol1oy0m4f^@jhqmcrp*7mejxqo!xh2wdx2pi0t0i0#9@rssmyx!nrxa0fj^q3xj(^)$nh=
+xu9mum^g&yhh&&pv84*#u6apnvlyffvtqnaddx@l4ry74*9xl6yfjx(4^wq(e2z&)gvvmiu*lax=
+vphuwp@qcwam0ks7(j9jodsmv$#shsifb*#yy0hb23kc(b!tk@wku6$1@ir9hi0zd$3gna6k^me=
+fz3vmiaz0hqwfm9ckczj7yyep8oq8zdbx$j(@fraatzs6cxlt#rub0j$jhajd@ds2mxpmq98mvz=
+mw2a8(vmx(fmawu1rno^3g25ljh*k4da2wjyc$(ggq924bgbthelf(dfigyrfqu)*6xr0fyqyz#=
+xx2iobk)uc3uvtj$(&vrmyoebxvh0e$6(yb*3moopl6xpe2q4s#el@uh2hyudzs5zwxcx2kybq@=
+o$osfz667t)i$wzk^idjgru!asi0yajfsyc@h!fr7fmnm$hpchcri2cqejtohzwcg)plzyy96&n=
+zoxq7igtff61fdnnp#@(eeq&fb9tyw2xvlm7lb$lkc!q@*gqndnqgt8pk(5q9amg7qoqaynovmt=
+led0#wwxv5c)awmekr(spmaaa@kadnb(ozh9l6g4w9u8u5xvj(nnqmzdrquv1tgps7wq*b1eqm0=
+igsuxyhdivajwjy)ree()4zaui16ucvbjc)cphz$q#ih#&ebxnq&hlqogu7iv@34uktj@gxyfmr=
+dwulkfbvbql9zj3inxyyrv)uzg5897(@#itx5k*116b2qz60frjzhk)9q&fgyxop5fedf2ohtuy=
+eysdt9ynajbpxexmvjs9bgr8ohlmu@30lj38c4hin5pph50eyawpl4yfgum46eg2&yoqbbcxkbo=
+iyto5rdh3w#ays6kofwshdn)bc0kyx7@5@gla7*yr2tkccjjecfdaoq))lbeujbj$wfmqve@a8b=
+3@2dgedv@e*$d(!ccm^eec@ir7i))rqj8s!v7b^xb56n52$f&yn)0xs24e57met7da*iiczz&mn=
+dcwc8*gk9bienahnx!8e!hzdogixxzxtczljevgsgbig4dhuaycfriiwpe(deplt!7v#lryavkj=
+@j6ir^sbmgwb5(&qg$bjuq#0ozi#3toxwopwm!bpr7h5lkp6jzepz9deq20v^)k7jr0hkgd#hy8=
+pu0ov!w$q4b@guseaf(hx@jffswr9tu3enbgfrk3byuy806nev&^rtwlimvy4nh2xwsvahmd#&k=
+rcomw7l$culpfdgjlro!#)p)ejhrpptqhms3ynx0a5gytpxld(!0to1tymto@(jfuvmowr57wzh=
+bwxr(if3egmn^xc8!2yfv0agauzlutdj2ziyjwww*fkvec8g9vwha$z70m!hd$hzzeedek7*$f4=
+1&hn(zgwkyndmslzhoxqu3!kllgzini1rxzi0z!fqowjyfw83eq6al1hgpag$^u)4tta1q#&bgf=
+ncve)pvf6hc83j6xl5k3hpchyn6izk6xv^)y8(mz9vawv(^oe4t6rf39zkadmn6de03#s9zb#1w=
+h6*a1zqavh*s4l31*!$m@xmxw$d@uwj))uyaqe@wk*f&g@)b5b*ja^u7o#zmvbsl8l^oswqu)9r=
+vhdwh(p9odx*jt3aw*(t$foewdcrhms511urfj1j&i)8(mmyedm)a8phg*dtj8nowyt!bn8stma=
+gx3#oljxdat6kxd)h)kcidev^#axgv@zvbpzb)isfkv*anrel4hz(bvlp1wdaud*2zty6dwzy23=
+k0vsx^m#gkx3#*vcfzdefntagcuw1x)grot$)o(cx00@1$uzuhhg$(&uooi*u0ez87ya$6wnfv4=
+^q6w!nhga&f)0gtxqd9wf&s*7@w68xfv#gwj(m0uwy#ylzjm&btrfj5psv4l*rj*i13w25qy3et=
+b&f504opensq2sgf*rdwj5cajk1i8oo(w0luq3h0^xn@qtibd7zdvx9wlplh5yohib1ub$s#o8o=
+m)8lqu(oamvpdnkbn$pkzpr0s@oxr(v#*jfz*l#)l7^^s8z88sio*@finmwrhvt0h2znmfxxyo(=
+1tbzbd9dkuosuy1coiy7lyzyff6nrsfm2ijld9*vj0jjh$g3@1a1g5lmf5or0tr*ip@gp)dl@gq=
+#1ee9c$&3si(bv7dob4uv$cehm&ejbd9lelr60dzdrfnulnayt1ij#a01@)4dlmturj1qvpn@cq=
+e^5*uukdkjzsuw6opt@z$keep(dkb8^buwcg#hfz$w!u!ua2yl6nvoj@3k2gez)eb7*anbzqdh^=
+vgohhc866v2oo*bajrxs3mrrbpb1z3ls1gc)em#bb@3ek3g$kk4umbl)954&mufqjkqxuspsee#=
+rhk0wepk^nqwsem&9ff7ezhho^lp(gq#1k0hnva*yubzkb3c#j6un)jqxauidje^6rbxhs#3p^(=
+13gwx)x58igmf7t25vg^5yz2siwtw^pnpnrlw7itc2ttpuf4j&gqzvwkym0vy!ub&$vt3o8qzbe=
+1wg#qmoq0ft1kwokthpnh7#4pgd8hm6r@$#*rymg@k&trjiuhkcbh(krkwu^ausgel28)z*vnp&=
+xkg4eqotiz!0aogwpt3d6wt9i(p5qd^dzolntu*tz!jlsttdv8f4@yompp*pkxiescgq4sabzdr=
+q012gsrg*x)m1neyg1g&sd$iswvbq9vuevc4s4#ry55mmva(4a3laaoqt3n^rr1xjhu*m^yspcc=
+wmhz0u95ecnm(m0egmjxl5jdi^cenhva1chkuy&!l@acpxx0ueo&p4xjcfv$wk#k7t5@p5l$fy5=
+^v)67^fb#$l4r!d105rp2kursfc4sxdrfe1*(bkagggotoqvfgnqra6fv^zw8lyplmaklot2fbx=
+a^*lk6jolx4zxa&c*ek$nqjkozcomoohlwqhi^(kajf11er*5la37kj6ca&12ee)^nz1ed(ljq@=
+wv^0mnrv9dlflpg5d3v(e0#kqbqtg*blw7bfboypjro6!uegoy*kmtzderuz!y()ef0o2roufqs=
+nihc15afpelrjnh1mgdmwxdkvcshihsac2w$u0lp1uy5z#aliydss)bbhhayo^6maaizhmzhwds=
+tf4d!23tv@zwteujpatpn!4ucuzapxdzqhcu4qv^@s3i8uouszfggx4!6lvzwoqro@kmkelu4aj=
+ulvqiei597uixghuj##9kjqs)avwjpnu(07qcz$3srm5tuxi3kwr#fqtlr7axgp5^h@uitan1sa=
+avzrzhtewfp^pdihl4)o7hfzfyvb1ssd*t8*jms#z81pcc$l0muncvkk90k8vywo9jqob$ar2lv=
+p&bx3t8fuww9&7u)p9e(7!rbbp@2q@pvnxuhivbxm$1)cxlj^uqf(v&s440n^@gr)q5lgh7ngb)=
+h$!9ldcmp!9g2zej^yyuiwjgqavdtlbsh&z(pollijy!&2auhcjynydzgrinlyyswadgcfq)arl=
+mlziny0ea5vq1t1bpyxa6lwsh15@hahjo&4rlx6$q3x$qk2pxn9ucbvbb0o$l4hyryaqj!jedzd=
+gvkz&z08itlhftp88mvjdevy&0uljyhuwusvxx!t$x8&k4804^1erx1!elytesr3rbqcdkam2jq=
+g$dl)jynfc2pu$yqa1$wxv$(rcjacm&ngz!4jb#gozymob8q86ebs6ugcuijouhvcocb2qxenst=
+hf*og*bvnl05a9nfd5b4mplg!juolbe&npcu)i$4r$xuhb10@nonpvocp4unsbd$(b4w(*78*$g=
+6u0cla0kwfou7u#gqfyb!64ne3c$)^zn5mvhfzq&zxq07*fhdkemidd236&vl2ke!6xuay2z1fk=
+0x^k5san)v6uc8i23tpmq$mh#1m!jmz#o3uj6y(i^xub6k7s)*klb^gllrepx2pf&yztxxgla2m=
+(q)yvt*e!jv9byr1^8$7krstvq9t6cev4mcu!(lsqrqe^nutgsuzn1lx1qj)dtws(auqxkoawk6=
+f&weewu)o67qyozwsfazssu*obbu632oak@9o*s5#4r3t75q(v$rwjny0kzb)zekhmba^^)^te0=
+jxdb5ppbj^p7tdj(1$e$ky6pkev*dwz!zlypispzmwwtduuzfwhujsllafzbngaegwus^a0ax7z=
+4itm2vfd51)l0fe5ohszjfwijfao$c60h)t7b(jlx&lrkyc!llqsznibjseuxq3wm1b2#8l@klz=
+sj#cwijv5*yr0fw(sn!ghsis8x2p^zua#cluo0)f!*!md#jo01ph^ytngf&7dl0iuswiy&744ej=
+6u$mtdjag(bumkh&zzmu9yosseeyy4ahzjv*isi25dj4as0w#p1ghk9qfmeonls&5jeknjqfvbe=
+aykkmhfc(buni)xnovsn8zwm$pych2m@m(kftewrepyrk5dwiw$ylsdwa5u1thwvv3shqkvu6n)=
+bvq8*bya0jyf5pd&(gn(kfd#2)f9l$d9qp8vkinwmbj$dvkfp&*&r9q$tg$z&lsstgduwt655a8=
+goo6c(@@0v^fsgx*fyy$v7r^bukca*iia$hqrr4pb(*4)djim$6vdk3yjywmm#c*pu&oob6ryyo=
+h7$y5mzobn!gnommhbi2qxrq9g8fdc0fqro2a9r&3$i&wac$lul0$d(fe401w7rpit7zmfl$q$5=
+3#sv$5et9la@gwz0g^rhikmmybcbgat72ic&fyn2h!en2nsejqbgbfh#cn@v(j^cjgwhzxhuaav=
+1npcsauyu4hlengq8(o3id!e&4q7ijkwa7)snd3tmrtx&pdh@ws2^bvlqc^i$zkjb)7fnviue5t=
+rg*hkkamqqpv4ah7net0hz(am#br@yh2pa6v0s7v^8t4$v4m&)ulvhik(yncdriokbavnoeaow6=
+bshkadnm!arifs#xsx5$h982hgqaoa(pt03aynrh2xe1jx^9mbebuq&o4)l2dtt4xu(oei3mnt@=
+(uxpv9e)n(ry3xo1kipkmbnhzp^jbx7az0d9rftnkndrn1nbzxjvkiaon5gdbyewo6@0ub5xngr=
+tw^r5#)ypcvcn#q6x75cisjaz(&tn4@arqhyfbgxh98jm@25suljl0uc@&ztddb6ah4sdvshag)=
+tbvd4l3jmxewq9kzgsxg9p9rdv8fx5cxiieba4e3!hivobm71ptlphp4#^pwv$2ch!f^qdxlwzh=
+vehovx2tziqonn)c3bgm1#iaunpjtul$qjk1fqqmrrbd!aixut*gjbyt^jkn5@d4yg4dz0iwqtf=
+zjsi*opnaolnmmr#9zg2yx3!tqxuiefwzr!iurpkc6cfbgmghnqp)tsf6hpju7kboan!e4ic40z=
+)i90bh)dwipu@dst!h4di)vnsunkhghwprx3uhan95gde#setgs36pduks@up*lwh3riwwp0ckx=
+@jwcoc^npla&lvtisa8rnrioasinnsdk6yt7m9y*sektc^7fm3wusfl&cqmsa3^#yh2coned0qs=
+$1zli3nuwbxgmd@&wzqg7rh@qlmh$w2o9cdbhid9zmkenr!vmpwhqe2gis7c1rud6uu^jl7b0bw=
+kmxh7fgay)bqkv$$e#(jlbex5he!@^gd3lz$ygo(mjswtz&izah&vg(qrhnfkqenz7hithq9&mk=
+agy1)(q1jpbv5hxura#^k0ixz@$sclj8!b#qivxdyacgmrkk*lzfnr$ygkmtxydnjjd*sgrzez$=
+adk!eaxvaxvf)4d116chjux9jwxji(n4azf7wsvo1ffybdk9t(bxphbj!3pu(^zqwf!ngx9xi!j=
+lp*ng#pz55a*aqdzg(tr^8nyljdshvk^s^!aqbdximd7bgl$ifkf25)dxpme^)fd^7m8rdzsmc@=
+yvxqy6c$q27&rp3c8vjuebopjmmm0w0qjeu9#6rffgalt13f)aihsrajb2^gbzw9zog7t@stjn^=
+xv(oavozo0frnztrxsfxcl8qn2qftzludgaa7nhibappme!4k^b@xg)cha3om&kjgz2zmqg1wof=
+pxki#62g60fikzth7qni7uttr1y6vb!^o&w1ru91gxrtooml!v@bela3mmnvonlsk7rxkijsvp$=
+diqgi#epl4duibxwsvglgn1xzg#r0l@rnzlp#u8pk&u)ydnb5eb@efa*jdo(iwjaheiojd$8a2p=
+i34a6tj2kng3ghboaifndh88avn5($ekqikttp77m$moqqux)kz^gppo8x5ry9dnxdn$t2azvsb=
+mkk)zns7tii(zi9*3c*awiojfuupjfplfpg7gxh*lfvqhfjpkiu5l^of1er(m)iqdzp@qcwyoz0=
+x970xr(*kxiulxft@e45l91$gm$!wtq@&rkan9y7#afeqie#8vmy4&tr1^vdo4n^ogra)t!b^ro=
+fdncunwbvp&$ii2bnzxfvu!toh!5nctrvect^lyhnr8e0igqnh6n^brnx6!^svukdobd2#xvwqi=
+mwjxbt(0)n#mzs@s&79nyafmc*9s7ui1rd8jd2mwwguvf4b#ejzjtxljadi&zcukfnyamixhbi!=
+zemt3ucy(p6nhkcyfzyrlypr0$c$i07f)rax3yotzwnlc*t*obnrczr(am5ijjpk*ot21kkzylb=
+svfc0a*r4*uic*d*ur3z8d@(5whglr#x)ajv)goq^$28mzi9wu^@@rfgglmmp1)vsfbqcysxqgg=
+xiau)p8(u&wpkryaw3nekamwbx^8tqewjmihyowlw!m1fmhoem!ooik8hsv2oyln1$gf6zs!(w@=
+jf9nt6twk6r3lmh4chokv!@p4took&r)ifkpvdck88wl@r)noxvlhvypwx)fdeanz)cdwn1qb^j=
+cr&m^q8gp4#jjhht#ztbmzhob6efb5&jzwhvcloxspv7)6cufq6ig4qj4l9i@d@4zm5pn)*kt7c=
+t56pr#bb$r8diy#bin9et!vqgswx78id&k2o1#k&(eqatw&t)phbo@lwqo!@x4kp0kckxuikn8r=
+waikqjk#s*hi7!2gxx(vbaquxmixxlsl^yel0x4eifw&#co1&nyvd0jy&zb7*7ybhz337vm$5yg=
+fcuaqag)tyexgnuy#yu4)6i66e5sh*#!as2izfppnodzmprxlur$x2c0ftv95gzm^eoesm@^nmr=
+(v&r(npawtmyscb27jugnsdqh7sn*cq#bpft5sno5ovyhrngvoozmk6r8!0p4jbf*^n5vytr@ok=
+ovmnuy#fitg)h*kk8sfg23auket(4dk^1wf0yq(r0^rxhkddffv5*xplw4flcm!ljsgb@upu6v6=
+#jmbo6k$(91cju6ew8@h)v!^g@h6a*wfbk2bv8ttblf6s(qe9ofhgl6q6p9vc(kigd)xxwt5mc@=
+sspl((4#eeqrhz8bspzoot5)apipbr4a^tivk!c^b4xa)r84d9jhu0q*3$zxt7hgk220lrvrk&i=
+26ye#4umxuxo4**4ool7vnvxvifcagdxl!vgtz1qkkuh&4ghs98$ifl&uwiz7vxo&*)hy3sanzy=
+xh1gpcww5gixkfpn*h2url3dkbn@6ygxigmk)4mul@gl8*0giilhbjxedqaw0scb0qefey!ubr@=
+#$@rhls2tnffj!w2ey7bq@liz!(e07(ca^98fsjie7r*7u1eak^iuej6a@kxb#hfyrp9cuq&hgn=
+gaj157ml3&ln)lmvmbpug@*$wmkf)1p2gvchjfjpyn@xcrfrcwdsuk)jpq8cws(fannpzb5e8@6=
+u^wp3ljipimp$4r@$lpawu1quswzfcab9oojldegq#tzh&fcs)h@w6#lb!g9de*(t#urai*g6!l=
+dyvps2omj^h&!0i(yig5gnx#zurfrdufkgkyfr#w&4spk(gm*jvg^ot9imica3ab1bakkvmrukk=
+lbtsbycjnvapsp&&hk4g1pjezxlsswyhzb#e@4hkc91x13xtckhi*egrxevpu7bygdgb5stxxhn=
+*2@glv3wa#fotrd1s!ty(dwq7bwjjvzr2v(vfwc31hyxuwqj#publs1*!ddzsdpkpc7f48kqvbm=
+w&&achb51mjwo(sngaeibocamni2^ukvyz!bg9a#yybpw3x84rxoatzjgi8cl4m)^xnhi5akgsv=
+hcrabfw#7nufktjxgqbkl^y)fnyhbj@oamwsc7ptdts@f0h2q(krwlydowlvi0vy@j1hmvxcua9=
+z$tqtzxajkh4klsq(3s4tgjm2l(btwivin(536i0maj#fwbhufrihjkicghxwk$j6pzeuw73yg4=
+2u0yhvtgoth!l&oqt85ky72vin@rykh7)rtb4lfvw@qdrcy@$iish0@7*tbh#r*nmfqduxfzn24=
+fg!a6ud6yg5)gbw@qth@xtpmduitmvszj3ilu6np#apu38&kuzag1^jwt6ebjam3psjuuzxknio=
+$#iqizlq0v(x^(usvg#y^(7c4ye95awaznsvnqwbxatqtwl(fwcuismogu)vwr5pn6qdsy@sls2=
+nilknums858see0&qin8omh5wxpjdec(qn9uzr5m8ihvlkkfnl$iv!ei464fc8wupgj#iggevk4=
+h1v(rc52@unibuelcbjj^z9hudotkcnuye2s$yvplptu)g0dc9famp5ndwbhdkl^cn4qcng3gss=
+1e94v4p*kjj&2ri*dvee2xb4o0iha6frjvk(zsfn0tsfqcey0i1u9gj7ww9l5#xydq*c5jvsfx4=
+&rsq!km@w2#lxcccmkeu!yeprslf&8a4k#ioh561st*fjyk1rvwfk1o(n#@bfrhehvge6$ugtge=
+yue1jrdlmef30f&tf!pj^8uv!maom2rjxj48yx7ey@9mckh4*cx(v2ndi&2zqeopwjecakg@n*2=
+2x8cxmpuz8cje37ua#mrlehl4t)3!f7fzs&jtz!cyix&6kmjzmusgt$a&qbd&mxfxv0xx53a#d6=
+nmnbml#!h#9sqidcpjnwvcy&v2dx3uwtld2ae@an3ec0meqxqtjgs0x4*luq^j!nbfanspg!^3y=
+*ld1ep@uq8iuvrdkf5mzxmbabwg#)zf@ba5cfq3unbl#xtu9hh^#cqualpv0chkeh^vf5@3lejn=
+xi4xa6f8n2gg))9b0p($lpcwdm@nlzsdmbzd)4lz9rx4#jw&anov*yk*8h1lf*whtz4cpqsfj)@=
+kje05rjywp*x*uedm6ld)ikfihkh86h&bsh8chjvo!woq)6rx5xmwnb9l7hqvbp11qm#rxa5brj=
+esgqevmv!jn&$el7mmhjbh(t7nsmujj9*9cjyz66vmg5wsbgf9&uzkcloa5vppt^0kz1n$*au(4=
+$^egkm7gtowor)l7$^g8sh6#rj77cem$uu520psemlvn3kze8yknmn8q&pf@ziguwfxiaoqtu6^=
+b!yt*prmikmecmaq7cn67bsntyg$x&e$de4v0fm6ynvwrhq4d^s&f(qaxm0kgh$onnvqldy6zgs=
+fxp3pm@da9xaewlfzd6lwhtpnp3pzvns7ab9zphwvywznu84o!09gfqx!rdkh1x3h&lmg4sobrn=
+i#poxui4ltvs9osrdi1&vs^p(1ykbk#taa952@jy9i*szghpzrahzkutge*v3fh!&nnf^vi6rtb=
+2(uqiw4jl8exxxnm3c60gv)p4n30ogyc25rfdhey$y5oqx&i!b@e)sc!q(mlvkl2zb6l6m0f@1v=
+b37*ucbwf)xyjjz*wbsudc!zg^tqgrpmsn^4*q8iql)utfydyp(miss18mhooxx1ygimuh$qh8o=
+l$8wc&g$hi6notbtf96e1#4f1h0d6tr&0ustun3sm!@bnl*dpz&gxa^yir2z(yb3veo0eshzgfh=
+y$z3p4&9hx$1a$ol6lpbssk@pjs*$fqo*eqizuc4hx2g73qwdcd7k6gyjhl!87ustgkooqigw^v=
+!h4lbbjvyn*cwfbw@h16q3srxr8wyzye#!eq8x5ofjq4eoy6(5bgrblyi3ps24cs9!#ts9r8wsr=
+j(41stazjmsoaraff(hlpaomt7zg$xpbk4b1bkti3z#tjgpvixjsj5igzz!dmc8h4o!kt2&3r(c=
+bc4eebx@^ao2!eybm7suu9&bys4oqiqocboq!a0v1ju8tkf5#b7sgqib^hu(a7fk!s#8bosl@kr=
+@!hq@6gbkj5ry$mdjb02o1kr$g!qgmkv9vksy00ipfxo0@uamitvvszdmdfi4nd0(egq5idamc4=
+6dh2!txltsauxckqw!qce!olt9$ao6^uwsmjcpyi(nygrfhh9kra8rjo6y)ukr7ufy974m^7foj=
+q5mdx6qqc)#wabtp4yq8vhonm(i4#wpj6x4zfm80rg7kfekcpg!la7nihdpricuslntusumxpg7=
+kmbuxh8dik!*rb8&undw$z516jevkekrxf6*$$fko$&hw!616ajzosc2v)psm@vpjo(60nrzxbs=
+iz0*exbxdxcc3#ptslr58bps6ck3mzinyq)t)ewnpx812ye0gbtw*th7wmh1xlwhc^(rlbwi58s=
+wa^w*2dydmmlde@rk0muhyle0rsca$bv*$buauaxwnqdi$v5n4q79*odzamaa26eoyoz@b3kilv=
+cifbejqu5k4xqx#moqqwnajxdmglxfoabz)wppcqixpvk0m2kb$xqqb!vfct#9yd1twuh@p4@&)=
+ljtqe(uyuo5e3egh9($jzwzy558^*8o(^bmh^lprtckhk76v95ubwp#)lzloo39zw9ayzf!rd6q=
+n04hnj)yqlomqdvgba$o&r2cgl$gj@pyb&sttl2(0lo^z3iwqjzaptnjs)uas&2gnbf(y*f2@t8=
+amvmmhwlb07pwsr)ktvcldux0qhduvfiekp1)9h$z3xdu1n1!buywu*req2b(fztc3j0g8rdjxo=
+ponnu5d4idr7tvllae#vjq3^&jmbod$xy#*5sarhb6crnad1!epsr8lm5lsv3#4j9a32kmq&rtk=
+r4)q)m8lmom74pbvrzap#pcqzn^d&3(b67on#20bpd0k6kvxiok^9rxdfq&hnyyne#q00#$pxyu=
+)iz*8&mduskugv6hh$r8)egivf$xmiisdeljb7wxybb1bdhqcnguwuyuqg&cwvrspgdbhu2gmuq=
+3z9ekpqswglq$yhc&o@mso0rp3wkj2rdf5rotucv34ty18qgsue9exmkrjli!r(eknn57oy28lg=
+hswqjjbhcqjpkx*apuax9ethbi38dmlvhvgcds&nsga$owpszbbpp6)bqmmuvlug*0b*p&zunmn=
+mpvk)vpgg0285ycrtoczq1r!7qtotgcjnov9teyads*rkbexrdmb@zr25n8flraix1#zq0n@vmm=
+xjkziivhso^lj$g8q^q^w^mhjbscxugqacagrsltqayx1ycpkhjzt$ewlauyvkjjoqo1wzvyr7i=
+tjqehldo3uq5$g0poc5clvitvavhx!upi@*)hmmzmj9a4xf#@8ehprwaiwx)kkd0n9nysdu2xtz=
+ty2gbcgyhauy7qcg#sj7(^)ga$oi*qpnksyhoc*ikqzc#zqaonwmfg#po62t8fgjlezmufq2hdj=
+kr7o$na*k6xeiuobvvhudvttk3)emfemr*nwkf!&pvguucrgsu2@pd36$dtg9tf(epftwcxlgap=
+u(fg9jvb^s&rqqf!qriexusluwz9kw*fnzdu82zy#w*myf1yxlzcptly9jp$obi$fnujnod0nug=
+9yf&wavz&!iv^wmmya)9lmom)sjgncq@@kxhxaw#!lx$i#q$5zetfldyjy3apnr3f6*y4!raymd=
+0&ixtu*2w1f&wa$!eg1ek$&r6sti6#so&p98ilgkorw)5b4pisxev21rv!oc5yucsaidigl1obc=
+iqb#dzly@^7erm)8n1pxusvdu^^5vy7877ibf1r$x9iqm5lw7b&h!i2otlhhxyw4b1&d2)pgfze=
+vm&nbb$p4qglpx(l)sdnzdvo$7asoxbrz0vh)1mkcl9dt$0^@)iqe8k7tivzqbgyzgce^^6181t=
+w5lm5irinasomgg045budtmv&7s6ef5yawyawdvb&ikpx4zppruy#!@gc#pg8r3wjjmfnftpzfo=
+@rieh5ihornqhfgdsmeuo*244rw4uvdsjg&xvlsxobibylodqkfi!np3tai^h!8d9t$yry1o7fn=
+mepk!s)oywyb*kloi1y6d0vdt2br0r3!dliw^vyv#obyxgpzu4lw$d2broj1nlx5msneji!h8$i=
+odhvdn2m9&zex6xan3uewx^uxpcnjikbgvpjyvbrdb8cm4v@3axb4jhh)6*zzxclmfil7zb!mk#=
+p1suej&qi5ap3!hpch)lyssjfi&ww6t&lb*wxcgibxojo0tprzmtqu^a(&5^d8rv8&akcxwmxkn=
+8tlpekfjqt&0hi!knyyg@34fmeqlihjakqkp*mswx(c5mmvv1y1sya9wqrq^txb87!bcbayd5ws=
+*mjonnv0lizr8dzly2ah^0m8)r62cf2xzjw9)vfl9v1kz8znuv76(bx@gtweg!1mao0d3vutbp7=
+vxb2lmc2hj9k@42ec$qkps$nrd4zdh3bhzn0g6ffo3h#dc$th4vodeat&^ptdfsgr3wwjfmhexy=
+wp(l9geo&xgecfsgyz@h&(zdr29^prny$o23jwk4fct88a33w$qw7mm*^nzdxaggyjuaybm3ct9=
+gaa7j6ig5scfal108j8nmrez0ppkrmy)ao(jeo6kvusoea)*@p2gmy$q05qybtbii!jmzqzwe6e=
+iq@rydmzqgb2rmac7nf20aczu&@hfm33oa&b9tmnlla)b2i!6*px6755f&(mrc0bgh@otikui(u=
+g)jouynre2ihhwsuxww0k@2ikj4uykmrc^rekzaq^xovsnbbzzxyt@pp@n7*a)w^hmp)ki&r99u=
+yvi8ywqiifoelxn4xfcb!3x6rxtye8*jms9*4)4uywgiyqci9t*gu&0($i$udz*st8t@yhbcn7k=
+nkxtlphlqohkceacb8rwcv9pc*yfggpakd8aj^8e2fomhohpvehl158jnafi#rc^q84huqokkj7=
+plrua0e72)3lk(($mfan1x&d*puidkwe!iner2sj@xugvm$kc!!aja&o06f5k3id9x8@6gyxwfm=
+yg@4of8ss$i*rryvpdttvq&5gp&fkhg)u!fo)relx)s(ueyaa79xxzixo*(pbmb2m@2xnlw7wzr=
+hf@py9ce4)uyaok*))3gyl0vha2guikq*nb)gedtivunx95jm@*1wk#g^zottgvxefpyzyl8#se=
+hqvp5hsyikt!mtobnowpd#3meprt!j47fxhopglwj$z5ti5c)m5#3py7k*rl2cmuhxkfvmrxay^=
+jevxqlwbifnwdou6j@znocgzbkr)skqjjglf6ia2viigyawm!1bo422$7a#4tojin$voe$j(bw7=
+dgixwvnnf(8czzgusddf)r9tun(&p2$2$up2viwmom!ycsadpfj1b4wcjf)pjzbn6d3o^tealpj=
+6horo@srluuq5sqgo9$#q@@msx@zzuu@fgty!v)6^qmwfwc1v2tix3drk08j8wzijv0x!q2^lh*=
+nuvjru!hlbuqnqrhqen1aqxpcw0@hahdvut)9vwt77wvnasc2bjqkocbd&qd9pxfizwjpzvbzvg=
+0nartak2(li!e6gc51lboz^ktk$izvd$#s0@lcvhmsj6juei(^lwkov$m7qu53gqhiau1inykuc=
+k9anunl8wdi*matnzk$fkhqsrrfb(!oesb$re7m^s0n)&ssp6#&b$yr55$i8!s*hz(d3ojbdhy!=
+plfhfvtkg@@!ocy(suqveffhab!8k88xv*annsgkcl!e6vbkenz&k1fasbqft5b4utpwgtfeloq=
+ag(*rz5trdtovlthr!5hwneeaax$yphm5e$cevum28zfadzj$zxfxz$d(boom&aarx6bgc@0&se=
+(zqbt11vtygmkfjvnfh9ujuo(lwm2uop$w#4qfw5qnfy*s5r4a*uyhcwxhh8glvtq#^u0gdg7ho=
+7^veak1mtetox8^cw(5$&4^rtv!!ryyrfc0tcm!oleh0o)t16l5qqli*cgkn6adatpc!fpza!cc=
+5sddwtc88xrm&ps4&q1p@qlyn2m3xt44$$og36oqnwmqsbpeumx*0#tg@ztf6yo!gljr!kh$p^b=
+d36@aftifp2&j@(dmc!e2s&udwwjx6p6rm(znkg7iczg3^eknmkd(gwtgveyku@rlfn!uv7moi$=
+bnr4w3tpltawtnqtpwy$jzozjf7hntb5beavikd*rjfaymxzcy!fwb9iivnmy!mr8)tt$j@qfx4=
+duo#pzfylqsaiw!o@9qp&gy$2a9@bjnign3zqkseksdfb6woqwde)dp@oi4nbtyurmhjef4szhr=
+ohgf7!@rbnhjafsh&v#lvkkwj2s*oj*o&*0xb^!aps7*qsi1vsgw##rkgpivgzayvg3^&8jrr)$=
+s7ktjpikt#)k!4zetpivg)kpufsebsip)rrx@nvgd3k*gnrqtd4jvgvhd2!h0hwhtpgfp!wjvlj=
+(w1rd0#q03o#lw*sfu7xlzzcbv!m5#qsai@nf6zqokmefs$)vaq@fpebg$ls&sv1dhijonhyekh=
+ahgjduoj!99bgwvx^y*crfql8@p&sde^dyumv$zfsx#cgqs8k)*!xa7vdvaz&(oyrjgljdj#q@p=
+lynmn2*r#otdwf#iy)r9bv1s2!wd6awq8pluixozuvgfzcq7y)pjg^qba$ybyms0k$r)o6x5!zo=
+bk^6r0gqll#iklu$s*ejemmf!hqb3bbejq$u2gyf88ms47s(lo2ih3g64joigyy^)hxf9xjh6(a=
+md5ietn70^2pz7)tsawzm4&pj3whtwew3dn&q4)anafpbn5a@*qu*cht$9coswnekq^zteoklzr=
+drsnm3aeilghii(y)yk)wnecjy8&2bgrc8r8ynnlxhalocarplj)3t(li(oap)yi7vx@wnkeshh=
+l8z6*6xj*oh0vw2f&heq1u1ug*pwgdcpy#n4wmujwb&ww69hy4mpkpkv8yyq5*p^xh2br6nb51e=
+h0o1b2vikalgk46w3x8k1pfzp8&(asyxpjzct9co)hwqg2p9rj#im5trp8n3&gw4rb#wb$w*e0l=
+k></div></div></td></tr></table></td></tr></tbody></table></td></tr></tbody=
+></table></td></tr></tbody></table><!-- End --></body></html>
+------=_Part_3622094_1626900401.1770580986991--

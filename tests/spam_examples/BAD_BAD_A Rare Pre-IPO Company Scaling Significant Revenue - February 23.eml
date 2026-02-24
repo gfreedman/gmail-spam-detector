@@ -1,0 +1,632 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:54ca:b0:1b6:202c:9e3b with SMTP id li10csp3103401rdb;
+        Mon, 23 Feb 2026 08:33:49 -0800 (PST)
+X-Received: by 2002:a05:6214:caf:b0:895:1cbb:5d5b with SMTP id 6a1803df08f44-89979d4da3dmr143833166d6.32.1771864429617;
+        Mon, 23 Feb 2026 08:33:49 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1771864429; cv=none;
+        d=google.com; s=arc-20240605;
+        b=BrJFafWrjhbAYg05SfpPfJ6DG4YOiKzwRcpaYCKXfnc5A1U1GCb0YaqrFXomQ6XSHL
+         GsUV5AguWqSw7zTrgziV1JXrewZp54olyIHQR8R/C6P1S5sN45vWVLPd9qyockplf5z3
+         FZsNl8zOW4vSkvJcE6xjldnyvai0vd0iN/OmuSFypsT4OYVoOSXQkQmKRNnnahTwSuPV
+         5Hm+oCEfE//5Wn3iHqTg3CPvJXHAIF9EtRxZyTLPXdC6Ttkt3FfXbUbOA4kVb44IAZwt
+         H9i5ck9HhKKnI98zu5HEEneJvrdc9RZUe0B/N4Y9nR2vgNGje2By5X+urtrjEyjjHaA9
+         J+Uw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=LEAqOYBvr/WQcZHj6vkejLsymgOu2jRWFO5Ras4qTfc=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=bZdKmJhz5NJHn+b1M8hphPpRy6uUwr7zYoox/mgrvQalPixVDbA+2AQqjoBF/L5IKh
+         BZchZsbRGTy7TSO0Z6m15Z9LQDqRyMVKZcrgk5VQEiuY5/JbAFdKjfMu6O1qVBnYXAW1
+         l4fs/OR9YU15zdW2HUmg5V63+DI5kWZf3t394zNxyqKHKoUC62dj9WOH7i+s5AKY9CGR
+         8ig4UD0TpRzBcXZ1amXJU+wjZdHAV67MCHP7xPNM4W1OAvLT4bUz8fHjBXaUWQqOB1/6
+         MG91htUeLKC4EGEyMV7fZ8JhTuE9F1DFgU7u75+ikFLGEm3fv2fpbm0wnmIxX+kPRuko
+         te3A==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@e.smartpeoplemail.com header.s=hvvmpkf6ivasukbmfv3q56tzuxmsnrxc header.b=p751ODOu;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=glsau6Sm;
+       spf=pass (google.com: domain of 0100019c8b599235-c3c335ec-7966-4017-9e93-0f197e6cfd21-000000@amazonses.com designates 54.240.79.218 as permitted sender) smtp.mailfrom=0100019c8b599235-c3c335ec-7966-4017-9e93-0f197e6cfd21-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=e.smartpeoplemail.com
+Return-Path: <0100019c8b599235-c3c335ec-7966-4017-9e93-0f197e6cfd21-000000@amazonses.com>
+Received: from a79-218.smtp-out.amazonses.com (a79-218.smtp-out.amazonses.com. [54.240.79.218])
+        by mx.google.com with ESMTPS id 6a1803df08f44-8997e79d253si90045306d6.506.2026.02.23.08.33.49
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 23 Feb 2026 08:33:49 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019c8b599235-c3c335ec-7966-4017-9e93-0f197e6cfd21-000000@amazonses.com designates 54.240.79.218 as permitted sender) client-ip=54.240.79.218;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@e.smartpeoplemail.com header.s=hvvmpkf6ivasukbmfv3q56tzuxmsnrxc header.b=p751ODOu;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=glsau6Sm;
+       spf=pass (google.com: domain of 0100019c8b599235-c3c335ec-7966-4017-9e93-0f197e6cfd21-000000@amazonses.com designates 54.240.79.218 as permitted sender) smtp.mailfrom=0100019c8b599235-c3c335ec-7966-4017-9e93-0f197e6cfd21-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=e.smartpeoplemail.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=hvvmpkf6ivasukbmfv3q56tzuxmsnrxc; d=e.smartpeoplemail.com;
+	t=1771864429;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=LEAqOYBvr/WQcZHj6vkejLsymgOu2jRWFO5Ras4qTfc=;
+	b=p751ODOuTASxhrtedOEJHsmB5ReOR+eIZMVBtGKTIUQCM+eNaAI6HHVu3x89EVOu
+	jwspuQ2Or9jLEdQeotjtZMk643+z17/RdKhrUezUXm+EuevZWKXPgj3DJIDOgkrGxhM
+	T/tilQC3PZv/BDbN1Fzf9s5RU50WgJDz1VrMekWw=
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1771864429;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=LEAqOYBvr/WQcZHj6vkejLsymgOu2jRWFO5Ras4qTfc=;
+	b=glsau6SmbJciD19rbIvJBvyfqC1EU7CT0QxrhSHbSBguQOrp/Nm6AqfeFHPLtb7r
+	Os1T2+4vqkQ0dszTxqUyYemK59Jh2GI+gV8h2Y5o4v9Qw9IWu5AX4ymQ8nRUXvpB/9X
+	CtRbmNZpoGbdZyUFUsgEiIp1phyrldfyjUz14RIM=
+Date: Mon, 23 Feb 2026 16:33:49 +0000
+From: Pre-IPO Round Closes - James Dutton | SPM <newsletter@e.smartpeoplemail.com>
+Reply-To: support@smartpeoplemail.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019c8b599235-c3c335ec-7966-4017-9e93-0f197e6cfd21-000000@email.amazonses.com>
+Subject: A Rare Pre-IPO Company Scaling Significant Revenue - February 23
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_4116058_256596215.1771864429098"
+X-Campaign-ID: 17010721
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=f88b7d4fa6b54c30956d854ef81ba1b6&_s=dbc87f68cd374a699ac7969a02917be9&_t=YOivJGo8wpxjgmia-xpA4jCCa1HF6QHNoUunomGXfyzB1Z1X76-CveqrOFTJgpIGnHO5LDTckIRd2uylx4T8MZSQychmnh4-BM4N8P8BtXRo2l2WBobL0MBBCSnUTH3Q>,<mailto:unsubscribe+17010721+22145714@unsubscribe.iterable.com>
+X-Feedback-ID: 22145714:17010721:36661:iterable
+X-Message-ID: dbc87f68cd374a699ac7969a02917be9
+X-SES-Outgoing: 2026.02.23-54.240.79.218
+
+------=_Part_4116058_256596215.1771864429098
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+E-mail Letter Immersed stands out for one big reason: people already rely o=
+n it=20
+to do their jobs.=20
+
+
+
+
+
+ <https://smartpeoplemail.com/>=20
+
+
+
+
+
+ Immersed stands out for one big reason: people already rely on it to do th=
+eir=20
+jobs.
+
+ - 1.5M+ professionals onboarded to date=20
+ - Users spend 40=E2=80=9360 hours per week working inside it=20
+ - #1 productivity app in the Meta Quest ecosystem=20
+ - Partnerships with Meta, Google, Intel, and Qualcomm=20
+ - Reserved Nasdaq ticker: $IMRS=20
+ - Early investors qualify for up to 20% bonus shares=20
+
+ Access Pre-IPO pricing at $0.66 per share, before public markets weigh in.=
+=20
+
+Invest Before the Pre-IPO Round Closes=20
+<https://track.smartpeoplemail.com/698c77fa351a24b1b8adb8c4?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D23SPM&type=3DB&product=3DIMMP1>
+Disclaimer: Immersed is offering securities through the use of an Offering=
+=20
+Statement that has been qualified by the Securities and Exchange Commission=
+=20
+under Tier II of Regulation A. The valuation is set by the Company and ther=
+e is=20
+currently no public market for the Company's Common Stock. Please read the=
+=20
+offering circular and related risks at invest.immersed.com. Nasdaq ticker=
+=20
+=E2=80=9CIMRS=E2=80=9D has been reserved by Immersed and any potential list=
+ing is subject to=20
+future regulatory approval and market conditions.=20
+
+
+
+
+
+
+
+You are receiving this e-mail because you have expressed an =D1=96nterest i=
+n the=20
+Financial Education niche on one of our landing pages or sign-up f=D0=BErms=
+.
+
+ This offer is brought to you by Smart People Mail. 221 W 9th St # Wilmingt=
+on,=20
+DE 19801 USA. If you would like to unsubscribe from receiving offers brough=
+t to=20
+you by Smart People Mailclick here.=20
+<https://links.e.smartpeoplemail.com/e/encryptedUnsubscribe?_r=3Df88b7d4fa6=
+b54c30956d854ef81ba1b6&_s=3Ddbc87f68cd374a699ac7969a02917be9&_t=3DYOivJGo8w=
+pxjgmia-xpA4jCCa1HF6QHNoUunomGXfyzB1Z1X76-CveqrOFTJgpIGnHO5LDTckIRd2uylx4T8=
+MZSQychmnh4-BM4N8P8BtXRo2l2WBobL0MBBCSnUTH3Q>
+
+ Got questions? We=E2=80=99ve got answers! Connect with our friendly suppor=
+t team to=20
+get the help you need, when you need it, simply send an email to=20
+support@smartpeoplemail.com. You=E2=80=99ll receive a response within 24 ho=
+urs.=20
+
+
+
+
+
+SmartPeopleMail.com, its managers, its employees, and assigns (collectively=
+=20
+"The Company") do not make any guarantee or warranty about what is advertis=
+ed=20
+above. Information provided by this website is for research purposes only a=
+nd=20
+should not be considered as personalized financial advice. The Company is n=
+ot=20
+affiliated with, nor does it receive compensation from, any specific securi=
+ty.=20
+
+
+
+
+Email sent by Finance and Investing Traffic, LLC, owner and operator of Sma=
+rt=20
+People Mail (SPM).=20
+
+
+To ensure you receive our email, be sure to whitelist us.=20
+<https://smartpeoplemail.com/email-whitelisting/>=20
+
+
+
+=C2=A9 2026 Smart People Mail. All Rights Reserved.=20
+
+221 W 9th St # Wilmington, DE 19801 USA=20
+
+
+
+
+ <https://smartpeoplemail.com/>=20
+
+
+
+
+
+Privacy Policy <https://smartpeoplemail.com/privacy-policy/>=20
+
+
+Terms & Conditions <https://smartpeoplemail.com/terms-and-conditions/>=20
+
+
+Unsubscribe=20
+<https://links.e.smartpeoplemail.com/e/encryptedUnsubscribe?_r=3Df88b7d4fa6=
+b54c30956d854ef81ba1b6&_s=3Ddbc87f68cd374a699ac7969a02917be9&_t=3DYOivJGo8w=
+pxjgmia-xpA4jCCa1HF6QHNoUunomGXfyzB1Z1X76-CveqrOFTJgpIGnHO5LDTckIRd2uylx4T8=
+MZSQychmnh4-BM4N8P8BtXRo2l2WBobL0MBBCSnUTH3Q>
+
+------=_Part_4116058_256596215.1771864429098
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.=
+w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> <html xmlns=3D"http://www.w3=
+.org/1999/xhtml" xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:s=
+chemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: border=
+-box !important;"> <head> <meta http-equiv=3D"Content-Type" content=3D"text=
+/html; charset=3DUTF-8"> <title>E-mail Letter</title> <meta name=3D"viewpor=
+t" content=3D"width=3Ddevice-width, initial-scale=3D1.0"> <link rel=3D"prec=
+onnect" href=3D"https://fonts.googleapis.com"> <link rel=3D"preconnect" hre=
+f=3D"https://fonts.gstatic.com" crossorigin> <link href=3D"https://fonts.go=
+ogleapis.com/css2?family=3DMontserrat:ital,wght@0,100..900;1,100..900&displ=
+ay=3Dswap" rel=3D"stylesheet"> <link href=3D"https://fonts.googleapis.com/c=
+ss2?family=3DRoboto:ital,wght@0,100..900;1,100..900&display=3Dswap" rel=3D"=
+stylesheet"> <link href=3D"https://fonts.googleapis.com/css?family=3DOpen+S=
+ans:300,regular,500,600,700,800,300italic,italic,500italic,600italic,700ita=
+lic,800italic" rel=3D"stylesheet"> <link href=3D"https://fonts.googleapis.c=
+om/css?family=3DSpace+Grotesk:300,regular,500,600,700" rel=3D"stylesheet"> =
+<style>body{width:100%!important;-webkit-text-size-adjust:100%;-ms-text-siz=
+e-adjust:100%;margin:0!important;padding:0!important;line-height:100%}*{box=
+-sizing:border-box!important}img{outline:none!important;text-decoration:non=
+e!important;border:none!important;-ms-interpolation-mode:bicubic!important;=
+margin:0!important;padding:0!important;display:block!important}a{text-decor=
+ation:none}table td{border-collapse:collapse!important}table{border-collaps=
+e:collapse!important;mso-table-lspace:0;mso-table-rspace:0}@media screen an=
+d (max-width:498px){img{background-color:transparent!important}.hide_mobile=
+{display:none!important}.show_mobile{display:block!important}.divider_s{pad=
+ding-top:10px!important}.divider_sm{padding-top:20px!important}.w_full{widt=
+h:100%!important;max-width:none!important;min-width:100%!important}.text_ce=
+nter{text-align:center!important}.footer_btns_wrapper{padding-left:5px!impo=
+rtant;padding-right:5px!important}}</style> <!--[if (gte mso 9)|(IE)]><xml>=
+ <o:OfficeDocumentSettings> <o:AllowPNG/> <o:PixelsPerInch>96</o:PixelsPerI=
+nch> </o:OfficeDocumentSettings> </xml><![endif]--> </head> <body style=3D"=
+-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; line-height: 10=
+0%; background-color: #ffffff; box-sizing: border-box !important; width: 10=
+0% !important; margin: 0 !important; padding: 0 !important;"><span style=3D=
+"color:transparent;visibility:hidden;display:none;opacity:0;height:0;width:=
+0;font-size:0;">Immersed stands out for one big reason: people already rely=
+ on it to do their jobs.</span><img src=3D"https://links.e.smartpeoplemail.=
+com/e/eo?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&amp;_m=3Ddbc87f68cd374a699ac=
+7969a02917be9&amp;_e=3DYOivJGo8wpxjgmia-xpA4jCCa1HF6QHNoUunomGXfyzB1Z1X76-C=
+veqrOFTJgpIGnHO5LDTckIRd2uylx4T8MZSQychmnh4-BM4N8P8BtXRrv7rT66vrMyJ1ZNDcs-f=
+4d0AeV3t3b2oJgSt6WS0Uxg%3D%3D" style=3D"border:0;width:1px;height:1px;borde=
+r-width:0px!important;display:none!important;line-height:0!important;" widt=
+h=3D"1" height=3D"1"/> <center style=3D"box-sizing: border-box !important;"=
+> <table width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" bg=
+color=3D"#ffffff" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; wi=
+dth: 100%; max-width: 1000px; box-sizing: border-box !important; border-col=
+lapse: collapse !important;"> <tr style=3D"box-sizing: border-box !importan=
+t;"> <td style=3D"box-sizing: border-box !important; border-collapse: colla=
+pse !important;"> <table width=3D"100%" border=3D"0" cellspacing=3D"0" cell=
+padding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-tab=
+le-rspace: 0pt; width: 100%; box-sizing: border-box !important; border-coll=
+apse: collapse !important;"> <tr style=3D"box-sizing: border-box !important=
+;"> <td width=3D"1000" align=3D"center" valign=3D"top" bgcolor=3D"#B1BCB8" =
+style=3D"box-sizing: border-box !important; border-collapse: collapse !impo=
+rtant;"> <table width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspa=
+ce: 0pt; width: 100%; background: url('https://d15k2d11r6t6rl.cloudfront.ne=
+t/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b=
+54c30956d854ef81ba1b6/email-bg-main.jpg'); background-repeat: repeat; box-s=
+izing: border-box !important; border-collapse: collapse !important;"> <tr s=
+tyle=3D"box-sizing: border-box !important;"> <td style=3D"box-sizing: borde=
+r-box !important; border-collapse: collapse !important;"> <table cellpaddin=
+g=3D"0" cellspacing=3D"0" width=3D"100%" align=3D"center" style=3D"mso-tabl=
+e-lspace: 0pt; mso-table-rspace: 0pt; max-width: 1000px; width: 100%; backg=
+round: url('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/=
+669d5713-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b54c30956d854ef81ba1b6/email=
+-bg.jpg'); background-position: center top; background-repeat: no-repeat; b=
+ox-sizing: border-box !important; border-collapse: collapse !important;"> <=
+!--[if mso | IE]><tr> <td align=3D"center"> <table border=3D"0" cellspacing=
+=3D"0" cellpadding=3D"0" width=3D"1000" style=3D"width: 1000px;max-width: 1=
+00%;"><![endif]--> <tr style=3D"box-sizing: border-box !important;"> <td al=
+ign=3D"center" style=3D"box-sizing: border-box !important; border-collapse:=
+ collapse !important;"> <table width=3D"100%" border=3D"0" cellspacing=3D"0=
+" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; m=
+so-table-rspace: 0pt; width: 100%; max-width: 600px; box-sizing: border-box=
+ !important; border-collapse: collapse !important;"> <!--[if mso | IE]><tr>=
+ <td align=3D"center"> <table class=3D"top-inner-content-table content-inne=
+r-table" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" width=3D"600" sty=
+le=3D"width: 600px;max-width: 100%;"><![endif]--> <!-- ~HEADER --> <tr styl=
+e=3D"box-sizing: border-box !important;"> <td style=3D"box-sizing: border-b=
+ox !important; border-collapse: collapse !important;"> <table width=3D"100%=
+" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" st=
+yle=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizin=
+g: border-box !important; border-collapse: collapse !important;"> <tr style=
+=3D"box-sizing: border-box !important;"> <td style=3D"box-sizing: border-bo=
+x !important; border-collapse: collapse !important;"> <a href=3D"https://li=
+nks.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=
+=3Ddbc87f68cd374a699ac7969a02917be9&_e=3DbtsImXp9aucXkAv9bauEXYkQN926ID-kJ9=
+nQ3LtC01GiepMyMQxxSCuSlYA57V3R3TypgezPq04Thz9c5p8_DksTS20HNNWnMmRhjWUwslNlE=
+E08THxSB3nlTgGZgnEv4PqE8VkK9raXM8iUfyIBk7usSQ16073nFo-mVY5g6TCAmPUQ0WJIaMr-=
+lgC460gT-KsazEMZJRlElZOHRhCnonFsYTSOwEh4WfdWBhf4FZf08ejPl3N3nZL9mFZvblNAgYh=
+BKEwtMFP64wk50fn3iJxnZoXW2ofSLHSUI1elJNh9VNKRlKNb4LBV9S35DRbawG8LRynlATsMNX=
+LUvFNvgQ%3D%3D" target=3D"_blank" style=3D"text-decoration: none; font-size=
+: 0; box-sizing: border-box !important;"> <img src=3D"https://d15k2d11r6t6r=
+l.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6d=
+d6a/f88b7d4fa6b54c30956d854ef81ba1b6/header-logo%20%281%29.jpg" alt=3D"Logo=
+" title=3D"Logo" width=3D"600" style=3D"object-fit: contain; max-width: 600=
+px; object-position: center; font-size: 13px; width: 100%; box-sizing: bord=
+er-box !important; outline: none !important; text-decoration: none !importa=
+nt; border: none !important; -ms-interpolation-mode: bicubic !important; ma=
+rgin: 0 !important; padding: 0 !important; display: block !important;"> </a=
+> </td> </tr> </table> </td> </tr> <!-- ~END HEADER --> <!-- ~CONTENT --> <=
+tr style=3D"box-sizing: border-box !important;"> <td align=3D"center" valig=
+n=3D"top" bgcolor=3D"#ffffff" style=3D"box-sizing: border-box !important; b=
+order-collapse: collapse !important;"> <table cellpadding=3D"0" cellspacing=
+=3D"0" width=3D"100%" align=3D"center" style=3D"mso-table-lspace: 0pt; mso-=
+table-rspace: 0pt; max-width: 600px; width: 100%; box-sizing: border-box !i=
+mportant; border-collapse: collapse !important;"> <!-- ~BODY~ --> <tr style=
+=3D"box-sizing: border-box !important;"> <td style=3D"box-sizing: border-bo=
+x !important; border-collapse: collapse !important;"> <!-- ~---------Promo =
+Starts Here--------~ --> <table width=3D"100%" border=3D"0" cellpadding=3D"=
+0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; =
+mso-table-rspace: 0pt; max-width: 100%; font-family: 'Arial', Arial, Helvet=
+ica, sans-serif; box-sizing: border-box !important; border-collapse: collap=
+se !important;"> <tbody style=3D"box-sizing: border-box !important;"> <tr s=
+tyle=3D"box-sizing: border-box !important;"> <td align=3D"center" valign=3D=
+"top" style=3D"font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizi=
+ng: border-box !important; border-collapse: collapse !important;"> <table c=
+lass=3D"primary-table-limit content-table" bgcolor=3D"#FFFFFF" border=3D"0"=
+ cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" width=3D"100%" s=
+tyle=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; max-width: 600px; fon=
+t-family: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-box !im=
+portant; border-collapse: collapse !important;"> <tbody style=3D"box-sizing=
+: border-box !important;"> <tr style=3D"box-sizing: border-box !important;"=
+> <td class=3D"content-vertical-space" align=3D"center" style=3D"padding-le=
+ft: 20px; padding-right: 20px; font-family: 'Arial', Arial, Helvetica, sans=
+-serif; box-sizing: border-box !important; border-collapse: collapse !impor=
+tant;"> <table class=3D"content-inner-table" border=3D"0" cellspacing=3D"0"=
+ role=3D"presentation" cellpadding=3D"0" width=3D"100%" style=3D"mso-table-=
+lspace: 0pt; mso-table-rspace: 0pt; width: 100%; font-family: 'Arial', Aria=
+l, Helvetica, sans-serif; box-sizing: border-box !important; border-collaps=
+e: collapse !important;"> <tbody style=3D"box-sizing: border-box !important=
+;"> <tr style=3D"box-sizing: border-box !important;"> <td height=3D"16" wid=
+th=3D"100%" style=3D"max-width: 100%; font-family: 'Arial', Arial, Helvetic=
+a, sans-serif; box-sizing: border-box !important; border-collapse: collapse=
+ !important;" class=3D"md-horizontal-space"></td> </tr> <tr style=3D"box-si=
+zing: border-box !important;"> <td style=3D"font-style: normal; font-weight=
+: normal; line-height: 1.5; text-align: left; color: #000000; padding-top: =
+14px; padding-bottom: 14px; font-family: 'Arial', Arial, Helvetica, sans-se=
+rif; font-size: 18px; box-sizing: border-box !important; border-collapse: c=
+ollapse !important;" align=3D"left"> <span style=3D"font-style: normal; fon=
+t-weight: normal; line-height: 1.5; text-align: left; color: #000000; font-=
+family: 'Arial', Arial, Helvetica, sans-serif; font-size: 18px; box-sizing:=
+ border-box !important;"> Immersed stands out for one big reason: people al=
+ready rely on it to do their jobs. <br style=3D"box-sizing: border-box !imp=
+ortant;"><br style=3D"box-sizing: border-box !important;"> - 1.5M+ professi=
+onals onboarded to date <br style=3D"box-sizing: border-box !important;"> -=
+ Users spend 40=E2=80=9360 hours per week working inside it <br style=3D"bo=
+x-sizing: border-box !important;"> - #1 productivity app in the Meta Quest =
+ecosystem <br style=3D"box-sizing: border-box !important;"> - Partnerships =
+with Meta, Google, Intel, and Qualcomm <br style=3D"box-sizing: border-box =
+!important;"> - Reserved Nasdaq ticker: $IMRS <br style=3D"box-sizing: bord=
+er-box !important;"> - Early investors qualify for up to 20% bonus shares <=
+br style=3D"box-sizing: border-box !important;"><br style=3D"box-sizing: bo=
+rder-box !important;"> Access Pre-IPO pricing at $0.66 per share, before pu=
+blic markets weigh in. <br style=3D"box-sizing: border-box !important;"><br=
+ style=3D"box-sizing: border-box !important;"> <a href=3D"https://links.e.s=
+martpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3Ddbc87=
+f68cd374a699ac7969a02917be9&_e=3DbtsImXp9aucXkAv9bauEXSlRd_oJXieizXvQCZlxPJ=
+CqK8uqtc9OZjCB9ukZi8PiGXOih-BJJd4xj0HieyzbIYvrLKLGI5NVs8O9DH9O945ZmSpTWVk_8=
+ngff4-YXiIGurLVUs_W4lQjMgOMBeSUKxibVIkbmF2hHTeeM_x-mkqd-WPxpKXYCBqM4mcf-7s9=
+LO_t5pJN-xj9rMHe_3XP0OO4Qz0ZZ94hm0gL5jEj-_nb8FZdHIrYuUJKV_86tAYWV41ODmLOPcr=
+X7AELILtsvmWaWtJLg6i_CfrL_Ln0Uf9lvEHl1HiK8Fxw4ABXlILQyGlvhr3W_Jdx29NF7p58_b=
+Fex_yygZdg_YCewuKb3Avb6JXh45PkaTap0xSvntPbDdht6LbuSFkag3aE_ceU0GDL94ho1TQsk=
+EO4OJkmGCVQ7CDG5PddCkD4q60WllPCSxHOK9u4TyfWqSFtJnpHZSrNV6-Q-lgoLzUGYh8FQN1V=
+7jTcumbeCuHdTsG3-KX1MuXbfi2XZj3Mh-JgapV5stlJorFX_H99F7jvCzxYCBjVxKV2sztAuks=
+AmJxFSKTYrhiKyvxmJS_FTs-CZSHX-w%3D%3D" style=3D"text-decoration: underline;=
+ font-weight: 700; color: #0000ee; font-family: 'Arial', Arial, Helvetica, =
+sans-serif; box-sizing: border-box !important;">Invest Before the Pre-IPO R=
+ound Closes</a> </span> </td> </tr> <tr style=3D"box-sizing: border-box !im=
+portant;"> <td style=3D"font-size: 12px; font-style: normal; font-weight: n=
+ormal; line-height: 1.5; text-align: left; color: #000000; padding-top: 34p=
+x; padding-bottom: 14px; font-family: 'Arial', Arial, Helvetica, sans-serif=
+; box-sizing: border-box !important; border-collapse: collapse !important;"=
+ align=3D"left"> <span style=3D"font-size: 12px; font-style: normal; font-w=
+eight: normal; line-height: 1.5; text-align: left; color: #000000; font-fam=
+ily: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-box !importa=
+nt;"> <b style=3D"font-style: italic; box-sizing: border-box !important;">D=
+isclaimer:</b><em style=3D"box-sizing: border-box !important;"> Immersed is=
+ offering securities through the use of an Offering Statement that has been=
+ qualified by the Securities and Exchange Commission under Tier II of Regul=
+ation A. The valuation is set by the Company and there is currently no publ=
+ic market for the Company's Common Stock. Please read the offering circular=
+ and related risks at invest.immersed.com. Nasdaq ticker =E2=80=9CIMRS=E2=
+=80=9D has been reserved by Immersed and any potential listing is subject t=
+o future regulatory approval and market conditions.</em> </span> </td> </tr=
+> <tr style=3D"box-sizing: border-box !important;"> <td height=3D"16" width=
+=3D"100%" style=3D"max-width: 100%; font-family: 'Arial', Arial, Helvetica,=
+ sans-serif; box-sizing: border-box !important; border-collapse: collapse !=
+important;" class=3D"md-horizontal-space"></td> </tr> </tbody> </table> </t=
+d> </tr> </tbody> </table> </td> </tr> </tbody> </table> <!-- ~---------Pro=
+mo Ends Here--------~ --> </td> </tr> <!-- ~END BODY~ --> <!-- ~SPONSORED C=
+ONTENT --> <!-- ~END SPONSORED CONTENT --> <!-- ~DIVIDER~ --> <!-- ~END DIV=
+IDER~ --> <!-- ~EDITOR~ --> <!-- ~END EDITOR~ --> </table> </td> </tr> <!--=
+ ~END CONTENT --> <!-- ~FOOTER --> <tr style=3D"box-sizing: border-box !imp=
+ortant;"> <td bgcolor=3D"#1F2823" style=3D"box-sizing: border-box !importan=
+t; border-collapse: collapse !important;"> <table width=3D"100%" border=3D"=
+0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-t=
+able-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; background: url('http=
+s://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46=
+bb-bd7e-c542cff6dd6a/f88b7d4fa6b54c30956d854ef81ba1b6/footer-bg.png'); back=
+ground-position: center top; background-repeat: no-repeat; box-sizing: bord=
+er-box !important; border-collapse: collapse !important;"> <tr style=3D"box=
+-sizing: border-box !important;"> <td width=3D"100%" style=3D"max-width: 10=
+0%; padding-top: 20px; box-sizing: border-box !important; border-collapse: =
+collapse !important;" class=3D"divider_s"></td> </tr> <tr style=3D"box-sizi=
+ng: border-box !important;"> <td class=3D"footer_btns_wrapper" style=3D"box=
+-sizing: border-box !important; border-collapse: collapse !important;"> <ta=
+ble width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D=
+"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width=
+: 100%; box-sizing: border-box !important; border-collapse: collapse !impor=
+tant;"> <!--[if mso | IE]><tr> <td align=3D"center"> <table border=3D"0" ce=
+llspacing=3D"0" cellpadding=3D"0" width=3D"564" style=3D"width: 564px;max-w=
+idth: 100%;"><![endif]--> <tr align=3D"center" style=3D"box-sizing: border-=
+box !important;"> <td valign=3D"top" style=3D"display: inline-block; max-wi=
+dth: 378px; box-sizing: border-box !important; border-collapse: collapse !i=
+mportant;" class=3D"w_full"> <table width=3D"100%" border=3D"0" cellspacing=
+=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0=
+pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-box !important; =
+border-collapse: collapse !important;"> <tr style=3D"box-sizing: border-box=
+ !important;"> <td style=3D"padding: 10px 15px; box-sizing: border-box !imp=
+ortant; border-collapse: collapse !important;"> <table width=3D"100%" borde=
+r=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"=
+mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing: bord=
+er-box !important; border-collapse: collapse !important;"> <tr style=3D"box=
+-sizing: border-box !important;"> <td style=3D"color: #D9D9D9; font-family:=
+ Open Sans, sans-serif; font-size: 12px; font-style: normal; font-weight: 4=
+00; line-height: 1.5; box-sizing: border-box !important; border-collapse: c=
+ollapse !important;"> <p style=3D"font-size: 11px; line-height: 1.2; text-a=
+lign: left; mso-line-height-alt: 13px; margin: 0; box-sizing: border-box !i=
+mportant;"><span style=3D"font-size: 11px; box-sizing: border-box !importan=
+t;">You are receiving this e-mail because you have expressed an =D1=96ntere=
+st in the Financial Education niche on one of our landing pages or sign-up =
+f=D0=BErms. <br style=3D"box-sizing: border-box !important;"> <br style=3D"=
+box-sizing: border-box !important;"> This offer is brought to you by Smart =
+People Mail. 221 W 9th St # Wilmington, DE 19801 USA. If you would like to =
+unsubscribe from receiving offers brought to you by Smart People Mail <b st=
+yle=3D"box-sizing: border-box !important;"><a style=3D"color: white; text-d=
+ecoration: underline; box-sizing: border-box !important;" href=3D"https://l=
+inks.e.smartpeoplemail.com/e/encryptedUnsubscribe?_r=3Df88b7d4fa6b54c30956d=
+854ef81ba1b6&_s=3Ddbc87f68cd374a699ac7969a02917be9&_t=3DYOivJGo8wpxjgmia-xp=
+A4jCCa1HF6QHNoUunomGXfyzB1Z1X76-CveqrOFTJgpIGnHO5LDTckIRd2uylx4T8MZSQychmnh=
+4-BM4N8P8BtXRo2l2WBobL0MBBCSnUTH3Q" class=3D"unsubscribe">click here.</a></=
+b> <br style=3D"box-sizing: border-box !important;"><br style=3D"box-sizing=
+: border-box !important;"> Got questions? We=E2=80=99ve got answers! Connec=
+t with our friendly support team to get the help you need, when you need it=
+, simply send an email to support@smartpeoplemail.com. You=E2=80=99ll recei=
+ve a response within 24 hours. </span> <br style=3D"box-sizing: border-box =
+!important;"> <br style=3D"box-sizing: border-box !important;"> </p> <p sty=
+le=3D"font-size: 14px; line-height: 1.2; text-align: center; mso-line-heigh=
+t-alt: 17px; margin: 0; box-sizing: border-box !important;"> </p> <p style=
+=3D"font-size: 11px; line-height: 1.2; text-align: left; mso-line-height-al=
+t: 13px; margin: 0; box-sizing: border-box !important;"><span style=3D"font=
+-size: 11px; box-sizing: border-box !important;">SmartPeopleMail.com, its m=
+anagers, its employees, and assigns (collectively "The Company") do not mak=
+e any guarantee or warranty about what is advertised above. Information pro=
+vided by this website is for research purposes only and should not be consi=
+dered as personalized financial advice. The Company is not affiliated with,=
+ nor does it receive compensation from, any specific security. </span> <br =
+style=3D"box-sizing: border-box !important;"> </p> <p style=3D"box-sizing: =
+border-box !important;"></p> <p style=3D"font-size: 11px; line-height: 1.2;=
+ text-align: left; mso-line-height-alt: 13px; margin: 0; box-sizing: border=
+-box !important;"><span style=3D"font-size: 11px; box-sizing: border-box !i=
+mportant;">Email sent by Finance and Investing Traffic, LLC, owner and oper=
+ator of Smart People Mail (SPM).</span> </p> =C2=A0<br style=3D"box-sizing:=
+ border-box !important;"> <p style=3D"font-size: 12px; line-height: 1.2; te=
+xt-align: left; mso-line-height-alt: 14px; margin: 0; box-sizing: border-bo=
+x !important;"><span style=3D"font-size: 12px; box-sizing: border-box !impo=
+rtant;">To ensure you receive our email, be sure to <a style=3D"color: whit=
+e; text-decoration: underline; box-sizing: border-box !important;" href=3D"=
+https://links.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef8=
+1ba1b6&_m=3Ddbc87f68cd374a699ac7969a02917be9&_e=3DbtsImXp9aucXkAv9bauEXYkQN=
+926ID-kJ9nQ3LtC01ErP47TLy4f87N_pjZyjEXtMc0qbsdJ0vVYrIYKR1p9IodOkN3bUNmyKv5Y=
+FkFnzfBLBoMV1gprVahhLm56zEl49ru4JZpVJUPNLi5sYjVJBU_if4nrMy5wZ7KpTBLXF3oz4OW=
+GvrPLQpH4dg5XdE_K8_j6j8nHBkGh-tJdQjhMT1pYerMJNcBvGVqbbCHh-eYw7s5w2aXKFj34sd=
+PnNZ-qkUv3o523xwTRtz_U6_KtHlFdmPLk67NFfxxs04UgagDe2oRuUS4I6-_8dMuWzlhC3mI-j=
+_D7HS9LzqvGTt6CRzbbFHo_0cC0tZ481Z0FIVHbXq45G5iSxDi-T9fsXj6s"><i style=3D"bo=
+x-sizing: border-box !important;"><b style=3D"box-sizing: border-box !impor=
+tant;">whitelist us.</b></i></a></span> </p> <p style=3D"font-size: 14px; l=
+ine-height: 1.2; text-align: center; mso-line-height-alt: 17px; margin: 0; =
+box-sizing: border-box !important;"> </p> <p style=3D"font-size: 11px; line=
+-height: 1.2; text-align: left; mso-line-height-alt: 13px; margin: 0; box-s=
+izing: border-box !important;"><span style=3D"font-size: 11px; box-sizing: =
+border-box !important;">=C2=A9 2026=C2=A0Smart People Mail. All Rights Rese=
+rved.</span> </p> <p style=3D"font-size: 11px; line-height: 1.2; text-align=
+: left; mso-line-height-alt: 13px; margin: 0; box-sizing: border-box !impor=
+tant;"><span style=3D"font-size: 11px; box-sizing: border-box !important;">=
+221 W 9th St # Wilmington, DE 19801 USA</span> </p> <p style=3D"font-size: =
+14px; line-height: 1.2; text-align: center; mso-line-height-alt: 17px; marg=
+in: 0; box-sizing: border-box !important;"> </p> </td> </tr> </table> </td>=
+ </tr> </table> </td> <td valign=3D"top" style=3D"display: inline-block; wi=
+dth: 186px; box-sizing: border-box !important; border-collapse: collapse !i=
+mportant;" class=3D"w_full" width=3D"186"> <table width=3D"100%" border=3D"=
+0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-t=
+able-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-bo=
+x !important; border-collapse: collapse !important;"> <tr style=3D"box-sizi=
+ng: border-box !important;"> <td style=3D"padding: 10px 15px; box-sizing: b=
+order-box !important; border-collapse: collapse !important;"> <table width=
+=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presenta=
+tion" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; b=
+ox-sizing: border-box !important; border-collapse: collapse !important;"> <=
+tr style=3D"box-sizing: border-box !important;"> <td align=3D"center" style=
+=3D"box-sizing: border-box !important; border-collapse: collapse !important=
+;"> <a href=3D"https://links.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa6b=
+54c30956d854ef81ba1b6&_m=3Ddbc87f68cd374a699ac7969a02917be9&_e=3DbtsImXp9au=
+cXkAv9bauEXYkQN926ID-kJ9nQ3LtC01GiepMyMQxxSCuSlYA57V3RYxyB9SjggZklqSQIX0QGz=
+023j4MeEzr2yog0bCnMB15JQfrpUV9eC0ERs6XJguvGgj-xxZEubcXumy6ZdI1GXyww_5psqQvC=
+AOJrsQux_gCL77ksnZKBhRE43ynruLmT8mQF1cJ-B5Og5Yuv9rCBC5OmCEjF8oj36YNI26rIaqi=
+5fDuIf9X-jGCSAgBEa6jFIVs-4jnfRDPyo_r0subMaghUqzHsb-GaqHICNI_ZGra-syMsubP9p_=
+W40f42aaTPTXsIbaQAs_a00ZNPLwG8-w%3D%3D" target=3D"_blank" style=3D"text-dec=
+oration: none; font-size: 0; box-sizing: border-box !important;"> <img src=
+=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713=
+-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b54c30956d854ef81ba1b6/footer-logo%2=
+0%281%29.png" alt=3D"Logo" title=3D"Logo" width=3D"129" style=3D"object-fit=
+: contain; width: 129px; object-position: center; font-size: 13px; box-sizi=
+ng: border-box !important; outline: none !important; text-decoration: none =
+!important; border: none !important; -ms-interpolation-mode: bicubic !impor=
+tant; margin: 0 !important; padding: 0 !important; display: block !importan=
+t;"> </a> </td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td=
+ width=3D"100%" style=3D"max-width: 100%; padding-top: 20px; box-sizing: bo=
+rder-box !important; border-collapse: collapse !important;" class=3D"divide=
+r"></td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td width=
+=3D"100%" style=3D"max-width: 100%; padding-top: 1px; box-sizing: border-bo=
+x !important; border-collapse: collapse !important;" bgcolor=3D"#0EAD74" cl=
+ass=3D"divider"></td> </tr> <tr style=3D"box-sizing: border-box !important;=
+"> <td width=3D"100%" style=3D"max-width: 100%; padding-top: 20px; box-sizi=
+ng: border-box !important; border-collapse: collapse !important;" class=3D"=
+divider"></td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td =
+align=3D"center" style=3D"box-sizing: border-box !important; border-collaps=
+e: collapse !important;"> <table width=3D"100%" border=3D"0" cellspacing=3D=
+"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt;=
+ mso-table-rspace: 0pt; width: 100%; max-width: 137px; box-sizing: border-b=
+ox !important; border-collapse: collapse !important;" class=3D"w_full"> <!-=
+-[if mso | IE]><tr> <td align=3D"center"> <table border=3D"0" cellspacing=
+=3D"0" cellpadding=3D"0" width=3D"137" style=3D"width: 137px;max-width: 100=
+%;"><![endif]--> <tr style=3D"box-sizing: border-box !important;"> <td bgco=
+lor=3D"#1BF2A4" style=3D"padding: 1px; border-radius: 0; box-sizing: border=
+-box !important; border-collapse: collapse !important;"> <table bgcolor=3D"=
+#1BF2A4" width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" ro=
+le=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; =
+width: 100%; border-radius: 0; box-sizing: border-box !important; border-co=
+llapse: collapse !important;"> <tr style=3D"box-sizing: border-box !importa=
+nt;"> <td valign=3D"middle" width=3D"100%" height=3D"36" align=3D"center" s=
+tyle=3D"border-radius: 0; font-family: Space Grotesk, sans-serif; color: #0=
+00000; font-size: 12px; font-style: normal; font-weight: 500; background: n=
+one; width: 100%; max-width: 100%; min-width: 100%; height: 36px; padding-l=
+eft: 6px; padding-right: 6px; padding-top: 3px; padding-bottom: 3px; white-=
+space: nowrap; line-height: 1.5; box-sizing: border-box !important; border-=
+collapse: collapse !important;"> <a href=3D"https://links.e.smartpeoplemail=
+.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3Ddbc87f68cd374a699ac=
+7969a02917be9&_e=3DbtsImXp9aucXkAv9bauEXYkQN926ID-kJ9nQ3LtC01HQKTOaNyveHUpG=
+8faPObUKXImL55USkGT_m2RLE9ngc6pzQe--Ac0cvbB7nSPuFjNhyRNJgduRR8Bh3iqiyAXP7Z7=
+4Bl-ilueQyLzZG8RE1QAzCpz-q51qt0hRWNcldnQvJpnm8EMDltKe6hMjgqZXgFIp0R8xqDtE3Y=
+eYD9o2O67m_Jpj8kjRZJ-2XdvKKE01RmbmcExhHbWGnq1U7cWeZgN8k_j6HHJc0D9_zOVjQKcan=
+igHz4uSWp3QT577QeHoGvsmYM-9LYvgWzrZVQ2Hef5yaz5YC9KzsN4Bcq-UBWUWPljWFcvkZYKk=
+AuaPE-iYt1a8b54B3r_EpmdIAt28" target=3D"_blank" style=3D"border-radius: 0; =
+text-decoration: none; background: none; color: #000000; font-family: Space=
+ Grotesk, sans-serif; font-size: 12px; font-style: normal; font-weight: 500=
+; line-height: 1.5; text-align: center; width: 100%; background-color: #1BF=
+2A4; display: block; box-sizing: border-box !important;">Privacy Policy</a>=
+ </td> </tr> </table> </td> </tr> <tr style=3D"box-sizing: border-box !impo=
+rtant;"> <td width=3D"100%" style=3D"max-width: 100%; padding-top: 14px; bo=
+x-sizing: border-box !important; border-collapse: collapse !important;" cla=
+ss=3D"divider"></td> </tr> <tr style=3D"box-sizing: border-box !important;"=
+> <td bgcolor=3D"#1BF2A4" style=3D"padding: 1px; border-radius: 0; box-sizi=
+ng: border-box !important; border-collapse: collapse !important;"> <table b=
+gcolor=3D"#1BF2A4" width=3D"100%" border=3D"0" cellspacing=3D"0" cellpaddin=
+g=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rsp=
+ace: 0pt; width: 100%; border-radius: 0; box-sizing: border-box !important;=
+ border-collapse: collapse !important;"> <tr style=3D"box-sizing: border-bo=
+x !important;"> <td valign=3D"middle" width=3D"100%" height=3D"36" align=3D=
+"center" style=3D"border-radius: 0; font-family: Space Grotesk, sans-serif;=
+ color: #000000; font-size: 12px; font-style: normal; font-weight: 500; bac=
+kground: none; width: 100%; max-width: 100%; min-width: 100%; height: 36px;=
+ padding-left: 6px; padding-right: 6px; padding-top: 3px; padding-bottom: 3=
+px; white-space: nowrap; line-height: 1.5; box-sizing: border-box !importan=
+t; border-collapse: collapse !important;"> <a href=3D"https://links.e.smart=
+peoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3Ddbc87f68c=
+d374a699ac7969a02917be9&_e=3DbtsImXp9aucXkAv9bauEXYkQN926ID-kJ9nQ3LtC01HyA2=
+D6iVV3EId9dg9Io3IkBfncVL39qp_F155kzNHqJDyJf0ZJeuMlSH5kjG4AvtqgzOvrf9m3Xpw6l=
+OIMQcVAkbIb3aILnunnkhz7wiVnNYZ_mPjYrmqqZuz_t74N0VmYOZ1Vob7oMZNLWj4It6fHXKKE=
+8tS8Z9OSjdTRF7APAmr9w7xR4C8A3qrcP0c1JDW8s2P5kMhXWH6ohyQ5IOfBtemkpTLtuVVklv-=
+HHaUjPTB0ubIXsotRg8jAxjX3W7YfDD7Bwkc2DoiM4cd6O6iSPXvo8UwDTZqvU16NK6kosidkwQ=
+-GqvZALvsoEKW_Qv8u8tr04IbF9QJwiC6ymJom" target=3D"_blank" style=3D"border-r=
+adius: 0; text-decoration: none; background: none; color: #000000; font-fam=
+ily: Space Grotesk, sans-serif; font-size: 12px; font-style: normal; font-w=
+eight: 500; line-height: 1.5; text-align: center; width: 100%; background-c=
+olor: #1BF2A4; display: block; box-sizing: border-box !important;">Terms & =
+Conditions</a> </td> </tr> </table> </td> </tr> <tr style=3D"box-sizing: bo=
+rder-box !important;"> <td width=3D"100%" style=3D"max-width: 100%; padding=
+-top: 14px; box-sizing: border-box !important; border-collapse: collapse !i=
+mportant;" class=3D"divider"></td> </tr> <tr style=3D"box-sizing: border-bo=
+x !important;"> <td bgcolor=3D"#1BF2A4" style=3D"padding: 2px; border-radiu=
+s: 0; box-sizing: border-box !important; border-collapse: collapse !importa=
+nt;"> <table bgcolor=3D"#ffffff" width=3D"100%" border=3D"0" cellspacing=3D=
+"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt;=
+ mso-table-rspace: 0pt; width: 100%; border-radius: 0; box-sizing: border-b=
+ox !important; border-collapse: collapse !important;"> <tr style=3D"box-siz=
+ing: border-box !important;"> <td valign=3D"middle" width=3D"100%" height=
+=3D"36" align=3D"center" style=3D"border-radius: 0; font-family: Space Grot=
+esk, sans-serif; color: #000000; font-size: 12px; font-style: normal; font-=
+weight: 500; background: none; width: 100%; max-width: 100%; min-width: 100=
+%; height: 36px; padding-left: 6px; padding-right: 6px; padding-top: 3px; p=
+adding-bottom: 3px; white-space: nowrap; line-height: 1.5; box-sizing: bord=
+er-box !important; border-collapse: collapse !important;"> <a href=3D"https=
+://links.e.smartpeoplemail.com/e/encryptedUnsubscribe?_r=3Df88b7d4fa6b54c30=
+956d854ef81ba1b6&_s=3Ddbc87f68cd374a699ac7969a02917be9&_t=3DYOivJGo8wpxjgmi=
+a-xpA4jCCa1HF6QHNoUunomGXfyzB1Z1X76-CveqrOFTJgpIGnHO5LDTckIRd2uylx4T8MZSQyc=
+hmnh4-BM4N8P8BtXRo2l2WBobL0MBBCSnUTH3Q" target=3D"_blank" style=3D"border-r=
+adius: 0; text-decoration: none; background: none; color: #000000; font-fam=
+ily: Space Grotesk, sans-serif; font-size: 12px; font-style: normal; font-w=
+eight: 500; line-height: 1.5; text-align: center; width: 100%; background-c=
+olor: #ffffff; display: block; box-sizing: border-box !important;">Unsubscr=
+ibe</a> </td> </tr> </table> </td> </tr> <!--[if mso | IE]></table> </td> <=
+/tr><![endif]--> </table> </td> </tr> </table> </td> </tr> </table> </td> <=
+/tr> <!--[if mso | IE]></table> </td> </tr><![endif]--> </table> </td> </tr=
+> <tr style=3D"box-sizing: border-box !important;"> <td width=3D"100%" styl=
+e=3D"max-width: 100%; padding-top: 20px; box-sizing: border-box !important;=
+ border-collapse: collapse !important;" class=3D"divider_s"></td> </tr> </t=
+able> </td> </tr> <!-- ~END FOOTER --> <!--[if mso | IE]></table> </td> </t=
+r><![endif]--> </table> </td> </tr> <!--[if mso | IE]></table> </td> </tr><=
+![endif]--> </table> </td> </tr> </table> </td> </tr> </table> </td> </tr> =
+</table> </center> </body> </html>
+------=_Part_4116058_256596215.1771864429098--

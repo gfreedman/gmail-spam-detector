@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.14.0
+ * @version 6.15.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,9 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.15.0: Blacklist smartpeoplemail (Pre-IPO investment spam). Add Pre-IPO
+ *            clickbait pattern for defense-in-depth against similar senders.
+ *            Added spam example (35/35).
  *   v6.14.0: Add refreshBlacklist() — merges new DEFAULT_DOMAINS.suspicious
  *            entries into runtime Script Properties. Fixes bug where blacklist
  *            additions in source code weren't reflected at runtime (Script
@@ -119,7 +122,8 @@ const DEFAULT_DOMAINS = Object.freeze({
     'brightcrestcapital.com', 'turbotradepro.com',
     'budgetingjournals.com', 'investorbusinesstalk.com',
     'expertmodernadvice',
-    'investingtrendstoday'
+    'investingtrendstoday',
+    'smartpeoplemail'
   ])
 });
 
@@ -576,6 +580,9 @@ function analyzeMessage(message)
       /\b(declared war|bombed|bombing|attack|attacked|destroyed|invasion)\b/i,
 
       // --- Financial hype ---
+
+      // Pre-IPO investment solicitation: always spam in bulk email
+      /\bpre-?ipo\b/i,
 
       // Stock price hype: "$5 a share", "penny stock"
       /\$\d+(\.\d+)?\s*(a\s+)?share|\bpenny stock\b/i,

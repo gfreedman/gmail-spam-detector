@@ -62,6 +62,8 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'(what|who).*(hiding|don\'t want you|truth|they won\'t tell)', re.I),
     # Military/war sensationalism: "declared war", "bombing", "invasion"
     re.compile(r'\b(declared war|bombed|bombing|attack|attacked|destroyed|invasion)\b', re.I),
+    # Pre-IPO investment solicitation: always spam in bulk email
+    re.compile(r'\bpre-?ipo\b', re.I),
     # Stock price hype: "$5 a share", "penny stock"
     re.compile(r'\$\d+(\.\d+)?\s*(a\s+)?share|\bpenny stock\b', re.I),
     # Watch/see curiosity gap: "watch what happened", "see this"
@@ -130,6 +132,7 @@ BLACKLISTED_DOMAINS = [
     'budgetingjournals.com', 'investorbusinesstalk.com',
     'expertmodernadvice',
     'investingtrendstoday',
+    'smartpeoplemail',
 ]
 
 # --- Marketing Sender Format Patterns ---

@@ -1,0 +1,881 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:54ca:b0:1b6:202c:9e3b with SMTP id li10csp3312538rdb;
+        Mon, 23 Feb 2026 15:36:41 -0800 (PST)
+X-Received: by 2002:a05:620a:c44:b0:8b2:989b:efe6 with SMTP id af79cd13be357-8cb8ca0d840mr1331778785a.26.1771889801255;
+        Mon, 23 Feb 2026 15:36:41 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1771889801; cv=none;
+        d=google.com; s=arc-20240605;
+        b=c1xdwgdSKJ0Z/7cn2I5Nircac3bYotj/awOT3lCEFnT5H0a31hDuDdrh9K/gGVazrW
+         hlu8iRTO577vXI4/B+LmijIQ+jB+VhF9fGTC8BHlBee0ggJoQDNlLcaJx3uXtckgFjoK
+         dTSmM3JxZPfpPvOKoaugJZUpe3QqbEABOMHgoagVOKdOJcYKtxFf08xVcUhdZi8Qn4yG
+         1DyuboQE+rxbDq/AEIH/N7ZlKAjIPksskw24dfWr/V+9CTSDmPTNDMo8rsGZuEMQ5hAB
+         Ljg7wxmaBV3Jl2V9bgfGtADspRqhA+TjWR8cygUF1B2EX6SHI3dRgQ2FJT0V6pPZ6l0K
+         nZoA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=iYcTnUPKN8LppTvBLU35YPei4NyupU2KPtiud/y+lmA=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=G0vgnNSKVcTgHOflXLqUIqLRFSMZfb1XDXtdnvLBl+A6bm4nDox/Ip2TmqsCPRsB0C
+         8DkkuLpLAt6mve6wYUEGlvaSmU57DufxXt1e02ZxiB9YMc0f15BMLZh/u/z1qP883eQO
+         uEzTNlj09IctAG7hOL3iPFgXjCxB1VLETet7J+Hf1R+8NP+ojTbheherG9BSd0y5DA8k
+         fintjd/zzqTBGaNmh2qrrsLIp9UZi+r/C3hArsIGvbUcqYQWo213cIdX6SdWDf9xB+Ix
+         6wzTdENls0aiL4/XbAuqb9pemi3MqSarXV/waPx/b8ynH4b+dyrqFjsEwRoObS4glZcA
+         CHhg==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@e.smartpeoplemail.com header.s=hvvmpkf6ivasukbmfv3q56tzuxmsnrxc header.b=gmKwmcDS;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=Q9UwQGDY;
+       spf=pass (google.com: domain of 0100019c8cdcb69a-727597ad-111a-4315-9a41-5820c0099180-000000@amazonses.com designates 76.223.141.191 as permitted sender) smtp.mailfrom=0100019c8cdcb69a-727597ad-111a-4315-9a41-5820c0099180-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=e.smartpeoplemail.com
+Return-Path: <0100019c8cdcb69a-727597ad-111a-4315-9a41-5820c0099180-000000@amazonses.com>
+Received: from c141-191.smtp-out.amazonses.com (c141-191.smtp-out.amazonses.com. [76.223.141.191])
+        by mx.google.com with ESMTPS id af79cd13be357-8cb8d140125si818649485a.211.2026.02.23.15.36.41
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 23 Feb 2026 15:36:41 -0800 (PST)
+Received-SPF: pass (google.com: domain of 0100019c8cdcb69a-727597ad-111a-4315-9a41-5820c0099180-000000@amazonses.com designates 76.223.141.191 as permitted sender) client-ip=76.223.141.191;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@e.smartpeoplemail.com header.s=hvvmpkf6ivasukbmfv3q56tzuxmsnrxc header.b=gmKwmcDS;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=Q9UwQGDY;
+       spf=pass (google.com: domain of 0100019c8cdcb69a-727597ad-111a-4315-9a41-5820c0099180-000000@amazonses.com designates 76.223.141.191 as permitted sender) smtp.mailfrom=0100019c8cdcb69a-727597ad-111a-4315-9a41-5820c0099180-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=e.smartpeoplemail.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=hvvmpkf6ivasukbmfv3q56tzuxmsnrxc; d=e.smartpeoplemail.com;
+	t=1771889800;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=ljI3bnsLlPSs1WszoEYYcmOlg2nQBekb8XLukLRvrns=;
+	b=gmKwmcDSvlpXS2Jjp0yqu+4UAtokvpMmHoO73eRD7MW6S1VYR69QjMKD4on+9d28
+	7iCiLq5h4L8ARVy4RUWgLSmGwoWCV6QoPEIqD+9t46zU/GhTZpXOB2bIUcSNXHl2u4F
+	WKWoWB+kzJ/nQGmWCskIUv5fzLGDEx3UyWnsWFvg=
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1771889800;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=ljI3bnsLlPSs1WszoEYYcmOlg2nQBekb8XLukLRvrns=;
+	b=Q9UwQGDYR9PFHfEkLlv85++n3u7IM+CTkQCjsiUrDzi2RmD8X2Sw6slF+t9xBEG3
+	hYYllQLiWPk5lgCpIQqZWCnkJdd/cJW0oBCOsZibFLaJ08L1XSnF9qQ90oA9LuuG70d
+	KKVT9qa1ZLzR/lYX5eopnZlhgFHRA+khpg1A5vS8=
+Date: Mon, 23 Feb 2026 23:36:40 +0000
+From: New all-time-high - James Dutton | SPM <newsletter@e.smartpeoplemail.com>
+Reply-To: support@smartpeoplemail.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019c8cdcb69a-727597ad-111a-4315-9a41-5820c0099180-000000@email.amazonses.com>
+Subject: Is silver soaring or is the dollar dying? (Surprising answer
+ inside) | February 23
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_5863_1610981570.1771889800846"
+X-Campaign-ID: 17009122
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=f88b7d4fa6b54c30956d854ef81ba1b6&_s=9b34f70385e746ae95b2b232c249722a&_t=uYgPLZRNN7Xf5bkF-eSZjTXGpzvsuJY5nFvjxC-cy0rBQaHbzCtIJhm_WgfMs3Ey_jPMrckMAUkHhJevSGxNg-2-JPNA2Qow--_tRZ0TKIiz8K2fXqN8zI_pUBZtxqGq>,<mailto:unsubscribe+17009122+22143787@unsubscribe.iterable.com>
+X-Feedback-ID: 22143787:17009122:36661:iterable
+X-Message-ID: 9b34f70385e746ae95b2b232c249722a
+X-SES-Outgoing: 2026.02.23-76.223.141.191
+
+------=_Part_5863_1610981570.1771889800846
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Test letter Most don't realize you can allocate retirement funds toward=20
+physical gold and silver easily, affordably, and securely through a preciou=
+s met
+
+
+
+
+
+
+ <https://smartpeoplemail.com/>=20
+
+
+
+ Editor's Note: Occasionally, an opportunity comes to our attention at Smar=
+t=20
+People Mail we believe readers like you will find valuable. The message bel=
+ow=20
+from one of our partners is one we believe you should take a close look at.=
+=20
+
+
+
+
+
+
+
+
+ Silver scraped $117 this week.=20
+
+ No, that's not a typo...=20
+
+ The precious metal that was trading around $22 just two years ago hit an=
+=20
+all-time-high of $117.43 on Monday.=20
+
+ That's more than a 5X since January 2024.=20
+
+ Gold also hit its new all-time-high of $5,100 around the same time.=20
+
+ So, what's driving this historic rise?=20
+
+ It's about something much deeper than routine market volatility...=20
+
+ There's a crisis of confidence in our economic infrastructure:=20
+
+ * Political pressure on the Fed is mounting as they continue printing more=
+=20
+money=20
+ *  The dollar's purchasing power continues its decline with no end to=20
+inflation in sight=20
+ *  And geopolitical tensions are escalating worldwide (Venezuela, Ukraine,=
+=20
+Greenland, Iran, etc.)  Maybe it's not so much that precious metals are=20
+rising...
+
+ But that our fragile financial systems =E2=80=94 and currency =E2=80=94 ar=
+e dying.=20
+ When institutions have become unstable throughout history, investors flee=
+=20
+toward what they deem to be trusted, tangible, "safe haven" assets...
+
+ That's why you need to:=20
+
+Discover How Americans Are Protecting Their Savings in 2026 (Tap HERE to Cl=
+aim=20
+Your Free Wealth Protection Kit Now)=20
+<https://track.smartpeoplemail.com/699302dca1e2eaf72f42496a?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D23SPM&type=3DB&product=3DPALWP1>
+
+ Most don't realize you can allocate retirement funds toward physical gold =
+and=20
+silver easily, affordably, and securely through a precious metals IRA=20
+rollover...
+
+ And right now, thousands of Americans are using this little-known strategy=
+ to=20
+help shield what they've spent decades building through hard work.
+
+ This is not because they're panicking...=20
+
+ But because they're paying close attention to the mounting uncertainty in=
+=20
+2026.=20
+
+ As they have for thousands of years, precious metals could be well-positio=
+ned=20
+to help protect accounts =E2=80=94 Now is the time to prepare for the unexp=
+ected:=20
+
+ REQUEST YOUR FREE KIT NOW =20
+<https://track.smartpeoplemail.com/699302dca1e2eaf72f42496a?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D23SPM&type=3DB&product=3DPALWP1>
+
+ * Simple, Step-by-Step IRA Setup Guide=20
+ * Insider Strategies for Inflation & Market Downturns=20
+ * Expert Answers to Your Retirement Questions=20
+ * And Access to Exclusive Bonus Tips for Maximizing IRA Growth Potential =
+=20
+You'll also discover tips for whether this plan makes sense for your person=
+al=20
+situation.
+
+ No fees... no obligation... no pressure...=20
+
+ Just good, clean information to help you and your family make informed=20
+decisions:
+
+Visit the next page =F0=9F=91=89 claim your complimentary kit.=20
+<https://track.smartpeoplemail.com/699302dca1e2eaf72f42496a?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D23SPM&type=3DB&product=3DPALWP1>
+=20
+<https://track.smartpeoplemail.com/699302dca1e2eaf72f42496a?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D23SPM&type=3DB&product=3DPALWP1>
+ Allegiance Gold, LLC is not a broker-dealer and does not provide investmen=
+t,=20
+tax, or legal advisory services. No statement in this communication should =
+be=20
+construed as a recommendation to purchase or sell any security, or as=20
+investment, tax, or legal advice. Precious metals, like all investments, ca=
+rry=20
+risk, are not suitable for all investors, and past performance does not=20
+guarantee future results. We do not guarantee any investment performance.=
+=20
+Please consult your own investment, tax, or legal advisor prior to making a=
+ny=20
+investment decision. Third-party information quoted or presented by us in t=
+his=20
+communication represents only the opinions of the third party and we do not=
+=20
+endorse any third-party source of information. We are not affiliated with t=
+he=20
+U.S. Mint or any government agency. =C2=A9Allegiance Gold, LLC 2026.=20
+
+
+
+
+ <https://smartpeoplemail.com/>=20
+
+
+You are receiving this e-mail because you have expressed an =D1=96nterest i=
+n the=20
+Financial Education niche on one of our landing pages or sign-up f=D0=BErms=
+.
+
+ This offer is brought to you by Smart People Mail. 221 W 9th St # Wilmingt=
+on,=20
+DE 19801 USA. If you would like to unsubscribe from receiving offers brough=
+t to=20
+you by Smart People Mailclick here.=20
+<https://links.e.smartpeoplemail.com/e/encryptedUnsubscribe?_r=3Df88b7d4fa6=
+b54c30956d854ef81ba1b6&_s=3D9b34f70385e746ae95b2b232c249722a&_t=3DuYgPLZRNN=
+7Xf5bkF-eSZjTXGpzvsuJY5nFvjxC-cy0rBQaHbzCtIJhm_WgfMs3Ey_jPMrckMAUkHhJevSGxN=
+g-2-JPNA2Qow--_tRZ0TKIiz8K2fXqN8zI_pUBZtxqGq>
+
+ Got questions? We=E2=80=99ve got answers! Connect with our friendly suppor=
+t team to=20
+get the help you need, when you need it, simply send an email to=20
+support@smartpeoplemail.com. You=E2=80=99ll receive a response within 24 ho=
+urs.=20
+
+
+
+
+
+SmartPeopleMail.com, its managers, its employees, and assigns (collectively=
+=20
+"The Company") do not make any guarantee or warranty about what is advertis=
+ed=20
+above. Information provided by this website is for research purposes only a=
+nd=20
+should not be considered as personalized financial advice. The Company is n=
+ot=20
+affiliated with, nor does it receive compensation from, any specific securi=
+ty.l=20
+<https://smartpeoplemail.com/suspicious-engagement/>=20
+
+
+
+
+
+Email sent by Finance and Investing Traffic, LLC, owner and operator of Sma=
+rt=20
+People Mail (SPM).=20
+
+
+To ensure you receive our email, be sure to whitelist us.=20
+<https://smartpeoplemail.com/email-whitelisting/>=20
+
+
+
+=C2=A9 2026 Smart People Mail. All Rights Reserved.=20
+
+221 W 9th St # Wilmington, DE 19801 USA=20
+
+
+
+
+
+
+
+ Privacy Policy <https://smartpeoplemail.com/privacy-policy/>
+
+ Terms & Conditions <https://smartpeoplemail.com/terms-and-conditions/>
+
+ Unsubscribe=20
+<https://links.e.smartpeoplemail.com/e/encryptedUnsubscribe?_r=3Df88b7d4fa6=
+b54c30956d854ef81ba1b6&_s=3D9b34f70385e746ae95b2b232c249722a&_t=3DuYgPLZRNN=
+7Xf5bkF-eSZjTXGpzvsuJY5nFvjxC-cy0rBQaHbzCtIJhm_WgfMs3Ey_jPMrckMAUkHhJevSGxN=
+g-2-JPNA2Qow--_tRZ0TKIiz8K2fXqN8zI_pUBZtxqGq>
+
+
+------=_Part_5863_1610981570.1771889800846
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.=
+w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> <html xmlns=3D"http://www.w3=
+.org/1999/xhtml" xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:s=
+chemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: border=
+-box !important;"> <head> <meta http-equiv=3D"Content-Type" content=3D"text=
+/html; charset=3DUTF-8"> <title>Test letter</title> <meta name=3D"viewport"=
+ content=3D"width=3Ddevice-width, initial-scale=3D1.0"> <link rel=3D"precon=
+nect" href=3D"https://fonts.googleapis.com"> <link rel=3D"preconnect" href=
+=3D"https://fonts.gstatic.com" crossorigin> <link href=3D"https://fonts.goo=
+gleapis.com/css2?family=3DOpen+Sans:wght@400;700&family=3DRajdhani:wght@600=
+;700&display=3Dswap" rel=3D"stylesheet"> <style>body{width:100%!important;-=
+webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;margin:0;padding:0;l=
+ine-height:100%}[style*=3D"Open Sans"]{font-family:'Open Sans',Arial,sans-s=
+erif}*{box-sizing:border-box!important}@media screen and (-webkit-min-devic=
+e-pixel-ratio:0){[style*=3D"Open Sans"]{font-family:'Open Sans',Arial,sans-=
+serif}}img{outline:0;text-decoration:none;border:0;-ms-interpolation-mode:b=
+icubic;max-width:100%;margin:0;padding:0;display:block}table td{border-coll=
+apse:collapse}table{border-collapse:collapse;mso-table-lspace:0;mso-table-r=
+space:0}@media only screen and (max-width:602px){table.content-inner-table{=
+width:100%!important;max-width:100%!important;min-width:100%!important}.hea=
+der-wrapper{border:none!important;border-radius:0 0 12px 12px!important}.he=
+ader-primary-table,.editors-table{background-color:#fff!important}.editors-=
+block{padding-left:16px!important;padding-right:16px!important}.horizontal-=
+space-hide-on-mobile{display:none!important;width:0!important;height:0!impo=
+rtant;opacity:0!important}.content-wrapper{border-radius:0!important;box-sh=
+adow:none!important}.editors-bottom-space{height:5px!important}.footer-vert=
+ical-space{padding-left:16px!important;padding-right:16px!important}.header=
+-logo-wrapper{vertical-align:middle!important;padding-top:10px!important;pa=
+dding-bottom:10px!important}}@media only screen and (max-width:456px){.head=
+er-img-wrapper{padding-right:0!important}}</style> <!--[if (gte mso 9)|(IE)=
+]><style type=3D"text/css">table{border-collapse:collapse!important}</style=
+><![endif]--> <!--[if (gte mso 9)|(IE)]><xml> <o:OfficeDocumentSettings> <o=
+:AllowPNG/> <o:PixelsPerInch>96</o:PixelsPerInch> </o:OfficeDocumentSetting=
+s> </xml><![endif]--> </head> <body style=3D"-webkit-text-size-adjust: 100%=
+; -ms-text-size-adjust: 100%; margin: 0; line-height: 100%; Margin: 0; padd=
+ing: 0; background-color: #ffffff; box-sizing: border-box !important; width=
+: 100% !important;"><span style=3D"color:transparent;visibility:hidden;disp=
+lay:none;opacity:0;height:0;width:0;font-size:0;">Most don't realize you ca=
+n allocate retirement funds toward physical gold and silver easily, afforda=
+bly, and securely through a precious met</span><img src=3D"https://links.e.=
+smartpeoplemail.com/e/eo?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&amp;_m=3D9b3=
+4f70385e746ae95b2b232c249722a&amp;_e=3DuYgPLZRNN7Xf5bkF-eSZjTXGpzvsuJY5nFvj=
+xC-cy0rBQaHbzCtIJhm_WgfMs3Ey_jPMrckMAUkHhJevSGxNg-2-JPNA2Qow--_tRZ0TKIg9msV=
+obGNLgWUaYto3rcNPVkxwpoRdJFEPcIE7ieweHA%3D%3D" style=3D"border:0;width:1px;=
+height:1px;border-width:0px!important;display:none!important;line-height:0!=
+important;" width=3D"1" height=3D"1"/> <center style=3D"box-sizing: border-=
+box !important;"> <table width=3D"100%" border=3D"0" cellpadding=3D"0" cell=
+spacing=3D"0" bgcolor=3D"#ffffff" role=3D"=E2=80=9Dpresentation=E2=80=9D" s=
+tyle=3D"border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace:=
+ 0pt; box-sizing: border-box !important;"> <tr style=3D"box-sizing: border-=
+box !important;"> <td align=3D"center" valign=3D"top" style=3D"border-colla=
+pse: collapse; box-sizing: border-box !important;"> <table class=3D"primary=
+-table-limit" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" align=3D"c=
+enter" style=3D"border-collapse: collapse; mso-table-lspace: 0pt; mso-table=
+-rspace: 0pt; max-width: 1000px; background-image: url('https://d15k2d11r6t=
+6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff=
+6dd6a/f88b7d4fa6b54c30956d854ef81ba1b6/primary-bg.png'); background-positio=
+n: center top; -webkit-background-size: cover; background-size: cover; back=
+ground-color: #002026; box-sizing: border-box !important;" role=3D"=E2=80=
+=9Dpresentation=E2=80=9D" background=3D"https://d15k2d11r6t6rl.cloudfront.n=
+et/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6=
+b54c30956d854ef81ba1b6/primary-bg.png" bgcolor=3D"#002026"> <tr style=3D"bo=
+x-sizing: border-box !important;"> <td class=3D"horizontal-space-hide-on-mo=
+bile" height=3D"28" width=3D"100%" style=3D"border-collapse: collapse; max-=
+width: 100%; box-sizing: border-box !important;"></td> </tr> <!--=3D=3D=3D =
+Header=3D=3D=3D--> <!--[if mso | IE]><tr> <td align=3D"center"> <table clas=
+s=3D"top-inner-content-table content-inner-table" border=3D"0" cellspacing=
+=3D"0" cellpadding=3D"0" width=3D"600" style=3D"width: 600px;max-width: 100=
+%;" role=3D=E2=80=9Dpresentation=E2=80=9D><![endif]--> <tr style=3D"box-siz=
+ing: border-box !important;"> <td align=3D"center" style=3D"border-collapse=
+: collapse; box-sizing: border-box !important;"> <table class=3D"top-inner-=
+content-table content-inner-table header-primary-table" border=3D"0" role=
+=3D"presentation" cellspacing=3D"0" cellpadding=3D"0" width=3D"100%" style=
+=3D"border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt=
+; max-width: 600px; width: 100%; padding: 0; margin: 0; box-sizing: border-=
+box !important;"> <tr style=3D"box-sizing: border-box !important;"> <td sty=
+le=3D"border-collapse: collapse; box-sizing: border-box !important;"> <div =
+class=3D"header-wrapper" style=3D"border-radius: 12px; overflow: hidden; bo=
+rder: 1px solid #FFFFFF; box-sizing: border-box !important;"> <table width=
+=3D"100%" class=3D"content-inner-block content-primary-block" border=3D"0" =
+cellspacing=3D"0" cellpadding=3D"0" bgcolor=3D"#001316" role=3D"presentatio=
+n" style=3D"border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rsp=
+ace: 0pt; max-width: 100%; width: 100%; padding: 0; margin: 0; background-c=
+olor: #001316; background-image: url('https://d15k2d11r6t6rl.cloudfront.net=
+/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b5=
+4c30956d854ef81ba1b6/header-j.jpeg'); background-repeat: no-repeat; backgro=
+und-position: center center; box-sizing: border-box !important;" background=
+=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713=
+-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b54c30956d854ef81ba1b6/header-j.jpeg=
+"> <tr style=3D"box-sizing: border-box !important;"> <td height=3D"6" width=
+=3D"100%" style=3D"border-collapse: collapse; max-width: 100%; box-sizing: =
+border-box !important;" class=3D"sm-horizontal-space top-header-horizontal-=
+space"></td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td st=
+yle=3D"border-collapse: collapse; box-sizing: border-box !important;"> <tab=
+le width=3D"100%" class=3D"content-inner-block content-primary-block" borde=
+r=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"=
+border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; ma=
+x-width: 100%; width: 100%; padding: 0; margin: 0; box-sizing: border-box !=
+important;"> <tr valign=3D"bottom" style=3D"box-sizing: border-box !importa=
+nt;"> <td valign=3D"bottom" class=3D"header-logo-wrapper" style=3D"border-c=
+ollapse: collapse; font-size: 0; padding-left: 27px; padding-right: 22px; p=
+adding-bottom: 17px; width: 50%; box-sizing: border-box !important;" width=
+=3D"50%"> <a href=3D"https://links.e.smartpeoplemail.com/u/click?_t=3Df88b7=
+d4fa6b54c30956d854ef81ba1b6&_m=3D9b34f70385e746ae95b2b232c249722a&_e=3DlWit=
+7MVq-Jmzptfcid4Ab1Bq_EkiKREKhr8Yk5rbl7YlGFn9TMrfD4F3JzJiQBCds7wzSBtnFfHW4wF=
+NfY8dtLkXBlMEvddsekurIeY38yUmzk26RHSdL2dxtvk2wQcwfgrPNrMFtMDiRMYLvr6n5Badl6=
+QpYX_If6UTTos2pOfE_fXUZDNHgn5J6a3lfkDjNm7OiLVHpDfU6CLybupQxS8Ttlr1y0qkVlTbY=
+DWvprbOuiAE3oqPHhMq2crmifyHx_D69gw6QUg1bq9aRqz-3tn0xMNZiYabqiIG1Qlm_WyWy3ql=
+PYEqiPLI96q3QZanQEHNDczaihdmS3CoaOmR8Q%3D%3D" target=3D"_blank" style=3D"fo=
+nt-size: 0; box-sizing: border-box !important;"> <img class=3D"header-logo"=
+ src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d=
+5713-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b54c30956d854ef81ba1b6/logo-lg.p=
+ng" alt=3D"Logotype" title=3D"Logotype" width=3D"232" style=3D"outline: non=
+e; text-decoration: none; border: none; -ms-interpolation-mode: bicubic; ma=
+rgin: 0; padding: 0; display: block; object-fit: contain; width: 100%; max-=
+width: 232px; height: auto; object-position: center; font-size: 13px; box-s=
+izing: border-box !important;"> </a> </td> <td valign=3D"middle" align=3D"r=
+ight" class=3D"header-img-wrapper" style=3D"border-collapse: collapse; padd=
+ing-right: 38px; width: 50%; box-sizing: border-box !important;" width=3D"5=
+0%"> <img class=3D"header-logo" src=3D"https://d15k2d11r6t6rl.cloudfront.ne=
+t/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b=
+54c30956d854ef81ba1b6/plane-min-2.gif" alt=3D"Plane" title=3D"Plane" width=
+=3D"223" height=3D"130" style=3D"outline: none; text-decoration: none; bord=
+er: none; -ms-interpolation-mode: bicubic; margin: 0; padding: 0; display: =
+block; object-fit: contain; width: 100%; max-height: 130px; max-width: 223p=
+x; height: auto; object-position: center; font-size: 13px; box-sizing: bord=
+er-box !important;"> </td> </tr> </table> </td> </tr> <tr style=3D"box-sizi=
+ng: border-box !important;"> <td height=3D"6" width=3D"100%" style=3D"borde=
+r-collapse: collapse; max-width: 100%; box-sizing: border-box !important;" =
+class=3D"sm-horizontal-space bottom-header-horizontal-space"></td> </tr> </=
+table> </div> </td> </tr> </table> </td> </tr> <!--[if mso | IE]></table> <=
+/td> </tr><![endif]--> <!--=3D=3D=3D Header-end =3D=3D=3D--> <!--=3D=3D=3D =
+Editors-section =3D=3D=3D--> <!--[if mso | IE]><tr> <td align=3D"center"> <=
+table class=3D"top-inner-content-table content-inner-table" border=3D"0" ce=
+llspacing=3D"0" cellpadding=3D"0" width=3D"600" style=3D"width: 600px;max-w=
+idth: 100%;" role=3D"presentation"><![endif]--> <tr style=3D"box-sizing: bo=
+rder-box !important;"> <td align=3D"center" style=3D"border-collapse: colla=
+pse; box-sizing: border-box !important;"> <table class=3D"top-inner-content=
+-table content-inner-table editors-table" border=3D"0" cellspacing=3D"0" ce=
+llpadding=3D"0" width=3D"100%" style=3D"border-collapse: collapse; mso-tabl=
+e-lspace: 0pt; mso-table-rspace: 0pt; max-width: 600px; width: 100%; paddin=
+g: 0; margin: 0; box-sizing: border-box !important;" role=3D"presentation">=
+ <tr style=3D"box-sizing: border-box !important;"> <td height=3D"18" width=
+=3D"100%" style=3D"border-collapse: collapse; max-width: 100%; box-sizing: =
+border-box !important;" class=3D"md-horizontal-space"></td> </tr> <tr style=
+=3D"box-sizing: border-box !important;"> <td class=3D"editors-block" style=
+=3D"border-collapse: collapse; color: #18E69B; font-family: 'Rajdhani', san=
+s-serif; font-size: 10px; text-align: center; font-style: normal; font-weig=
+ht: 600; line-height: 1.3; letter-spacing: 0.5px; box-sizing: border-box !i=
+mportant;" align=3D"center"> <span style=3D"color: #18E69B; font-family: 'R=
+ajdhani', sans-serif; font-size: 10px; text-align: center; font-style: norm=
+al; font-weight: 600; line-height: 1.3; letter-spacing: 0.5px; box-sizing: =
+border-box !important;"> Editor's Note: Occasionally, an opportunity comes =
+to our attention at Smart People Mail we believe readers like you will find=
+ valuable. The message below from one of our partners is one we believe you=
+ should take a close look at. </span> </td> </tr> <tr style=3D"box-sizing: =
+border-box !important;"> <td height=3D"18" width=3D"100%" style=3D"border-c=
+ollapse: collapse; max-width: 100%; box-sizing: border-box !important;" cla=
+ss=3D"md-horizontal-space editors-bottom-space"></td> </tr> </table> </td> =
+</tr> <!--[if mso | IE]></table> </td> </tr><![endif]--> <!--=3D=3D=3D Edit=
+ors-section-end =3D=3D=3D--> <!--[if mso | IE]><tr> <td align=3D"center"> <=
+table class=3D"top-inner-content-table content-inner-table" border=3D"0" ce=
+llspacing=3D"0" cellpadding=3D"0" width=3D"600" style=3D"width: 600px;max-w=
+idth: 100%;" role=3D"presentation"><![endif]--> <tr style=3D"box-sizing: bo=
+rder-box !important;"> <td align=3D"center" style=3D"border-collapse: colla=
+pse; box-sizing: border-box !important;"> <table class=3D"top-inner-content=
+-table content-inner-table" border=3D"0" cellspacing=3D"0" cellpadding=3D"0=
+" width=3D"100%" style=3D"border-collapse: collapse; mso-table-lspace: 0pt;=
+ mso-table-rspace: 0pt; max-width: 600px; width: 100%; padding: 0; margin: =
+0; box-sizing: border-box !important;" role=3D"presentation"> <tr style=3D"=
+box-sizing: border-box !important;"> <td style=3D"border-collapse: collapse=
+; box-sizing: border-box !important;"> <div class=3D"content-wrapper" style=
+=3D"border-radius: 12px; box-shadow: 0px 0px 8px 0px rgba(0, 0, 0, 0.15); o=
+verflow: hidden; box-sizing: border-box !important;"> <table width=3D"100%"=
+ class=3D"content-inner-block content-primary-block" border=3D"0" cellspaci=
+ng=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"border-collapse: =
+collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; max-width: 100%; wi=
+dth: 100%; padding: 0; margin: 0; box-sizing: border-box !important;"> <!--=
+=3D=3D=3D Content-section =3D=3D=3D--> <!--[if mso | IE]><tr> <td align=3D"=
+center"> <table class=3D"top-inner-content-table content-inner-table" borde=
+r=3D"0" cellspacing=3D"0" cellpadding=3D"0" width=3D"600" style=3D"width: 6=
+00px;max-width: 100%;" role=3D"presentation"><![endif]--> <tr style=3D"box-=
+sizing: border-box !important;"> <td align=3D"center" style=3D"border-colla=
+pse: collapse; box-sizing: border-box !important;"> <table class=3D"top-inn=
+er-content-table content-inner-table" border=3D"0" cellspacing=3D"0" cellpa=
+dding=3D"0" bgcolor=3D"#ffffff" width=3D"100%" style=3D"border-collapse: co=
+llapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; max-width: 600px; wid=
+th: 100%; padding: 0; margin: 0; background-color: #ffffff; box-sizing: bor=
+der-box !important;" role=3D"presentation"> <tr style=3D"box-sizing: border=
+-box !important;"> <td style=3D"border-collapse: collapse; box-sizing: bord=
+er-box !important;"> <!--PROMO-COPY-START--> <!--PROMO-COPY-START--> <!--PR=
+OMO-COPY-START--> <table width=3D"100%" border=3D"0" cellpadding=3D"0" cell=
+spacing=3D"0" role=3D"presentation" style=3D"border-collapse: collapse; mso=
+-table-lspace: 0pt; mso-table-rspace: 0pt; max-width: 100%; font-family: 'A=
+rial', Arial, Helvetica, sans-serif; box-sizing: border-box !important;"> <=
+tbody style=3D"box-sizing: border-box !important;"> <tr style=3D"box-sizing=
+: border-box !important;"> <td align=3D"center" valign=3D"top" style=3D"bor=
+der-collapse: collapse; font-family: 'Arial', Arial, Helvetica, sans-serif;=
+ box-sizing: border-box !important;"> <table class=3D"primary-table-limit c=
+ontent-table" bgcolor=3D"#FFFFFF" border=3D"0" cellspacing=3D"0" cellpaddin=
+g=3D"0" role=3D"presentation" width=3D"100%" style=3D"border-collapse: coll=
+apse; mso-table-lspace: 0pt; mso-table-rspace: 0pt; max-width: 600px; font-=
+family: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-box !impo=
+rtant;"> <tbody style=3D"box-sizing: border-box !important;"> <tr style=3D"=
+box-sizing: border-box !important;"> <td class=3D"content-vertical-space" a=
+lign=3D"center" style=3D"border-collapse: collapse; padding-left: 20px; pad=
+ding-right: 20px; font-family: 'Arial', Arial, Helvetica, sans-serif; box-s=
+izing: border-box !important;"> <table class=3D"content-inner-table" border=
+=3D"0" cellspacing=3D"0" role=3D"presentation" cellpadding=3D"0" width=3D"1=
+00%" style=3D"border-collapse: collapse; mso-table-lspace: 0pt; mso-table-r=
+space: 0pt; width: 100%; font-family: 'Arial', Arial, Helvetica, sans-serif=
+; box-sizing: border-box !important;"> <tbody style=3D"box-sizing: border-b=
+ox !important;"> <tr style=3D"box-sizing: border-box !important;"> <td heig=
+ht=3D"16" width=3D"100%" style=3D"border-collapse: collapse; max-width: 100=
+%; font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-b=
+ox !important;" class=3D"md-horizontal-space"></td> </tr> <tr style=3D"box-=
+sizing: border-box !important;"> <td style=3D"border-collapse: collapse; fo=
+nt-style: normal; font-weight: normal; line-height: 1.5; text-align: left; =
+color: #000000; padding-top: 14px; padding-bottom: 14px; font-family: 'Aria=
+l', Arial, Helvetica, sans-serif; font-size: 18px; box-sizing: border-box !=
+important;" align=3D"left"> <span style=3D"font-style: normal; font-weight:=
+ normal; line-height: 1.5; text-align: left; color: #000000; font-family: '=
+Arial', Arial, Helvetica, sans-serif; font-size: 18px; box-sizing: border-b=
+ox !important;"> Silver scraped $117 this week. <br style=3D"box-sizing: bo=
+rder-box !important;"><br style=3D"box-sizing: border-box !important;"> No,=
+ that's not a typo... <br style=3D"box-sizing: border-box !important;"><br =
+style=3D"box-sizing: border-box !important;"> The precious metal that was t=
+rading around $22 just two years ago <b style=3D"box-sizing: border-box !im=
+portant;">hit an all-time-high of $117.43 on Monday.</b> <br style=3D"box-s=
+izing: border-box !important;"><br style=3D"box-sizing: border-box !importa=
+nt;"> That's more than a <b style=3D"box-sizing: border-box !important;">5X=
+ since January 2024.</b> <br style=3D"box-sizing: border-box !important;"><=
+br style=3D"box-sizing: border-box !important;"> Gold also hit its new all-=
+time-high of $5,100 around the same time. <br style=3D"box-sizing: border-b=
+ox !important;"><br style=3D"box-sizing: border-box !important;"> So, what'=
+s driving this historic rise? <br style=3D"box-sizing: border-box !importan=
+t;"><br style=3D"box-sizing: border-box !important;"> It's about something =
+much deeper than routine market volatility... <br style=3D"box-sizing: bord=
+er-box !important;"><br style=3D"box-sizing: border-box !important;"> There=
+'s a <b style=3D"box-sizing: border-box !important;">crisis of confidence</=
+b> in our economic infrastructure: <br style=3D"box-sizing: border-box !imp=
+ortant;"> <ul style=3D"box-sizing: border-box !important;"> <li style=3D"bo=
+x-sizing: border-box !important;"> <b style=3D"box-sizing: border-box !impo=
+rtant;">Political pressure on the Fed</b> is mounting as they continue <b s=
+tyle=3D"box-sizing: border-box !important;">printing more money</b> </li> <=
+li style=3D"box-sizing: border-box !important;"> The <b style=3D"box-sizing=
+: border-box !important;">dollar's purchasing power</b> continues its decli=
+ne with no end to inflation in sight </li> <li style=3D"box-sizing: border-=
+box !important;"> And <b style=3D"box-sizing: border-box !important;">geopo=
+litical tensions are escalating</b> worldwide (Venezuela, Ukraine, Greenlan=
+d, Iran, etc.) </li> </ul> Maybe it's not so much that precious metals are =
+rising... <br style=3D"box-sizing: border-box !important;"><br style=3D"box=
+-sizing: border-box !important;"> But that <b style=3D"box-sizing: border-b=
+ox !important;">our fragile financial systems =E2=80=94 and currency =E2=80=
+=94 are dying.</b> <br style=3D"box-sizing: border-box !important;"> When i=
+nstitutions have become unstable throughout history, investors flee toward =
+what they deem to be trusted, tangible, "safe haven" assets... <br style=3D=
+"box-sizing: border-box !important;"><br style=3D"box-sizing: border-box !i=
+mportant;"> That's why you need to: <br style=3D"box-sizing: border-box !im=
+portant;"><br style=3D"box-sizing: border-box !important;"> <a href=3D"http=
+s://links.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1=
+b6&_m=3D9b34f70385e746ae95b2b232c249722a&_e=3DlWit7MVq-Jmzptfcid4Ab1Bj1EdzI=
+RRfJpIqcC5jwo9jc9ZT0U9PLwxrZTgj7-vEwFU4skHGHPc1r7Im-efYB6H5QnK9mz8Ny88MxuxQ=
+EBVj4RLo-CJnCjQ5lVG8F8PysodBftCK2wjvodXqV_R6LRqlBRrmCcGsNbRCW5QaCQWOM9Kuhm3=
+NAAzVgcdyny6ef7FeibFy3H-EYt2e82n6zGMnnBClK8mue8hbTUu4CEGHuxUsfzJMMUZp0U1Y7Z=
+qkNFNJEEwNlUzkWeUfWuVth50JOlqJQ6Z5G6VThlnPJYpq-qkeW8Nx0giCZJGAzoraohyqYfJfY=
+wXtG-_96-pzNAwB2EmCosHWulBoW3mYxhlVAI2OQ5-c6ar8ytOQTzY9AKAIRLt3vpuexonyslFq=
+X24gW2Z61llJsSVeoA_qu3QrawwhZbKBdK7YnJLZA-d7WPA9FHS0SGZSAnaXcWk3q8JH40kmKQL=
+sj3r4glQc2bpenBlcwTuDDx3VF6uM83GiWlXaai2Rock1pEzLm_D04GrtX6gjby5P9Y4ns-yKRy=
+jeTWUsF-OIgOt1zr7wct46TsRKIyAHhv1HFfYHhrV4Cw%3D%3D" style=3D"text-decoratio=
+n: underline; font-weight: 700; color: #0000ee; font-family: 'Arial', Arial=
+, Helvetica, sans-serif; box-sizing: border-box !important;">Discover How A=
+mericans Are Protecting Their Savings in 2026 (Tap HERE to Claim Your Free =
+Wealth Protection Kit Now)</a> <br style=3D"box-sizing: border-box !importa=
+nt;"><br style=3D"box-sizing: border-box !important;"> Most don't realize y=
+ou can <b style=3D"box-sizing: border-box !important;">allocate retirement =
+funds toward physical gold and silver easily, affordably, and securely</b> =
+through a precious metals IRA rollover... <br style=3D"box-sizing: border-b=
+ox !important;"><br style=3D"box-sizing: border-box !important;"> And right=
+ now, <u style=3D"box-sizing: border-box !important;">thousands</u> of Amer=
+icans are using this little-known strategy to help shield what they've spen=
+t decades building through hard work. <br style=3D"box-sizing: border-box !=
+important;"><br style=3D"box-sizing: border-box !important;"> This is not b=
+ecause they're panicking... <br style=3D"box-sizing: border-box !important;=
+"><br style=3D"box-sizing: border-box !important;"> But because they're <b =
+style=3D"box-sizing: border-box !important;">paying close attention to the =
+mounting uncertainty in 2026.</b> <br style=3D"box-sizing: border-box !impo=
+rtant;"><br style=3D"box-sizing: border-box !important;"> As they have for =
+thousands of years, precious metals could be well-positioned to help protec=
+t accounts =E2=80=94 Now is the time to prepare for the unexpected: </span>=
+ </td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td align=3D=
+"center" style=3D"border-collapse: collapse; padding-top: 14px; padding-bot=
+tom: 14px; font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizing: =
+border-box !important;"> <table cellpadding=3D"0" cellspacing=3D"0" role=3D=
+"presentation" style=3D"border-collapse: collapse; mso-table-lspace: 0pt; m=
+so-table-rspace: 0pt; font-family: 'Arial', Arial, Helvetica, sans-serif; b=
+ox-sizing: border-box !important;"> <tbody style=3D"box-sizing: border-box =
+!important;"> <tr style=3D"box-sizing: border-box !important;"> <td height=
+=3D"51" align=3D"center" style=3D"border-collapse: collapse; border-radius:=
+ 10px; font-style: normal; line-height: 1.5; text-align: center; font-weigh=
+t: bold; color: #ffffff; padding: 3px 5px; background-color: #28b628; font-=
+family: 'Arial', Arial, Helvetica, sans-serif; font-size: 18px; box-sizing:=
+ border-box !important;" bgcolor=3D"#28b628"> <a href=3D"https://links.e.sm=
+artpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D9b34f7=
+0385e746ae95b2b232c249722a&_e=3DlWit7MVq-Jmzptfcid4Ab1Bj1EdzIRRfJpIqcC5jwo9=
+jc9ZT0U9PLwxrZTgj7-vEwFU4skHGHPc1r7Im-efYB6H5QnK9mz8Ny88MxuxQEBVj4RLo-CJnCj=
+Q5lVG8F8PysodBftCK2wjvodXqV_R6LRqlBRrmCcGsNbRCW5QaCQWOM9Kuhm3NAAzVgcdyny6eW=
+lE3B6j_1a4Iwd7748MsmwTvp4ECqzGz3LxguSY9M1ahx3vjHDH8YKLDQvkH9-AvK8oY6hKPUWjX=
+lgczE0q5SSMkKQ5SOxEl7zO4raL5z06XMOZuHj4vO4RUdpm9N78rsf7hW4WfI4ICNUrhkVgcIgl=
+6CcHvPeknIshkwEo6T0TOdkJeTn8Qc57p0a4SDSS8LfR711krkKeGqEwpqL2OnFUKw71fljutRG=
+NA-lPphcma5kD4P-G1d6KRWbKYRRA3ZclTYHp23x-ELoIofWtbzizITL8U96Vk7S7Lob5iGT38P=
+8KERZ3hqwbEWQFWNFtHGJK_UE6F6pywQ3qn1asvd0UVzJnL9iZkMcpED5xuy5rzgKsnIcdYt3-z=
+Rn14qduC-M7Kaa_y6ut1b-jjlO0nkQ%3D%3D" target=3D"_blank" style=3D"font-weigh=
+t: bold; text-decoration: none; color: #ffffff; padding: 9px 15px; display:=
+ block; font-style: normal; line-height: 1.5; text-align: center; backgroun=
+d-color: #28b628; border-radius: 10px; font-family: 'Arial', Arial, Helveti=
+ca, sans-serif; font-size: 18px; box-sizing: border-box !important;"> REQUE=
+ST YOUR FREE KIT NOW </a> </td> </tr> </tbody> </table> </td> </tr> <tr sty=
+le=3D"box-sizing: border-box !important;"> <td style=3D"border-collapse: co=
+llapse; font-style: normal; font-weight: normal; line-height: 1.5; text-ali=
+gn: left; color: #000000; padding-top: 14px; padding-bottom: 14px; font-fam=
+ily: 'Arial', Arial, Helvetica, sans-serif; font-size: 18px; box-sizing: bo=
+rder-box !important;" align=3D"left"> <span style=3D"font-style: normal; fo=
+nt-weight: normal; line-height: 1.5; text-align: left; color: #000000; font=
+-family: 'Arial', Arial, Helvetica, sans-serif; font-size: 18px; box-sizing=
+: border-box !important;"> <ul style=3D"box-sizing: border-box !important;"=
+> <li style=3D"box-sizing: border-box !important;"><b style=3D"box-sizing: =
+border-box !important;">Simple, Step-by-Step IRA Setup Guide</b></li> <li s=
+tyle=3D"box-sizing: border-box !important;"><b style=3D"box-sizing: border-=
+box !important;">Insider Strategies for Inflation &amp; Market Downturns</b=
+></li> <li style=3D"box-sizing: border-box !important;"><b style=3D"box-siz=
+ing: border-box !important;">Expert Answers to Your Retirement Questions</b=
+></li> <li style=3D"box-sizing: border-box !important;"><b style=3D"box-siz=
+ing: border-box !important;">And Access to Exclusive Bonus Tips for Maximiz=
+ing IRA Growth Potential</b></li> </ul> You'll also discover tips for wheth=
+er this plan makes sense for your personal situation. <br style=3D"box-sizi=
+ng: border-box !important;"><br style=3D"box-sizing: border-box !important;=
+"> No fees... no obligation... no pressure... <br style=3D"box-sizing: bord=
+er-box !important;"><br style=3D"box-sizing: border-box !important;"> Just =
+good, clean information to help you and your family make informed decisions=
+: <br style=3D"box-sizing: border-box !important;"><br style=3D"box-sizing:=
+ border-box !important;"> <a href=3D"https://links.e.smartpeoplemail.com/u/=
+click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D9b34f70385e746ae95b2b232c2=
+49722a&_e=3DlWit7MVq-Jmzptfcid4Ab1Bj1EdzIRRfJpIqcC5jwo9jc9ZT0U9PLwxrZTgj7-v=
+EwFU4skHGHPc1r7Im-efYB6H5QnK9mz8Ny88MxuxQEBVj4RLo-CJnCjQ5lVG8F8PysodBftCK2w=
+jvodXqV_R6LRqlBRrmCcGsNbRCW5QaCQWOM9Kuhm3NAAzVgcdyny6e3Rk48eRY7P1J11OY6bWXe=
+Bxx6xpj06jXxuFCGriKbmaf8DLjrhn40Pfxwwy1LqvRoL2rJE4-j3J47Rj2v2Ac9OmIeSKPhzlm=
+rkqR2LCbELdUortkA8KfdPfxA58sMEQINLl2BNHZMbAY-5xvDlQrzJDn5l-ylN8DWWlfT2nIcwe=
+vtZamtvSpan9t2ghfd8ENeulZ6hea5qhvhmIPHQqi3PZWo9VoU_o5eRI6-Zhn_vc8rzFdTwSj7O=
+rOP35NX_gzW19XiKZHDv5ltYzQl7dbWPtzQ2n6lQqn3XFF67DJ0xLSK1eJcBPL5pPYRAFAIsk1B=
+wLtaIQ6yMy_eNfkv3fJCFKjjuPzQyiNyUkvxhAWsvl25d2Fp8gsM1wrjPDjVUz_cBzathT2ngm5=
+XcLvu3jQhg%3D%3D" style=3D"text-decoration: underline; font-weight: 700; co=
+lor: #0000ee; font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizin=
+g: border-box !important;">Visit the next page =F0=9F=91=89 claim your comp=
+limentary kit.</a> </span> </td> </tr> <tr style=3D"box-sizing: border-box =
+!important;"> <td class=3D"img-bg-block" align=3D"center" style=3D"border-c=
+ollapse: collapse; padding-top: 14px; padding-bottom: 14px; font-family: 'A=
+rial', Arial, Helvetica, sans-serif; box-sizing: border-box !important;"> <=
+a href=3D"https://links.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30=
+956d854ef81ba1b6&_m=3D9b34f70385e746ae95b2b232c249722a&_e=3DlWit7MVq-Jmzptf=
+cid4Ab1Bj1EdzIRRfJpIqcC5jwo9jc9ZT0U9PLwxrZTgj7-vEwFU4skHGHPc1r7Im-efYB6H5Qn=
+K9mz8Ny88MxuxQEBVj4RLo-CJnCjQ5lVG8F8PysodBftCK2wjvodXqV_R6LRqlBRrmCcGsNbRCW=
+5QaCQWOM9Kuhm3NAAzVgcdyny6eYBpdcF6J-DjRqeUA3B979PNsoXQmkROUviRGLGV98sT1dVPa=
+Gakt0BjpvYK9ddV3w-sBWMr9yLqIlR85g3gSdluV-SDUfUrW_mbjCmMhZ0ia_Om-_V7jXhWjxaq=
+Bt0LuY9EVorINzIe49Vcv_lfKlmvYZI8ipaMIn5IZwBZVOgg1hzbyCH9sGHb7sIKKNon9uf7Tq-=
+izEau9NuP55zP-1SoKpHu2-GqBODe4oe09oY6OLL0SDXU9uybMyO5ZYEYd_aDlTDP0KPxWMNBxm=
+kO3hMbvoKvKa0VSeXgPx7jSEiALz_eqflmoyt8MlirNJ6UZu7QbynBYvDi6njElA39UkxscICnu=
+8LfT_gfvhexZV-IYnPkGbBTrdggTmn5sQbaAGItPk2SX0wr3pHixHTg5SA%3D%3D" target=3D=
+"_blank" style=3D"font-family: 'Arial', Arial, Helvetica, sans-serif; box-s=
+izing: border-box !important;"> <img alt=3D"Partners" height=3D"auto" src=
+=3D"https://library.iterable.com/1940/9440/642d70cf20424e808f710c42b3f1aa02=
+-img-1-63.jpg" style=3D"-ms-interpolation-mode: bicubic; margin: 0; padding=
+: 0; border: 0; display: block; outline: none; text-decoration: none; heigh=
+t: auto; width: 100%; max-width: 560px; font-size: 13px; box-sizing: border=
+-box !important;" width=3D"560"> </a> </td> </tr> <tr style=3D"box-sizing: =
+border-box !important;"> <td style=3D"border-collapse: collapse; font-size:=
+ 12px; font-style: normal; font-weight: normal; line-height: 1.5; text-alig=
+n: left; color: #000000; padding-top: 34px; padding-bottom: 14px; font-fami=
+ly: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-box !importan=
+t;" align=3D"left"> <span style=3D"font-size: 12px; font-style: normal; fon=
+t-weight: normal; line-height: 1.5; text-align: left; color: #000000; font-=
+family: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-box !impo=
+rtant;"> Allegiance Gold, LLC is not a broker-dealer and does <u style=3D"b=
+ox-sizing: border-box !important;">not</u> provide investment, tax, or lega=
+l advisory services. No statement in this communication should be construed=
+ as a recommendation to purchase or sell any security, or as investment, ta=
+x, or legal advice. Precious metals, like all investments, carry risk, are =
+not suitable for all investors, and past performance does not guarantee fut=
+ure results. We do not guarantee any investment performance. Please consult=
+ your own investment, tax, or legal advisor prior to making any investment =
+decision. Third-party information quoted or presented by us in this communi=
+cation represents only the opinions of the third party and we do not endors=
+e any third-party source of information. We are not affiliated with the U.S=
+. Mint or any government agency. =C2=A9Allegiance Gold, LLC 2026. </span> <=
+/td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td height=3D"=
+16" width=3D"100%" style=3D"border-collapse: collapse; max-width: 100%; fon=
+t-family: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-box !im=
+portant;" class=3D"md-horizontal-space"></td> </tr> </tbody> </table> </td>=
+ </tr> </tbody> </table> </td> </tr> </tbody> </table> <!--PROMO-COPY-END--=
+> <!--PROMO-COPY-END--> <!--PROMO-COPY-END--> </td> </tr> </table> </td> </=
+tr> <!--[if mso | IE]></table> </td> </tr><![endif]--> <!--=3D=3D=3D Conten=
+t-section-end =3D=3D=3D--> <!--=3D=3D=3D Footer=3D=3D=3D--> <!--[if mso | I=
+E]><tr> <td align=3D"center"> <table class=3D"top-inner-content-table conte=
+nt-inner-table" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" width=3D"6=
+00" style=3D"width: 600px;max-width: 100%;" role=3D"presentation"><![endif]=
+--> <tr style=3D"box-sizing: border-box !important;"> <td align=3D"center" =
+style=3D"border-collapse: collapse; box-sizing: border-box !important;"> <t=
+able class=3D"top-inner-content-table content-inner-table" border=3D"0" cel=
+lspacing=3D"0" cellpadding=3D"0" bgcolor=3D"#1B1D20" width=3D"100%" style=
+=3D"border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt=
+; max-width: 600px; width: 100%; padding: 0; margin: 0; background-image: u=
+rl('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713=
+-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b54c30956d854ef81ba1b6/footer-bg_1.p=
+ng'); background-color: #1B1D20; background-repeat: no-repeat; -webkit-back=
+ground-size: cover; background-size: cover; box-sizing: border-box !importa=
+nt;" role=3D"presentation" background=3D"https://d15k2d11r6t6rl.cloudfront.=
+net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa=
+6b54c30956d854ef81ba1b6/footer-bg_1.png"> <tr style=3D"box-sizing: border-b=
+ox !important;"> <td class=3D"footer-vertical-space" style=3D"border-collap=
+se: collapse; padding-left: 28px; padding-right: 28px; box-sizing: border-b=
+ox !important;"> <table width=3D"100%" class=3D"content-inner-block content=
+-primary-block" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"pr=
+esentation" style=3D"border-collapse: collapse; mso-table-lspace: 0pt; mso-=
+table-rspace: 0pt; max-width: 100%; width: 100%; padding: 0; margin: 0; box=
+-sizing: border-box !important;"> <tr style=3D"box-sizing: border-box !impo=
+rtant;"> <td height=3D"40" width=3D"100%" style=3D"border-collapse: collaps=
+e; max-width: 100%; box-sizing: border-box !important;" class=3D"md-horizon=
+tal-space"></td> </tr> <tr style=3D"box-sizing: border-box !important;"> <t=
+d valign=3D"bottom" class=3D"header-logo-wrapper" style=3D"border-collapse:=
+ collapse; font-size: 0; padding-left: 27px; padding-right: 22px; box-sizin=
+g: border-box !important;"> <a href=3D"https://links.e.smartpeoplemail.com/=
+u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D9b34f70385e746ae95b2b232=
+c249722a&_e=3DlWit7MVq-Jmzptfcid4Ab1Bq_EkiKREKhr8Yk5rbl7YlGFn9TMrfD4F3JzJiQ=
+BCdIzuws-_OXBM6tNAt_uWeyNndC0yiBMLsoRH_248m20EoySJl0IrK1J1yggQ9SfHvmJ9s1mFa=
+4mgTgbezNhGvQsduzvNlTOiF80S2Lx5fh9bRYh6kP-E8AWc4VvOZurzOI-QBP3VrydJ112Z1Jg2=
+syy-pFw2emflrpW1tGPeDKkUs4EtZOc_no4A3fUIFGbNKbREJp6pB_xgN0VXLrd-K8hPBp5LahI=
+Q5MCZ281ocWFo8DN1fnduW3qzZKmMevba1y5EkOjBVDkphZhng1Els1g%3D%3D" target=3D"_=
+blank" style=3D"font-size: 0; box-sizing: border-box !important;"> <img cla=
+ss=3D"footer-logo" src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/user=
+s/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b54c30956d854e=
+f81ba1b6/footer-logo-lg.png" alt=3D"Logotype" title=3D"Logotype" width=3D"7=
+3" style=3D"outline: none; text-decoration: none; border: none; -ms-interpo=
+lation-mode: bicubic; margin: 0; padding: 0; display: block; object-fit: co=
+ntain; max-width: 100%; width: 73px; height: auto; object-position: center;=
+ font-size: 13px; box-sizing: border-box !important;"> </a> </td> </tr> <tr=
+ style=3D"box-sizing: border-box !important;"> <td height=3D"37" width=3D"1=
+00%" style=3D"border-collapse: collapse; max-width: 100%; box-sizing: borde=
+r-box !important;" class=3D"md-horizontal-space"></td> </tr> <tr style=3D"b=
+ox-sizing: border-box !important;"> <td style=3D"border-collapse: collapse;=
+ color: #D9D9D9; font-family: 'Open Sans', Arial, sans-serif; font-size: 11=
+px; font-style: normal; font-weight: 400; line-height: 1.5; box-sizing: bor=
+der-box !important;"> <p style=3D"font-size: 11px; line-height: 1.2; text-a=
+lign: left; mso-line-height-alt: 13px; margin: 0; box-sizing: border-box !i=
+mportant;"><span style=3D"font-size: 11px; box-sizing: border-box !importan=
+t;">You are receiving this e-mail because you have expressed an =D1=96ntere=
+st in the Financial Education niche on one of our landing pages or sign-up =
+f=D0=BErms. <br style=3D"box-sizing: border-box !important;"><br style=3D"b=
+ox-sizing: border-box !important;"> This offer is brought to you by Smart P=
+eople Mail. 221 W 9th St # Wilmington, DE 19801 USA. If you would like to u=
+nsubscribe from receiving offers brought to you by Smart People Mail <b sty=
+le=3D"box-sizing: border-box !important;"><a style=3D"color: white; box-siz=
+ing: border-box !important;" href=3D"https://links.e.smartpeoplemail.com/e/=
+encryptedUnsubscribe?_r=3Df88b7d4fa6b54c30956d854ef81ba1b6&_s=3D9b34f70385e=
+746ae95b2b232c249722a&_t=3DuYgPLZRNN7Xf5bkF-eSZjTXGpzvsuJY5nFvjxC-cy0rBQaHb=
+zCtIJhm_WgfMs3Ey_jPMrckMAUkHhJevSGxNg-2-JPNA2Qow--_tRZ0TKIiz8K2fXqN8zI_pUBZ=
+txqGq" class=3D"unsubscribe">click here.</a></b> <br style=3D"box-sizing: b=
+order-box !important;"><br style=3D"box-sizing: border-box !important;"> Go=
+t questions? We=E2=80=99ve got answers! Connect with our friendly support t=
+eam to get the help you need, when you need it, simply send an email to sup=
+port@smartpeoplemail.com. You=E2=80=99ll receive a response within 24 hours=
+. </span> <br style=3D"box-sizing: border-box !important;"> <br style=3D"bo=
+x-sizing: border-box !important;"> </p> <p style=3D"font-size: 14px; line-h=
+eight: 1.2; text-align: center; mso-line-height-alt: 17px; margin: 0; box-s=
+izing: border-box !important;"> </p> <p style=3D"font-size: 11px; line-heig=
+ht: 1.2; text-align: left; mso-line-height-alt: 13px; margin: 0; box-sizing=
+: border-box !important;"><span style=3D"font-size: 11px; box-sizing: borde=
+r-box !important;">SmartPeopleMail.com, its managers, its employees, and as=
+signs (collectively "The Company") do not make any guarantee or warranty ab=
+out what is advertised above. Information provided by this website is for r=
+esearch purposes only and should not be considered as personalized financia=
+l advice. The Company is not affiliated with, nor does it receive compensat=
+ion from, any specific security. <a style=3D"display: none; box-sizing: bor=
+der-box !important;" href=3D"https://links.e.smartpeoplemail.com/u/click?_t=
+=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D9b34f70385e746ae95b2b232c249722a&_=
+e=3DlWit7MVq-Jmzptfcid4Ab1Bq_EkiKREKhr8Yk5rbl7aKosLjpf0Rs-38uE46oNLaMtuVUE6=
+z3z5AQJ0WFv5PToqgOEV6fmYf7nrSn8hmmVBMmm7_Z475Fy3js8uLPOJ7LW002OyTM43StolYtQ=
+2IeLa9Y4GC1XWPpBZpJ4IH6I_oJyaC3-KM4IkRbBaBxIIkYpGvR428o5Y4BQt-VSuSdk1HsVzgA=
+bS9GqV602ljcufIHbFu0nRQzYjFRBkJDaNhrEYS5-uIGXIFvWIzH729eM6kHBAdN1P4Cj09FnkN=
+N04fByBuwcx4UlQReDgSLt3GkjYYefeeppGSbkYoa8w-O_n0Qbqe__Bw0mCICY7KkBspbV6-QL3=
+98RA22LETHH5M_3dLBU2M-1i3SfqkMSY_mA%3D%3D">l</a> </span> <br style=3D"box-s=
+izing: border-box !important;"> </p> <p style=3D"box-sizing: border-box !im=
+portant;"></p> <br style=3D"box-sizing: border-box !important;"> <p style=
+=3D"font-size: 11px; line-height: 1.2; text-align: left; mso-line-height-al=
+t: 13px; margin: 0; box-sizing: border-box !important;"><span style=3D"font=
+-size: 11px; box-sizing: border-box !important;">Email sent by Finance and =
+Investing Traffic, LLC, owner and operator of Smart People Mail (SPM).</spa=
+n> </p> =C2=A0<br style=3D"box-sizing: border-box !important;"> <p style=3D=
+"font-size: 12px; line-height: 1.2; text-align: left; mso-line-height-alt: =
+14px; margin: 0; box-sizing: border-box !important;"><span style=3D"font-si=
+ze: 12px; box-sizing: border-box !important;">To ensure you receive our ema=
+il, be sure to <a style=3D"color: white; box-sizing: border-box !important;=
+" href=3D"https://links.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30=
+956d854ef81ba1b6&_m=3D9b34f70385e746ae95b2b232c249722a&_e=3DlWit7MVq-Jmzptf=
+cid4Ab1Bq_EkiKREKhr8Yk5rbl7YG6csl3n9t2rUHcB3MHzan0tSjKSd3XoEplGZU_Gsc3tEuDX=
+R6z5aVWnUVrVkiwaUmmO82k61Ggy-uQvH34vPYIczhbCty07sPXB8Ghh6_W1DO29o3EOaxUtOL5=
+WBK5mj2FIPS3w0E6i9HzG6D9KN5qKO50Pxi2YiQKKRoZbGvL_A48EKd54nLMd5O9Dp8JBheB65Z=
+kxqkvOCrFoSAHry2Tos-8AY0tahJNCjW5GDkPTF74lmtSCD7KNhZ0i1HjbYuFzCAE6vGi6BS5L8=
+lK7Pj3AYdA5ffpZHTcC2NFBYdg1Qibg8fQWPNdEN06Farzyn_v0C9v_uj1uIYlVxitJ84"><i s=
+tyle=3D"box-sizing: border-box !important;"><b style=3D"box-sizing: border-=
+box !important;">whitelist us.</b></i></a></span> </p> <p style=3D"font-siz=
+e: 14px; line-height: 1.2; text-align: center; mso-line-height-alt: 17px; m=
+argin: 0; box-sizing: border-box !important;"> </p> <p style=3D"font-size: =
+11px; line-height: 1.2; text-align: left; mso-line-height-alt: 13px; margin=
+: 0; box-sizing: border-box !important;"><span style=3D"font-size: 11px; bo=
+x-sizing: border-box !important;">=C2=A9 2026=C2=A0Smart People Mail. All R=
+ights Reserved.</span> </p> <p style=3D"font-size: 11px; line-height: 1.2; =
+text-align: left; mso-line-height-alt: 13px; margin: 0; box-sizing: border-=
+box !important;"><span style=3D"font-size: 11px; box-sizing: border-box !im=
+portant;">221 W 9th St # Wilmington, DE 19801 USA</span> </p> <p style=3D"f=
+ont-size: 14px; line-height: 1.2; text-align: center; mso-line-height-alt: =
+17px; margin: 0; box-sizing: border-box !important;"> </p> </td> </tr> <tr =
+style=3D"box-sizing: border-box !important;"> <td height=3D"34" width=3D"10=
+0%" style=3D"border-collapse: collapse; max-width: 100%; box-sizing: border=
+-box !important;" class=3D"md-horizontal-space"></td> </tr> </table> </td> =
+</tr> <tr style=3D"box-sizing: border-box !important;"> <td class=3D"img-bg=
+-block" align=3D"center" style=3D"border-collapse: collapse; width: 100%; b=
+order-bottom: 1px solid #0EAD74; box-sizing: border-box !important;" width=
+=3D"100%"> </td> </tr> <tr style=3D"box-sizing: border-box !important;"> <t=
+d class=3D"footer-vertical-space" style=3D"border-collapse: collapse; paddi=
+ng-left: 28px; padding-right: 28px; box-sizing: border-box !important;"> <t=
+able width=3D"100%" class=3D"content-inner-block content-primary-block" bor=
+der=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=
+=3D"border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt=
+; max-width: 100%; width: 100%; padding: 0; margin: 0; box-sizing: border-b=
+ox !important;"> <tr style=3D"box-sizing: border-box !important;"> <td heig=
+ht=3D"20" width=3D"100%" style=3D"border-collapse: collapse; max-width: 100=
+%; box-sizing: border-box !important;" class=3D"md-horizontal-space"></td> =
+</tr> <tr style=3D"box-sizing: border-box !important;"> <td align=3D"center=
+" style=3D"border-collapse: collapse; color: #FFFFFF; text-align: center; f=
+ont-family: 'Open Sans', Arial, sans-serif; font-size: 12px; font-style: no=
+rmal; font-weight: 700; line-height: 1.5; box-sizing: border-box !important=
+;"> <span style=3D"color: #FFFFFF; text-align: center; font-family: 'Open S=
+ans', Arial, sans-serif; font-size: 12px; font-style: normal; font-weight: =
+700; line-height: 1.5; box-sizing: border-box !important;"> <a href=3D"http=
+s://links.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1=
+b6&_m=3D9b34f70385e746ae95b2b232c249722a&_e=3DlWit7MVq-Jmzptfcid4Ab1Bq_EkiK=
+REKhr8Yk5rbl7ahKC6-dwMsfN4cxMoDTwmIRbiRkMSnxeT1oXmJeMj2WJuf-mThsT4linkRjRMW=
+r7zHZatctAI3LkoodkgRddnNLbo9M3JLl6kLK8PbEpwpPdB5pUwSFuza6gyva-Fsm1B3fnE2369=
+hp1G2r_8OrcR6DCqrjVT9-VizV3uSyKIJdUY3Hk4rIBZM0ydv4xk-C38aNJlY7IHo-1tDJuP6SY=
+FGHPFH_-xKgIYM_Dmr3h0DeWKqx1JJimw-Ltib2rdWVf7r0vPpJkt9tlZMEpYm-R0s3d0C36o3p=
+kkFTcMZbdnCsavTS6s9jSZZWlnpbbIVHTxkyk2f8geB7mNORVW3Bm-e" style=3D"color: #F=
+FFFFF; text-align: center; font-family: 'Open Sans', Arial, sans-serif; fon=
+t-size: 12px; font-style: normal; font-weight: 700; line-height: 1.5; text-=
+decoration: none; box-sizing: border-box !important;"> Privacy Policy</a><b=
+r style=3D"box-sizing: border-box !important;"><br style=3D"box-sizing: bor=
+der-box !important;"> <a href=3D"https://links.e.smartpeoplemail.com/u/clic=
+k?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D9b34f70385e746ae95b2b232c24972=
+2a&_e=3DlWit7MVq-Jmzptfcid4Ab1Bq_EkiKREKhr8Yk5rbl7ZxC1TnEeLqk4JoabMqHRz2tJV=
+UrTqOBX3wmDbBsun9NCk6mo1HBKl-1IFVGo5WTG76ObzroKZPnsQ5ZUWzngd2ZW8l6TXLyE5-AO=
+Ta2klNCwbbOV_ZaMzUkrUKJWOwZhiZ0Fo1-JKKEfX1pOljnVlYFcWdvtMbe7ZtYHWqdPwiUHVfV=
+WhDcJR37kY4LwDs2GKjYrJmSEGNJL_jemMfluHq0EHaSAzRCnmbfWjohroyIXwUWC2CRHZEruMn=
+2FtfHpZMtFTmJyAJTM_n2iHg_XCicsmpD6_FYno32WY-_vjmgFAGFtvnlNy_DZJPOrTpRYAyj6V=
+k1SM8ZikivJlNmSuC7HqUQm-iekdU1KGxjrDrEw%3D%3D" style=3D"color: #FFFFFF; tex=
+t-align: center; font-family: 'Open Sans', Arial, sans-serif; font-size: 12=
+px; font-style: normal; font-weight: 700; line-height: 1.5; text-decoration=
+: none; box-sizing: border-box !important;"> Terms & Conditions</a><br styl=
+e=3D"box-sizing: border-box !important;"><br style=3D"box-sizing: border-bo=
+x !important;"> <a href=3D"https://links.e.smartpeoplemail.com/e/encryptedU=
+nsubscribe?_r=3Df88b7d4fa6b54c30956d854ef81ba1b6&_s=3D9b34f70385e746ae95b2b=
+232c249722a&_t=3DuYgPLZRNN7Xf5bkF-eSZjTXGpzvsuJY5nFvjxC-cy0rBQaHbzCtIJhm_Wg=
+fMs3Ey_jPMrckMAUkHhJevSGxNg-2-JPNA2Qow--_tRZ0TKIiz8K2fXqN8zI_pUBZtxqGq" sty=
+le=3D"color: #FFFFFF; text-align: center; font-family: 'Open Sans', Arial, =
+sans-serif; font-size: 12px; font-style: normal; font-weight: 700; line-hei=
+ght: 1.5; text-decoration: none; box-sizing: border-box !important;"> Unsub=
+scribe</a> </span> </td> </tr> <tr style=3D"box-sizing: border-box !importa=
+nt;"> <td height=3D"20" width=3D"100%" style=3D"border-collapse: collapse; =
+max-width: 100%; box-sizing: border-box !important;" class=3D"md-horizontal=
+-space"></td> </tr> </table> </td> </tr> </table> </td> </tr> <!--[if mso |=
+ IE]></table> </td> </tr><![endif]--> <!--=3D=3D=3D Footer-end =3D=3D=3D-->=
+ </table> </div> </td> </tr> </table> </td> </tr> <!--[if mso | IE]></table=
+> </td> </tr><![endif]--> <!--=3D=3D=3D Footer-end =3D=3D=3D--> <tr style=
+=3D"box-sizing: border-box !important;"> <td class=3D"horizontal-space-hide=
+-on-mobile" height=3D"50" width=3D"100%" style=3D"border-collapse: collapse=
+; max-width: 100%; box-sizing: border-box !important;"></td> </tr> </table>=
+ </td> </tr> </table> </center> </body> </html>
+------=_Part_5863_1610981570.1771889800846--

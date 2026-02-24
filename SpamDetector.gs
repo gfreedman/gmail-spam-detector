@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.15.0
+ * @version 6.15.1
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,10 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.15.1: Fix "Not found" error after spam deletion. Skip thread.addLabel()
+ *            on deleted threads. Added 2 spam examples (36/36).
+ *            when a thread was deleted — calling addLabel() on a permanently
+ *            deleted thread throws. Label is irrelevant on a deleted thread.
  *   v6.15.0: Blacklist smartpeoplemail (Pre-IPO investment spam). Add Pre-IPO
  *            clickbait pattern for defense-in-depth against similar senders.
  *            Added spam example (35/35).
@@ -180,8 +184,13 @@ function processInbox()
         spamCount += result.spamCount;
         processedCount += result.processedCount;
 
-        // Label thread as processed so it won't be re-scanned next run
-        thread.addLabel(label);
+        // Label thread as processed so it won't be re-scanned next run.
+        // Skip if the thread was spam — it's been permanently deleted and
+        // addLabel() on a deleted thread throws "Not found".
+        if (result.spamCount === 0)
+        {
+          thread.addLabel(label);
+        }
       }
       catch (threadError)
       {

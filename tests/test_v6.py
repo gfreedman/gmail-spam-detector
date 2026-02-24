@@ -45,7 +45,7 @@ CLICKBAIT_PATTERNS = [
     # Urgency + sensationalism: "breaking news", "urgent warning", etc.
     re.compile(r'(breaking|urgent|warning|alert|stop|exposed|banned).*(news|truth|secret|scandal|exposed|revealed)', re.I),
     # Financial fear-mongering: market/money word + crisis word
-    re.compile(r'(market|stock|economy|dollar|gold|bitcoin|investment|crypto).*(crash|collapse|shift|crisis|warning|alert|plunge|tank)', re.I),
+    re.compile(r'(market|stock|economy|dollar|gold|bitcoin|investment|crypto).*(crash|collapse|shift|crisis|warning|alert|plunge|tank|dying)', re.I),
     # "Caught" visual-proof framing: "caught on camera", "caught red-handed"
     re.compile(r'caught (on|doing|in|red-handed)', re.I),
     # Transformation clickbait: "this changes everything", "what stunned everyone"
@@ -95,6 +95,8 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'\b(minted|commemorat|collector\'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b', re.I),
     # Bullet-point date format: "• January 29 •" (newsletter spam tactic)
     re.compile(r'•\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
+    # Pipe-date subject format: "| February 23" (same tactic, pipe variant)
+    re.compile(r'\|\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
     # Historical atrocity clickbait: Nazi/Holocaust references as engagement bait
     re.compile(r'\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b', re.I),
     # Health condition anxiety triggers: "blood sugar", "brain fog", etc.

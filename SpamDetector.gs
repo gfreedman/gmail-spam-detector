@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.15.1
+ * @version 6.15.2
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,10 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.15.2: Fix silver/dollar financial spam miss. Add "dying" to financial
+ *            fear clickbait pattern ("dollar dying"). Add pipe-date clickbait
+ *            pattern ("| February 23") — pipe variant of existing bullet-date.
+ *            Both give clickbait=2 + bulk → Rule 1, no blacklist dependency.
  *   v6.15.1: Fix "Not found" error after spam deletion. Skip thread.addLabel()
  *            on deleted threads. Added 2 spam examples (36/36).
  *            when a thread was deleted — calling addLabel() on a permanently
@@ -556,7 +560,7 @@ function analyzeMessage(message)
       /(breaking|urgent|warning|alert|stop|exposed|banned).*(news|truth|secret|scandal|exposed|revealed)/i,
 
       // Financial fear-mongering: market/money word + crisis word
-      /(market|stock|economy|dollar|gold|bitcoin|investment|crypto).*(crash|collapse|shift|crisis|warning|alert|plunge|tank)/i,
+      /(market|stock|economy|dollar|gold|bitcoin|investment|crypto).*(crash|collapse|shift|crisis|warning|alert|plunge|tank|dying)/i,
 
       // "Caught" visual-proof framing: "caught on camera", "caught red-handed"
       /caught (on|doing|in|red-handed)/i,
@@ -631,6 +635,9 @@ function analyzeMessage(message)
 
       // Bullet-point date format: "• January 29 •" (newsletter spam tactic)
       /•\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
+
+      // Pipe-date subject format: "| February 23" (same tactic, pipe variant)
+      /\|\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
 
       // Historical atrocity clickbait: Nazi/Holocaust references as engagement bait
       /\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b/i,

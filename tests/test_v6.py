@@ -52,6 +52,8 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'(what|this).*(changes everything|stunned everyone|shocked|amazed|surprised)', re.I),
     # Celebrity/political name-dropping for false credibility
     re.compile(r'\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns|showed|shows)', re.I),
+    # Political legitimization: "Trump approved/signed/backed [product]"
+    re.compile(r'\b(Trump|Biden|Obama|Musk|Kennedy|RFK)\b.*(approved|signed|backed|endorsed|directed|ordered|mandated)', re.I),
     # Celebrity merchandise/collectible scams
     re.compile(r'\b(Trump|Biden|Obama|Kennedy)\b.*(coin|bill|medal|card|stamp|legacy|commemorat|collect|mint|gold|silver)', re.I),
     # Demographic targeting: age-based fear ("Seniors Most At Risk")
@@ -97,6 +99,8 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'•\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
     # Pipe-date subject format: "| February 23" (same tactic, pipe variant)
     re.compile(r'\|\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
+    # Bracket-date subject format: "[March 09]" — same tactic, bracket variant
+    re.compile(r'\[\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
     # Historical atrocity clickbait: Nazi/Holocaust references as engagement bait
     re.compile(r'\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b', re.I),
     # Health condition anxiety triggers: "blood sugar", "brain fog", etc.
@@ -135,6 +139,7 @@ BLACKLISTED_DOMAINS = [
     'expertmodernadvice',
     'investingtrendstoday',
     'smartpeoplemail',
+    'onlineinvestingdaily',
 ]
 
 # --- Marketing Sender Format Patterns ---

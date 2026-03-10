@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.16.0
+ * @version 6.16.1
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,10 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.16.1: Fix "per share" stock price miss. Extend stock price pattern to
+ *            match "$0.85 per share" (was only matching "a share"). Gives
+ *            clickbait=1 + marketing → Rule 2 independent of blacklist.
+ *            Add 2 spam examples (39/39).
  *   v6.16.0: Fix "Trump approved precious metals" spam miss. Two new clickbait
  *            patterns: political legitimization ("Trump approved/signed/backed")
  *            and bracket-date format ("[March 09]"). Both fire on subject+from,
@@ -607,8 +611,8 @@ function analyzeMessage(message)
       // Pre-IPO investment solicitation: always spam in bulk email
       /\bpre-?ipo\b/i,
 
-      // Stock price hype: "$5 a share", "penny stock"
-      /\$\d+(\.\d+)?\s*(a\s+)?share|\bpenny stock\b/i,
+      // Stock price hype: "$5 a share", "$0.85 per share", "penny stock"
+      /\$\d+(\.\d+)?\s*(?:(?:a|per)\s+)?share|\bpenny stock\b/i,
 
       // Watch/see curiosity gap: "watch what happened", "see this"
       /\b(watch|see)\s+(what|this|the moment)/i,

@@ -33,7 +33,7 @@ All sent via bulk email services like Amazon SES — often hiding in Gmail's **U
 
 ## 📊 Results
 
-- ✅ **100% detection** on 37/37 real spam (.eml files)
+- ✅ **100% detection** on 39/39 real spam (.eml files)
 - ✅ **0% false positives** on 11/11 legitimate emails
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Clean, maintainable code** (~120 lines of detection logic)
@@ -253,7 +253,7 @@ addToWhitelist('domain.com');
 │   └── EXPORTING_EMAILS.md      # How to export .eml files
 ├── tests/
 │   ├── test_v6.py               # Python test suite
-│   ├── spam_examples/           # Real spam .eml files (37)
+│   ├── spam_examples/           # Real spam .eml files (39)
 │   └── ham_examples/            # Legitimate .eml files (11)
 ├── archive/                     # Old versions (ignore)
 └── .github/workflows/           # CI/CD pipeline

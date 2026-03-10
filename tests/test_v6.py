@@ -66,8 +66,8 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'\b(declared war|bombed|bombing|attack|attacked|destroyed|invasion)\b', re.I),
     # Pre-IPO investment solicitation: always spam in bulk email
     re.compile(r'\bpre-?ipo\b', re.I),
-    # Stock price hype: "$5 a share", "penny stock"
-    re.compile(r'\$\d+(\.\d+)?\s*(a\s+)?share|\bpenny stock\b', re.I),
+    # Stock price hype: "$5 a share", "$0.85 per share", "penny stock"
+    re.compile(r'\$\d+(\.\d+)?\s*(?:(?:a|per)\s+)?share|\bpenny stock\b', re.I),
     # Watch/see curiosity gap: "watch what happened", "see this"
     re.compile(r'\b(watch|see)\s+(what|this|the moment)', re.I),
 

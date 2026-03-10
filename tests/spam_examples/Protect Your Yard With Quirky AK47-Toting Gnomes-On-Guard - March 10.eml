@@ -1,0 +1,718 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:2ba2:b0:1b6:202c:9e3b with SMTP id l34csp2311695rdc;
+        Tue, 10 Mar 2026 16:27:57 -0700 (PDT)
+X-Received: by 2002:a05:620a:29c4:b0:8cd:9707:631e with SMTP id af79cd13be357-8cda19e4fd4mr92319985a.2.1773185277073;
+        Tue, 10 Mar 2026 16:27:57 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1773185277; cv=none;
+        d=google.com; s=arc-20240605;
+        b=KLRXk6dnE54BZ62wpQWyO6s4ogZKBrrs+EG5pZ12D5lCSYsNX9ibXznFhvJuGLJs42
+         /6LwVWAN2dYEYiwq6MqJCgEiXJw6axdxJF4ncmFjxRx4m/U4wJ58PHRGstdWLFLhG8i4
+         /IL3C9wP8R5q1jCTvUX7NDw5Y90SgjClgPbTcumMXcl5lGLSIxtfhrIgv8iEuDWlgVUK
+         tTj9YVdCVaUV75cfD6ByydTtNBQLT7sOaCdYov6ivXxcOTgJvi1Pna4fiC9JCDyzfiu4
+         xLLPni7RwhdineT2HrDW5NDE2hXrgXNi3z+AvCp399w3KVtd9E2VnyJxrqybcVu8plMs
+         m1eQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=jR3t/0RFbNnwu0uhuRsntLB5xRI4WVhxXwaVP29MKEU=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=ksyH7FuSR1Y0gYRbKX0EJJJyHi0ctcR79tHGBYVJeNWdM1MULtuO9o2ctR9GwFPev+
+         4SmZyGpq1SnwU6QHxiIysGizEYzZJNb+Km2634uj+DxRqdSxaPk9Itd01iRASCIgTmkP
+         IqfRp9xKlqXH9BlWhfBsPZkqOQBQIhh0Np/PpvQDLI3gut4oYFWZsvezvgawz/d1AD6o
+         IMxkQibtVsXncTKFbpc4QPG9jyn7Iww5ikP01oa4+KyEYTNIMMZvlOX0wiRcTWx37qZl
+         KGsNQJIFN5KIhwdRH6s0o0ukEOC8ppdHaFuQGR8v0h1/UIiGboMJw6JuJOy/obA9whoz
+         T7Rw==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@e.smartpeoplemail.com header.s=hvvmpkf6ivasukbmfv3q56tzuxmsnrxc header.b=IOs2Roj6;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b="rXyfrJ6/";
+       spf=pass (google.com: domain of 0100019cda141aea-06755070-cf3c-49d5-bfa3-322ed5987c05-000000@amazonses.com designates 54.240.79.182 as permitted sender) smtp.mailfrom=0100019cda141aea-06755070-cf3c-49d5-bfa3-322ed5987c05-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=e.smartpeoplemail.com
+Return-Path: <0100019cda141aea-06755070-cf3c-49d5-bfa3-322ed5987c05-000000@amazonses.com>
+Received: from a79-182.smtp-out.amazonses.com (a79-182.smtp-out.amazonses.com. [54.240.79.182])
+        by mx.google.com with ESMTPS id af79cd13be357-8cda21208ddsi44812585a.263.2026.03.10.16.27.56
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 10 Mar 2026 16:27:57 -0700 (PDT)
+Received-SPF: pass (google.com: domain of 0100019cda141aea-06755070-cf3c-49d5-bfa3-322ed5987c05-000000@amazonses.com designates 54.240.79.182 as permitted sender) client-ip=54.240.79.182;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@e.smartpeoplemail.com header.s=hvvmpkf6ivasukbmfv3q56tzuxmsnrxc header.b=IOs2Roj6;
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b="rXyfrJ6/";
+       spf=pass (google.com: domain of 0100019cda141aea-06755070-cf3c-49d5-bfa3-322ed5987c05-000000@amazonses.com designates 54.240.79.182 as permitted sender) smtp.mailfrom=0100019cda141aea-06755070-cf3c-49d5-bfa3-322ed5987c05-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=e.smartpeoplemail.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=hvvmpkf6ivasukbmfv3q56tzuxmsnrxc; d=e.smartpeoplemail.com;
+	t=1773185276;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=jR3t/0RFbNnwu0uhuRsntLB5xRI4WVhxXwaVP29MKEU=;
+	b=IOs2Roj6wm6qVIcJ7GeM2B1Y+Jm/SUo/3kMJWK5gbHkZBiKdPUKpotJ0Tmqnc2yY
+	GatqXYTRP19cxHRUyX3DnYGivZjty13CnDtKs0LM6gV3KuLMYBSQ5K5uzXXgV68vHvB
+	f9tpekn925nGisE353GAQ2y88VETqSAuSdPvYmZY=
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1773185276;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=jR3t/0RFbNnwu0uhuRsntLB5xRI4WVhxXwaVP29MKEU=;
+	b=rXyfrJ6/aoHVqedzp0ZIKn2puQYTw5BkU7fAxgmmZKX5BomjUWQ9NBeS33h+5e4t
+	xOgV7Tg7wVZKaD3pX9qNRpbzmM0jl1wwkvg+7o9/TSZJMxDdD6XGcdbPR6eNpEBV5ic
+	g3hxVgqkCWlZXLksuTr4R6lFb/EmFoSwEBZdi+10=
+Date: Tue, 10 Mar 2026 23:27:56 +0000
+From: Garden Gnome - James Dutton | SPM <newsletter@e.smartpeoplemail.com>
+Reply-To: support@smartpeoplemail.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019cda141aea-06755070-cf3c-49d5-bfa3-322ed5987c05-000000@email.amazonses.com>
+Subject: Protect Your Yard With Quirky AK47-Toting Gnomes-On-Guard - March
+ 10
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_261508_1695087679.1773185276640"
+X-Campaign-ID: 17223481
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=f88b7d4fa6b54c30956d854ef81ba1b6&_s=8d687711c2114f79a1399baee96cbd5b&_t=SudhlhEFkGetkRsvJqQUJYAMKrpT-UIRHW8hJ-Lr28EURsX_FyDoPY7pKKzUQfivFJZPzSGCvEiYviCgbrxQ0B3KkbstTvLxD9EASHYj44L_k66WdFIrYXgesmxFxYG->,<mailto:unsubscribe+17223481+22423103@unsubscribe.iterable.com>
+X-Feedback-ID: 22423103:17223481:36661:iterable
+X-Message-ID: 8d687711c2114f79a1399baee96cbd5b
+X-SES-Outgoing: 2026.03.10-54.240.79.182
+
+------=_Part_261508_1695087679.1773185276640
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+E-mail Letter Protect Your Yard With QuirkyAK47-Toting Gnomes-On-Guard=20
+
+
+
+
+
+ <https://smartpeoplemail.com/>=20
+
+
+
+
+
+ Protect Your Yard With QuirkyAK47-Toting Gnomes-On-Guard=20
+=20
+<https://track.smartpeoplemail.com/690b47c7116c05a6dc8effa3?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D23SPM&type=3DB&product=3DPGGGG1>
+=20
+<https://track.smartpeoplemail.com/690b47c7116c05a6dc8effa3?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D23SPM&type=3DB&product=3DPGGGG1>
+
+ * Unique and Eye-Catching Design=20
+ * Hand-Painted, Durable Resin Material=20
+ * Weather-Resistant For All Seasons=20
+ * Perfect Gift For Garden Lovers=20
+ * Adds Humor and Personality To Any Garden=20
+ * Easy To Clean and Maintain=20
+=20
+<https://track.smartpeoplemail.com/690b47c7116c05a6dc8effa3?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D23SPM&type=3DB&product=3DPGGGG1>
+ Welcome to the world of garden d=C3=A9cor where charm meets defense! Our=
+=20
+Gun-Toting Garden Gnome=20
+<https://track.smartpeoplemail.com/690b47c7116c05a6dc8effa3?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D23SPM&type=3DB&product=3DPGGGG1>
+ is here to not only add a touch of whimsy to your outdoor space but also t=
+o=20
+stand guard with a playful twist.
+
+Crafted with attention to detail, this gnome is the perfect conversation=20
+starter and a fun addition to your garden, patio, or yard=20
+=20
+<https://track.smartpeoplemail.com/690b47c7116c05a6dc8effa3?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D23SPM&type=3DB&product=3DPGGGG1>
+
+
+
+
+
+
+
+You are receiving this e-mail because you have expressed an =D1=96nterest i=
+n the=20
+Financial Education niche on one of our landing pages or sign-up f=D0=BErms=
+.
+
+ This offer is brought to you by Smart People Mail. 221 W 9th St # Wilmingt=
+on,=20
+DE 19801 USA. If you would like to unsubscribe from receiving offers brough=
+t to=20
+you by Smart People Mailclick here.=20
+<https://links.e.smartpeoplemail.com/e/encryptedUnsubscribe?_r=3Df88b7d4fa6=
+b54c30956d854ef81ba1b6&_s=3D8d687711c2114f79a1399baee96cbd5b&_t=3DSudhlhEFk=
+GetkRsvJqQUJYAMKrpT-UIRHW8hJ-Lr28EURsX_FyDoPY7pKKzUQfivFJZPzSGCvEiYviCgbrxQ=
+0B3KkbstTvLxD9EASHYj44L_k66WdFIrYXgesmxFxYG->
+
+ Got questions? We=E2=80=99ve got answers! Connect with our friendly suppor=
+t team to=20
+get the help you need, when you need it, simply send an email to=20
+support@smartpeoplemail.com. You=E2=80=99ll receive a response within 24 ho=
+urs.=20
+
+
+
+
+
+SmartPeopleMail.com, its managers, its employees, and assigns (collectively=
+=20
+"The Company") do not make any guarantee or warranty about what is advertis=
+ed=20
+above. Information provided by this website is for research purposes only a=
+nd=20
+should not be considered as personalized financial advice. The Company is n=
+ot=20
+affiliated with, nor does it receive compensation from, any specific securi=
+ty.=20
+
+
+
+
+Email sent by Finance and Investing Traffic, LLC, owner and operator of Sma=
+rt=20
+People Mail (SPM).=20
+
+
+To ensure you receive our email, be sure to whitelist us.=20
+<https://smartpeoplemail.com/email-whitelisting/>=20
+
+
+
+=C2=A9 2026 Smart People Mail. All Rights Reserved.=20
+
+221 W 9th St # Wilmington, DE 19801 USA=20
+
+
+
+
+ <https://smartpeoplemail.com/>=20
+
+
+
+
+
+Privacy Policy <https://smartpeoplemail.com/privacy-policy/>=20
+
+
+Terms & Conditions <https://smartpeoplemail.com/terms-and-conditions/>=20
+
+
+Unsubscribe=20
+<https://links.e.smartpeoplemail.com/e/encryptedUnsubscribe?_r=3Df88b7d4fa6=
+b54c30956d854ef81ba1b6&_s=3D8d687711c2114f79a1399baee96cbd5b&_t=3DSudhlhEFk=
+GetkRsvJqQUJYAMKrpT-UIRHW8hJ-Lr28EURsX_FyDoPY7pKKzUQfivFJZPzSGCvEiYviCgbrxQ=
+0B3KkbstTvLxD9EASHYj44L_k66WdFIrYXgesmxFxYG->
+
+------=_Part_261508_1695087679.1773185276640
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.=
+w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"> <html xmlns=3D"http://www.w3=
+.org/1999/xhtml" xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"urn:s=
+chemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: border=
+-box !important;"> <head> <meta http-equiv=3D"Content-Type" content=3D"text=
+/html; charset=3DUTF-8"> <title>E-mail Letter</title> <meta name=3D"viewpor=
+t" content=3D"width=3Ddevice-width, initial-scale=3D1.0"> <link rel=3D"prec=
+onnect" href=3D"https://fonts.googleapis.com"> <link rel=3D"preconnect" hre=
+f=3D"https://fonts.gstatic.com" crossorigin> <link href=3D"https://fonts.go=
+ogleapis.com/css2?family=3DMontserrat:ital,wght@0,100..900;1,100..900&displ=
+ay=3Dswap" rel=3D"stylesheet"> <link href=3D"https://fonts.googleapis.com/c=
+ss2?family=3DRoboto:ital,wght@0,100..900;1,100..900&display=3Dswap" rel=3D"=
+stylesheet"> <link href=3D"https://fonts.googleapis.com/css?family=3DOpen+S=
+ans:300,regular,500,600,700,800,300italic,italic,500italic,600italic,700ita=
+lic,800italic" rel=3D"stylesheet"> <link href=3D"https://fonts.googleapis.c=
+om/css?family=3DSpace+Grotesk:300,regular,500,600,700" rel=3D"stylesheet"> =
+<style>body{width:100%!important;-webkit-text-size-adjust:100%;-ms-text-siz=
+e-adjust:100%;margin:0!important;padding:0!important;line-height:100%}*{box=
+-sizing:border-box!important}img{outline:none!important;text-decoration:non=
+e!important;border:none!important;-ms-interpolation-mode:bicubic!important;=
+margin:0!important;padding:0!important;display:block!important}a{text-decor=
+ation:none}table td{border-collapse:collapse!important}table{border-collaps=
+e:collapse!important;mso-table-lspace:0;mso-table-rspace:0}@media screen an=
+d (max-width:498px){img{background-color:transparent!important}.hide_mobile=
+{display:none!important}.show_mobile{display:block!important}.divider_s{pad=
+ding-top:10px!important}.divider_sm{padding-top:20px!important}.w_full{widt=
+h:100%!important;max-width:none!important;min-width:100%!important}.text_ce=
+nter{text-align:center!important}.footer_btns_wrapper{padding-left:5px!impo=
+rtant;padding-right:5px!important}}</style> <!--[if (gte mso 9)|(IE)]><xml>=
+ <o:OfficeDocumentSettings> <o:AllowPNG/> <o:PixelsPerInch>96</o:PixelsPerI=
+nch> </o:OfficeDocumentSettings> </xml><![endif]--> </head> <body style=3D"=
+-webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; line-height: 10=
+0%; background-color: #ffffff; box-sizing: border-box !important; width: 10=
+0% !important; margin: 0 !important; padding: 0 !important;"><span style=3D=
+"color:transparent;visibility:hidden;display:none;opacity:0;height:0;width:=
+0;font-size:0;">Protect Your Yard With QuirkyAK47-Toting Gnomes-On-Guard</s=
+pan><img src=3D"https://links.e.smartpeoplemail.com/e/eo?_t=3Df88b7d4fa6b54=
+c30956d854ef81ba1b6&amp;_m=3D8d687711c2114f79a1399baee96cbd5b&amp;_e=3DSudh=
+lhEFkGetkRsvJqQUJYAMKrpT-UIRHW8hJ-Lr28EURsX_FyDoPY7pKKzUQfivFJZPzSGCvEiYviC=
+gbrxQ0B3KkbstTvLxD9EASHYj44KmTj1mJWxoESASG7uaTePja_PVfHZJZz3UEq-MKAK8pA%3D%=
+3D" style=3D"border:0;width:1px;height:1px;border-width:0px!important;displ=
+ay:none!important;line-height:0!important;" width=3D"1" height=3D"1"/> <cen=
+ter style=3D"box-sizing: border-box !important;"> <table width=3D"100%" bor=
+der=3D"0" cellpadding=3D"0" cellspacing=3D"0" bgcolor=3D"#ffffff" style=3D"=
+mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; max-width: 1000p=
+x; box-sizing: border-box !important; border-collapse: collapse !important;=
+"> <tr style=3D"box-sizing: border-box !important;"> <td style=3D"box-sizin=
+g: border-box !important; border-collapse: collapse !important;"> <table wi=
+dth=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"prese=
+ntation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%=
+; box-sizing: border-box !important; border-collapse: collapse !important;"=
+> <tr style=3D"box-sizing: border-box !important;"> <td width=3D"1000" alig=
+n=3D"center" valign=3D"top" bgcolor=3D"#B1BCB8" style=3D"box-sizing: border=
+-box !important; border-collapse: collapse !important;"> <table width=3D"10=
+0%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" =
+style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; backgro=
+und: url('https://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/66=
+9d5713-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b54c30956d854ef81ba1b6/email-b=
+g-main.jpg'); background-repeat: repeat; box-sizing: border-box !important;=
+ border-collapse: collapse !important;"> <tr style=3D"box-sizing: border-bo=
+x !important;"> <td style=3D"box-sizing: border-box !important; border-coll=
+apse: collapse !important;"> <table cellpadding=3D"0" cellspacing=3D"0" wid=
+th=3D"100%" align=3D"center" style=3D"mso-table-lspace: 0pt; mso-table-rspa=
+ce: 0pt; max-width: 1000px; width: 100%; background: url('https://d15k2d11r=
+6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542c=
+ff6dd6a/f88b7d4fa6b54c30956d854ef81ba1b6/email-bg.jpg'); background-positio=
+n: center top; background-repeat: no-repeat; box-sizing: border-box !import=
+ant; border-collapse: collapse !important;"> <!--[if mso | IE]><tr> <td ali=
+gn=3D"center"> <table border=3D"0" cellspacing=3D"0" cellpadding=3D"0" widt=
+h=3D"1000" style=3D"width: 1000px;max-width: 100%;"><![endif]--> <tr style=
+=3D"box-sizing: border-box !important;"> <td align=3D"center" style=3D"box-=
+sizing: border-box !important; border-collapse: collapse !important;"> <tab=
+le width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"=
+presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width:=
+ 100%; max-width: 600px; box-sizing: border-box !important; border-collapse=
+: collapse !important;"> <!--[if mso | IE]><tr> <td align=3D"center"> <tabl=
+e class=3D"top-inner-content-table content-inner-table" border=3D"0" cellsp=
+acing=3D"0" cellpadding=3D"0" width=3D"600" style=3D"width: 600px;max-width=
+: 100%;"><![endif]--> <!-- ~HEADER --> <tr style=3D"box-sizing: border-box =
+!important;"> <td style=3D"box-sizing: border-box !important; border-collap=
+se: collapse !important;"> <table width=3D"100%" border=3D"0" cellspacing=
+=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0=
+pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-box !important; =
+border-collapse: collapse !important;"> <tr style=3D"box-sizing: border-box=
+ !important;"> <td style=3D"box-sizing: border-box !important; border-colla=
+pse: collapse !important;"> <a href=3D"https://links.e.smartpeoplemail.com/=
+u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D8d687711c2114f79a1399bae=
+e96cbd5b&_e=3D51dyeCgiUe_zDLnx6DLrTjchOfpq0MUwPuY6onQ2wqenFBV-K-WBfEyamnlU9=
+TRG6fydkWtb7lK0FJCB8BtQmzzyylO6iF-iBZMx3nN_RSnwPRLFjSmXxAqALRt8C9SS4ougcjY-=
+PPmufC5vAg8mNg-FKHZXsU2WFO_QB5EcdcKUtZByrs1IOXEB7MUMa-FR5-XIkrEVlyVBDkRAKtD=
+5n7s_pCgWyLU6Wvk2fUDPxMcDyrNVdIVV-wPuEC5MjDhZZpu4ARzL-TRSZV27uCo7qd_tM_XlVY=
+G-02RUMkcRAxqt52vEFdZ0ONi-ubQuh00-iYvff1mAaOq0LNYSwtNU8A%3D%3D" target=3D"_=
+blank" style=3D"text-decoration: none; font-size: 0; box-sizing: border-box=
+ !important;"> <img src=3D"https://d15k2d11r6t6rl.cloudfront.net/public/use=
+rs/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/f88b7d4fa6b54c30956d854=
+ef81ba1b6/header-logo%20%281%29.jpg" alt=3D"Logo" title=3D"Logo" width=3D"6=
+00" style=3D"object-fit: contain; max-width: 600px; object-position: center=
+; font-size: 13px; width: 100%; box-sizing: border-box !important; outline:=
+ none !important; text-decoration: none !important; border: none !important=
+; -ms-interpolation-mode: bicubic !important; margin: 0 !important; padding=
+: 0 !important; display: block !important;"> </a> </td> </tr> </table> </td=
+> </tr> <!-- ~END HEADER --> <!-- ~CONTENT --> <tr style=3D"box-sizing: bor=
+der-box !important;"> <td align=3D"center" valign=3D"top" bgcolor=3D"#fffff=
+f" style=3D"box-sizing: border-box !important; border-collapse: collapse !i=
+mportant;"> <table cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" align=
+=3D"center" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; max-widt=
+h: 600px; width: 100%; box-sizing: border-box !important; border-collapse: =
+collapse !important;"> <!-- ~BODY~ --> <tr style=3D"box-sizing: border-box =
+!important;"> <td style=3D"box-sizing: border-box !important; border-collap=
+se: collapse !important;"> <!-- ~---------Promo Starts Here--------~ --> <t=
+able width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; ma=
+x-width: 100%; font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizi=
+ng: border-box !important; border-collapse: collapse !important;"> <tbody s=
+tyle=3D"box-sizing: border-box !important;"> <tr style=3D"box-sizing: borde=
+r-box !important;"> <td align=3D"center" valign=3D"top" style=3D"font-famil=
+y: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-box !important=
+; border-collapse: collapse !important;"> <table class=3D"primary-table-lim=
+it content-table" bgcolor=3D"#FFFFFF" border=3D"0" cellspacing=3D"0" cellpa=
+dding=3D"0" role=3D"presentation" width=3D"100%" style=3D"mso-table-lspace:=
+ 0pt; mso-table-rspace: 0pt; max-width: 600px; font-family: 'Arial', Arial,=
+ Helvetica, sans-serif; box-sizing: border-box !important; border-collapse:=
+ collapse !important;"> <tbody style=3D"box-sizing: border-box !important;"=
+> <tr style=3D"box-sizing: border-box !important;"> <td class=3D"content-ve=
+rtical-space" align=3D"center" style=3D"padding-left: 20px; padding-right: =
+20px; font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizing: borde=
+r-box !important; border-collapse: collapse !important;"> <table class=3D"c=
+ontent-inner-table" border=3D"0" cellspacing=3D"0" role=3D"presentation" ce=
+llpadding=3D"0" width=3D"100%" style=3D"mso-table-lspace: 0pt; mso-table-rs=
+pace: 0pt; width: 100%; font-family: 'Arial', Arial, Helvetica, sans-serif;=
+ box-sizing: border-box !important; border-collapse: collapse !important;">=
+ <tbody style=3D"box-sizing: border-box !important;"> <tr style=3D"box-sizi=
+ng: border-box !important;"> <td height=3D"16" width=3D"100%" style=3D"max-=
+width: 100%; font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizing=
+: border-box !important; border-collapse: collapse !important;" class=3D"md=
+-horizontal-space"></td> </tr> <tr style=3D"box-sizing: border-box !importa=
+nt;"> <td align=3D"center" style=3D"font-style: normal; font-weight: bold; =
+line-height: 1.5; text-align: center; color: #008000; padding-top: 14px; pa=
+dding-bottom: 14px; font-family: 'Arial', Arial, Helvetica, sans-serif; fon=
+t-size: 18px; box-sizing: border-box !important; border-collapse: collapse =
+!important;"> <strong style=3D"font-family: 'Roboto', Arial, Helvetica, san=
+s-serif; font-size: 22px; font-style: normal; font-weight: bold; line-heigh=
+t: 1.5; text-align: center; color: #008000; box-sizing: border-box !importa=
+nt;"> Protect Your Yard With QuirkyAK47-Toting Gnomes-On-Guard </strong> </=
+td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td class=3D"im=
+g-bg-block" align=3D"center" style=3D"padding-top: 14px; padding-bottom: 14=
+px; font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-=
+box !important; border-collapse: collapse !important;"> <a href=3D"https://=
+links.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_=
+m=3D8d687711c2114f79a1399baee96cbd5b&_e=3D51dyeCgiUe_zDLnx6DLrTjkWFj158SFMm=
+0MIn42_kAB0A-3-l91ak1F6Hd2O78PZMSlgjU3CeinhvNgzyUQQPtGoK8l49FANu6xo4LXLNz6w=
+_2aEsVE9DsXrDE2xeCXzHhVr_LaMAs5kYtRfGo8y2E2fsIN4a45pXhD3BEHw4HouxXcd4AmetAI=
+AziW7EULFdl0_8w3Yie3ko_zHidsLoQpGIkpfE9QhO5jJYS_huLf-zwVP4L4yC06_Jtzj2kCtop=
+gAjf36sM6qROgehNnqROvS2YmGovJT4xpXSMbtjc-P_Heh2eQh69m3KIMnGps5dzv_sT375LM4L=
+oPQVA691Mpb0gTC6dPSJnOhlw5cAFNc_SpK1dtZqJo5nDX-8KGM0O2kop1w2C7rpjntjMzWZa-_=
+w3nwSVHtzKBPb7qf9LfT56MrDmcNMREVOz5KjO_gDVNTcu_IFIVC7_MBDWTUGME866gf45QSIhc=
+OF1-BjO05VEB3FQKtEsEjrX8SKFIC7lSWlYUbiP0cOZNrbyePt1xZefFlagkpl1940WkxbbxJxP=
+RHUzmw1RqRpJ2A6IF5Try9x6ewNwMxDoYk8sg-pg%3D%3D" target=3D"_blank" style=3D"=
+text-decoration: none; font-family: 'Arial', Arial, Helvetica, sans-serif; =
+box-sizing: border-box !important;"> <img alt=3D"Gnomes" height=3D"auto" sr=
+c=3D"https://library.iterable.com/1940/9440/91205162bf644900bc04c1942c6f070=
+c-img-1-90.jpg" style=3D"height: auto; width: 100%; max-width: 560px; font-=
+size: 13px; box-sizing: border-box !important; outline: none !important; te=
+xt-decoration: none !important; border: none !important; -ms-interpolation-=
+mode: bicubic !important; margin: 0 !important; padding: 0 !important; disp=
+lay: block !important;" width=3D"560"> </a> </td> </tr> <tr style=3D"box-si=
+zing: border-box !important;"> <td class=3D"img-bg-block" align=3D"center" =
+style=3D"padding-top: 14px; padding-bottom: 14px; font-family: 'Arial', Ari=
+al, Helvetica, sans-serif; box-sizing: border-box !important; border-collap=
+se: collapse !important;"> <a href=3D"https://links.e.smartpeoplemail.com/u=
+/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D8d687711c2114f79a1399baee=
+96cbd5b&_e=3D51dyeCgiUe_zDLnx6DLrTjkWFj158SFMm0MIn42_kAB0A-3-l91ak1F6Hd2O78=
+PZMSlgjU3CeinhvNgzyUQQPtGoK8l49FANu6xo4LXLNz6w_2aEsVE9DsXrDE2xeCXzHhVr_LaMA=
+s5kYtRfGo8y2E2fsIN4a45pXhD3BEHw4HouxXcd4AmetAIAziW7EULFgZLRLJJkh5iHaRoVp3l6=
+IyS1HrHfvpwhJBNb7AQQguw9Es0bHBaB1vQ1utmcdJDlXsvBxvhPuUAyh7W6Yym3onG04TgZ2Wp=
+OMtzns92TPjzasjByI2PDHAMwOx4wKEXMAZT3CIYl5y_G8cfAngOqdxBibGaKJpMy1wG_-FTPan=
+edTOiSfRCXi7FTUy7V6TWZf99OP2coFpbHzOtdQOyoqX3xD7m4SMsdhDOSRbWe8KysGHOKU9SD-=
+TleTzYe0qvBbKPC2SmIJzDM7EUB13aGSwGIOnutZ24utlQ1q7GqZPr1IFAzouOnBI5v7iDOAT61=
+8PvvudY2_wu3D2bcS36tYBOaX3CBBUNOxuDyl7KBsAoSqShbU3UOoExmMTHQbo0e3Vz1mj02FO7=
+tFuwidWIDAw%3D%3D" target=3D"_blank" style=3D"text-decoration: none; font-f=
+amily: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-box !impor=
+tant;"> <img alt=3D"Gnomes" height=3D"auto" src=3D"https://library.iterable=
+.com/1940/9440/fd43793e89824df3a925fef28b296d30-img-2-9.jpg" style=3D"heigh=
+t: auto; width: 100%; max-width: 350px; font-size: 13px; box-sizing: border=
+-box !important; outline: none !important; text-decoration: none !important=
+; border: none !important; -ms-interpolation-mode: bicubic !important; marg=
+in: 0 !important; padding: 0 !important; display: block !important;" width=
+=3D"350"> </a> </td> </tr> <tr style=3D"box-sizing: border-box !important;"=
+> <td style=3D"font-style: normal; font-weight: normal; line-height: 1.5; t=
+ext-align: left; color: #000000; padding-top: 14px; padding-bottom: 14px; f=
+ont-family: 'Arial', Arial, Helvetica, sans-serif; font-size: 18px; box-siz=
+ing: border-box !important; border-collapse: collapse !important;" align=3D=
+"left"> <span style=3D"font-style: normal; font-weight: normal; line-height=
+: 1.5; text-align: left; color: #000000; font-family: 'Arial', Arial, Helve=
+tica, sans-serif; font-size: 18px; box-sizing: border-box !important;"> <ul=
+ style=3D"box-sizing: border-box !important;"> <li style=3D"box-sizing: bor=
+der-box !important;">Unique and Eye-Catching Design</li> <li style=3D"box-s=
+izing: border-box !important;">Hand-Painted, Durable Resin Material</li> <l=
+i style=3D"box-sizing: border-box !important;">Weather-Resistant For All Se=
+asons</li> <li style=3D"box-sizing: border-box !important;">Perfect Gift Fo=
+r Garden Lovers</li> <li style=3D"box-sizing: border-box !important;">Adds =
+Humor and Personality To Any Garden</li> <li style=3D"box-sizing: border-bo=
+x !important;">Easy To Clean and Maintain</li> </ul> </span> </td> </tr> <t=
+r style=3D"box-sizing: border-box !important;"> <td class=3D"img-bg-block" =
+align=3D"center" style=3D"padding-top: 14px; padding-bottom: 14px; font-fam=
+ily: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-box !importa=
+nt; border-collapse: collapse !important;"> <a href=3D"https://links.e.smar=
+tpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D8d687711=
+c2114f79a1399baee96cbd5b&_e=3D51dyeCgiUe_zDLnx6DLrTjkWFj158SFMm0MIn42_kAB0A=
+-3-l91ak1F6Hd2O78PZMSlgjU3CeinhvNgzyUQQPtGoK8l49FANu6xo4LXLNz6w_2aEsVE9DsXr=
+DE2xeCXzHhVr_LaMAs5kYtRfGo8y2E2fsIN4a45pXhD3BEHw4HouxXcd4AmetAIAziW7EULFrZc=
+0supKQ95Ph_fmPugHDODovtESHY2q32g3HBXopgcBGRMpPzLP0JeOHWTbb4oC6aT4xD5WHM94jK=
+avsH50vDBNfj85-EtLn7EAO1CU_2goFW2ZNKolWpFCsa17GAvKt8iwIkfhs0kB1EJm612Yu7vDM=
+4ra-d3edlMihqJWE06b3Ionnl59dydLgSKUY3hQg0ZpeuDpSNTCME_4xjz8SvdNApeCPtQoNGF9=
+NDKZ9tdmpEucSz9Sv1BBpwKw5aL7Lsk5D4qRNK6DaAVfQOba6YyWq1zfPYIWavE9GM5Dtwd-Gpa=
+5vcZxuBAGbe8sAoBm917xiPke_mpUcfw37_dKklNSqUnQ4hhRlK2mBrEKLvNUzjiq7o9cjYflx3=
+ZRir9hKrYsmRZKJmd2ZEL7HoWIzw%3D%3D" target=3D"_blank" style=3D"text-decorat=
+ion: none; font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizing: =
+border-box !important;"> <img alt=3D"Gnome" height=3D"auto" src=3D"https://=
+library.iterable.com/1940/9440/17782630b4dc430cb1a76c6d6cefb430-img-3-9.jpg=
+" style=3D"height: auto; width: 100%; max-width: 350px; font-size: 13px; bo=
+x-sizing: border-box !important; outline: none !important; text-decoration:=
+ none !important; border: none !important; -ms-interpolation-mode: bicubic =
+!important; margin: 0 !important; padding: 0 !important; display: block !im=
+portant;" width=3D"350"> </a> </td> </tr> <tr style=3D"box-sizing: border-b=
+ox !important;"> <td style=3D"font-style: normal; font-weight: normal; line=
+-height: 1.5; text-align: left; color: #000000; padding-top: 14px; padding-=
+bottom: 14px; font-family: 'Arial', Arial, Helvetica, sans-serif; font-size=
+: 18px; box-sizing: border-box !important; border-collapse: collapse !impor=
+tant;" align=3D"left"> <span style=3D"font-style: normal; font-weight: norm=
+al; line-height: 1.5; text-align: left; color: #000000; font-family: 'Arial=
+', Arial, Helvetica, sans-serif; font-size: 18px; box-sizing: border-box !i=
+mportant;"> Welcome to the world of garden d=C3=A9cor where charm meets def=
+ense! <a href=3D"https://links.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa=
+6b54c30956d854ef81ba1b6&_m=3D8d687711c2114f79a1399baee96cbd5b&_e=3D51dyeCgi=
+Ue_zDLnx6DLrTjkWFj158SFMm0MIn42_kAB0A-3-l91ak1F6Hd2O78PZMSlgjU3CeinhvNgzyUQ=
+QPtGoK8l49FANu6xo4LXLNz6w_2aEsVE9DsXrDE2xeCXzHhVr_LaMAs5kYtRfGo8y2E2fsIN4a4=
+5pXhD3BEHw4HouxXcd4AmetAIAziW7EULFuvFH4__tU2CI-suUxYOSHxK2CsiEYqD1ERg44sS7R=
+b3pbXPAktvt9Ruz-hIgmS9yG85a4nPVAbrj4-3AdjAdueEQl-j3SS1-lRLGKOEgzmx913iQ7P2f=
+cwpIjYFyY9oi-9aq5BY6ebspNdXJILJwjyviEnx599u9V8HAs7KbJovP4YSFtrY1pwrKOmzN-gm=
+sIi2TFVnJBPW1mUcfMQYvScx3Dx3bCqFHuy8N9kJSJOrbm4dbc0LawgE90NHo0xs9XeAP-KadJL=
+CIgHn1WsTA88zHeL8JVlugFzBuydF3cb-Rp54ZO2JoA3KHrprgQqrlPYCObFj2JJVXPLKwHm0E1=
+AqHfOPANP7DxN0tySAHFh6S67BKL6L04FxqvfVp0KGsolzd_t308dwZKkgcishIzA%3D%3D" st=
+yle=3D"text-decoration: underline; font-weight: 700; font-family: 'Arial', =
+Arial, Helvetica, sans-serif; box-sizing: border-box !important;">Our Gun-T=
+oting Garden Gnome</a> is here to not only add a touch of whimsy to your ou=
+tdoor space but also to stand guard with a playful twist. <br style=3D"box-=
+sizing: border-box !important;"><br style=3D"box-sizing: border-box !import=
+ant;">Crafted with attention to detail, this gnome is the perfect conversat=
+ion starter and a fun addition to your garden, patio, or yard </span> </td>=
+ </tr> <tr style=3D"box-sizing: border-box !important;"> <td class=3D"img-b=
+g-block" align=3D"center" style=3D"padding-top: 14px; padding-bottom: 14px;=
+ font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizing: border-box=
+ !important; border-collapse: collapse !important;"> <a href=3D"https://lin=
+ks.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=
+=3D8d687711c2114f79a1399baee96cbd5b&_e=3D51dyeCgiUe_zDLnx6DLrTjkWFj158SFMm0=
+MIn42_kAB0A-3-l91ak1F6Hd2O78PZMSlgjU3CeinhvNgzyUQQPtGoK8l49FANu6xo4LXLNz6w_=
+2aEsVE9DsXrDE2xeCXzHhVr_LaMAs5kYtRfGo8y2E2fsIN4a45pXhD3BEHw4HouxXcd4AmetAIA=
+ziW7EULFReYgOaGBAFntRpm_bRHTNhV0mJxTIfBleMa8OlbT9uHzRP-C9vxCHYu9waSevL6D9oV=
+fKNM8I2vSNW4O8x9rWjk0uInQ2wQEHVDcabHuM8Lsc0ll51m1tWsaman4fZxBlvvRHzFg0XUTrU=
+rSS30t3qTSz5NpfYLwzTMKtO7y0Y0owOiDSboVi4EdtUxnBPZCFLY_8-bN0sPZDnYIGQbcbMNXp=
+RoyPsbKzWkKjnB3LDeBnTPyk-_BHssPZVETM5qYPu5K8Eb5HypuAT9C90j1nfKIFG9p3QVhu4-S=
+ynaYHEnC7Y-fbC6l1BNvZ9SsPKQZlK6zM52LJOxf64mTtWtGcvxUtKRH1Uo7q8dHBNEHDiKIf03=
+XkT1UbTBbC_5GqoeYt8nGuajVzkfAwFUN1hzClw%3D%3D" target=3D"_blank" style=3D"t=
+ext-decoration: none; font-family: 'Arial', Arial, Helvetica, sans-serif; b=
+ox-sizing: border-box !important;"> <img alt=3D"Gnomes" height=3D"auto" src=
+=3D"https://library.iterable.com/1940/9440/fd43793e89824df3a925fef28b296d30=
+-img-2-9.jpg" style=3D"height: auto; width: 100%; max-width: 350px; font-si=
+ze: 13px; box-sizing: border-box !important; outline: none !important; text=
+-decoration: none !important; border: none !important; -ms-interpolation-mo=
+de: bicubic !important; margin: 0 !important; padding: 0 !important; displa=
+y: block !important;" width=3D"350"> </a> </td> </tr> <tr style=3D"box-sizi=
+ng: border-box !important;"> <td height=3D"16" width=3D"100%" style=3D"max-=
+width: 100%; font-family: 'Arial', Arial, Helvetica, sans-serif; box-sizing=
+: border-box !important; border-collapse: collapse !important;" class=3D"md=
+-horizontal-space"></td> </tr> </tbody> </table> </td> </tr> </tbody> </tab=
+le> </td> </tr> </tbody> </table> <!-- ~---------Promo Ends Here--------~ -=
+-> </td> </tr> <!-- ~END BODY~ --> <!-- ~SPONSORED CONTENT --> <!-- ~END SP=
+ONSORED CONTENT --> <!-- ~DIVIDER~ --> <!-- ~END DIVIDER~ --> <!-- ~EDITOR~=
+ --> <!-- ~END EDITOR~ --> </table> </td> </tr> <!-- ~END CONTENT --> <!-- =
+~FOOTER --> <tr style=3D"box-sizing: border-box !important;"> <td bgcolor=
+=3D"#1F2823" style=3D"box-sizing: border-box !important; border-collapse: c=
+ollapse !important;"> <table width=3D"100%" border=3D"0" cellspacing=3D"0" =
+cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso=
+-table-rspace: 0pt; width: 100%; background: url('https://d15k2d11r6t6rl.cl=
+oudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/=
+f88b7d4fa6b54c30956d854ef81ba1b6/footer-bg.png'); background-position: cent=
+er top; background-repeat: no-repeat; box-sizing: border-box !important; bo=
+rder-collapse: collapse !important;"> <tr style=3D"box-sizing: border-box !=
+important;"> <td width=3D"100%" style=3D"max-width: 100%; padding-top: 20px=
+; box-sizing: border-box !important; border-collapse: collapse !important;"=
+ class=3D"divider_s"></td> </tr> <tr style=3D"box-sizing: border-box !impor=
+tant;"> <td class=3D"footer_btns_wrapper" style=3D"box-sizing: border-box !=
+important; border-collapse: collapse !important;"> <table width=3D"100%" bo=
+rder=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=
+=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing: =
+border-box !important; border-collapse: collapse !important;"> <!--[if mso =
+| IE]><tr> <td align=3D"center"> <table border=3D"0" cellspacing=3D"0" cell=
+padding=3D"0" width=3D"564" style=3D"width: 564px;max-width: 100%;"><![endi=
+f]--> <tr align=3D"center" style=3D"box-sizing: border-box !important;"> <t=
+d valign=3D"top" style=3D"display: inline-block; max-width: 378px; box-sizi=
+ng: border-box !important; border-collapse: collapse !important;" class=3D"=
+w_full"> <table width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspa=
+ce: 0pt; width: 100%; box-sizing: border-box !important; border-collapse: c=
+ollapse !important;"> <tr style=3D"box-sizing: border-box !important;"> <td=
+ style=3D"padding: 10px 15px; box-sizing: border-box !important; border-col=
+lapse: collapse !important;"> <table width=3D"100%" border=3D"0" cellspacin=
+g=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: =
+0pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-box !important;=
+ border-collapse: collapse !important;"> <tr style=3D"box-sizing: border-bo=
+x !important;"> <td style=3D"color: #D9D9D9; font-family: Open Sans, sans-s=
+erif; font-size: 12px; font-style: normal; font-weight: 400; line-height: 1=
+.5; box-sizing: border-box !important; border-collapse: collapse !important=
+;"> <p style=3D"font-size: 11px; line-height: 1.2; text-align: left; mso-li=
+ne-height-alt: 13px; margin: 0; box-sizing: border-box !important;"><span s=
+tyle=3D"font-size: 11px; box-sizing: border-box !important;">You are receiv=
+ing this e-mail because you have expressed an =D1=96nterest in the Financia=
+l Education niche on one of our landing pages or sign-up f=D0=BErms. <br st=
+yle=3D"box-sizing: border-box !important;"> <br style=3D"box-sizing: border=
+-box !important;"> This offer is brought to you by Smart People Mail. 221 W=
+ 9th St # Wilmington, DE 19801 USA. If you would like to unsubscribe from r=
+eceiving offers brought to you by Smart People Mail <b style=3D"box-sizing:=
+ border-box !important;"><a style=3D"color: white; text-decoration: underli=
+ne; box-sizing: border-box !important;" href=3D"https://links.e.smartpeople=
+mail.com/e/encryptedUnsubscribe?_r=3Df88b7d4fa6b54c30956d854ef81ba1b6&_s=3D=
+8d687711c2114f79a1399baee96cbd5b&_t=3DSudhlhEFkGetkRsvJqQUJYAMKrpT-UIRHW8hJ=
+-Lr28EURsX_FyDoPY7pKKzUQfivFJZPzSGCvEiYviCgbrxQ0B3KkbstTvLxD9EASHYj44L_k66W=
+dFIrYXgesmxFxYG-" class=3D"unsubscribe">click here.</a></b> <br style=3D"bo=
+x-sizing: border-box !important;"><br style=3D"box-sizing: border-box !impo=
+rtant;"> Got questions? We=E2=80=99ve got answers! Connect with our friendl=
+y support team to get the help you need, when you need it, simply send an e=
+mail to support@smartpeoplemail.com. You=E2=80=99ll receive a response with=
+in 24 hours. </span> <br style=3D"box-sizing: border-box !important;"> <br =
+style=3D"box-sizing: border-box !important;"> </p> <p style=3D"font-size: 1=
+4px; line-height: 1.2; text-align: center; mso-line-height-alt: 17px; margi=
+n: 0; box-sizing: border-box !important;"> </p> <p style=3D"font-size: 11px=
+; line-height: 1.2; text-align: left; mso-line-height-alt: 13px; margin: 0;=
+ box-sizing: border-box !important;"><span style=3D"font-size: 11px; box-si=
+zing: border-box !important;">SmartPeopleMail.com, its managers, its employ=
+ees, and assigns (collectively "The Company") do not make any guarantee or =
+warranty about what is advertised above. Information provided by this websi=
+te is for research purposes only and should not be considered as personaliz=
+ed financial advice. The Company is not affiliated with, nor does it receiv=
+e compensation from, any specific security. </span> <br style=3D"box-sizing=
+: border-box !important;"> </p> <p style=3D"box-sizing: border-box !importa=
+nt;"></p> <p style=3D"font-size: 11px; line-height: 1.2; text-align: left; =
+mso-line-height-alt: 13px; margin: 0; box-sizing: border-box !important;"><=
+span style=3D"font-size: 11px; box-sizing: border-box !important;">Email se=
+nt by Finance and Investing Traffic, LLC, owner and operator of Smart Peopl=
+e Mail (SPM).</span> </p> =C2=A0<br style=3D"box-sizing: border-box !import=
+ant;"> <p style=3D"font-size: 12px; line-height: 1.2; text-align: left; mso=
+-line-height-alt: 14px; margin: 0; box-sizing: border-box !important;"><spa=
+n style=3D"font-size: 12px; box-sizing: border-box !important;">To ensure y=
+ou receive our email, be sure to <a style=3D"color: white; text-decoration:=
+ underline; box-sizing: border-box !important;" href=3D"https://links.e.sma=
+rtpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D8d68771=
+1c2114f79a1399baee96cbd5b&_e=3D51dyeCgiUe_zDLnx6DLrTjchOfpq0MUwPuY6onQ2wqcW=
+SGN9rk28V8LzM1894zhdUklQtEp4IuLRvQe5pgCc1Bls_TwYelh8bX_99r5WXRy7eWRnNx5GjPW=
+0f8jLE9qX-2WggGEk5eq7z0yzapykMZ_GlmMrDL7jnGzQt2frnMwBlvx1Kjz7d6u1dx95NrfitV=
+ffVHvosmM4b4cTo_w8aIj8ltoxJWhyK3p2cZ28-C2HoZ1ue69jbDRhZw95PIeDQYiVmOmrSfdDd=
+NKVmzDqVTeQpjRCJh4ZnzoBNRRWbLew8QgijippLGJ0nFPB532VDddREsm3axlBU4brI5uNQQ85=
+Rn1WnL5tVIZeSpovTULWqgyIiqyRpTaa0GM1Xc_Z"><i style=3D"box-sizing: border-bo=
+x !important;"><b style=3D"box-sizing: border-box !important;">whitelist us=
+.</b></i></a></span> </p> <p style=3D"font-size: 14px; line-height: 1.2; te=
+xt-align: center; mso-line-height-alt: 17px; margin: 0; box-sizing: border-=
+box !important;"> </p> <p style=3D"font-size: 11px; line-height: 1.2; text-=
+align: left; mso-line-height-alt: 13px; margin: 0; box-sizing: border-box !=
+important;"><span style=3D"font-size: 11px; box-sizing: border-box !importa=
+nt;">=C2=A9 2026=C2=A0Smart People Mail. All Rights Reserved.</span> </p> <=
+p style=3D"font-size: 11px; line-height: 1.2; text-align: left; mso-line-he=
+ight-alt: 13px; margin: 0; box-sizing: border-box !important;"><span style=
+=3D"font-size: 11px; box-sizing: border-box !important;">221 W 9th St # Wil=
+mington, DE 19801 USA</span> </p> <p style=3D"font-size: 14px; line-height:=
+ 1.2; text-align: center; mso-line-height-alt: 17px; margin: 0; box-sizing:=
+ border-box !important;"> </p> </td> </tr> </table> </td> </tr> </table> </=
+td> <td valign=3D"top" style=3D"display: inline-block; width: 186px; box-si=
+zing: border-box !important; border-collapse: collapse !important;" class=
+=3D"w_full" width=3D"186"> <table width=3D"100%" border=3D"0" cellspacing=
+=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0=
+pt; mso-table-rspace: 0pt; width: 100%; box-sizing: border-box !important; =
+border-collapse: collapse !important;"> <tr style=3D"box-sizing: border-box=
+ !important;"> <td style=3D"padding: 10px 15px; box-sizing: border-box !imp=
+ortant; border-collapse: collapse !important;"> <table width=3D"100%" borde=
+r=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"=
+mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; box-sizing: bord=
+er-box !important; border-collapse: collapse !important;"> <tr style=3D"box=
+-sizing: border-box !important;"> <td align=3D"center" style=3D"box-sizing:=
+ border-box !important; border-collapse: collapse !important;"> <a href=3D"=
+https://links.e.smartpeoplemail.com/u/click?_t=3Df88b7d4fa6b54c30956d854ef8=
+1ba1b6&_m=3D8d687711c2114f79a1399baee96cbd5b&_e=3D51dyeCgiUe_zDLnx6DLrTjchO=
+fpq0MUwPuY6onQ2wqenFBV-K-WBfEyamnlU9TRGjrLIvxQfH_F8EGnHdcCZKOPOeYnnA0xIDmOW=
+J-069I9Gb5HHee4MIRNNvbevYvffp9bysfh2uzAZvqIe016I8iE4LGCxDPKNLNwF9niwntDd-fy=
+GNtdQX3EaMP2WuJgmi5YOG4emmJ5nZ4OozovN6BP4mGr2Z0hombCekeMl5QdoyDFobcYvjzNbTV=
+ZoLYqh4kI_EjGQLjmPCTNl-Fa9j4XTB23u5WvE5Ja7eqkfNE0RJ_q6YoBb-TCJIp4WjlhHVF1Oq=
+W7SmlODvtbX-4rsIA%3D%3D" target=3D"_blank" style=3D"text-decoration: none; =
+font-size: 0; box-sizing: border-box !important;"> <img src=3D"https://d15k=
+2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-=
+c542cff6dd6a/f88b7d4fa6b54c30956d854ef81ba1b6/footer-logo%20%281%29.png" al=
+t=3D"Logo" title=3D"Logo" width=3D"129" style=3D"object-fit: contain; width=
+: 129px; object-position: center; font-size: 13px; box-sizing: border-box !=
+important; outline: none !important; text-decoration: none !important; bord=
+er: none !important; -ms-interpolation-mode: bicubic !important; margin: 0 =
+!important; padding: 0 !important; display: block !important;"> </a> </td> =
+</tr> <tr style=3D"box-sizing: border-box !important;"> <td width=3D"100%" =
+style=3D"max-width: 100%; padding-top: 20px; box-sizing: border-box !import=
+ant; border-collapse: collapse !important;" class=3D"divider"></td> </tr> <=
+tr style=3D"box-sizing: border-box !important;"> <td width=3D"100%" style=
+=3D"max-width: 100%; padding-top: 1px; box-sizing: border-box !important; b=
+order-collapse: collapse !important;" bgcolor=3D"#0EAD74" class=3D"divider"=
+></td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td width=3D=
+"100%" style=3D"max-width: 100%; padding-top: 20px; box-sizing: border-box =
+!important; border-collapse: collapse !important;" class=3D"divider"></td> =
+</tr> <tr style=3D"box-sizing: border-box !important;"> <td align=3D"center=
+" style=3D"box-sizing: border-box !important; border-collapse: collapse !im=
+portant;"> <table width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" role=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspa=
+ce: 0pt; width: 100%; max-width: 137px; box-sizing: border-box !important; =
+border-collapse: collapse !important;" class=3D"w_full"> <!--[if mso | IE]>=
+<tr> <td align=3D"center"> <table border=3D"0" cellspacing=3D"0" cellpaddin=
+g=3D"0" width=3D"137" style=3D"width: 137px;max-width: 100%;"><![endif]--> =
+<tr style=3D"box-sizing: border-box !important;"> <td bgcolor=3D"#1BF2A4" s=
+tyle=3D"padding: 1px; border-radius: 0; box-sizing: border-box !important; =
+border-collapse: collapse !important;"> <table bgcolor=3D"#1BF2A4" width=3D=
+"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentatio=
+n" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; bord=
+er-radius: 0; box-sizing: border-box !important; border-collapse: collapse =
+!important;"> <tr style=3D"box-sizing: border-box !important;"> <td valign=
+=3D"middle" width=3D"100%" height=3D"36" align=3D"center" style=3D"border-r=
+adius: 0; font-family: Space Grotesk, sans-serif; color: #000000; font-size=
+: 12px; font-style: normal; font-weight: 500; background: none; width: 100%=
+; max-width: 100%; min-width: 100%; height: 36px; padding-left: 6px; paddin=
+g-right: 6px; padding-top: 3px; padding-bottom: 3px; white-space: nowrap; l=
+ine-height: 1.5; box-sizing: border-box !important; border-collapse: collap=
+se !important;"> <a href=3D"https://links.e.smartpeoplemail.com/u/click?_t=
+=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D8d687711c2114f79a1399baee96cbd5b&_=
+e=3D51dyeCgiUe_zDLnx6DLrTjchOfpq0MUwPuY6onQ2wqe0dBHKmgmbaw8dUEPBPtp0Fa36q0C=
+7a0dMi4pSdY_B34LCGSzw8tvGsZN5eplyZEnPFNV08qvDrikuRkbtYcmF9WyqH9DCS35c7FYV35=
+rk6Dv_OcggGuJIFpyq-S-c04wiAwzCoSH5iFJpNmXfyghpXvursDR6A1uUrGEFalr2ieZu4BdCj=
+LUwtPlz9H6P4KXAi6T0D4sDye5eoct3JqXb4_V5tJEZ9YSe3BUZXvSao4OZ9cb_IyAszr0o3SEG=
+SxexB0zN4q6dDHAtcQ1MPDCoT_vJBd8jlud_qzVc2KuzDHFXDuJER4BdqkcHRM0Hac6tSXMAlm7=
+gMuDPF15pndVl" target=3D"_blank" style=3D"border-radius: 0; text-decoration=
+: none; background: none; color: #000000; font-family: Space Grotesk, sans-=
+serif; font-size: 12px; font-style: normal; font-weight: 500; line-height: =
+1.5; text-align: center; width: 100%; background-color: #1BF2A4; display: b=
+lock; box-sizing: border-box !important;">Privacy Policy</a> </td> </tr> </=
+table> </td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td wi=
+dth=3D"100%" style=3D"max-width: 100%; padding-top: 14px; box-sizing: borde=
+r-box !important; border-collapse: collapse !important;" class=3D"divider">=
+</td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td bgcolor=
+=3D"#1BF2A4" style=3D"padding: 1px; border-radius: 0; box-sizing: border-bo=
+x !important; border-collapse: collapse !important;"> <table bgcolor=3D"#1B=
+F2A4" width=3D"100%" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=
+=3D"presentation" style=3D"mso-table-lspace: 0pt; mso-table-rspace: 0pt; wi=
+dth: 100%; border-radius: 0; box-sizing: border-box !important; border-coll=
+apse: collapse !important;"> <tr style=3D"box-sizing: border-box !important=
+;"> <td valign=3D"middle" width=3D"100%" height=3D"36" align=3D"center" sty=
+le=3D"border-radius: 0; font-family: Space Grotesk, sans-serif; color: #000=
+000; font-size: 12px; font-style: normal; font-weight: 500; background: non=
+e; width: 100%; max-width: 100%; min-width: 100%; height: 36px; padding-lef=
+t: 6px; padding-right: 6px; padding-top: 3px; padding-bottom: 3px; white-sp=
+ace: nowrap; line-height: 1.5; box-sizing: border-box !important; border-co=
+llapse: collapse !important;"> <a href=3D"https://links.e.smartpeoplemail.c=
+om/u/click?_t=3Df88b7d4fa6b54c30956d854ef81ba1b6&_m=3D8d687711c2114f79a1399=
+baee96cbd5b&_e=3D51dyeCgiUe_zDLnx6DLrTjchOfpq0MUwPuY6onQ2wqfSNPQgimv0cM1ga2=
+SNKO0MaUepPgGF0tZyrVQV1AfWX3v9SmstqoLsoofGpJXB1qOzvNaQOl1NN5RtBCI5NHEyowkUB=
+t1VL1D2IJYeYE7gbmDfUsFPpfZrLt_qMkKfdavzh1Q5nrtgy-DRn7U7jZD2nV6SX3eTOEcYFFPm=
+Q6nZelmAL-kHUQ2VgSMxUl1hjPaSxQusLJzrOtvMWW8XEKZgak0su1vPVugCeVJE49pXKqxZ7io=
+71cnLXJ0SJrbDmt7CAm12c6XkQOYxpdR853cNrwjjT3VRt_TlRyllD-3KV0SpLCrjFz26NDEx-j=
+lKBwzsDz0QtejPKmRFUsTUD3rMnxqjS-uF0wQ_Oru_cgZxqQ%3D%3D" target=3D"_blank" s=
+tyle=3D"border-radius: 0; text-decoration: none; background: none; color: #=
+000000; font-family: Space Grotesk, sans-serif; font-size: 12px; font-style=
+: normal; font-weight: 500; line-height: 1.5; text-align: center; width: 10=
+0%; background-color: #1BF2A4; display: block; box-sizing: border-box !impo=
+rtant;">Terms & Conditions</a> </td> </tr> </table> </td> </tr> <tr style=
+=3D"box-sizing: border-box !important;"> <td width=3D"100%" style=3D"max-wi=
+dth: 100%; padding-top: 14px; box-sizing: border-box !important; border-col=
+lapse: collapse !important;" class=3D"divider"></td> </tr> <tr style=3D"box=
+-sizing: border-box !important;"> <td bgcolor=3D"#1BF2A4" style=3D"padding:=
+ 2px; border-radius: 0; box-sizing: border-box !important; border-collapse:=
+ collapse !important;"> <table bgcolor=3D"#ffffff" width=3D"100%" border=3D=
+"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentation" style=3D"mso-=
+table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; border-radius: 0; bo=
+x-sizing: border-box !important; border-collapse: collapse !important;"> <t=
+r style=3D"box-sizing: border-box !important;"> <td valign=3D"middle" width=
+=3D"100%" height=3D"36" align=3D"center" style=3D"border-radius: 0; font-fa=
+mily: Space Grotesk, sans-serif; color: #000000; font-size: 12px; font-styl=
+e: normal; font-weight: 500; background: none; width: 100%; max-width: 100%=
+; min-width: 100%; height: 36px; padding-left: 6px; padding-right: 6px; pad=
+ding-top: 3px; padding-bottom: 3px; white-space: nowrap; line-height: 1.5; =
+box-sizing: border-box !important; border-collapse: collapse !important;"> =
+<a href=3D"https://links.e.smartpeoplemail.com/e/encryptedUnsubscribe?_r=3D=
+f88b7d4fa6b54c30956d854ef81ba1b6&_s=3D8d687711c2114f79a1399baee96cbd5b&_t=
+=3DSudhlhEFkGetkRsvJqQUJYAMKrpT-UIRHW8hJ-Lr28EURsX_FyDoPY7pKKzUQfivFJZPzSGC=
+vEiYviCgbrxQ0B3KkbstTvLxD9EASHYj44L_k66WdFIrYXgesmxFxYG-" target=3D"_blank"=
+ style=3D"border-radius: 0; text-decoration: none; background: none; color:=
+ #000000; font-family: Space Grotesk, sans-serif; font-size: 12px; font-sty=
+le: normal; font-weight: 500; line-height: 1.5; text-align: center; width: =
+100%; background-color: #ffffff; display: block; box-sizing: border-box !im=
+portant;">Unsubscribe</a> </td> </tr> </table> </td> </tr> <!--[if mso | IE=
+]></table> </td> </tr><![endif]--> </table> </td> </tr> </table> </td> </tr=
+> </table> </td> </tr> <!--[if mso | IE]></table> </td> </tr><![endif]--> <=
+/table> </td> </tr> <tr style=3D"box-sizing: border-box !important;"> <td w=
+idth=3D"100%" style=3D"max-width: 100%; padding-top: 20px; box-sizing: bord=
+er-box !important; border-collapse: collapse !important;" class=3D"divider_=
+s"></td> </tr> </table> </td> </tr> <!-- ~END FOOTER --> <!--[if mso | IE]>=
+</table> </td> </tr><![endif]--> </table> </td> </tr> <!--[if mso | IE]></t=
+able> </td> </tr><![endif]--> </table> </td> </tr> </table> </td> </tr> </t=
+able> </td> </tr> </table> </center> </body> </html>
+------=_Part_261508_1695087679.1773185276640--

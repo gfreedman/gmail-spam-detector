@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.17.8
+ * @version 6.17.9
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,11 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.17.9: Strip RFC 2822 surrounding quotes from display name before length
+ *            check. "Name" (51 chars with quotes) != Name (49 chars). Prevents
+ *            suspiciousFromName firing on legit long-but-not-excessive names.
+ *            Fixes COYSA registration confirmation false positive.
+ *            Add ham example (15/15).
  *   v6.17.8: Fix false positive on RFC 2822 quoted display names. The marketing
  *            pattern ["|,]\s*[A-Z] incorrectly matched the opening double-quote
  *            in standard quoted display names like "The LINE Austin..." — a
@@ -693,7 +698,7 @@ function analyzeMessage(message)
     // Strip the <email@address> portion, then check the remaining display name.
     // Legitimate senders use plain names ("John Smith"); spam mills stuff
     // headlines into display names ("Breaking • Banks Closing • Alert").
-    const fromDisplayName = from.replace(/<[^>]*>$/, '').trim();
+    const fromDisplayName = from.replace(/<[^>]*>$/, '').trim().replace(/^"(.*)"$/, '$1');
     if (fromDisplayName.includes('•') ||  // Bullet separator — never used by legitimate senders
         fromDisplayName.length > 50)      // Excessive length — keyword stuffing tactic
     {

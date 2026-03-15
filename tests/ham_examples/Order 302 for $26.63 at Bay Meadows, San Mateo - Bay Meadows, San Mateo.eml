@@ -1,0 +1,336 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:ab3:5187:0:0:0:0:0 with SMTP id x7csp1257319ltg;
+        Fri, 7 Dec 2018 20:29:20 -0800 (PST)
+X-Google-Smtp-Source: AFSGD/VdtyKCIDWGHUskd9ZOF3DasGOnmfBwLAumcqxMic1yLiMgCPPBTAyG3SIK6xQOZpdvhnAe
+X-Received: by 2002:a25:31c5:: with SMTP id x188-v6mr4706818ybx.417.1544243359910;
+        Fri, 07 Dec 2018 20:29:19 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1544243359; cv=none;
+        d=google.com; s=arc-20160816;
+        b=C3YSdanmNt6xUwv3XBDKmQz1c/TSdVid+NbIwQkGMm0er9tChPBzyTNfwbBQaIA+nm
+         zRLy1rm4aL2HIeIjE/5VNvGFe/Dv7iUJ6Gx+bPZYWmKELOP7Q1hB7ue0nj8eA3fyd3yd
+         Vtc0dOcFzlsg2YdnfzgbXqZAz6vdMXC1FKsovaC8+SkDfho5cMq9X9YNZ0Viq2xHElKR
+         bETxdYhO3uCJdaDBg3sQl0gYnpxxDB2ZRhpAQE/8cd8P69N6dIjZ9z+RZkEJISdFSq6X
+         RAWSAnieN/jcwxktt391FK7ZLNGgSgDFOB/O01YRWJynbOoWXLiS0aXgMJ0l/XknK+F1
+         yvFQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=mime-version:subject:message-id:to:reply-to:from:date
+         :dkim-signature:dkim-signature;
+        bh=yhcQnhoddgs3l9fVGeLl/6J3Aqtmirf8WyZTTCBjNOw=;
+        b=Jis7TiUznT9vTpQKgzPNkmKMYhDWt/ct2EaVUgV04FyytUidPtUW8LLCdmwZ+ieo49
+         6O35ikz2Zri0qYxyOo36sUiPWPzcaVG4DKAoaVfHrvjyRcuO47Cg0JwGzsok3q4N6ghl
+         qj/bckcElkkqhVf7jVj4hyNT5R+yNoB0JqCJuDH5080mWBXPs8yGi8bJn/hmKuG5Cbph
+         +r37vVFl9r44fls5UV4ThEy7lsGan2iFxBH57IrExytH2yKKvYezIbgPG/ha8GtUDG8q
+         iSP/gnIKd+xgVz8gIyCKjMybjkj33LNb7VjVIn2CbmL1ypjfh7xMBQ/F5nhcch4BPT8h
+         WkVg==
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@toasttab.com header.s=s1 header.b=XKaSSnP2;
+       dkim=pass header.i=@sendgrid.info header.s=smtpapi header.b=Fv420lKn;
+       spf=pass (google.com: domain of bounces+901678-5a5c-geoff.c.freedman=gmail.com@outgoing.toasttab.com designates 192.254.123.69 as permitted sender) smtp.mailfrom="bounces+901678-5a5c-geoff.c.freedman=gmail.com@outgoing.toasttab.com"
+Return-Path: <bounces+901678-5a5c-geoff.c.freedman=gmail.com@outgoing.toasttab.com>
+Received: from o1.outgoing.toasttab.com (o1.outgoing.toasttab.com. [192.254.123.69])
+        by mx.google.com with ESMTPS id r11-v6si3180208ybb.370.2018.12.07.20.29.19
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_2 cipher=ECDHE-RSA-AES128-GCM-SHA256 bits=128/128);
+        Fri, 07 Dec 2018 20:29:19 -0800 (PST)
+Received-SPF: pass (google.com: domain of bounces+901678-5a5c-geoff.c.freedman=gmail.com@outgoing.toasttab.com designates 192.254.123.69 as permitted sender) client-ip=192.254.123.69;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@toasttab.com header.s=s1 header.b=XKaSSnP2;
+       dkim=pass header.i=@sendgrid.info header.s=smtpapi header.b=Fv420lKn;
+       spf=pass (google.com: domain of bounces+901678-5a5c-geoff.c.freedman=gmail.com@outgoing.toasttab.com designates 192.254.123.69 as permitted sender) smtp.mailfrom="bounces+901678-5a5c-geoff.c.freedman=gmail.com@outgoing.toasttab.com"
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d=toasttab.com; 
+	h=from:reply-to:to:subject:mime-version:content-type; s=s1; 
+	bh=sHGd4fU39Fqoaw9NT+e0j7tnuBA=; b=XKaSSnP2FQ7HVTriLC5AjvL1v8vGS
+	Mijx3Sc7P3zl3VoWRnW0Loq9/gCFeH4jCsosgRZy4Xl2597I3k780K55riYrTXMx
+	iLbjNsAYuyjRZiKVSDZ2vFBZGnHlY5a4smzHAGJAtN767qYotaCVUfNSpZ60h0QV
+	Y7ZykhgNCr8lLc=
+DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; d=sendgrid.info; 
+	h=from:reply-to:to:subject:mime-version:content-type:x-feedback-id; 
+	s=smtpapi; bh=sHGd4fU39Fqoaw9NT+e0j7tnuBA=; b=Fv420lKnzpnda6/Cnq
+	iAetqwImmFSSMXTroc22I68wh36U8gaP/zQHyCNbQayIz6ny2e/1OVUgx6JHo4qd
+	AkEBjL604IuQ7jg8Vl/pzYr41Hmsb3zJJ4XL9asdFZBptlonB7VIMN7c6Ti8z+o3
+	HSDPNdYvJHnTCs0ERzC21Y9I8=
+Received: by filter0046p1iad2.sendgrid.net with SMTP id filter0046p1iad2-23069-5C0B489E-3
+        2018-12-08 04:29:18.162582127 +0000 UTC m=+367450.592578884
+Received: from 543fbfd4c1a3 (ec2-52-203-68-97.compute-1.amazonaws.com [52.203.68.97])
+	by ismtpd0043p1iad1.sendgrid.net (SG) with ESMTP id ebstS8hqQXqj6eXuVlfAhg
+	for <geoff.c.freedman@gmail.com>; Sat, 08 Dec 2018 04:29:18.131 +0000 (UTC)
+Date: Sat, 08 Dec 2018 04:29:18 +0000 (UTC)
+From: "Your Receipt from \"Bay Meadows, San Mateo - Bay Meadows, San Mateo\"" <no-reply@toasttab.com>
+Reply-To: "no-reply@toasttab.com" <no-reply@toasttab.com>
+To: "geoff.c.freedman@gmail.com" <geoff.c.freedman@gmail.com>
+Message-ID: <1255379568.1828.1544243357766.JavaMail.root@543fbfd4c1a3>
+Subject: Order 302 for $26.63 at Bay Meadows, San Mateo - Bay Meadows, San
+ Mateo
+MIME-Version: 1.0
+Content-Type: multipart/mixed; 
+	boundary="----=_Part_1827_1419247450.1544243357766"
+X-SG-EID: qgW8kk8bTChEqr1wAJIV30YpX4OHSyF45pGNzpYx1xrnCstKb/abinwbaSM0XZ2CjXCbOcQ99HJOvR
+ I5JfFZBZ6wpPNMT7CQqGFXOe4iW3xa/lqdTGD06gjQn/O2aND68HJpDKizP4XcI+Tc8UoAoZJlDErT
+ jhpIhk895EZQ5ToVv5pwg5ZOGzsiRDQEec+nnqPWq+vJbJxdqjUPxFPJLRW9hmQvkCXE19F8ldRUkV
+ r2thDH/0fNmBfZCDbsh2VjouygLzrCPbeQAwmGY/lvibMwGIvkQFpPWB/+iiRajGsYZyD15GJma92h
+ 9ubwym5Y
+X-Feedback-ID: 901678:YGUYjQqkyl94D4ULiHrweH11p+cuHD4u+5EUjptSLdE=:YGUYjQqkyl94D4ULiHrweH11p+cuHD4u+5EUjptSLdE=:SG
+
+------=_Part_1827_1419247450.1544243357766
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+<html>
+ <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+ </head>
+ <body style="padding:0;margin:0;">
+  <table width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="#CECECE" >
+   <tbody>
+    <tr>
+ <td colspan="1">
+  <table width="1" cellspacing="0" cellpadding="0" border="0">
+   <tbody>
+    <tr>
+     <td>
+      <div style="min-height:10px;font-size:10px;line-height:10px">&nbsp;</div>
+     </td>
+    </tr>
+   </tbody>
+  </table>
+ </td>
+</tr>    <tr>
+     <td align="center" style="padding:0 10px;">
+
+      
+<p style="width:100%;">
+<span style="padding:0 10px;">
+Thank you for your order.  Below is a receipt for your recent visit to Bay Meadows, San Mateo.<br/>
+<a href="https://www.toasttab.com/receipts/WZsvdvZ6Q8aChOSPkezbBw/FqcNTJRfKsmHJ">trouble viewing this email?</a>
+</span>
+</p>
+<br/>
+
+
+<table width="300" cellspacing="0" cellpadding="0" border="0" style="border-collapse: collapse; border-spacing: 0;">
+    <tr>
+        <td>
+            <img src="https://s3.amazonaws.com/toasttab/static-content/emails/receipt-torn-edge-top-300.png" height="4" width="300" style="display: block;" />
+        </td>
+    </tr>
+    <tr>
+        <td align="center" bgcolor="#FFFFFF" style="background-color: #FFFFFF; padding: 10px;">
+            <table width="280" cellspacing="0" cellpadding="0" border="0" bgcolor="#FFFFFF" style="border-collapse: collapse">
+                            <tr>
+      <td colspan="2" align="center" style="text-align:center;">
+        <img src="http://s3.amazonaws.com/toasttab/restaurants/restaurant-13507000000000000/receipt-logo_1537821210_400.png" alt="Bay Meadows, San Mateo" title="Bay Meadows, San Mateo" style="max-height: 60px; max-width: 80%;" /><br/><br/>
+      </td>
+    </tr>
+                                                                          <tr>
+          <td colspan="2" align="center" style="text-align:center;">Roam Artisan Burgers<br/>3081 South Delaware Street, Suite C<br/>San Mateo, CA. 94403<br/>(650) 931-4668</td>
+        </tr>
+                                                                    <tr>
+          <td style="">&nbsp;</td>
+          <td class="right" align="right" style="text-align:right;"></td>
+        </tr>
+                                                              <tr>
+          <td style="">Server: PM ROAM B</td>
+          <td class="right" align="right" style="text-align:right;">12/07/18 8:28 PM</td>
+        </tr>
+                                                              <tr>
+          <td style="">Check #302</td>
+          <td class="right" align="right" style="text-align:right;">1</td>
+        </tr>
+                                                              <tr>
+          <td style="">&nbsp;</td>
+          <td class="right" align="right" style="text-align:right;"></td>
+        </tr>
+                                                              <tr>
+          <td style="">Russet Fries</td>
+          <td class="right" align="right" style="text-align:right;">$3.99</td>
+        </tr>
+                                                              <tr>
+          <td style="">Fieldwork IPA</td>
+          <td class="right" align="right" style="text-align:right;">$6.00</td>
+        </tr>
+                                                              <tr>
+          <td style="">French &amp; Fries</td>
+          <td class="right" align="right" style="text-align:right;">$11.49</td>
+        </tr>
+                                                              <tr>
+          <td style="">&nbsp;</td>
+          <td class="right" align="right" style="text-align:right;"></td>
+        </tr>
+                                                              <tr>
+          <td style="">Subtotal</td>
+          <td class="right" align="right" style="text-align:right;">$21.48</td>
+        </tr>
+                                                              <tr>
+          <td style="">Tax</td>
+          <td class="right" align="right" style="text-align:right;">$1.93</td>
+        </tr>
+                                                              <tr>
+          <td style="">Tip</td>
+          <td class="right" align="right" style="text-align:right;">$3.22</td>
+        </tr>
+                                                              <tr>
+          <td style=""><b>Total</b></td>
+          <td class="right" align="right" style="text-align:right;"><b>$26.63</b></td>
+        </tr>
+                                                              <tr>
+          <td style="">&nbsp;</td>
+          <td class="right" align="right" style="text-align:right;"></td>
+        </tr>
+                                                              <tr>
+          <td style="">Credit Card</td>
+          <td class="right" align="right" style="text-align:right;">Swiped</td>
+        </tr>
+                                                              <tr>
+          <td style="">Mastercard</td>
+          <td class="right" align="right" style="text-align:right;">xxxxxxxx7332</td>
+        </tr>
+                                                              <tr>
+          <td style="">&nbsp;</td>
+          <td class="right" align="right" style="text-align:right;"></td>
+        </tr>
+                                                              <tr>
+          <td style="">Transaction Type</td>
+          <td class="right" align="right" style="text-align:right;">Sale</td>
+        </tr>
+                                                              <tr>
+          <td style="">Authorization</td>
+          <td class="right" align="right" style="text-align:right;">Approved</td>
+        </tr>
+                                                              <tr>
+          <td style="">Approval Code</td>
+          <td class="right" align="right" style="text-align:right;">07124S</td>
+        </tr>
+                                                              <tr>
+          <td style="">Payment ID</td>
+          <td class="right" align="right" style="text-align:right;">FxYt7hsNsdq0</td>
+        </tr>
+                                                              <tr>
+          <td style="">Card Reader</td>
+          <td class="right" align="right" style="text-align:right;">MAGTEK_DYNAMAG</td>
+        </tr>
+                                                              <tr>
+          <td style="">&nbsp;</td>
+          <td class="right" align="right" style="text-align:right;"></td>
+        </tr>
+                              <tr>
+      <td colspan="2" align="center" valign="middle" style="text-align:center;vertical-align:middle;">
+        <div style="border: 2px solid #CECECE; border-radius: 5px; margin-top: 10px; margin-bottom: 5px; background-color: #FAFAFA">
+            <div style="padding: 8px;">
+                <img src="http://www.toasttab.com/receiptsadmin/signaturetokenv2?color=16448250&restaurant=WZsvdvZ6Q8aChOSPkezbBw&token=FqcNTJRfKsmHJ" width="200" alt="your signature" style="max-height: 120px;" />
+            </div>
+            <div style="background-color: #CECECE; padding: 3px; text-align: center; font-size: 10px; font-weight: bold; color: #FFFFFF">
+                SIGNATURE
+            </div>
+        </div>
+      </td>
+    </tr>
+                                                                  <tr>
+          <td colspan="2" align="center" style="text-align:center;">GEOFF FREEDMAN</td>
+        </tr>
+                                                                    <tr>
+          <td style="">&nbsp;</td>
+          <td class="right" align="right" style="text-align:right;"></td>
+        </tr>
+                                                        <tr>
+          <td colspan="2" align="center" style="text-align:center;">Thanks for Roaming with us!<br/><br/>wifi password: sunnyside1</td>
+        </tr>
+                                                                    <tr>
+          <td style="">&nbsp;</td>
+          <td class="right" align="right" style="text-align:right;"></td>
+        </tr>
+          
+            </table>
+        </td>
+    </tr>
+    <tr>
+        <td>
+            <img src="https://s3.amazonaws.com/toasttab/static-content/emails/receipt-torn-edge-bottom-300.png" height="4" width="300"  style="display: block;" />
+        </td>
+    </tr>
+</table>
+
+<tr>
+ <td colspan="1">
+  <table width="1" cellspacing="0" cellpadding="0" border="0">
+   <tbody>
+    <tr>
+     <td>
+      <div style="min-height:10px;font-size:10px;line-height:10px">&nbsp;</div>
+     </td>
+    </tr>
+   </tbody>
+  </table>
+ </td>
+</tr><div style="font-size:13px;color:#999999;font-family:Helvetica;;text-align:center">
+Powered by <a target="_blank" style="font-size:13px;color: #FC6322 ;  text-decoration:  none; font-family:Helvetica;"
+   href="https://pos.toasttab.com/?utm_source=receipts&utm_medium=product">Toast</a>
+</div>
+<table width="100%" style="padding:0 10px;" cellspacing="0" cellpadding="0" border="0">
+    <tbody>
+    <tr>
+ <td colspan="1">
+  <table width="1" cellspacing="0" cellpadding="0" border="0">
+   <tbody>
+    <tr>
+     <td>
+      <div style="min-height:10px;font-size:10px;line-height:10px">&nbsp;</div>
+     </td>
+    </tr>
+   </tbody>
+  </table>
+ </td>
+</tr>    <tr>
+        <td style="font-size:12px;color:#999999;font-family:Helvetica;" align="center">
+            <a target="_blank" style="font-size:13px;color: #FC6322 ;  text-decoration:  none; font-family:Helvetica;"
+               href="https://pos.toasttab.com/toast/privacy/?utm_source=receipts&utm_medium=product">Privacy Policy</a>
+            <span style="font-size:13px;color: #FC6322 ;  text-decoration:  none; font-family:Helvetica;">&nbsp;|&nbsp;</span>
+            <a target="_blank" style="font-size:13px;color: #FC6322 ;  text-decoration:  none; font-family:Helvetica;"
+               href="https://pos.toasttab.com/toast/terms-of-service/?utm_source=receipts&utm_medium=product">Terms of Service</a>
+            <span style="font-size:13px;color: #FC6322 ;  text-decoration:  none; font-family:Helvetica;">&nbsp;|&nbsp;</span>
+            <a target="_blank" style="font-size:13px;color: #FC6322 ;  text-decoration:  none; font-family:Helvetica;"
+               href="https://pos.toasttab.com/toast/contact/refer/?utm_source=receipts&utm_medium=product">Refer a Restaurant &
+                Earn $500 </a>
+            <span style="font-size:13px;color: #FC6322 ;  text-decoration:  none; font-family:Helvetica;">&nbsp;|&nbsp;</span>
+
+            <a target="_blank" style="font-size:13px;color: #FC6322 ;  text-decoration:  none; font-family:Helvetica;" href="http://grnh.se/1u3as71">Toast is Hiring!</a>
+        </td>
+    </tr>
+    <tr>
+ <td colspan="1">
+  <table width="1" cellspacing="0" cellpadding="0" border="0">
+   <tbody>
+    <tr>
+     <td>
+      <div style="min-height:10px;font-size:10px;line-height:10px">&nbsp;</div>
+     </td>
+    </tr>
+   </tbody>
+  </table>
+ </td>
+</tr>    <tr>
+        <td style="font-size:13px;color:#AAAAAA;font-family:Helvetica;" align="center">&copy; Toast, Inc. 2018. All Rights
+            Reserved.
+        </td>
+    </tr>
+    </tbody>
+</table>
+
+     </td>
+    </tr>
+    <tr>
+ <td colspan="1">
+  <table width="1" cellspacing="0" cellpadding="0" border="0">
+   <tbody>
+    <tr>
+     <td>
+      <div style="min-height:10px;font-size:10px;line-height:10px">&nbsp;</div>
+     </td>
+    </tr>
+   </tbody>
+  </table>
+ </td>
+</tr>   </tbody>
+  </table>
+ </body>
+</html>
+------=_Part_1827_1419247450.1544243357766--

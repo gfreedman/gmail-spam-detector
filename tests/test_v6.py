@@ -159,7 +159,7 @@ BLACKLISTED_DOMAINS = [
 # --- Marketing Sender Format Patterns ---
 # Matched against the From field only. Detects spammy sender name formatting.
 MARKETING_PATTERNS = [
-    re.compile(r'[|,]\s*[A-Z]', re.I),        # "Name | Org" or "Topic, Company"
+    re.compile(r'\|\s*[A-Z]', re.I),            # "Name | Org" pipe separator (commas excluded: legit in org/place names)
     re.compile(r'\s+at\s+[A-Z]', re.I),       # "Name at Organization"
     re.compile(r'\|\s*'),                       # Pipe separator in display name
     re.compile(r'\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)', re.I),  # Spammy business names
@@ -258,7 +258,11 @@ def parse_eml(filepath):
 
     # Decode headers (handles RFC 2047 encoded-words like =?utf-8?B?...?=)
     subject = decode_email_header(msg.get('subject', ''))
-    from_field = decode_email_header(msg.get('from', ''))
+    from_raw = decode_email_header(msg.get('from', ''))
+    # Mirror getFrom() normalization in SpamDetector.gs: strip outer RFC 2822 quotes
+    # from display names. Python sometimes keeps them (when display name contains
+    # RFC 2822 specials like . , ( ) @ etc.) while Apps Script always returns them.
+    from_field = re.sub(r'^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$', r'\1\2', from_raw)
 
     return subject, from_field, has_amazon_ses
 
@@ -323,7 +327,7 @@ def analyze_email(subject, from_field, has_amazon_ses):
     # ── Signal: Suspicious From display name ───────────────────────────────
     # Strip the <email@address> portion, then check the remaining display name
     # for bullet separators (spammer tactic) or excessive length (keyword stuffing)
-    display_name = re.sub(r'<[^>]*>$', '', from_field).strip()
+    display_name = re.sub(r'<[^>]*>$', '', from_field).strip()  # quotes already stripped above
     if '•' in display_name or len(display_name) > 50:
         signals['suspicious_from_name'] = True
         signals['matched_patterns'].append('suspicious_from')

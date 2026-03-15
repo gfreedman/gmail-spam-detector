@@ -34,7 +34,7 @@ All sent via bulk email services like Amazon SES — often hiding in Gmail's **U
 ## 📊 Results
 
 - ✅ **100% detection** on 43/43 real spam (.eml files)
-- ✅ **0% false positives** on 15/15 legitimate emails
+- ✅ **0% false positives** on 16/16 legitimate emails
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Clean, maintainable code** (~120 lines of detection logic)
 
@@ -326,7 +326,7 @@ This repo has CI/CD that auto-deploys to Google Apps Script on every push to `ma
 **Pipeline: test → deploy → tag**
 1. **Test** — Lints `SpamDetector.gs` syntax (Node `vm.Script`) and runs spam/ham detection tests (Python)
 2. **Deploy** — Runs `clasp push` to Apps Script (only if tests pass). Writes failure summary on error.
-3. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.17.9`, etc.)
+3. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.18.0`, etc.)
 
 **Setup for your own fork:**
 

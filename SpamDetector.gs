@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.17.9
+ * @version 6.18.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,14 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.18.0: Systemic RFC 2822 normalization fix. Root cause of all recent false
+ *            positives: getFrom() returns raw headers with outer double-quotes on
+ *            display names ("Name" <email>), but Python test library strips them.
+ *            Fix: normalize `from` once at the top of analyzeMessage() instead of
+ *            patching each individual signal. Also remove comma from marketing
+ *            pattern [|,]\s*[A-Z] — commas appear in legit org and place names
+ *            (e.g. "Bay Meadows, San Mateo") and are not reliable spam indicators.
+ *            Mirror both changes in test_v6.py. Add ham example (16/16).
  *   v6.17.9: Strip RFC 2822 surrounding quotes from display name before length
  *            check. "Name" (51 chars with quotes) != Name (49 chars). Prevents
  *            suspiciousFromName firing on legit long-but-not-excessive names.
@@ -638,7 +646,11 @@ function analyzeMessage(message)
     // ── Extract email fields ──────────────────────────────────────────────
     const subject = sanitizeInput(message.getSubject());
     const body = sanitizeInput(message.getPlainBody());
-    const from = sanitizeInput(message.getFrom());
+    // Normalize RFC 2822 quoted display names: "Name" <email> → Name <email>
+    // getFrom() returns raw headers; outer quotes must be stripped so downstream
+    // pattern matching never sees the surrounding " characters.
+    const from = sanitizeInput(message.getFrom())
+                   .replace(/^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/, '$1$2');
     const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
 
     // ── Whitelist check (early exit) ──────────────────────────────────────
@@ -698,7 +710,7 @@ function analyzeMessage(message)
     // Strip the <email@address> portion, then check the remaining display name.
     // Legitimate senders use plain names ("John Smith"); spam mills stuff
     // headlines into display names ("Breaking • Banks Closing • Alert").
-    const fromDisplayName = from.replace(/<[^>]*>$/, '').trim().replace(/^"(.*)"$/, '$1');
+    const fromDisplayName = from.replace(/<[^>]*>$/, '').trim(); // quotes already stripped above
     if (fromDisplayName.includes('•') ||  // Bullet separator — never used by legitimate senders
         fromDisplayName.length > 50)      // Excessive length — keyword stuffing tactic
     {
@@ -888,7 +900,7 @@ function analyzeMessage(message)
     // Checked against From field only (not subject). Detects spammy sender
     // name formatting like "Name | Org", "Topic, Company", pipe separators,
     // spammy business names, and suspicious email address patterns.
-    if (/[|,]\s*[A-Z]/.test(from) ||                                                           // "Name | Org" or "Topic, Company"
+    if (/\|\s*[A-Z]/.test(from) ||                                                             // "Name | Org" pipe separator (commas excluded: appear in legit org/place names)
         /\s+at\s+[A-Z]/i.test(from) ||                                                         // "Name at Organization"
         /\|\s*/.test(from) ||                                                                   // Pipe separator in display name
         /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i.test(from) ||  // Spammy business names

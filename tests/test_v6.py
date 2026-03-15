@@ -132,6 +132,15 @@ FEAR_PATTERNS = [
     re.compile(r'\bSTOP (using|taking|doing|buying)\b', re.I),
 ]
 
+# --- Whitelisted Sender Domains ---
+# Known legitimate senders — bypass all detection.
+WHITELISTED_DOMAINS = [
+    'sardine.ai', 'meetup.com', 'substack.com', 'conservative.ca',
+    'sundaymass.store', 'customerservice@stan', 'privaterelay.appleid.com',
+    'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'e.linkedin.com',
+    'linkedin.email', 'dsf.ca', 'dragonfly', 'ezyvet.com',
+]
+
 # --- Blacklisted Sender Domains ---
 # Known spam mill domains. Substring-matched against the From field.
 BLACKLISTED_DOMAINS = [
@@ -280,6 +289,14 @@ def analyze_email(subject, from_field, has_amazon_ses):
             - is_spam: Boolean verdict
             - rule: String describing which rule triggered (empty if not spam)
     """
+    # Whitelist check — known legitimate senders bypass all detection
+    for domain in WHITELISTED_DOMAINS:
+        if domain in from_field.lower():
+            return {'bulk_email': has_amazon_ses, 'blacklisted_sender': False,
+                    'clickbait_count': 0, 'fear_mongering': False,
+                    'marketing_format': False, 'suspicious_from_name': False,
+                    'matched_patterns': ['whitelisted']}, False, ''
+
     # Initialize signal accumulators — each detection phase populates one signal
     signals = {
         'bulk_email': has_amazon_ses,

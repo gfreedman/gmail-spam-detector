@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.17.4
+ * @version 6.17.5
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,9 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.17.5: Whitelist ezyvet.com (vet practice management system). Dash-date
+ *            + subdomain marketing pattern was flagging legit vet emails.
+ *            Add whitelist check to test_v6.py. Add ham example (13/13).
  *   v6.17.4: Fix subject-echo false positive. Word-boundary regex instead of
  *            substring match — prevents "mission" hitting inside "missioncreekah"
  *            (vet payment receipt wrongly flagged). Add ham example (12/12).
@@ -146,7 +149,7 @@ const DEFAULT_DOMAINS = Object.freeze({
     'sardine.ai', 'meetup.com', 'substack.com', 'conservative.ca',
     'sundaymass.store', 'customerservice@stan', 'privaterelay.appleid.com',
     'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'e.linkedin.com',
-    'linkedin.email', 'dsf.ca', 'dragonfly'
+    'linkedin.email', 'dsf.ca', 'dragonfly', 'ezyvet.com'
   ]),
   /** Known spam mill domains — triggers Rule 0 when combined with bulk email */
   suspicious: Object.freeze([

@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.17.3
+ * @version 6.17.4
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,9 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.17.4: Fix subject-echo false positive. Word-boundary regex instead of
+ *            substring match — prevents "mission" hitting inside "missioncreekah"
+ *            (vet payment receipt wrongly flagged). Add ham example (12/12).
  *   v6.17.3: cleanseInbox() now calls refreshBlacklist()/refreshWhitelist()
  *            automatically before scanning, so Script Properties are always
  *            current without a separate manual step.
@@ -631,7 +634,8 @@ function analyzeMessage(message)
       var echoCount = 0;
       for (var w = 0; w < subjectWords.length; w++)
       {
-        if (fromNameLower.includes(subjectWords[w]))
+        // Word-boundary match — prevents "mission" matching inside "missioncreekah"
+        if (new RegExp('\\b' + subjectWords[w] + '\\b').test(fromNameLower))
         {
           echoCount++;
         }

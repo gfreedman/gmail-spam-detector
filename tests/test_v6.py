@@ -315,7 +315,8 @@ def analyze_email(subject, from_field, has_amazon_ses):
     if not signals['suspicious_from_name'] and subject and display_name:
         subject_words = re.findall(r'\b[a-z]{4,}\b', subject.lower())
         from_name_lower = display_name.lower()
-        echo_count = sum(1 for w in subject_words if w in from_name_lower)
+        # Word-boundary match — prevents "mission" matching inside "missioncreekah"
+        echo_count = sum(1 for w in subject_words if re.search(r'\b' + w + r'\b', from_name_lower))
         if echo_count >= 2:
             signals['suspicious_from_name'] = True
             signals['matched_patterns'].append('subject_echo')

@@ -328,15 +328,8 @@ def analyze_email(subject, from_field, has_amazon_ses):
         signals['suspicious_from_name'] = True
         signals['matched_patterns'].append('suspicious_from')
 
-    # Subject echo: 2+ significant words (4+ chars) from subject appear in From display name
-    if not signals['suspicious_from_name'] and subject and display_name:
-        subject_words = re.findall(r'\b[a-z]{4,}\b', subject.lower())
-        from_name_lower = display_name.lower()
-        # Word-boundary match — prevents "mission" matching inside "missioncreekah"
-        echo_count = sum(1 for w in subject_words if re.search(r'\b' + w + r'\b', from_name_lower))
-        if echo_count >= 2:
-            signals['suspicious_from_name'] = True
-            signals['matched_patterns'].append('subject_echo')
+    # Subject echo removed: caused false positives on legitimate company emails.
+    # All spam previously caught by this signal is caught by Rule 0 (blacklist).
 
     # ── Signal: Clickbait pattern count ────────────────────────────────────
     # Each matching pattern increments the counter independently — this allows

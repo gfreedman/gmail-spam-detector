@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.17.6
+ * @version 6.17.7
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,12 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.17.7: Remove subject-echo detection. Caused false positives on legit
+ *            company emails (Converse Canada order confirmation) — a company
+ *            using its name in both From and Subject is normal, not suspicious.
+ *            All spam previously caught by subject-echo is also caught by
+ *            Rule 0 (blacklist), so zero detection loss. Add validate.py
+ *            pre-push script to catch README/version nits locally.
  *   v6.17.6: Rewrite cleanseInbox() — two-speed mode. Rule 0 (blacklist) →
  *            delete immediately. Rules 1/2/3 → apply "SuspectedSpam" label
  *            for human review instead of deleting. Eliminates false-positive
@@ -689,28 +695,10 @@ function analyzeMessage(message)
       logDebug('Suspicious From name detected: ' + sanitizeForLog(fromDisplayName));
     }
 
-    // Subject echo: spammers stuff subject content into the From display name
-    // for maximum inbox visibility. Legitimate senders use brand names, not headlines.
-    // Flag if 2+ significant words (4+ chars) from the subject appear in the display name.
-    if (!signals.suspiciousFromName && subject && fromDisplayName)
-    {
-      var subjectWords = subject.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
-      var fromNameLower = fromDisplayName.toLowerCase();
-      var echoCount = 0;
-      for (var w = 0; w < subjectWords.length; w++)
-      {
-        // Word-boundary match — prevents "mission" matching inside "missioncreekah"
-        if (new RegExp('\\b' + subjectWords[w] + '\\b').test(fromNameLower))
-        {
-          echoCount++;
-        }
-      }
-      if (echoCount >= 2)
-      {
-        signals.suspiciousFromName = true;
-        logDebug('Subject echo in From name detected: ' + echoCount + ' words overlap');
-      }
-    }
+    // Subject echo removed: caused false positives on legitimate company emails
+    // (e.g. "Your Converse Canada order" + From "Converse Canada") — a company
+    // using its own name in both fields is normal, not suspicious. All spam
+    // previously caught by this signal was already caught by Rule 0 (blacklist).
 
     // ── Signal 2: Clickbait / sensationalism patterns ─────────────────────
     // Each pattern targets a CATEGORY of spam tactic, not specific phrases.

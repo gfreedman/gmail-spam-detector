@@ -62,6 +62,8 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'\b202[4-9]\b.*(warning|alert|prediction|forecast|crisis)', re.I),
     # Conspiracy/hiding: "what they don't want you to know"
     re.compile(r'(what|who).*(hiding|don\'t want you|truth|they won\'t tell)', re.I),
+    # Impending doom framing: "What's Coming", "Not Prepared for what's ahead"
+    re.compile(r"\bwhat.s (coming|ahead)\b|\bnot prepared\b", re.I),
     # Military/war sensationalism: "declared war", "bombing", "invasion"
     re.compile(r'\b(declared war|bombed|bombing|attack|attacked|destroyed|invasion)\b', re.I),
     # Pre-IPO investment solicitation: always spam in bulk email
@@ -101,6 +103,8 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'\|\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
     # Bracket-date subject format: "[March 09]" — same tactic, bracket variant
     re.compile(r'\[\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
+    # Dash-date subject format: "- Mar 11, 2026" — same tactic, dash variant with abbreviated months
+    re.compile(r'[-]\s*(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\b', re.I),
     # Historical atrocity clickbait: Nazi/Holocaust references as engagement bait
     re.compile(r'\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b', re.I),
     # Health condition anxiety triggers: "blood sugar", "brain fog", etc.

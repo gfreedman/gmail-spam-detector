@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.16.3
+ * @version 6.17.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -601,6 +601,9 @@ function analyzeMessage(message)
       // Conspiracy/hiding: "what they don't want you to know"
       /(what|who).*(hiding|don't want you|truth|they won't tell)/i,
 
+      // Impending doom framing: "What's Coming", "Not Prepared for what's ahead"
+      /\bwhat.s (coming|ahead)\b|\bnot prepared\b/i,
+
       // --- Violence and military sensationalism ---
 
       // Military/war clickbait: "declared war", "bombing", "invasion"
@@ -655,6 +658,9 @@ function analyzeMessage(message)
 
       // Bracket-date subject format: "[March 09]" — same tactic, bracket variant
       /\[\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
+
+      // Dash-date subject format: "- Mar 11, 2026" — same tactic, dash variant with abbreviated months
+      /[-]\s*(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\b/i,
 
       // Historical atrocity clickbait: Nazi/Holocaust references as engagement bait
       /\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b/i,

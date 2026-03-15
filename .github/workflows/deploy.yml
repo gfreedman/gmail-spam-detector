@@ -49,17 +49,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
 
       # Compile SpamDetector.gs as a Node vm.Script — catches syntax errors
       # (missing brackets, invalid regex, etc.) that Apps Script would reject
@@ -105,7 +105,7 @@ jobs:
     needs: test  # Only deploy if all tests pass
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Fail fast with a clear error if secrets aren't configured
       - name: Check secrets
@@ -120,9 +120,9 @@ jobs:
           fi
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
 
       # Cache npm to avoid re-downloading clasp on every run
       - name: Cache npm
@@ -171,7 +171,7 @@ jobs:
     permissions:
       contents: write  # Required to push git tags
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # Extract version from commit message (e.g., "v6.11.1") and create tag
       - name: Auto-tag version commits

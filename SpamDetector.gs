@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.17.1
+ * @version 6.17.2
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,10 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.17.2: Add cleanseInbox() — full historical scan with no date filter,
+ *            paginated in batches of 50 (up to 500 emails). Catches spam that
+ *            arrived before the script was running or before a pattern existed.
+ *            Run manually from the Apps Script editor.
  *   v6.17.1: Blacklist beststockvillage (Unicode-obfuscated gold/stock spam).
  *            Add spam example (43/43).
  *   v6.17.0: Add dash-date clickbait pattern ("- Mar 11, 2026") and doom
@@ -236,6 +240,81 @@ function processInbox()
     throw error; // Re-throw so trigger failure is visible in Apps Script dashboard
   }
 }
+
+/**
+ * Full historical inbox cleanse — same detection as processInbox() but with
+ * no date filter and multi-batch pagination.
+ *
+ * Use this to retroactively catch spam that arrived before the script was
+ * running, or before a detection pattern was added. Safe to run manually
+ * from the Apps Script editor at any time.
+ *
+ * Processes emails in batches of 50, up to MAX_BATCHES (500 emails total).
+ * Sleeps 1 second between batches to avoid quota exhaustion.
+ */
+function cleanseInbox()
+{
+  const BATCH_SIZE = 50;
+  const MAX_BATCHES = 10; // Safety cap: 10 × 50 = 500 emails max per run
+
+  let totalSpam = 0;
+  let totalProcessed = 0;
+  let errorCount = 0;
+
+  try
+  {
+    const label = getOrCreateLabel(CONFIG.processedLabel);
+
+    // Same scope as processInbox() but no after: date filter
+    const query = '{in:inbox category:updates category:promotions category:social category:forums}' +
+                  ' -label:' + CONFIG.processedLabel;
+
+    logInfo('CLEANSE MODE: Starting full inbox scan (max ' + (BATCH_SIZE * MAX_BATCHES) + ' emails)');
+
+    for (let batch = 0; batch < MAX_BATCHES; batch++)
+    {
+      const threads = GmailApp.search(query, batch * BATCH_SIZE, BATCH_SIZE);
+      logInfo('Cleanse batch ' + (batch + 1) + ': ' + threads.length + ' threads');
+
+      if (threads.length === 0) break;
+
+      for (let i = 0; i < threads.length; i++)
+      {
+        try
+        {
+          const thread = threads[i];
+          const result = processThread(thread);
+          totalSpam      += result.spamCount;
+          totalProcessed += result.processedCount;
+          if (result.spamCount === 0)
+          {
+            thread.addLabel(label);
+          }
+        }
+        catch (threadError)
+        {
+          errorCount++;
+          logError('Cleanse error on thread: ' + threadError.toString());
+        }
+      }
+
+      if (threads.length < BATCH_SIZE) break; // Reached the end
+
+      Utilities.sleep(1000); // 1s between batches to respect quota
+    }
+
+    logInfo('CLEANSE COMPLETE: ' + totalProcessed + ' emails scanned, ' +
+            totalSpam + ' spam deleted, ' + errorCount + ' errors');
+
+    destroySpam();
+  }
+  catch (error)
+  {
+    logError('Critical error in cleanseInbox: ' + error.toString());
+    throw error;
+  }
+}
+
 
 /**
  * Safety-net cleanup of the entire spam folder.

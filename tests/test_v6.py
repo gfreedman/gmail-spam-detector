@@ -144,6 +144,7 @@ BLACKLISTED_DOMAINS = [
     'investingtrendstoday',
     'smartpeoplemail',
     'onlineinvestingdaily',
+    'beststockvillage',
 ]
 
 # --- Marketing Sender Format Patterns ---

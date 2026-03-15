@@ -1,0 +1,864 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:6504:168a:b0:2c5:7914:8560 with SMTP id z10csp327970ltr;
+        Fri, 12 Sep 2025 14:52:12 -0700 (PDT)
+X-Google-Smtp-Source: AGHT+IGwTHIR/Y8JE1lsYSZMzCSek5rh+edmMshuo2CtMhcy7IP/hXDTYeMSg7KJNdXmbj7kIPgb
+X-Received: by 2002:a05:620a:2904:b0:7e9:f820:2b51 with SMTP id af79cd13be357-824013d676cmr717701185a.73.1757713932467;
+        Fri, 12 Sep 2025 14:52:12 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1757713932; cv=none;
+        d=google.com; s=arc-20240605;
+        b=DDguiZfrSsiuJgYjyq8AknXPBP6YO1f1LgN50rf/WHY64qybWI09MCDyh7ZSrKMvjH
+         SyQMIiNb0trvvoEUwgVfSsqTqZFIvDhDArnECVqIUccIBrbr0GQjquETSk+ZrAEj8jVQ
+         IaICzL3HNgpCEUWDL8U/m7ddrNfB7kr1W1uG4JcG4EYL5aOpbABvi4uiyild7ShrnW67
+         jAexK9SGiDOTsk1TcvET+SSmuMRnyAQOegEN1zVTEKoX+Rpu9jyM6lfPItJ/MYijd8ON
+         O6rzcqoH54mNXic7ZjmjExbMXexD4yAXhj8KDdU+dOQcZYZNeEnyeFHjzpY/7K4I7IR5
+         bVkw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=AICk/fxjB6Smpq13iIeHucA625N0L7XgRGCyGn0OvyM=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=aHU5E2y9FuZZL51MEogF+kYs/T6Di6SY44cv91pZtW6DzE5lD+LTGppmVPCkNCNf+P
+         nVPo7Sceb/bO6IPTc7852nsmUMuJsrkJ4H7UVWKAdZXUkCp9sKnA54ONdptmSfPrVnoG
+         8eNL7eSUr5+6YBTFvDLrqiM+rEx0nJG58F6igk2imxDajgmMJ+ckORB7kUuSgfjZwKe2
+         IHzOJ0k+DhMKcN9FcvzdAzZ7I1VbTCT7EEFu9PwP8j0TV26fjKVW/mnG+Mcc1T2kI1LF
+         sBYIzTO/aSIacVog8wt/XvQNDgr3pDAE5JmRoN7g+6BkQDLOMzAe+1FinqDzWDo4xmNi
+         qJ9A==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@info.beststockvillage.com header.s=vsgqcvdcookfvl44ocxzd4qv6n3bsq36 header.b="CF3Xz/qx";
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=mIDw0nrW;
+       spf=pass (google.com: domain of 010001993fea1f3d-570c058e-6554-4a67-b9fa-cd1e1ea23fb0-000000@amazonses.com designates 76.223.141.164 as permitted sender) smtp.mailfrom=010001993fea1f3d-570c058e-6554-4a67-b9fa-cd1e1ea23fb0-000000@amazonses.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=info.beststockvillage.com
+Return-Path: <010001993fea1f3d-570c058e-6554-4a67-b9fa-cd1e1ea23fb0-000000@amazonses.com>
+Received: from c141-164.smtp-out.amazonses.com (c141-164.smtp-out.amazonses.com. [76.223.141.164])
+        by mx.google.com with ESMTPS id af79cd13be357-820d073acbbsi236328885a.985.2025.09.12.14.52.12
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 12 Sep 2025 14:52:12 -0700 (PDT)
+Received-SPF: pass (google.com: domain of 010001993fea1f3d-570c058e-6554-4a67-b9fa-cd1e1ea23fb0-000000@amazonses.com designates 76.223.141.164 as permitted sender) client-ip=76.223.141.164;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@info.beststockvillage.com header.s=vsgqcvdcookfvl44ocxzd4qv6n3bsq36 header.b="CF3Xz/qx";
+       dkim=pass header.i=@amazonses.com header.s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw header.b=mIDw0nrW;
+       spf=pass (google.com: domain of 010001993fea1f3d-570c058e-6554-4a67-b9fa-cd1e1ea23fb0-000000@amazonses.com designates 76.223.141.164 as permitted sender) smtp.mailfrom=010001993fea1f3d-570c058e-6554-4a67-b9fa-cd1e1ea23fb0-000000@amazonses.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=info.beststockvillage.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=vsgqcvdcookfvl44ocxzd4qv6n3bsq36; d=info.beststockvillage.com;
+	t=1757713932;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=AICk/fxjB6Smpq13iIeHucA625N0L7XgRGCyGn0OvyM=;
+	b=CF3Xz/qxUWDqMrzvJAzVJTDwGOkBrcfkEox5LXbnqVbCG9zxC9Z7wKt8Qgf4mRLD
+	7nuqFc1Hky3v6qNkF2saorVNp5AJlBzZadOQcEC8VHuk7FFq07z0rcPxe08JMJaxRb9
+	JyU6o9+A2fU9sa1Sw+f8BeO7138rfkRs66p4saCnj3UaTnJVEKJcU6bx6LdCQSGwzfh
+	9dyD+5v/eHoqEFZbS1lsNUVRAj5HCs2X4cv0Y4Ag2wtN88jqK7uJ6641tsuuug5o5Jm
+	y4G4dcMOecyuwM7SWXu225qdUfpkEVydfn7+HPtFcELL3uyBDObG2u2LHjAHPD5/3tX
+	swIjH2PWrA==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw; d=amazonses.com; t=1757713932;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=AICk/fxjB6Smpq13iIeHucA625N0L7XgRGCyGn0OvyM=;
+	b=mIDw0nrWXZ8PALwijxMEuqzU1vdEnHNt784Xca6aQjBHvPDBaxpnLtaq6PbSS3fL
+	ZTpdYhtSR2y2Jmq+p6q/2vmalFTo5R+InUyD4oOJEjxJIeVnY/Hr4YnQwtx4pkfzPDu
+	oPXLnZPnjfmMrkH9l8VW6CTzfG5krOdjLH3nHEz4=
+Date: Fri, 12 Sep 2025 21:52:12 +0000
+From: =?UTF-8?Q?Trump=E2=80=99s_next_move_=7C_Thomas_Carter_=23BSV?= <editor@info.beststockvillage.com>
+Reply-To: support@beststockvillage.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <010001993fea1f3d-570c058e-6554-4a67-b9fa-cd1e1ea23fb0-000000@email.amazonses.com>
+Subject: =?UTF-8?Q?Trump=E2=80=99s_Fed_Coup_=3D_G=CE=BF=E2=85=BCd_Moonshot=3F?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_2360882_1763401947.1757713932080"
+X-Campaign-ID: 14920201
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/encryptedUnsubscribe?_r=14f1dea9e3dd435586f220e3ce743815&_s=7a3076457894420fb18c6e29ec983e6f&_t=9RiT0XQPi5C18UopZp1CBxPuOxzpFBgrDMVNraLMwSvf3S5VsJrhq9RSwJAx95U7ttXmGhY-u0cum8bw5vdscGJN-ysAJQFsfTUceyI9iHbRLkl0u6PbhhdUeImxG37LAjnZXTqFSrpZrer9yZCZ5A%3D%3D>,<mailto:unsubscribe+14920201+19438255@unsubscribe.iterable.com>
+X-Feedback-ID: 19438255:14920201:117974:iterable
+X-Message-ID: 7a3076457894420fb18c6e29ec983e6f
+X-SES-Outgoing: 2025.09.12-76.223.141.164
+
+------=_Part_2360882_1763401947.1757713932080
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Trump isn=E2=80=99t shy about what he wants: L=CE=BFw=D0=B5r rat=D0=B5=D1=
+=95, more liquidity, and a Fed=20
+that will give him what he wants.
+
+
+
+
+Not interested anymore? Unsubscribe Here=20
+<https://links.info.beststockvillage.com/e/encryptedUnsubscribe?_r=3D14f1de=
+a9e3dd435586f220e3ce743815&_s=3D7a3076457894420fb18c6e29ec983e6f&_t=3D9RiT0=
+XQPi5C18UopZp1CBxPuOxzpFBgrDMVNraLMwSvf3S5VsJrhq9RSwJAx95U7ttXmGhY-u0cum8bw=
+5vdscGJN-ysAJQFsfTUceyI9iHbRLkl0u6PbhhdUeImxG37LAjnZXTqFSrpZrer9yZCZ5A%3D%3=
+D>
+
+ <https://beststockvillage.com/>
+
+
+
+
+
+
+ Trump isn=E2=80=99t shy about what he wants:=20
+
+ L=CE=BFw=D0=B5r rat=D0=B5=D1=95, more liquidity, and a Fed that will give =
+him what he wants.=20
+
+ It=E2=80=99s coming=E2=80=A6=20
+
+ Three Trump nominees n=CE=BFw sit on the Fed=E2=80=99s Board of Governors.=
+ Look=E2=80=A6=20
+=20
+<https://promo.beststockvillage.com/6819f88db42065c91737f5b8?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DB&product=3DPGMSB19>
+Lisa Cook is under mounting pressure to resign over a=E2=85=BC=E2=85=BCegat=
+ions of m=CE=BFrtgag=D0=B5=20
+fraud. When Cook goes=E2=80=A6
+
+ Trump will seize another seat, giving him a=E2=85=BC=E2=85=BC the influenc=
+e he needs to set=20
+monetary policy.
+
+ Then th=D0=B5r=D0=B5=E2=80=99s Powell. When Powell=E2=80=99s term ends, Tr=
+ump will replace him with a=20
+Fed Chair who will do the President=E2=80=99s bidding.
+
+ This would give Trump near-total control of U.S. monetary policy.=20
+
+ Whether you agree with Trump or not=E2=80=A6 =CE=91=E2=85=BC=E2=85=BC of t=
+his is gr=D0=B5at for g=CE=BF=E2=85=BCd=20
+<https://promo.beststockvillage.com/6819f88db42065c91737f5b8?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DB&product=3DPGMSB19>
+.
+
+ Trump=E2=80=99s takeover of the Fed could mean th=D0=B5r=D0=B5 will be n=
+=CE=BFwh=D0=B5r=D0=B5 left for big=20
+m=CE=BFn=D0=B5y to invest=E2=80=A6 except g=CE=BF=E2=85=BCd.
+
+(Go h=D0=B5r=D0=B5 to l=D0=B5arn about the top four miners with 100X upside=
+ potential)=20
+<https://promo.beststockvillage.com/6819f88db42065c91737f5b8?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DB&product=3DPGMSB19>
+
+ Bonds are already uninvestible =E2=80=93 and will =CE=BFn=E2=85=BCy become=
+ more so.=20
+
+ The =E2=80=9CBuffett Indicator=E2=80=9D is at an historic extreme =E2=80=
+=93 with stocks at their=20
+highest (over) valuations ever.
+
+ The one asset class positioned to benefit from Trump=E2=80=99s Fed coup=E2=
+=80=A6 is g=CE=BF=E2=85=BCd.=20
+
+ But before you run out to =E1=96=AF=CF=85y expensive bullion at these pr=
+=D1=96=CF=B2=D0=B5s=E2=80=A6=20
+
+You need to kn=CE=BFw about four tiny g=CE=BF=E2=85=BCd miners that could t=
+urn a sma=E2=85=BC=E2=85=BC stake=20
+into a transf=CE=BFrmative fortune as the biggest monetary shift of our =E2=
+=85=BC=D1=96f=D0=B5time=20
+accelerat=D0=B5s.=20
+<https://promo.beststockvillage.com/6819f88db42065c91737f5b8?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DB&product=3DPGMSB19>
+
+Go h=D0=B5r=D0=B5 before Trump=E2=80=99s next move.=20
+<https://promo.beststockvillage.com/6819f88db42065c91737f5b8?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DB&product=3DPGMSB19>
+
+ To your wealth,=20
+
+ Garrett Goggin, CFA, CMT=20
+ Chief Analyst and Founder, G=CE=BF=E2=85=BCden Portfolio=20
+
+
+
+
+=E2=80=8A
+
+=E2=9C=85 TOP Profit Picks for the Week (ADs) =E2=87=B2
+
+
+=E2=80=8A=20
+
+By Awesomely
+
+
+ Strange =CF=B2h=D0=B5=CF=B2ks in your neighbor=E2=80=99s mailbox=20
+<https://promo.beststockvillage.com/667d756dc63c750001001dfa?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DSA&product=3DAYTY629_SA>
+
+
+=E2=80=8A=20
+
+By American Alternative Assets
+
+
+PRESIDENT BOMBED YOUR STOCKS=E2=80=94=CE=97=D0=B5r=D0=B5=E2=80=99s How to F=
+ight Back=20
+<https://promo.beststockvillage.com/67dadb87702992c391b0bce6?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DSA&product=3DAMTC603_SA>
+
+
+=E2=80=8A=20
+
+By Behind the Markets
+
+
+One Tiny Company. 80 Countries. =EF=BC=847.5B D=D0=B5a=E2=85=BC.=20
+<https://promo.beststockvillage.com/67d434d9e495c7e11744fc76?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DSA&product=3DBTLW606_SA>
+
+
+
+
+=E2=80=8A
+
+ Personal recommendation from Thomas Carter (ADs) =E2=87=B2
+
+
+=E2=80=8A
+
+By Weiss Ratings
+
+
+Putin Responds to Trump=E2=80=94Markets Are on Edge=20
+<https://promo.beststockvillage.com/6839b5c7966ac1b84373f5ea?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DSA&product=3DWSGP206_SA>
+
+
+=E2=80=8A
+
+By FinanceBuzz
+
+
+Next-Gen Card. Musk-Level Thinking.=20
+<https://promo.beststockvillage.com/67cedc765c6e35eae6ee32d8?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DSA&product=3DPYSBK604_SA>
+
+
+=E2=80=8A
+
+By StockEarnings
+
+
+Trump=E2=80=99s AI Agenda: The 9 stocks poised to benefit most=20
+<https://promo.beststockvillage.com/67c99eceb808ed8daf28a4ac?email=3Dgeoff.=
+c.freedman@gmail.com&domain=3D106BSV&type=3DSA&product=3DSEAM1_SA>
+
+
+
+
+BEST STOCK VILLAGE
+
+
+ At Best Stock Village [BSV], we strive to serve as your reliable source fo=
+r=20
+unique opportunities. The message above, provided by a partner, deserves yo=
+ur=20
+consideration.
+
+
+ Our experienced team is available to offer tailored support and efficient=
+=20
+solutions. For security-related questions, reach out to us at
+support@beststockvillage.com <mailto:support@beststockvillage.com>.
+
+
+
+Keep up with the newest finance and investing trends by adding our email to=
+=20
+yourwhitelist <https://beststockvillage.com/email-whitelisting/>.
+
+
+
+ This email is presented by Best Stock Village [BSV], managed by Finance &=
+=20
+Investing Traffic [FIT], LLC.
+
+
+Privacy Policy <https://beststockvillage.com/privacy-policy/> | Terms &=20
+Conditions <https://beststockvillage.com/terms-and-conditions/> | Unsubscri=
+be=20
+<https://links.info.beststockvillage.com/e/encryptedUnsubscribe?_r=3D14f1de=
+a9e3dd435586f220e3ce743815&_s=3D7a3076457894420fb18c6e29ec983e6f&_t=3D9RiT0=
+XQPi5C18UopZp1CBxPuOxzpFBgrDMVNraLMwSvf3S5VsJrhq9RSwJAx95U7ttXmGhY-u0cum8bw=
+5vdscGJN-ysAJQFsfTUceyI9iHbRLkl0u6PbhhdUeImxG37LAjnZXTqFSrpZrer9yZCZ5A%3D%3=
+D>
+
+
+
+Copyright =C2=A9 2025 Best Stock Village [BSV]. All Rights Reserved.
+
+
+
+221 W 9th St, # Wilmington, DE 19801
+
+------=_Part_2360882_1763401947.1757713932080
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en"><head><title></title><m=
+eta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8"><met=
+a name=3D"viewport" content=3D"width=3Ddevice-width,initial-scale=3D1"><!--=
+[if mso]><xml><w:WordDocument xmlns:w=3D"urn:schemas-microsoft-com:office:w=
+ord"><w:DontUseAdvancedTypographyReadingMail/></w:WordDocument> <o:OfficeDo=
+cumentSettings><o:PixelsPerInch>96</o:PixelsPerInch><o:AllowPNG/></o:Office=
+DocumentSettings></xml><![endif]--><style>*{box-sizing:border-box}body{marg=
+in:0;padding:0}a[x-apple-data-detectors]{color:inherit!important;text-decor=
+ation:inherit!important}#MessageViewBody a{color:inherit;text-decoration:no=
+ne}p{line-height:inherit}.desktop_hide,.desktop_hide table{mso-hide:all;dis=
+play:none;max-height:0;overflow:hidden}.image_block img+div{display:none}su=
+b,sup{font-size:75%;line-height:0}@media(max-width:720px){.mobile_hide{disp=
+lay:none}.row-content{width:100%!important}.stack .column{width:100%;displa=
+y:block}.mobile_hide{min-height:0;max-height:0;max-width:0;overflow:hidden;=
+font-size:0}.desktop_hide,.desktop_hide table{display:table!important;max-h=
+eight:none!important}}</style><!--[if mso ]><style>sup,sub{font-size:100%!i=
+mportant}sup{mso-text-raise:10%}sub{mso-text-raise:-10%}</style><![endif]--=
+></head><body class=3D"body" style=3D"background-color:#fff;margin:0;paddin=
+g:0;-webkit-text-size-adjust:none;text-size-adjust:none"><span style=3D"col=
+or:transparent;visibility:hidden;display:none;opacity:0;height:0;width:0;fo=
+nt-size:0;">Trump isn=E2=80=99t shy about what he wants: L=CE=BFw=D0=B5r ra=
+t=D0=B5=D1=95, more liquidity, and a Fed that will give him what he wants.<=
+/span><img src=3D"https://links.info.beststockvillage.com/e/eo?_t=3D14f1dea=
+9e3dd435586f220e3ce743815&amp;_m=3D7a3076457894420fb18c6e29ec983e6f&amp;_e=
+=3D9RiT0XQPi5C18UopZp1CBxPuOxzpFBgrDMVNraLMwSvf3S5VsJrhq9RSwJAx95U7ttXmGhY-=
+u0cum8bw5vdscGJN-ysAJQFsfTUceyI9iHap8tyaG0OxE0ojohNTfJFReS_Q1Aqv40wychZ07IW=
+piZWIPY5dcuY7qfVj6jdU0n8%3D" style=3D"border:0;width:1px;height:1px;border-=
+width:0px!important;display:none!important;line-height:0!important;" width=
+=3D"1" height=3D"1"/><table class=3D"nl-container" width=3D"100%" border=3D=
+"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-=
+table-lspace:0;mso-table-rspace:0;background-color:#fff"><tbody><tr><td><ta=
+ble class=3D"row row-1" align=3D"center" width=3D"100%" border=3D"0" cellpa=
+dding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-lspa=
+ce:0;mso-table-rspace:0;background-color:#ebebeb;background-size:auto"><tbo=
+dy><tr><td><table class=3D"row-content stack" align=3D"center" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-tab=
+le-lspace:0;mso-table-rspace:0;background-size:auto;color:#000;width:700px;=
+margin:0 auto" width=3D"700"><tbody><tr><td class=3D"column column-1" width=
+=3D"100%" style=3D"mso-table-lspace:0;mso-table-rspace:0;font-weight:400;te=
+xt-align:left;vertical-align:top"><table class=3D"heading_block block-1" wi=
+dth=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"prese=
+ntation" style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td class=3D"p=
+ad" style=3D"padding-bottom:5px;padding-top:5px;text-align:center;width:100=
+%"><h1 style=3D"margin:0;color:#000;direction:ltr;font-family:Arial,'Helvet=
+ica Neue',Helvetica,sans-serif;font-size:14px;font-weight:400;letter-spacin=
+g:normal;line-height:1.2;text-align:center;margin-top:0;margin-bottom:0;mso=
+-line-height-alt:17px"><span class=3D"tinyMce-placeholder" style=3D"word-br=
+eak: break-word;">Not interested anymore? <strong><a href=3D"https://links.=
+info.beststockvillage.com/e/encryptedUnsubscribe?_r=3D14f1dea9e3dd435586f22=
+0e3ce743815&_s=3D7a3076457894420fb18c6e29ec983e6f&_t=3D9RiT0XQPi5C18UopZp1C=
+BxPuOxzpFBgrDMVNraLMwSvf3S5VsJrhq9RSwJAx95U7ttXmGhY-u0cum8bw5vdscGJN-ysAJQF=
+sfTUceyI9iHbRLkl0u6PbhhdUeImxG37LAjnZXTqFSrpZrer9yZCZ5A%3D%3D" target=3D"_b=
+lank" rel=3D"noopener" style=3D"color: #000000;">Unsubscribe Here</a></stro=
+ng>&nbsp;</span></h1></td></tr></table><table class=3D"image_block block-2"=
+ width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pr=
+esentation" style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td class=
+=3D"pad" style=3D"width:100%"><div class=3D"alignment" align=3D"center"><di=
+v style=3D"max-width:700px"><a href=3D"https://links.info.beststockvillage.=
+com/u/click?_t=3D14f1dea9e3dd435586f220e3ce743815&_m=3D7a3076457894420fb18c=
+6e29ec983e6f&_e=3D7Q0rGYUxdauAYK8eOwIDs5OrtKDxcl15Fj5njMpcdyw_9G9SGwv70qx52=
+dtsdiFgOylWS6v377QJ36sq5ZFkJerQRFnsZlWNmcdFzaRp5_gJowA2vPffjvnMvnaF3GQR4ZSu=
+bfeih-0j_QtBtjud_4I3kC3ba1pw90By1jO39JkqjdeySgfvZh4OVmKozDuu7j3HHJhQFMFQQSm=
+KZk3j50Hu4xChVwk8f9xJiyEae7_KGAUnoFn8cI7_6AXEuo_LkUd02wOU0yT83tNePaN9cWpfUH=
+iE_avx8e9LTMkvorSuTXOfl9Gtt0Kbq6E2t4ckbP7Rd5I1V0vPyihA9zcL0O3-OGO-HZfyQSBWt=
+hnIEMs%3D" target=3D"_blank"><img src=3D"https://d15k2d11r6t6rl.cloudfront.=
+net/public/users/Integrators/669d5713-9b6a-46bb-bd7e-c542cff6dd6a/14f1dea9e=
+3dd435586f220e3ce743815/editor_images/Best%20Stock%20Village%20Website.png"=
+ style=3D"display:block;height:auto;border:0;width:100%" width=3D"700" alt=
+=3D"Best Stock Village Site" title=3D"Best Stock Village Site" height=3D"au=
+to"></a></div></div></td></tr></table></td></tr></tbody></table></td></tr><=
+/tbody></table><table class=3D"row row-2" align=3D"center" width=3D"100%" b=
+order=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"mso-table-lspace:0;mso-table-rspace:0;background-color:#ebebeb"><tbody>=
+<tr><td><table class=3D"row-content stack" align=3D"center" border=3D"0" ce=
+llpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-=
+lspace:0;mso-table-rspace:0;border-radius:0;color:#000;width:700px;margin:0=
+ auto" width=3D"700"><tbody><tr><td class=3D"column column-1" width=3D"100%=
+" style=3D"mso-table-lspace:0;mso-table-rspace:0;font-weight:400;text-align=
+:left;vertical-align:top"><table class=3D"html_block block-1" width=3D"100%=
+" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" st=
+yle=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td class=3D"pad"><div st=
+yle=3D"font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;text-align:c=
+enter" align=3D"center"><table width=3D"100%" border=3D"0" cellpadding=3D"0=
+" cellspacing=3D"0" style=3D"font-family: 'Roboto, sans-serif;', Arial, Hel=
+vetica, sans-serif; max-width: 700px"> <tbody style=3D"max-width: 700px"> <=
+tr> <td align=3D"center" valign=3D"top" style=3D"font-family: 'Roboto, sans=
+-serif;', Arial, Helvetica, sans-serif; max-width: 700px"> <table class=3D"=
+primary-table-limit content-table" bgcolor=3D"#FFFFFF" border=3D"0" cellspa=
+cing=3D"0" cellpadding=3D"0" width=3D"100%" style=3D"font-family: 'Roboto, =
+sans-serif;', Arial, Helvetica, sans-serif; max-width: 700px"> <tbody style=
+=3D"max-width: 700px"> <tr> <td class=3D"content-vertical-space" align=3D"c=
+enter" style=3D" padding-left: 20px; padding-right: 20px; font-family: 'Rob=
+oto, sans-serif;', Arial, Helvetica, sans-serif; max-width: 700px; "> <tabl=
+e class=3D"content-inner-table" border=3D"0" cellspacing=3D"0" cellpadding=
+=3D"0" width=3D"100%" style=3D" width: 100%; font-family: 'Roboto, sans-ser=
+if;', Arial, Helvetica, sans-serif; max-width: 700px; "> <tbody style=3D"ma=
+x-width: 700px"> <tr> <td height=3D"16" width=3D"100%" style=3D" font-famil=
+y: 'Roboto, sans-serif;', Arial, Helvetica, sans-serif; max-width: 700px; "=
+ class=3D"md-horizontal-space"></td> </tr> <tr> <td style=3D" font-style: n=
+ormal; font-weight: normal; line-height: 1.5; text-align: left; color: #000=
+000; padding-top: 14px; padding-bottom: 14px; font-family: 'Roboto, sans-se=
+rif;', Arial, Helvetica, sans-serif; font-size: 21px; max-width: 700px; "> =
+<span style=3D" font-style: normal; font-weight: normal; line-height: 1.5; =
+text-align: left; color: #000000; font-family: 'Roboto, sans-serif;', Arial=
+, Helvetica, sans-serif; font-size: 21px; "> Trump isn=E2=80=99t shy about =
+what he wants: <br/><br/> L=CE=BFw=D0=B5r rat=D0=B5=D1=95, more liquidity, =
+and a Fed that will give him what he wants. <br/><br/> It=E2=80=99s coming=
+=E2=80=A6 <br/><br/> Three Trump nominees n=CE=BFw sit on the Fed=E2=80=99s=
+ Board of Governors. Look=E2=80=A6 </span> </td> </tr> <tr> <td class=3D"im=
+g-bg-block" align=3D"center" style=3D" padding-top: 14px; padding-bottom: 1=
+4px; font-family: 'Roboto, sans-serif;', Arial, Helvetica, sans-serif; max-=
+width: 700px; "> <a href=3D"https://links.info.beststockvillage.com/u/click=
+?_t=3D14f1dea9e3dd435586f220e3ce743815&_m=3D7a3076457894420fb18c6e29ec983e6=
+f&_e=3D7Q0rGYUxdauAYK8eOwIDsy4Zd6BEg7Tk16JYflDWxiB46t9W5JxQGVAU1incvuH2RW9C=
+bCTuqaOHMhfj90lQ2Euz6Ndh7lS07uAw7YFENq1fPKwjV0ZQk6DPa_ZAMjcxlIrFwncej6AprG6=
+cyzV6xhR_4TH6ooWyFYEgVXguhBEjqklMwsSz33Oll20LfjUYTtWyUmIly1xQkbb1X8urLXPQsJ=
+niCzT_OjiqbLov_N_8PADdZLJNWUlWm3PTePnm8eLEwNZ9-OgFLeeC4_TRL7wdiBwUh6P4m-6pi=
+Efq803NeYqepxHECJrVD8Zoknm6PjYXdH5lhudB0mDl_dbu1fvx20TPnfFIaBQrX9X-AigttgJp=
+63sFt9keuOmX6Qe8ZIXpFvqp77BinksUDZ3FEyOD06Hl-qT1jHCwcp0tBjPAfR7EWIGnMIavsQR=
+SSEN8VqCGctKQLXVjw5vYte_DXRh-QJvIgRtXetuf53who8HYmm07poLhX44FQrV7Ow0EE-hZYy=
+yCqrl0fipBHyUfPwzDj9681OZ0ZG1HJk5-DaUSmP6Nw8Y-mMe4JW_tCvtiaYRD8GfblI2GZVQUD=
+a8lnA%3D%3D" target=3D"_blank" style=3D"font-family: 'Roboto, sans-serif;',=
+ Arial, Helvetica, sans-serif"> <img alt=3D"Table" height=3D"auto" src=3D"h=
+ttps://d15k2d11r6t6rl.cloudfront.net/public/users/Integrators/669d5713-9b6a=
+-46bb-bd7e-c542cff6dd6a/14f1dea9e3dd435586f220e3ce743815/editor_images/PGMS=
+B19.jpg" style=3D" border: 0; display: block; outline: none; text-decoratio=
+n: none; height: auto; width: 100%; max-width: 560px; font-size: 13px; " wi=
+dth=3D"560"/> </a> </td> </tr> <tr> <td style=3D" font-style: normal; font-=
+weight: normal; line-height: 1.5; text-align: left; color: #000000; padding=
+-top: 14px; padding-bottom: 14px; font-family: 'Roboto, sans-serif;', Arial=
+, Helvetica, sans-serif; font-size: 21px; max-width: 700px; "> <span style=
+=3D" font-style: normal; font-weight: normal; line-height: 1.5; text-align:=
+ left; color: #000000; font-family: 'Roboto, sans-serif;', Arial, Helvetica=
+, sans-serif; font-size: 21px; ">Lisa Cook is under mounting pressure to re=
+sign over a=E2=85=BC=E2=85=BCegations of m=CE=BFrtgag=D0=B5 fraud. When Coo=
+k goes=E2=80=A6 <br/><br/> Trump will seize another seat, giving him a=E2=
+=85=BC=E2=85=BC the influence he needs to set monetary policy. <br/><br/> T=
+hen th=D0=B5r=D0=B5=E2=80=99s Powell. When Powell=E2=80=99s term ends, Trum=
+p will replace him with a Fed Chair who will do the President=E2=80=99s bid=
+ding. <br/><br/> This would give Trump near-total control of U.S. monetary =
+policy. <br/><br/> Whether you agree with Trump or not=E2=80=A6 <a href=3D"=
+https://links.info.beststockvillage.com/u/click?_t=3D14f1dea9e3dd435586f220=
+e3ce743815&_m=3D7a3076457894420fb18c6e29ec983e6f&_e=3D7Q0rGYUxdauAYK8eOwIDs=
+y4Zd6BEg7Tk16JYflDWxiB46t9W5JxQGVAU1incvuH2RW9CbCTuqaOHMhfj90lQ2Euz6Ndh7lS0=
+7uAw7YFENq1fPKwjV0ZQk6DPa_ZAMjcxlIrFwncej6AprG6cyzV6xhR_4TH6ooWyFYEgVXguhBE=
+jqklMwsSz33Oll20LfjUYQH8jy4bpxP26mqf7ls3oO-6ya0V3_goR8pKDjJqGhunkD3B72wvzz0=
+IJP_8SpzSO-YDfCgq9F6zS-kLrK0jRz3YhiVMQhci9sm81rl-l2g7zklAKys_-hnwPCMozAta_6=
+6ikeogCBn0PntcRl9SBDz58lYWOxvX8lBaDf5wSZDD3m5Y8bDuntl5BQ-JvcBCfYz6SCkmFJqC-=
+n4Z8WclgDeOoAGHzSBS8JEEao0SX6kELGNN1QwVvP9qg6lptS0AcATzCkOswwinxJwGjM9R5Xwz=
+zfXN8tTm9C-HPnN_uffQUeXcO4BEhyNNbcI6GgNPL82DU4l6FMWQo3LX3SjnHBl40JD_asK0Yhz=
+P5U8hHt_i50eg3eqSmlwAacm-_6bR3JOqn1mB7T3FIqSLshPvj8Q%3D%3D" style=3D" text-=
+decoration: underline; font-weight: 700; color: #0000ee; font-family: 'Robo=
+to, sans-serif;', Arial, Helvetica, sans-serif; ">=CE=91=E2=85=BC=E2=85=BC =
+of this is gr=D0=B5at for g=CE=BF=E2=85=BCd</a>. <br/><br/> Trump=E2=80=99s=
+ takeover of the Fed could mean th=D0=B5r=D0=B5 will be n=CE=BFwh=D0=B5r=D0=
+=B5 left for big m=CE=BFn=D0=B5y to invest=E2=80=A6 except g=CE=BF=E2=85=BC=
+d. <br/><br/> <a href=3D"https://links.info.beststockvillage.com/u/click?_t=
+=3D14f1dea9e3dd435586f220e3ce743815&_m=3D7a3076457894420fb18c6e29ec983e6f&_=
+e=3D7Q0rGYUxdauAYK8eOwIDsy4Zd6BEg7Tk16JYflDWxiB46t9W5JxQGVAU1incvuH2RW9CbCT=
+uqaOHMhfj90lQ2Euz6Ndh7lS07uAw7YFENq1fPKwjV0ZQk6DPa_ZAMjcxlIrFwncej6AprG6cyz=
+V6xhR_4TH6ooWyFYEgVXguhBEjqklMwsSz33Oll20LfjUYEGT_5OouLHnhktDfLOgi7neg5i30j=
+vd-HH2EFq-Ep5aqEwV_ZjSjzKx6iX4SiyfH7u1utpOwxnQ5-muimTN3teiFNNpCYNvC-1J2jyYr=
+C4rbbbbRux13Y2ss2uok4auWfrSzNQFEuq6C8GGQh49AlJp07gGxsAv3EXN_iq5mYFiBGTWO-gD=
+3rfzJl_HAiv6fQ1L61zhpmJtYMlG2VQyOn_zg6sbW7f-_DRayJs3_aYs9MFxS6f5zpsrUxKvfJx=
+KfBrhghEpHe3Dxb2xGiF2WBP_FEFPPRBzV0Vg22G3fFs1VsITLw1rZzE5YrgORCA4Z-JDVB8OB9=
+KAixN3Aont5S4xII-U0WaMvkqWQHSYIUJVml3JKBu-QXJfIb8siRZJiFzGO27pCjYNdbdX6ixo5=
+Vg%3D%3D" style=3D" text-decoration: underline; font-weight: 700; color: #0=
+000ee; font-family: 'Roboto, sans-serif;', Arial, Helvetica, sans-serif; ">=
+(Go h=D0=B5r=D0=B5 to l=D0=B5arn about the top four miners with 100X upside=
+ potential)</a> <br/><br/> Bonds are already uninvestible =E2=80=93 and wil=
+l =CE=BFn=E2=85=BCy become more so. <br/><br/> The =E2=80=9CBuffett Indicat=
+or=E2=80=9D is at an historic extreme =E2=80=93 with stocks at their highes=
+t (over) valuations ever. <br/><br/> The one asset class positioned to bene=
+fit from Trump=E2=80=99s Fed coup=E2=80=A6 <b style=3D"text-decoration: und=
+erline">is g=CE=BF=E2=85=BCd</b>. <br/><br/> But before you run out to =E1=
+=96=AF=CF=85y expensive bullion at these pr=D1=96=CF=B2=D0=B5s=E2=80=A6 <br=
+/><br/> <a href=3D"https://links.info.beststockvillage.com/u/click?_t=3D14f=
+1dea9e3dd435586f220e3ce743815&_m=3D7a3076457894420fb18c6e29ec983e6f&_e=3D7Q=
+0rGYUxdauAYK8eOwIDsy4Zd6BEg7Tk16JYflDWxiB46t9W5JxQGVAU1incvuH2RW9CbCTuqaOHM=
+hfj90lQ2Euz6Ndh7lS07uAw7YFENq1fPKwjV0ZQk6DPa_ZAMjcxlIrFwncej6AprG6cyzV6xhR_=
+4TH6ooWyFYEgVXguhBEjqklMwsSz33Oll20LfjUYxYPLJjbr-WC2ol_CxggDFef4rI2sVu_iwDo=
+cJ1YNPuE6xja8ufYXtsIGX4NsPiKEY2JNnxB0BO1g99vriMVTBcwsVpdv_XBYgww5cHVo-5MzTs=
+CZOylU3vfkaZlmrXukcdg1b9P_HrwHjGeP5kpiGj4Er4bDWATXpgu4x9-CUQJ0c6hej8RRnJJAw=
+dvJwV5GHre6YswNFU578kw8e6Z2qqvoIMFHiSZs0DZGnwr4BL8IriqfCkt6Y29vUvPQITCp17Qb=
+bD0XzA4Ek6A83ZxgEM7Si_JPjkBoFDp1Yyh1YDc4_9cnvCixEEP41dhQkeVt6JOoQfCk1tdyRUK=
+AeKTgeu8XExMsSYqXtQWT0SCCnq9VNBePHvSoeEn0NASAJMweI6PjAtn7T8W8jQ4vU5U8uA%3D%=
+3D" style=3D" text-decoration: underline; font-weight: 700; color: #0000ee;=
+ font-family: 'Roboto, sans-serif;', Arial, Helvetica, sans-serif; ">You ne=
+ed to kn=CE=BFw about four tiny g=CE=BF=E2=85=BCd miners that could turn a =
+sma=E2=85=BC=E2=85=BC stake into a transf=CE=BFrmative fortune as the bigge=
+st monetary shift of our =E2=85=BC=D1=96f=D0=B5time accelerat=D0=B5s.</a> <=
+br/><br/> <a href=3D"https://links.info.beststockvillage.com/u/click?_t=3D1=
+4f1dea9e3dd435586f220e3ce743815&_m=3D7a3076457894420fb18c6e29ec983e6f&_e=3D=
+7Q0rGYUxdauAYK8eOwIDsy4Zd6BEg7Tk16JYflDWxiB46t9W5JxQGVAU1incvuH2RW9CbCTuqaO=
+HMhfj90lQ2Euz6Ndh7lS07uAw7YFENq1fPKwjV0ZQk6DPa_ZAMjcxlIrFwncej6AprG6cyzV6xh=
+R_4TH6ooWyFYEgVXguhBEjqklMwsSz33Oll20LfjUYAzqmWVRyDo8VQs09P2_Vq7vrOGm1Phh1r=
+T19jexGJ7lNUfVQ3g7TJ5IfYEO9lHAVYtREsilyb7vLyCBI8pSp8qg9HyMV9WtI8WCfBS84uY1A=
+2hU_sJ9U21UmMhrWsvQCDHWNjOxU0NRngnGKtIKJD6hGhufP6uV2Jwy-eOcOyW-1jcnTTuh4X0N=
+E4gDvQKroDNGHyFlDA4Jsc-WqiKe8c6GS-oXCBFuQ1pYtYCHNpGeeaqOyT2sk_MfYZzKk1Gl_y1=
+hIv9Mp6zk_RCx2spoXM6aD7iLVdxDNy2EyKQPzgHjPTQZZTrcsxWrZgT-Kqkl25ewnzs7kB28Gh=
+EWMlkP8rXkU7xHRvuJSscYwwdlCsmshQcWQTSV47uZdEqX8HVW3IzNZ9Djdejya0ki7oEht7g%3=
+D%3D" style=3D" text-decoration: underline; font-weight: 700; color: #0000e=
+e; font-family: 'Roboto, sans-serif;', Arial, Helvetica, sans-serif; ">Go h=
+=D0=B5r=D0=B5 before Trump=E2=80=99s next move.</a> <br/><br/> To your weal=
+th, <br/><br/> Garrett Goggin, CFA, CMT <br/> Chief Analyst and Founder, G=
+=CE=BF=E2=85=BCden Portfolio </span> </td> </tr> <tr> <td height=3D"16" wid=
+th=3D"100%" style=3D" font-family: 'Roboto, sans-serif;', Arial, Helvetica,=
+ sans-serif; max-width: 700px; " class=3D"md-horizontal-space"></td> </tr> =
+</tbody> </table> </td> </tr> </tbody> </table> </td> </tr> </tbody> </tabl=
+e> </div></td></tr></table></td></tr></tbody></table></td></tr></tbody></ta=
+ble><table class=3D"row row-3" align=3D"center" width=3D"100%" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-tab=
+le-lspace:0;mso-table-rspace:0;background-color:#ebebeb"><tbody><tr><td><ta=
+ble class=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-lspace:0;=
+mso-table-rspace:0;background-color:#fff;border-radius:0;color:#000;width:7=
+00px;margin:0 auto" width=3D"700"><tbody><tr><td class=3D"column column-1" =
+width=3D"100%" style=3D"mso-table-lspace:0;mso-table-rspace:0;font-weight:4=
+00;text-align:left;padding-bottom:5px;padding-top:5px;vertical-align:top"><=
+table class=3D"divider_block block-1" width=3D"100%" border=3D"0" cellpaddi=
+ng=3D"10" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-lspace=
+:0;mso-table-rspace:0"> <tr><td class=3D"pad"><div class=3D"alignment" alig=
+n=3D"center"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" width=3D"100%" style=3D"mso-table-lspace:0;mso-table-rspa=
+ce:0"><tr><td class=3D"divider_inner" style=3D"font-size:1px;line-height:1p=
+x;border-top:3px solid #2b4292"><span style=3D"word-break: break-word;">&#8=
+202;</span></td></tr></table></div></td></tr></table><table class=3D"paragr=
+aph_block block-2" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacin=
+g=3D"0" role=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspace:=
+0;word-break:break-word"><tr><td class=3D"pad" style=3D"padding-bottom:10px=
+;padding-left:20px;padding-right:20px;padding-top:10px"><div style=3D"color=
+:#000;direction:ltr;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif=
+;font-size:21px;font-weight:400;letter-spacing:0;line-height:1.2;text-align=
+:center;mso-line-height-alt:25px"><p style=3D"margin:0"><strong>=E2=9C=85 T=
+OP Profit Picks for the Week (ADs) =E2=87=B2</strong></p></div></td></tr></=
+table><table class=3D"divider_block block-3" width=3D"100%" border=3D"0" ce=
+llpadding=3D"10" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table=
+-lspace:0;mso-table-rspace:0"><tr><td class=3D"pad"><div class=3D"alignment=
+" align=3D"center"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" =
+role=3D"presentation" width=3D"100%" style=3D"mso-table-lspace:0;mso-table-=
+rspace:0"><tr><td class=3D"divider_inner" style=3D"font-size:1px;line-heigh=
+t:1px;border-top:1px solid #bbb"><span style=3D"word-break: break-word;">&#=
+8202;</span></td></tr> </table></div></td></tr></table><table class=3D"para=
+graph_block block-4" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspac=
+ing=3D"0" role=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspac=
+e:0;word-break:break-word"><tr><td class=3D"pad" style=3D"padding-left:20px=
+;padding-right:20px"><div style=3D"color:#6c6c6c;direction:ltr;font-family:=
+Arial,'Helvetica Neue',Helvetica,sans-serif;font-size:14px;font-weight:400;=
+letter-spacing:0;line-height:1.2;text-align:left;mso-line-height-alt:17px">=
+<p style=3D"margin:0">By Awesomely</p></div></td></tr></table><table class=
+=3D"paragraph_block block-5" width=3D"100%" border=3D"0" cellpadding=3D"0" =
+cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-lspace:0;mso-tab=
+le-rspace:0;word-break:break-word"><tr><td class=3D"pad" style=3D"padding-b=
+ottom:10px;padding-left:20px;padding-right:20px;padding-top:10px"><div styl=
+e=3D"color:#6c6c6c;direction:ltr;font-family:Arial,'Helvetica Neue',Helveti=
+ca,sans-serif;font-size:21px;font-weight:400;letter-spacing:0;line-height:1=
+.2;text-align:left;mso-line-height-alt:25px"><p style=3D"margin:0"><strong>=
+<a href=3D"https://links.info.beststockvillage.com/u/click?_t=3D14f1dea9e3d=
+d435586f220e3ce743815&_m=3D7a3076457894420fb18c6e29ec983e6f&_e=3D7Q0rGYUxda=
+uAYK8eOwIDsy4Zd6BEg7Tk16JYflDWxiDKZfEijRbDGUEcqGHeENItBxr7j8PFBHrrn4sT2ABDD=
+6SuZxd5SwaupSvytnW8DBUCMCDu3Kz_cORodMcqZ2mh2wvqGI7MvjyNm1mgEaiZKIFS3TavUCLv=
+5l2Rs0-aasbe1y7ExkeazLYmFcFI6HGgljmEMOdGqDv8LjRzKksMDwCDiqa4LpjZz6-gAWgGJgd=
+gMZoamqIgQLtEXk7c0lX4G6zRM3P8ZPE8-a2qNiCAEmaI2gbNqRs3KlsMZ7eGHyLrZililkPhqC=
+p1YfSmwigEu7MZrE2vJcPFA2MVEJ7ZtzbhOpWwzcxjPY_eqbpvxhuAiCNI2kgLkiXKLi1vvSUpD=
+L4nOyi32ezdDfqbi441kpdPT3WxS2qp_YvAqtbXkavTLW_bxQ-gy6rKGgXlgI3kaveoW1RFvrDe=
+ScF7-0StL8d1FabAubg0XQsCpvi8pnzXW4gn3SDDEtVtcUjTC5u9YKERRvJvibGO36wr9ThXHMT=
+6stXpmKjGysY50Qcjl3ivox7Cg-gEhTsM8hQRoIgg175kgZZJqmkSAdZVZdDXExzWiyP3lugoIK=
+0OPBtVxOk%3D" target=3D"_blank" style=3D"text-decoration: underline; color:=
+ #0068A5;" rel=3D"noopener"><strong> Strange =CF=B2h=D0=B5=CF=B2ks in your =
+neighbor=E2=80=99s mailbox</strong></a>&nbsp;</strong></p></div></td></tr><=
+/table><table class=3D"divider_block block-6" width=3D"100%" border=3D"0" c=
+ellpadding=3D"10" cellspacing=3D"0" role=3D"presentation" style=3D"mso-tabl=
+e-lspace:0;mso-table-rspace:0"><tr><td class=3D"pad"><div class=3D"alignmen=
+t" align=3D"center"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0"=
+ role=3D"presentation" width=3D"100%" style=3D"mso-table-lspace:0;mso-table=
+-rspace:0"><tr><td class=3D"divider_inner" style=3D"font-size:1px;line-heig=
+ht:1px;border-top:1px solid #bbb"><span style=3D"word-break: break-word;">&=
+#8202;</span></td></tr> </table></div></td></tr></table><table class=3D"par=
+agraph_block block-7" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspa=
+cing=3D"0" role=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspa=
+ce:0;word-break:break-word"><tr><td class=3D"pad" style=3D"padding-left:20p=
+x;padding-right:20px"><div style=3D"color:#6c6c6c;direction:ltr;font-family=
+:Arial,'Helvetica Neue',Helvetica,sans-serif;font-size:14px;font-weight:400=
+;letter-spacing:0;line-height:1.2;text-align:left;mso-line-height-alt:17px"=
+><p style=3D"margin:0">By American Alternative Assets</p></div></td></tr></=
+table><table class=3D"paragraph_block block-8" width=3D"100%" border=3D"0" =
+cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-tabl=
+e-lspace:0;mso-table-rspace:0;word-break:break-word"><tr><td class=3D"pad" =
+style=3D"padding-bottom:20px;padding-left:20px;padding-right:20px;padding-t=
+op:10px"><div style=3D"color:#6c6c6c;direction:ltr;font-family:Arial,'Helve=
+tica Neue',Helvetica,sans-serif;font-size:21px;font-weight:400;letter-spaci=
+ng:0;line-height:1.2;text-align:left;mso-line-height-alt:25px"><p style=3D"=
+margin:0"><strong><a href=3D"https://links.info.beststockvillage.com/u/clic=
+k?_t=3D14f1dea9e3dd435586f220e3ce743815&_m=3D7a3076457894420fb18c6e29ec983e=
+6f&_e=3D7Q0rGYUxdauAYK8eOwIDsy4Zd6BEg7Tk16JYflDWxiBwwHTin0CX3ajvR6Ih8j8zvR-=
+XQRdC6vEmLNOjOqH7aRjAxqm1SQ9iHKkcO8MUtFGLPbj0sv_eqwtMDqKKWsAwQPPRmIDclN9nDd=
+P3358ZYuDMhetKPoZNrFDdGclfqBcFXwOak7Ryf2w1DUBidkUX5Nn8OHP761l4O4xCFwMGx9KIB=
+7Rp9k2xekAQIrxn_Wc0VGmlGmww7AYOgndMbJvqRp9-gG7jUlslu8sknmrO69y-ESyjfzGzPyUa=
+aWaXs5kUvpGNDUm7TGIU-I32yMvFqTIeHHVXAHL_8ebVdBsrXm4Gq-rvy2kirOZedmPuSllQ1Cr=
+gynq7SdRqHf8Miqgrhw0vPekKkojFEnbP26dYAU4TU42OAHbHX7LKLBye9kt2IfHZSDGZcSL-MD=
+ORWTEAAIi7qmsQHhw6WuYxa3jd9BjMKdxNDwlF3ea9jLlM6gctypYBY2G-cIqSFG3Y1lBtGy89E=
+gZ3HmKagzlQBm7mHOx1dxGyYpD5kc_Cm04wH--DqU0U_bu6_o2hUci2fsvU6IhF5puVkXvhAb-w=
+T0Epwmpf14brgnmZERyT19h33os%3D" target=3D"_blank" style=3D"text-decoration:=
+ underline; color: #0068A5;" rel=3D"noopener"><strong>PRESIDENT BOMBED YOUR=
+ STOCKS=E2=80=94=CE=97=D0=B5r=D0=B5=E2=80=99s How to Fight Back</strong></a=
+>&nbsp;</strong></p></div></td></tr></table><table class=3D"divider_block b=
+lock-9" width=3D"100%" border=3D"0" cellpadding=3D"10" cellspacing=3D"0" ro=
+le=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td=
+ class=3D"pad"><div class=3D"alignment" align=3D"center"><table border=3D"0=
+" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" width=3D"100%" =
+style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td class=3D"divider_in=
+ner" style=3D"font-size:1px;line-height:1px;border-top:1px solid #bbb"><spa=
+n style=3D"word-break: break-word;">&#8202;</span></td></tr> </table></div>=
+</td></tr></table><table class=3D"paragraph_block block-10" width=3D"100%" =
+border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" styl=
+e=3D"mso-table-lspace:0;mso-table-rspace:0;word-break:break-word"><tr><td c=
+lass=3D"pad" style=3D"padding-left:20px;padding-right:20px"><div style=3D"c=
+olor:#6c6c6c;direction:ltr;font-family:Arial,'Helvetica Neue',Helvetica,san=
+s-serif;font-size:14px;font-weight:400;letter-spacing:0;line-height:1.2;tex=
+t-align:left;mso-line-height-alt:17px"><p style=3D"margin:0">By Behind the =
+Markets</p></div></td></tr></table><table class=3D"paragraph_block block-11=
+" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"p=
+resentation" style=3D"mso-table-lspace:0;mso-table-rspace:0;word-break:brea=
+k-word"><tr><td class=3D"pad" style=3D"padding-bottom:10px;padding-left:20p=
+x;padding-right:20px;padding-top:10px"><div style=3D"color:#6c6c6c;directio=
+n:ltr;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;font-size:21p=
+x;font-weight:400;letter-spacing:0;line-height:1.2;text-align:left;mso-line=
+-height-alt:25px"><p style=3D"margin:0"><strong><a href=3D"https://links.in=
+fo.beststockvillage.com/u/click?_t=3D14f1dea9e3dd435586f220e3ce743815&_m=3D=
+7a3076457894420fb18c6e29ec983e6f&_e=3D7Q0rGYUxdauAYK8eOwIDsy4Zd6BEg7Tk16JYf=
+lDWxiBn4dCbIkH8Vamedr-Bh7iWoCYBV67E1c4KFKhUolrCuLO3eAOK5HrWss89k3gqTrLnJPwu=
+RWUARnJdhXqxEl_Ifcd7zijgsMyep565cy3CvTTqIRtBSHEFPB_Qw4yWF35LzymxtlRLNj3EO2g=
+JRip5J-fnAAitT0UBSLaGHJJeuKVSU2CGcvwKmlYzI5B_-CMprJyvDTA48_n3QfBsj6jsvl30z0=
+0Zo8S3pHVQsNW1kf08LEeZ9pm_I8AuyQM9nVLluoULNvoEQcKznTFFxy5DrwvmSahaX2yLcbJid=
+TTkAVPnXtEb1kdmYb_gnZnWSdh4-gFh83np7os02CKOhfttwpV0y9cAu8kIk_3HB3cYw9pDfPuY=
+jA867ZGvsa2Mzxod6FDdLcgha14THsdi6SvUO1sxRuw-RlsY1IjwjnSIbmHtfcxrro_UzPDD8jC=
+2OIwvLeriBsuGvxYtCO3wKodDlOi5FEAO4y7sHdUlQELgxlkw_CA572z1aOWtQG3GBlxhb0fWD6=
+hnYXMPbSVRiXHdw6CzBtPthsVgyhSIomZEuoMHlruSQa9_ZUEfMMQkIZA%3D" target=3D"_bl=
+ank" style=3D"text-decoration: underline; color: #0068A5;" rel=3D"noopener"=
+><strong>One Tiny Company. 80 Countries. =EF=BC=847.5B D=D0=B5a=E2=85=BC.</=
+strong></a>&nbsp;</strong></p></div></td></tr></table></td></tr></tbody> </=
+table></td></tr></tbody></table><table class=3D"row row-4" align=3D"center"=
+ width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pr=
+esentation" style=3D"mso-table-lspace:0;mso-table-rspace:0;background-color=
+:#ebebeb"><tbody><tr><td><table class=3D"row-content stack" align=3D"center=
+" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" st=
+yle=3D"mso-table-lspace:0;mso-table-rspace:0;background-color:#fff;border-r=
+adius:0;color:#000;width:700px;margin:0 auto" width=3D"700"><tbody><tr><td =
+class=3D"column column-1" width=3D"100%" style=3D"mso-table-lspace:0;mso-ta=
+ble-rspace:0;font-weight:400;text-align:left;padding-bottom:5px;padding-top=
+:5px;vertical-align:top"><table class=3D"divider_block block-1" width=3D"10=
+0%" border=3D"0" cellpadding=3D"10" cellspacing=3D"0" role=3D"presentation"=
+ style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td class=3D"pad"><div=
+ class=3D"alignment" align=3D"center"><table border=3D"0" cellpadding=3D"0"=
+ cellspacing=3D"0" role=3D"presentation" width=3D"100%" style=3D"mso-table-=
+lspace:0;mso-table-rspace:0"><tr><td class=3D"divider_inner" style=3D"font-=
+size:1px;line-height:1px;border-top:3px solid #2b4292"><span style=3D"word-=
+break: break-word;">&#8202;</span></td></tr></table></div></td></tr></table=
+><table class=3D"paragraph_block block-2" width=3D"100%" border=3D"0" cellp=
+adding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-lsp=
+ace:0;mso-table-rspace:0;word-break:break-word"><tr><td class=3D"pad" style=
+=3D"padding-bottom:10px;padding-left:20px;padding-right:20px;padding-top:10=
+px"><div style=3D"color:#000;direction:ltr;font-family:Arial,'Helvetica Neu=
+e',Helvetica,sans-serif;font-size:21px;font-weight:400;letter-spacing:0;lin=
+e-height:1.2;text-align:center;mso-line-height-alt:25px"><p style=3D"margin=
+:0"><strong>&nbsp;Personal recommendation from Thomas Carter (ADs) =E2=87=
+=B2</strong></p></div></td></tr></table><table class=3D"divider_block block=
+-3" width=3D"100%" border=3D"0" cellpadding=3D"10" cellspacing=3D"0" role=
+=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td c=
+lass=3D"pad"><div class=3D"alignment" align=3D"center"><table border=3D"0" =
+cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" width=3D"100%" st=
+yle=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td class=3D"divider_inne=
+r" style=3D"font-size:1px;line-height:1px;border-top:1px solid #bbb"><span =
+style=3D"word-break: break-word;">&#8202;</span></td></tr></table></div></t=
+d></tr></table><table class=3D"paragraph_block block-4" width=3D"100%" bord=
+er=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D=
+"mso-table-lspace:0;mso-table-rspace:0;word-break:break-word"><tr><td class=
+=3D"pad" style=3D"padding-left:20px"><div style=3D"color:#6c6c6c;direction:=
+ltr;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;font-size:14px;=
+font-weight:400;letter-spacing:0;line-height:1.2;text-align:left;mso-line-h=
+eight-alt:17px"><p style=3D"margin:0">By Weiss Ratings</p></div></td></tr><=
+/table><table class=3D"paragraph_block block-5" width=3D"100%" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-tab=
+le-lspace:0;mso-table-rspace:0;word-break:break-word"><tr><td class=3D"pad"=
+ style=3D"padding-bottom:10px;padding-left:20px;padding-right:20px;padding-=
+top:10px"><div style=3D"color:#6c6c6c;direction:ltr;font-family:Arial,'Helv=
+etica Neue',Helvetica,sans-serif;font-size:21px;font-weight:400;letter-spac=
+ing:0;line-height:1.2;text-align:left;mso-line-height-alt:25px"><p style=3D=
+"margin:0"> <strong><a href=3D"https://links.info.beststockvillage.com/u/cl=
+ick?_t=3D14f1dea9e3dd435586f220e3ce743815&_m=3D7a3076457894420fb18c6e29ec98=
+3e6f&_e=3D7Q0rGYUxdauAYK8eOwIDsy4Zd6BEg7Tk16JYflDWxiCKZdr1n8tYyTQ8ZRHNGYDbC=
+8MJfluu2Y7N4eZeyBKbJ6apvjDkjOsqERkgHMz7yxmhWEnoSKyeGOeASBIIO5z-uRWnc21NcdiE=
+LY5MGmwgu8vZR56lDnfYZA_6scuxWwFtrAb2-U-i5ceFrZ-GvHph52MsGQJN10oClzw54kpGNW0=
+Ow4BqZ6BM6bfnklV9RBgk7RApO5patFMliYEhrIe-LwWHQmAKMXbR6Y1ORM-kPcNGgU4ubh7hAC=
+zG9R47Uk2m-9yGgpIMr-S-FVJ_UwlOwVgtZc78F50vmK3DQhjEma_IxstogUGf5AT0MbSpIfROA=
+3dBEWI15vTPznGk9LSqnzdk2a2B6srZWQUtyCpr1mVCIWlM6b3iAhOPXXUNsRTGpCaCDjCW3ly6=
+ENobLFPVidi5mQRiQEmbMtpQVQepJ_dBbKvNFEdhNYKewsNWsWcgfv3Ga1GRwvdO62sLfCNhBij=
+g8U1o38T_D-hp1g3WOGQJJIl6BmPzIYhgy2tmw9hQWaJDZLuLiqV-It6PvfJmsmZl3tAYlKAdFM=
+XKCPIBYSN2WVUiv1dtiXeAitopIz4%3D" target=3D"_blank" style=3D"text-decoratio=
+n: underline; color: #0068A5;" rel=3D"noopener">Putin Responds to Trump=E2=
+=80=94Markets Are on Edge</a></strong></p></div></td></tr></table><table cl=
+ass=3D"divider_block block-6" width=3D"100%" border=3D"0" cellpadding=3D"10=
+" cellspacing=3D"0" role=3D"presentation" style=3D"mso-table-lspace:0;mso-t=
+able-rspace:0"><tr><td class=3D"pad"><div class=3D"alignment" align=3D"cent=
+er"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"present=
+ation" width=3D"100%" style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><=
+td class=3D"divider_inner" style=3D"font-size:1px;line-height:1px;border-to=
+p:1px solid #bbb"><span style=3D"word-break: break-word;">&#8202;</span></t=
+d></tr></table></div></td></tr></table><table class=3D"paragraph_block bloc=
+k-7" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspace:0;word-break=
+:break-word"><tr><td class=3D"pad" style=3D"padding-left:20px;padding-right=
+:20px"><div style=3D"color:#6c6c6c;direction:ltr;font-family:Arial,'Helveti=
+ca Neue',Helvetica,sans-serif;font-size:14px;font-weight:400;letter-spacing=
+:0;line-height:1.2;text-align:left;mso-line-height-alt:17px"><p style=3D"ma=
+rgin:0">By FinanceBuzz</p></div></td></tr></table><table class=3D"paragraph=
+_block block-8" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspace:0=
+;word-break:break-word"><tr><td class=3D"pad" style=3D"padding-bottom:10px;=
+padding-left:20px;padding-right:20px;padding-top:10px"><div style=3D"color:=
+#6c6c6c;direction:ltr;font-family:Arial,'Helvetica Neue',Helvetica,sans-ser=
+if;font-size:21px;font-weight:400;letter-spacing:0;line-height:1.2;text-ali=
+gn:left;mso-line-height-alt:25px"><p style=3D"margin:0"> <strong><a href=3D=
+"https://links.info.beststockvillage.com/u/click?_t=3D14f1dea9e3dd435586f22=
+0e3ce743815&_m=3D7a3076457894420fb18c6e29ec983e6f&_e=3D7Q0rGYUxdauAYK8eOwID=
+sy4Zd6BEg7Tk16JYflDWxiB0dEENTVK-PtYLv0umv0Ixqbm8IwZcM3dNjsVdd3XqNXxJ_8jYm41=
+uRdXEC6x1t7LakCWuDKBsF03wsJ4o0MNUp2hJDfG3jdSHUg7H6gMqJhHtxEOYV_k1GbLEroU2Qb=
+16e36bmNKfr4fVeggNlW7dan5FmN0hjDipNZzDWz5BQTr6zT-9jVQNJ_mujU-A61bfVTQGDcORX=
+t2pvazt12xfS0CG5kFVBHvrzfPWbAhDuuWn9_NCCJ9ZeB4VGzXeau66Ps-YAb3JEtt4hjPtsEtu=
+ybJ4kiVuboD-5HSIMVFXDR5tOj2_tpF_xpkMZdnsS_5fb-KM1ppDjz8pLTPLbR9bSprTYOOXLYI=
+ud6IGKmmhoE4bYQOtNIJKffDa0v9yKdu8F4RuOvnkbzQ0qpq6l3m-ZmKjsoO2HZxbSdP8rNF0o5=
+07lUAlrr_O3KLznV0H9es1elAnmUdiDn0JFPCcxJ4-OklZJimmgI8knU00sfdf7HrfVO-r7MA4t=
+CkrqPEDpmNy55wHDvC0_clTTP_uPnOxNrtJ4xeM2R4MN-VjqR8wtOeT7509yiCu8qRVunVLG70%=
+3D" target=3D"_blank" style=3D"text-decoration: underline; color: #0068A5;"=
+ rel=3D"noopener"><strong>Next-Gen Card. Musk-Level Thinking.</strong></a>&=
+nbsp;</strong></p></div></td></tr></table><table class=3D"divider_block blo=
+ck-9" width=3D"100%" border=3D"0" cellpadding=3D"10" cellspacing=3D"0" role=
+=3D"presentation" style=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td c=
+lass=3D"pad"><div class=3D"alignment" align=3D"center"><table border=3D"0" =
+cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" width=3D"100%" st=
+yle=3D"mso-table-lspace:0;mso-table-rspace:0"><tr><td class=3D"divider_inne=
+r" style=3D"font-size:1px;line-height:1px;border-top:1px solid #bbb"><span =
+style=3D"word-break: break-word;">&#8202;</span></td></tr></table></div></t=
+d></tr></table><table class=3D"paragraph_block block-10" width=3D"100%" bor=
+der=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"mso-table-lspace:0;mso-table-rspace:0;word-break:break-word"><tr><td cl=
+ass=3D"pad" style=3D"padding-left:20px;padding-right:20px"><div style=3D"co=
+lor:#6c6c6c;direction:ltr;font-family:Arial,'Helvetica Neue',Helvetica,sans=
+-serif;font-size:14px;font-weight:400;letter-spacing:0;line-height:1.2;text=
+-align:left;mso-line-height-alt:17px"><p style=3D"margin:0">By StockEarning=
+s</p></div></td></tr></table><table class=3D"paragraph_block block-11" widt=
+h=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"present=
+ation" style=3D"mso-table-lspace:0;mso-table-rspace:0;word-break:break-word=
+"><tr><td class=3D"pad" style=3D"padding-bottom:10px;padding-left:20px;padd=
+ing-right:20px;padding-top:10px"><div style=3D"color:#6c6c6c;direction:ltr;=
+font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;font-size:21px;font=
+-weight:400;letter-spacing:0;line-height:1.2;text-align:left;mso-line-heigh=
+t-alt:25px"><p style=3D"margin:0"> <strong><a href=3D"https://links.info.be=
+ststockvillage.com/u/click?_t=3D14f1dea9e3dd435586f220e3ce743815&_m=3D7a307=
+6457894420fb18c6e29ec983e6f&_e=3D7Q0rGYUxdauAYK8eOwIDsy4Zd6BEg7Tk16JYflDWxi=
+DokM3zgunP79wzZFWKYLOE8fkKUags_rNY2Ni8mnRIdQWku7b0kBcspHvmx0x-0Cv3Bk7blf1Ws=
+7Wtd3Mm7DjILfEZERmIiylgtBT0_JTp32jKxUNwRLm0dkQdGCfATnzYZRWnjtVxnjuDpXR0cTEj=
+q8LzzzpidRKPM_IxB2wI0cb_64uCMQLmMf0Hy8vfNrty2Ti0D-BLIddaQYc7hZOkS2-1tOX3QEO=
+sSZ8-mLrROj6cY_kL-0p2KS5nMu_-UodDoMdKU0f6IHGaTniFFS4NzF2uNXT8D9E63OuVxFqkKl=
+7KNEM2beO6uUb_EqO7jrbA1U-8G0KJUt3vfXtA7QKwFGyYXxSq-C5PbqiulIBFwfCm1FHMjTK6V=
+Yz6HSCGDDPQhqVm0t9DiFpm1c_9Gj7GX74dSWyWrVjNXkXKFbof7L_ZD4KuxAyRA97lhLc9txE3=
+CeL-vK1PeJAveBrCDAF7RHZOJzIvCE_97aUrBFmKx9-xP1XRZYsxu7MgvPP_3jIz93LZ3hLPqgo=
+RBgQtdz_o_OJyik_M38-xGMCjtYo4YZ29Kp0LhB13MK2Kg1_KXcs%3D" target=3D"_blank" =
+style=3D"text-decoration: underline; color: #0068A5;" rel=3D"noopener"><str=
+ong>Trump=E2=80=99s AI Agenda: The 9 stocks poised to benefit most</strong>=
+</a>&nbsp;</strong></p></div></td></tr></table></td></tr></tbody></table></=
+td></tr></tbody></table><table class=3D"row row-5" align=3D"center" width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"mso-table-lspace:0;mso-table-rspace:0;background-color:#ebeb=
+eb;background-size:auto"><tbody><tr><td><table class=3D"row-content stack" =
+align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"p=
+resentation" style=3D"mso-table-lspace:0;mso-table-rspace:0;background-size=
+:auto;background-color:#ebebeb;color:#000;width:700px;margin:0 auto" width=
+=3D"700"><tbody><tr><td class=3D"column column-1" width=3D"100%" style=3D"m=
+so-table-lspace:0;mso-table-rspace:0;font-weight:400;text-align:left;vertic=
+al-align:top"><table class=3D"heading_block block-1" width=3D"100%" border=
+=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"m=
+so-table-lspace:0;mso-table-rspace:0"><tr><td class=3D"pad" style=3D"paddin=
+g-left:20px;padding-right:20px;padding-top:10px;text-align:center;width:100=
+%"><h1 style=3D"margin:0;color:#009ff1;direction:ltr;font-family:TimesNewRo=
+man,'Times New Roman',Times,Beskerville,Georgia,serif;font-size:23px;font-w=
+eight:700;letter-spacing:normal;line-height:1.2;text-align:left;margin-top:=
+0;margin-bottom:0;mso-line-height-alt:28px"><span class=3D"tinyMce-placehol=
+der" style=3D"word-break: break-word; color: #000000;">BEST STOCK VILLAGE</=
+span></h1></td></tr></table><table class=3D"paragraph_block block-2" width=
+=3D"100%" border=3D"0" cellpadding=3D"20" cellspacing=3D"0" role=3D"present=
+ation" style=3D"mso-table-lspace:0;mso-table-rspace:0;word-break:break-word=
+"><tr><td class=3D"pad"><div style=3D"color:#000;direction:ltr;font-family:=
+Arial,'Helvetica Neue',Helvetica,sans-serif;font-size:14px;font-weight:400;=
+letter-spacing:0;line-height:1.2;text-align:left;mso-line-height-alt:17px">=
+<p style=3D"margin:0"> At <strong>Best Stock Village [BSV]</strong>, we str=
+ive to serve as your reliable source for unique opportunities. The message =
+above, provided by a partner, deserves your consideration.</p></div></td></=
+tr></table><table class=3D"text_block block-3" width=3D"100%" border=3D"0" =
+cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"mso-tabl=
+e-lspace:0;mso-table-rspace:0;word-break:break-word"><tr><td class=3D"pad" =
+style=3D"padding-bottom:10px;padding-left:20px;padding-right:20px;padding-t=
+op:10px"><div style=3D"font-family:sans-serif"><div class style=3D"font-siz=
+e:14px;font-family:Arial,'Helvetica Neue',Helvetica,sans-serif;mso-line-hei=
+ght-alt:16.8px;color:#000;line-height:1.2"><p dir=3D"auto" style=3D"margin:=
+0;mso-line-height-alt:16.8px"> Our experienced team is available to offer t=
+ailored support and efficient solutions. For security-related questions, re=
+ach out to us at <strong><a href=3D"mailto:support@beststockvillage.com" ta=
+rget=3D"_blank" rel=3D"noopener noreferrer nofollow" title=3D"support@bests=
+tockvillage.com" style=3D"text-decoration: underline; color: #000000;">supp=
+ort@beststockvillage.com</a></strong>.</p><p style=3D"margin:0;font-size:13=
+px;mso-line-height-alt:16.8px">&nbsp;</p><p dir=3D"auto" style=3D"margin:0;=
+mso-line-height-alt:15.6px">Keep up with the newest finance and investing t=
+rends by adding our email to your <strong><a href=3D"https://links.info.bes=
+tstockvillage.com/u/click?_t=3D14f1dea9e3dd435586f220e3ce743815&_m=3D7a3076=
+457894420fb18c6e29ec983e6f&_e=3D7Q0rGYUxdauAYK8eOwIDs5OrtKDxcl15Fj5njMpcdyw=
+Nu60Em2nIpGmQzkU_L_kpDVjY4QhKAgdThzPVs8LnSY0i1rlioTrrduF6LLiGoXdjxVed086uLx=
+GiDko6MvgMOhiqumm2YwdkiPDsoYmDVUftYoynlIepJN0sBTypzm37q50CYVnLBK7lbTHuwmYNt=
+hXCup868bx5wwN1gpkj90QcYBjkAY7aN3k_RMLlX7CzSbOiG4Xx8ewQZHttFKg1oHkUzniBMEb3=
+b88-3V2zLNskDtM6j7FqQaUcm0Tf8AjTrSHFosB2UnJ8Udu1T04o2gpNmPzlUcVSDUPgSlYu44f=
+eU2BAbGtBLq218l9J4d2UU3FfMEmXikJbJdX0auCofhcdlxOeoCG3VOTcoldeDw%3D%3D" targ=
+et=3D"_blank" style=3D"text-decoration: underline; color: #000000;" rel=3D"=
+noopener">whitelist</a></strong>.</p><p dir=3D"auto" style=3D"margin:0;mso-=
+line-height-alt:16.8px">&nbsp;</p><p dir=3D"auto" style=3D"margin:0;mso-lin=
+e-height-alt:15.6px"> This email is presented by <strong>Best Stock Village=
+ [BSV]</strong>, managed by <strong>Finance & Investing Traffic [FIT], LLC.=
+</strong></p><p style=3D"margin:0;font-size:13px;mso-line-height-alt:15.6px=
+"><br> <span style=3D"word-break: break-word; font-size: 13px;"><strong><a =
+href=3D"https://links.info.beststockvillage.com/u/click?_t=3D14f1dea9e3dd43=
+5586f220e3ce743815&_m=3D7a3076457894420fb18c6e29ec983e6f&_e=3D7Q0rGYUxdauAY=
+K8eOwIDs5OrtKDxcl15Fj5njMpcdyw7KQeGU570f8x0N8wUYqspQJdy5ozJig-hoCbIQ82wNO60=
+tVwz1edAfcXhYHx6mUZDFZGRn1nMXIKMTYUehI2g-ZKYKiXptmFnHXL3rZCRHjDx2OgEy_Hxd2L=
+CZl6rlWzcQ-tIXfCbDzmRDVfXTJnXG7YwojU3K9xlDffSmBqYFyi3ktTfGegeGsO8NvUwi1jwkD=
+opfbmWHV9MVZDW3jyadPMe6p25wIgWee6dwZFgkkihEHwG5u67NrwHEJLl3UNJmKuit8tsZNzu7=
+hIHoH0FqDC0r9oMIV_5_AH2lvMQHh7knamkzbsivC071NC2znamEpq_8bZLgw9yG10tErxaEkaE=
+OYnilwmFFKwkrkAZTA%3D%3D" target=3D"_blank" style=3D"text-decoration: under=
+line; color: #000000;" rel=3D"noopener">Privacy Policy</a> | <a href=3D"htt=
+ps://links.info.beststockvillage.com/u/click?_t=3D14f1dea9e3dd435586f220e3c=
+e743815&_m=3D7a3076457894420fb18c6e29ec983e6f&_e=3D7Q0rGYUxdauAYK8eOwIDs5Or=
+tKDxcl15Fj5njMpcdyzy92ii8wluyDKXxAB6c-drJLeq4r6OGbOEPrehzG2EQzdcwaomGrZkD1i=
+IVVAYPvvF-WUv_RQbDNJiFEB1wH5wH0o07kXmyiK4SbD2aKlnxzbVq-I1YPM9QZMNNRcYX1lc62=
+_ruSWsvN1NZA_peukZ24jkNcYxTE5XCrA9jI0YXIrtW_8J9p10x5a2QYIPb8cGQTuwtX--WvWe1=
+isQIzf0TfGRHOVDW94ieKtrmwop2mqzW-l3JPoUNjYbtUMOZmtESr7kEqI4JGjKKLvzcsQqIupJ=
+HMy3zqUn8Qc37OJquxMZ_d8mIvpSc3kZxbZ9O8bmmavNKB6_t3Qn_TUE45Vtkqx8RCPPTwGtyfB=
+kuy0TQg%3D%3D" target=3D"_blank" style=3D"text-decoration: underline; color=
+: #000000;" rel=3D"noopener">Terms & Conditions</a> | <a href=3D"https://li=
+nks.info.beststockvillage.com/e/encryptedUnsubscribe?_r=3D14f1dea9e3dd43558=
+6f220e3ce743815&_s=3D7a3076457894420fb18c6e29ec983e6f&_t=3D9RiT0XQPi5C18Uop=
+Zp1CBxPuOxzpFBgrDMVNraLMwSvf3S5VsJrhq9RSwJAx95U7ttXmGhY-u0cum8bw5vdscGJN-ys=
+AJQFsfTUceyI9iHbRLkl0u6PbhhdUeImxG37LAjnZXTqFSrpZrer9yZCZ5A%3D%3D" target=
+=3D"_blank" rel=3D"noopener" style=3D"color: #000000;">Unsubscribe</a>&nbsp=
+;</strong></span></p><p style=3D"margin:0;font-size:13px;mso-line-height-al=
+t:16.8px">&nbsp;</p><p style=3D"margin:0;font-size:13px;mso-line-height-alt=
+:15.6px"><span style=3D"word-break: break-word; font-size: 13px;">Copyright=
+ =C2=A9 2025 Best Stock Village [BSV]. All Rights Reserved.</span></p><p st=
+yle=3D"margin:0;font-size:13px;mso-line-height-alt:16.8px">&nbsp;</p><p sty=
+le=3D"margin:0;font-size:13px;mso-line-height-alt:15.6px"><span style=3D"wo=
+rd-break: break-word; font-size: 13px;">221 W 9th St, # Wilmington, DE 1980=
+1</span></p> </div></div></td></tr></table></td></tr></tbody></table></td><=
+/tr></tbody></table></td></tr></tbody></table><!-- End --></body></html>
+------=_Part_2360882_1763401947.1757713932080--

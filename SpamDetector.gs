@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.17.0
+ * @version 6.17.1
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,13 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.17.1: Blacklist beststockvillage (Unicode-obfuscated gold/stock spam).
+ *            Add spam example (43/43).
+ *   v6.17.0: Add dash-date clickbait pattern ("- Mar 11, 2026") and doom
+ *            framing pattern ("What's Coming" / "not prepared"). Three new
+ *            spam examples (42/42). Root cause: OI emails only fired Rule 0
+ *            (blacklist); with no blacklist fallback in Script Properties,
+ *            all were missed. New patterns provide Rule 1/2 coverage.
  *   v6.16.1: Fix "per share" stock price miss. Extend stock price pattern to
  *            match "$0.85 per share" (was only matching "a share"). Gives
  *            clickbait=1 + marketing → Rule 2 independent of blacklist.
@@ -141,7 +148,8 @@ const DEFAULT_DOMAINS = Object.freeze({
     'expertmodernadvice',
     'investingtrendstoday',
     'smartpeoplemail',
-    'onlineinvestingdaily'
+    'onlineinvestingdaily',
+    'beststockvillage'
   ])
 });
 

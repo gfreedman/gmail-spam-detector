@@ -160,8 +160,7 @@ BLACKLISTED_DOMAINS = [
 # Matched against the From field only. Detects spammy sender name formatting.
 MARKETING_PATTERNS = [
     re.compile(r'\|\s*[A-Z]', re.I),            # "Name | Org" pipe separator (commas excluded: legit in org/place names)
-    re.compile(r'\s+at\s+[A-Z]', re.I),       # "Name at Organization"
-    re.compile(r'\|\s*'),                       # Pipe separator in display name
+    re.compile(r'\s+at\s+[A-Z]', re.I),        # "Name at Organization"
     re.compile(r'\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)', re.I),  # Spammy business names
     re.compile(r'grow@with\.', re.I),           # Suspicious email pattern
     re.compile(r'@[a-z]\.[a-z]+\.(com|net)', re.I),  # Subdomain pattern (@F.FinanceInsiderPro.com)
@@ -483,7 +482,7 @@ def run_spam_tests(spam_dir):
     files = sorted([f for f in spam_dir.iterdir() if f.suffix == '.eml'])
 
     print('=' * 80)
-    print('SpamDetector v6.9 Test Results')
+    print('Spam Detection Test Results')
     print('=' * 80)
     print(f'Testing {len(files)} spam examples...\n')
 

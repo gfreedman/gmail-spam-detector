@@ -898,11 +898,11 @@ function analyzeMessage(message)
 
     // ── Signal 4: Marketing sender format ─────────────────────────────────
     // Checked against From field only (not subject). Detects spammy sender
-    // name formatting like "Name | Org", "Topic, Company", pipe separators,
-    // spammy business names, and suspicious email address patterns.
-    if (/\|\s*[A-Z]/.test(from) ||                                                             // "Name | Org" pipe separator (commas excluded: appear in legit org/place names)
+    // name formatting like "Name | Org", spammy business names, and suspicious
+    // email address patterns. Commas deliberately excluded — common in legit
+    // org/place names. Bare pipe check removed — subsumed by /\|\s*[A-Z]/.
+    if (/\|\s*[A-Z]/.test(from) ||                                                             // "Name | Org" pipe separator
         /\s+at\s+[A-Z]/i.test(from) ||                                                         // "Name at Organization"
-        /\|\s*/.test(from) ||                                                                   // Pipe separator in display name
         /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i.test(from) ||  // Spammy business names
         /grow@with\./i.test(from) ||                                                            // Suspicious email pattern
         /@[a-z]\.[a-z]+\.(com|net)/i.test(from))                                               // Subdomain pattern: @F.FinanceInsiderPro.com
@@ -1598,7 +1598,9 @@ function debugWhyFlagged(searchTerm)
     // Grab the first message from the first matching thread
     const message = threads[0].getMessages()[0];
     const subject = message.getSubject();
-    const from = message.getFrom();
+    // Normalize exactly as analyzeMessage() does so debug output matches production behavior
+    const from = sanitizeInput(message.getFrom())
+                   .replace(/^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/, '$1$2');
     const rawContent = message.getRawContent();
 
     logInfo('=== DEBUG: WHY FLAGGED? ===');
@@ -1636,8 +1638,10 @@ function debugWhyFlagged(searchTerm)
       logInfo('⚠ Bulk email: SendGrid detected');
     }
 
-    // Check marketing format in From field
-    if (/["|,]\s*[A-Z]/.test(from) || /\|\s*/.test(from))
+    // Check marketing format in From field (mirrors Signal 4 in analyzeMessage)
+    if (/\|\s*[A-Z]/i.test(from) || /\s+at\s+[A-Z]/i.test(from) ||
+        /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i.test(from) ||
+        /grow@with\./i.test(from) || /@[a-z]\.[a-z]+\.(com|net)/i.test(from))
     {
       logInfo('⚠ Marketing format detected in From field');
     }

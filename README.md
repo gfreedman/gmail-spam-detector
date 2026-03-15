@@ -254,7 +254,7 @@ addToWhitelist('domain.com');
 ├── tests/
 │   ├── test_v6.py               # Python test suite
 │   ├── spam_examples/           # Real spam .eml files (43)
-│   └── ham_examples/            # Legitimate .eml files (14)
+│   └── ham_examples/            # Legitimate .eml files (16)
 ├── archive/                     # Old versions (ignore)
 └── .github/workflows/           # CI/CD pipeline
 ```

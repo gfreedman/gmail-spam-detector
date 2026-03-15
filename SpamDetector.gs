@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.17.7
+ * @version 6.17.8
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,12 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.17.8: Fix false positive on RFC 2822 quoted display names. The marketing
+ *            pattern ["|,]\s*[A-Z] incorrectly matched the opening double-quote
+ *            in standard quoted display names like "The LINE Austin..." — a
+ *            normal email format, not a spam indicator. Removed " from the
+ *            character class. Fixes LINE Austin receipt false positive.
+ *            Add ham example (14/14).
  *   v6.17.7: Remove subject-echo detection. Caused false positives on legit
  *            company emails (Converse Canada order confirmation) — a company
  *            using its name in both From and Subject is normal, not suspicious.
@@ -877,7 +883,7 @@ function analyzeMessage(message)
     // Checked against From field only (not subject). Detects spammy sender
     // name formatting like "Name | Org", "Topic, Company", pipe separators,
     // spammy business names, and suspicious email address patterns.
-    if (/["|,]\s*[A-Z]/.test(from) ||                                                          // "Name | Org" or "Topic, Company"
+    if (/[|,]\s*[A-Z]/.test(from) ||                                                           // "Name | Org" or "Topic, Company"
         /\s+at\s+[A-Z]/i.test(from) ||                                                         // "Name at Organization"
         /\|\s*/.test(from) ||                                                                   // Pipe separator in display name
         /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i.test(from) ||  // Spammy business names

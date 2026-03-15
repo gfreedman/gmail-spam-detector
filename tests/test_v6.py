@@ -159,7 +159,7 @@ BLACKLISTED_DOMAINS = [
 # --- Marketing Sender Format Patterns ---
 # Matched against the From field only. Detects spammy sender name formatting.
 MARKETING_PATTERNS = [
-    re.compile(r'["|,]\s*[A-Z]', re.I),      # "Name | Org" or "Topic, Company"
+    re.compile(r'[|,]\s*[A-Z]', re.I),        # "Name | Org" or "Topic, Company"
     re.compile(r'\s+at\s+[A-Z]', re.I),       # "Name at Organization"
     re.compile(r'\|\s*'),                       # Pipe separator in display name
     re.compile(r'\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)', re.I),  # Spammy business names

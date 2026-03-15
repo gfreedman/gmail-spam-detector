@@ -326,7 +326,7 @@ This repo has CI/CD that auto-deploys to Google Apps Script on every push to `ma
 **Pipeline: test → deploy → tag**
 1. **Test** — Lints `SpamDetector.gs` syntax (Node `vm.Script`) and runs spam/ham detection tests (Python)
 2. **Deploy** — Runs `clasp push` to Apps Script (only if tests pass). Writes failure summary on error.
-3. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.17.5`, etc.)
+3. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.17.6`, etc.)
 
 **Setup for your own fork:**
 

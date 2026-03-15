@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.17.5
+ * @version 6.17.6
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,10 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.17.6: Rewrite cleanseInbox() — two-speed mode. Rule 0 (blacklist) →
+ *            delete immediately. Rules 1/2/3 → apply "SuspectedSpam" label
+ *            for human review instead of deleting. Eliminates false-positive
+ *            risk during historical scans.
  *   v6.17.5: Whitelist ezyvet.com (vet practice management system). Dash-date
  *            + subdomain marketing pattern was flagging legit vet emails.
  *            Add whitelist check to test_v6.py. Add ham example (13/13).
@@ -251,36 +255,41 @@ function processInbox()
 }
 
 /**
- * Full historical inbox cleanse — same detection as processInbox() but with
- * no date filter and multi-batch pagination.
+ * Full historical inbox cleanse — two-speed mode:
  *
- * Use this to retroactively catch spam that arrived before the script was
- * running, or before a detection pattern was added. Safe to run manually
- * from the Apps Script editor at any time.
+ *   DELETED:   Bulk + blacklisted sender (Rule 0 only) — zero false-positive risk.
+ *   QUARANTINE: Everything else that scores as spam (Rules 1/2/3) — gets a
+ *               "SuspectedSpam" label instead of being deleted. Review these
+ *               in Gmail and drop false positives into tests/ham_examples/ so
+ *               patterns can be improved.
  *
- * Processes emails in batches of 50, up to MAX_BATCHES (500 emails total).
- * Sleeps 1 second between batches to avoid quota exhaustion.
+ * Syncs blacklist/whitelist from source before scanning. Processes in batches
+ * of 50 with rate limiting. Run manually from the Apps Script editor.
  */
 function cleanseInbox()
 {
-  const BATCH_SIZE = 50;
-  const MAX_BATCHES = 10; // Safety cap: 10 × 50 = 500 emails max per run
+  const BATCH_SIZE   = 50;
+  const MAX_BATCHES  = 10; // Safety cap: 10 × 50 = 500 emails max per run
+  const SUSPECT_LABEL = 'SuspectedSpam';
 
-  let totalSpam = 0;
-  let totalProcessed = 0;
-  let errorCount = 0;
+  let deletedCount  = 0;
+  let suspectCount  = 0;
+  let cleanCount    = 0;
+  let errorCount    = 0;
 
   try
   {
-    const label = getOrCreateLabel(CONFIG.processedLabel);
-
-    // Same scope as processInbox() but no after: date filter
-    const query = '{in:inbox category:updates category:promotions category:social category:forums}' +
-                  ' -label:' + CONFIG.processedLabel;
-
-    // Ensure runtime blacklist/whitelist are current before scanning
+    // Sync Script Properties with source-code defaults before scanning
     refreshBlacklist();
     refreshWhitelist();
+
+    const checkedLabel = getOrCreateLabel(CONFIG.processedLabel);
+    const suspectLabel = getOrCreateLabel(SUSPECT_LABEL);
+    const blacklist    = getBlacklist();
+    const whitelist    = getWhitelist();
+
+    const query = '{in:inbox category:updates category:promotions category:social category:forums}' +
+                  ' -label:' + CONFIG.processedLabel;
 
     logInfo('CLEANSE MODE: Starting full inbox scan (max ' + (BATCH_SIZE * MAX_BATCHES) + ' emails)');
 
@@ -295,13 +304,65 @@ function cleanseInbox()
       {
         try
         {
-          const thread = threads[i];
-          const result = processThread(thread);
-          totalSpam      += result.spamCount;
-          totalProcessed += result.processedCount;
-          if (result.spamCount === 0)
+          const thread   = threads[i];
+          const messages = thread.getMessages();
+          let threadDeleted  = false;
+          let threadSuspect  = false;
+
+          for (let m = 0; m < messages.length; m++)
           {
-            thread.addLabel(label);
+            const message  = messages[m];
+            const fromLower = sanitizeInput(message.getFrom()).toLowerCase();
+
+            // Whitelist: skip entirely
+            let whitelisted = false;
+            for (let w = 0; w < whitelist.length; w++)
+            {
+              if (fromLower.includes(whitelist[w])) { whitelisted = true; break; }
+            }
+            if (whitelisted) continue;
+
+            // Rule 0 pre-check: bulk + blacklisted = definitive, delete immediately
+            const rawContent = message.getRawContent().toLowerCase();
+            const isBulk     = rawContent.includes('amazonses.com') ||
+                               rawContent.includes('x-ses-') ||
+                               rawContent.includes('sendgrid.net');
+            let isBlacklisted = false;
+            for (let b = 0; b < blacklist.length; b++)
+            {
+              if (fromLower.includes(blacklist[b])) { isBlacklisted = true; break; }
+            }
+
+            if (isBulk && isBlacklisted)
+            {
+              markAsSpam(message, thread);
+              deletedCount++;
+              threadDeleted = true;
+              break; // Thread is gone — stop processing its messages
+            }
+
+            // Rules 1/2/3: pattern-based — quarantine for human review
+            const score = analyzeMessage(message);
+            if (score >= CONFIG.spamThreshold)
+            {
+              threadSuspect = true;
+            }
+          }
+
+          if (threadDeleted) continue;
+
+          if (threadSuspect)
+          {
+            // Label as suspected spam + SpamChecked so processInbox won't re-touch it
+            thread.addLabel(suspectLabel);
+            thread.addLabel(checkedLabel);
+            suspectCount++;
+            logInfo('Quarantined (SuspectedSpam): ' + sanitizeForLog(thread.getFirstMessageSubject()));
+          }
+          else
+          {
+            thread.addLabel(checkedLabel);
+            cleanCount++;
           }
         }
         catch (threadError)
@@ -316,8 +377,9 @@ function cleanseInbox()
       Utilities.sleep(1000); // 1s between batches to respect quota
     }
 
-    logInfo('CLEANSE COMPLETE: ' + totalProcessed + ' emails scanned, ' +
-            totalSpam + ' spam deleted, ' + errorCount + ' errors');
+    logInfo('CLEANSE COMPLETE: ' + deletedCount + ' deleted (Rule 0), ' +
+            suspectCount + ' quarantined (review SuspectedSpam label), ' +
+            cleanCount + ' clean, ' + errorCount + ' errors');
 
     destroySpam();
   }

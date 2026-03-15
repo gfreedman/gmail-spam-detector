@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.17.2
+ * @version 6.17.3
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,9 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.17.3: cleanseInbox() now calls refreshBlacklist()/refreshWhitelist()
+ *            automatically before scanning, so Script Properties are always
+ *            current without a separate manual step.
  *   v6.17.2: Add cleanseInbox() — full historical scan with no date filter,
  *            paginated in batches of 50 (up to 500 emails). Catches spam that
  *            arrived before the script was running or before a pattern existed.
@@ -268,6 +271,10 @@ function cleanseInbox()
     // Same scope as processInbox() but no after: date filter
     const query = '{in:inbox category:updates category:promotions category:social category:forums}' +
                   ' -label:' + CONFIG.processedLabel;
+
+    // Ensure runtime blacklist/whitelist are current before scanning
+    refreshBlacklist();
+    refreshWhitelist();
 
     logInfo('CLEANSE MODE: Starting full inbox scan (max ' + (BATCH_SIZE * MAX_BATCHES) + ' emails)');
 

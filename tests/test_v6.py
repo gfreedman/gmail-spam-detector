@@ -115,6 +115,17 @@ CLICKBAIT_PATTERNS = [
     re.compile(r'\bnow you can (see|watch|view|get)\b', re.I),
     # Financial product solicitation: "0% APR", "balance transfer"
     re.compile(r'\b(0\s*%\s*(interest|apr)|balance transfer|transfer your.*(balance|debt))\b', re.I),
+    # Crypto quantity notation: "5000.00 $CLAW", "100 $USDT" — airdrop/ICO spam
+    # Legitimate financial email writes "$5000", not "5000 $TICKER"
+    re.compile(r'\b\d+(?:\.\d+)?\s+\$[A-Z]{4,}\b'),
+]
+
+# --- Body-Only Crypto Scam Patterns ---
+# High-confidence terms checked against email body only. Each match increments
+# clickbait_count (same pool as CLICKBAIT_PATTERNS) to support Rule 3.
+BODY_CRYPTO_PATTERNS = [
+    re.compile(r'\bairdrop\b', re.I),                    # Crypto token airdrop
+    re.compile(r'\bconnect\s+(your\s+)?wallet\b', re.I), # "Connect your wallet" — wallet drainer
 ]
 
 # --- Fear-Mongering Patterns ---
@@ -237,10 +248,11 @@ def parse_eml(filepath):
         filepath: Path to the .eml file.
 
     Returns:
-        Tuple of (subject, from_field, has_bulk_service) where:
+        Tuple of (subject, from_field, has_bulk_service, body) where:
             - subject: Decoded subject line
             - from_field: Decoded From header (display name + address)
             - has_bulk_service: True if Amazon SES or SendGrid signatures found
+            - body: Plain-text body for body-only pattern checks
     """
     # Parse structured email for decoded headers (Subject, From, etc.)
     with open(filepath, 'rb') as f:
@@ -263,10 +275,20 @@ def parse_eml(filepath):
     # RFC 2822 specials like . , ( ) @ etc.) while Apps Script always returns them.
     from_field = re.sub(r'^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$', r'\1\2', from_raw)
 
-    return subject, from_field, has_amazon_ses
+    # Extract plain-text body for body-only pattern checks (e.g. crypto airdrop)
+    body = ''
+    if msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_type() == 'text/plain':
+                body = part.get_content()
+                break
+    elif msg.get_content_type() == 'text/plain':
+        body = msg.get_content()
+
+    return subject, from_field, has_amazon_ses, body
 
 
-def analyze_email(subject, from_field, has_amazon_ses):
+def analyze_email(subject, from_field, has_amazon_ses, body=''):
     """
     Run the v6 detection logic against a single email's fields.
 
@@ -277,14 +299,16 @@ def analyze_email(subject, from_field, has_amazon_ses):
         1. Check sender against blacklisted domains
         2. Inspect From display name for suspicious formatting
         3. Count clickbait pattern matches in subject + from
-        4. Check for fear-mongering language
-        5. Check for marketing sender format
-        6. Apply 4-rule decision logic (rules evaluated in priority order)
+        4. Check body for high-confidence crypto scam terms (airdrop, wallet drainer)
+        5. Check for fear-mongering language
+        6. Check for marketing sender format
+        7. Apply 4-rule decision logic (rules evaluated in priority order)
 
     Args:
         subject:        Decoded email subject line.
         from_field:     Decoded From header (display name + email address).
         has_amazon_ses: Whether bulk email service signatures were found.
+        body:           Plain-text body for body-only pattern checks.
 
     Returns:
         Tuple of (signals, is_spam, rule) where:
@@ -341,6 +365,14 @@ def analyze_email(subject, from_field, has_amazon_ses):
         if pattern.search(text_to_check):
             signals['clickbait_count'] += 1
             signals['matched_patterns'].append(f'clickbait[{i}]')
+
+    # ── Signal: Body crypto scam patterns ──────────────────────────────────
+    # High-confidence terms checked against body only. Each match increments
+    # clickbait_count (same pool) — supports Rule 3 on non-bulk senders.
+    for i, pattern in enumerate(BODY_CRYPTO_PATTERNS):
+        if pattern.search(body):
+            signals['clickbait_count'] += 1
+            signals['matched_patterns'].append(f'body_crypto[{i}]')
 
     # ── Signal: Fear-mongering (boolean, first match wins) ─────────────────
     # Only need to know if fear is present, not how many patterns match
@@ -492,8 +524,8 @@ def run_spam_tests(spam_dir):
 
     for filepath in files:
         # Parse email and run detection pipeline
-        subject, from_field, has_amazon_ses = parse_eml(filepath)
-        signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses)
+        subject, from_field, has_amazon_ses, body = parse_eml(filepath)
+        signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses, body)
 
         if is_spam:
             # Expected: spam correctly detected
@@ -571,8 +603,8 @@ def run_ham_tests(ham_dir):
 
     for filepath in ham_files:
         # Parse email and run detection pipeline
-        subject, from_field, has_amazon_ses = parse_eml(filepath)
-        signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses)
+        subject, from_field, has_amazon_ses, body = parse_eml(filepath)
+        signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses, body)
 
         if not is_spam:
             # Expected: legitimate email correctly allowed through

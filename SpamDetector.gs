@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.18.0
+ * @version 6.19.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -26,6 +26,12 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *
  * Changelog:
+ *   v6.19.0: Detect crypto airdrop/wallet-drainer scams sent via legitimate
+ *            infrastructure (e.g. GitHub mention notifications). Add crypto
+ *            quantity pattern to subject+from clickbait (\d+ $TICKER), and
+ *            a body-only check for "airdrop" and "connect.*wallet" — each
+ *            increments clickbaitCount, giving 3 total → Rule 3. Add spam
+ *            example (44/44). Mirror body check in test_v6.py.
  *   v6.18.0: Systemic RFC 2822 normalization fix. Root cause of all recent false
  *            positives: getFrom() returns raw headers with outer double-quotes on
  *            display names ("Name" <email>), but Python test library strips them.
@@ -853,7 +859,11 @@ function analyzeMessage(message)
       /[\u2215\u2044\u29F8]/,
 
       // Financial product solicitation: "0% APR", "balance transfer"
-      /\b(0\s*%\s*(interest|apr)|balance transfer|transfer your.*(balance|debt))\b/i
+      /\b(0\s*%\s*(interest|apr)|balance transfer|transfer your.*(balance|debt))\b/i,
+
+      // Crypto quantity notation: "5000.00 $CLAW", "100 $USDT" — airdrop/ICO spam
+      // Legitimate financial email writes "$5000", not "5000 $TICKER"
+      /\b\d+(?:\.\d+)?\s+\$[A-Z]{4,}\b/
     ];
 
     // Check subject + from concatenated — spammers stuff clickbait into both
@@ -861,6 +871,22 @@ function analyzeMessage(message)
     for (let i = 0; i < clickbaitPatterns.length; i++)
     {
       if (clickbaitPatterns[i].test(textToCheck))
+      {
+        signals.clickbaitCount++;
+      }
+    }
+
+    // ── Signal 2b: Body crypto scam patterns ──────────────────────────────
+    // High-confidence terms that almost never appear in legitimate email bodies.
+    // Checked against body only — subject/from rarely contain these phrases.
+    // Each match increments clickbaitCount independently (supports Rule 3).
+    const bodyCryptoPatterns = [
+      /\bairdrop\b/i,                    // Crypto token airdrop
+      /\bconnect\s+(your\s+)?wallet\b/i  // "Connect your wallet" — wallet drainer
+    ];
+    for (let i = 0; i < bodyCryptoPatterns.length; i++)
+    {
+      if (bodyCryptoPatterns[i].test(body))
       {
         signals.clickbaitCount++;
       }

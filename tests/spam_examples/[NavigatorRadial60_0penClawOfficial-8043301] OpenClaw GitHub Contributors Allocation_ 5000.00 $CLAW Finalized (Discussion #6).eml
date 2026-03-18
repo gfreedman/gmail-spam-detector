@@ -1,0 +1,336 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:9e0a:b0:1bb:23d8:c668 with SMTP id j10csp409664rdw;
+        Wed, 18 Mar 2026 06:57:43 -0700 (PDT)
+X-Received: by 2002:a05:622a:150:b0:509:3098:819a with SMTP id d75a77b69052e-50b1486333dmr44912811cf.44.1773842262943;
+        Wed, 18 Mar 2026 06:57:42 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1773842262; cv=none;
+        d=google.com; s=arc-20240605;
+        b=E2cN8ARh0vClU0Hc588whhemmGI+eW3J5X0EyXHv3mhw7Kp9/RWeb60elZqMBvUha1
+         ZW+5xh5KRWiGINPcamtvs9SqCIGnAGVJaVLFxRB+ctCnl7kygvHFQYJYtaC0Oii0ucyu
+         Iwol5ctzc0Zpk+jUrpt+Guv5geTy/CCJpO1pNoZSpzZJq5rSpMAU0Z9j6542JIZCTasT
+         yU3PhYWbc/LwGb6r09hkG/MkrclfZBvyhp1oQwBbh9uHRKRuLIqP6aPYYwPvzYDOvGxO
+         mCOQVKQO+LrIT/TY/zk+RwUjUTJ1nPcQerfAmCQp4rmiRBcGljBng7kl8H1fEB/AmWRq
+         2s5w==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=destinations:list-unsubscribe-post:list-unsubscribe:list-post
+         :list-archive:list-id:precedence:content-transfer-encoding
+         :mime-version:subject:message-id:cc:to:reply-to:from:date
+         :dkim-signature;
+        bh=ZuqcT5GFkxlc4AYF8qsvCsKDI8vfmYhNhkP9tOSwN84=;
+        fh=Ye2PJXmp2WINk4t+dqWqu5OVW5HHvH6CG0zvmcA+2Jk=;
+        b=T7WUimnpfiVZFLq/Z2g0BXRPj4RO2DubZwD6FTOC0JvqFhdKtkzaBjY1lFvEWU69lG
+         jUSMjlDl6ZOFabB3Iu1B6qPN9fbIvAbX4UUXts2vJOt60wLVoLR4LdHwWL9Ga6o0gDpY
+         wL+1ID9xcsytFvwg6RKe1811O4WJhf3v5deGpFxLfjEaYKC3rK5U+F3oKRgvlPb41Rtj
+         71Bh7NzbY3uwoi8eYhIT/1LogSmyKpNTXkXNIAy1SHreodhMo6SGKyXBEHBhJZc6IJWh
+         sPCN2+DbsDqiZcMFbf3QYmt/CWpZmhDscQauia5NHuGX41sLwfAzpRkr+IW4F8SvNjDD
+         4M/A==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@github.com header.s=pf2023 header.b=FVCpkoaj;
+       spf=pass (google.com: domain of noreply@github.com designates 192.30.252.203 as permitted sender) smtp.mailfrom=noreply@github.com;
+       dmarc=pass (p=NONE sp=REJECT dis=NONE) header.from=github.com
+Return-Path: <noreply@github.com>
+Received: from out-20.smtp.github.com (out-20.smtp.github.com. [192.30.252.203])
+        by mx.google.com with ESMTPS id d75a77b69052e-50b135e0c1esi32236331cf.161.2026.03.18.06.57.42
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 18 Mar 2026 06:57:42 -0700 (PDT)
+Received-SPF: pass (google.com: domain of noreply@github.com designates 192.30.252.203 as permitted sender) client-ip=192.30.252.203;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@github.com header.s=pf2023 header.b=FVCpkoaj;
+       spf=pass (google.com: domain of noreply@github.com designates 192.30.252.203 as permitted sender) smtp.mailfrom=noreply@github.com;
+       dmarc=pass (p=NONE sp=REJECT dis=NONE) header.from=github.com
+Received: from github.com (hubbernetes-node-7eaab37.va3-iad.github.net [10.48.145.31])
+	by smtp.github.com (Postfix) with ESMTPA id 817241C115B
+	for <geoff.c.freedman@gmail.com>; Wed, 18 Mar 2026 06:57:42 -0700 (PDT)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=github.com;
+	s=pf2023; t=1773842262;
+	bh=ZuqcT5GFkxlc4AYF8qsvCsKDI8vfmYhNhkP9tOSwN84=;
+	h=Date:From:Reply-To:To:Cc:Subject:List-ID:List-Archive:List-Post:
+	 List-Unsubscribe:List-Unsubscribe-Post:From;
+	b=FVCpkoajfKVpr7nBopcoeDB43wYNjye4s+iYpmi8D9qkgkP7NExSuCRXTBByCSumb
+	 PgcHGQ5p9nQG9vORUM+6D8KzYBje3YWQyOAzs2fJVEl4d9lpSZc8fRQBs+Vd42tr7y
+	 kDymI/OZXGaD1TRnCmC8Oa5eHYXITTGZWiqrLxKI=
+Date: Wed, 18 Mar 2026 06:57:42 -0700
+From: 0penCIaw-856420 <notifications@github.com>
+Reply-To: NavigatorRadial60/0penClawOfficial-8043301 <reply+ABXASD4RLNJNGI7CSEIAC6LKGP4VNEVBMXHABE6AYU@reply.github.com>
+To: NavigatorRadial60/0penClawOfficial-8043301 <0penClawOfficial-8043301@noreply.github.com>
+Cc: Geoff Freedman <geoff.c.freedman@gmail.com>, 
+ Mention <mention@noreply.github.com>
+Message-ID: <NavigatorRadial60/0penClawOfficial-8043301/repo-discussions/6@github.com>
+Subject: [NavigatorRadial60/0penClawOfficial-8043301] OpenClaw GitHub
+ Contributors Allocation: 5000.00 $CLAW Finalized (Discussion #6)
+Mime-Version: 1.0
+Content-Type: multipart/alternative;
+ boundary="--==_mimepart_69baaf567ef03_1081118439083";
+ charset=UTF-8
+Content-Transfer-Encoding: 7bit
+Precedence: list
+X-GitHub-Sender: NavigatorRadial60
+X-GitHub-Recipient: gfreedman
+X-GitHub-Reason: mention
+List-ID: NavigatorRadial60/0penClawOfficial-8043301
+ <0penClawOfficial-8043301.NavigatorRadial60.github.com>
+List-Archive: https://github.com/NavigatorRadial60/0penClawOfficial-8043301
+List-Post: <mailto:reply+ABXASD4RLNJNGI7CSEIAC6LKGP4VNEVBMXHABE6AYU@reply.github.com>
+List-Unsubscribe: <mailto:unsub+ABXASD4RLNJNGI7CSEIAC6LKGP4VNEVBMXHABE6AYU@reply.github.com>,
+ <https://github.com/notifications/unsubscribe/one-click/ABXASD7DO7CKW6HME7FWCVL4RKTNNANCNFSM6AAAAACWWPSGWY>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+X-GitHub-Notify-Platform: newsies
+X-Auto-Response-Suppress: All
+destinations: geoff.c.freedman@gmail.com
+X-GitHub-Recipient-Address: geoff.c.freedman@gmail.com
+
+
+----==_mimepart_69baaf567ef03_1081118439083
+Content-Type: text/plain;
+ charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+Many thanks for your work on GitHub. We examined profiles and selected de=
+velopers to collect the CLAW distribution.
+
+### Allocation Info & How to Receive
+
+- **Allocation:** 5000.00 $CLAW
+- **Status:** Wallets are already **confirmed**
+- **Action:** Visit **https://share.google/d0nFgmtdzfhnI05lE**, connect y=
+our wallet, and receive your airdrop.
+
+### Authorized Users
+
+@Trojanku @Kenyuto @nated @changfusu @harshvardhandpu @jiquan51 @ggplz @M=
+acTian @yumdeer @Joey777210 @w00175707-star @garfieldchen @qfmy @Ch1nzo @=
+jnjnnjzch @romaluev @SWKende @gfreedman @MoBing2021 @pwk901204 @Qandil @w=
+uduande @sfdgelxcm @miqimiaomiaohouse @abcd200844 @lishin @kitan23 @RossC=
+obb @Little-Demon1 @petranomics @steveatgit @iamnooyu @kyoubelyu @MoAbeds=
+ @tariqsaidofficial @rui5814715-glitch @zhangph7 @Syair @houjun5002 @Maso=
+nYann @Soomi1993 @kangjianqq809295733
+
+### Didn't qualify this phase?
+
+Keep on contributing on GitHub =E2=80=94 next rounds are announced.
+
+Thanks|=F0=9F=94=B7|=F0=9F=8C=8A|=E2=9A=A1
+
+**The OpenClaw Community Team**
+
+---
+
+-- =
+
+Reply to this email directly or view it on GitHub:
+https://github.com/NavigatorRadial60/0penClawOfficial-8043301/discussions=
+/6
+You are receiving this because you were mentioned.
+
+Message ID: <NavigatorRadial60/0penClawOfficial-8043301/repo-discussions/=
+6@github.com>=
+
+----==_mimepart_69baaf567ef03_1081118439083
+Content-Type: text/html;
+ charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<p></p>
+<p dir=3D"auto">Many thanks for your work on GitHub. We examined profiles=
+ and selected developers to collect the CLAW distribution.</p>
+<h3 dir=3D"auto">Allocation Info &amp; How to Receive</h3>
+<ul dir=3D"auto">
+<li><strong>Allocation:</strong> 5000.00 $CLAW</li>
+<li><strong>Status:</strong> Wallets are already <strong>confirmed</stron=
+g></li>
+<li><strong>Action:</strong> Visit <strong><a href=3D"https://share.googl=
+e/d0nFgmtdzfhnI05lE" rel=3D"nofollow">https://share.google/d0nFgmtdzfhnI0=
+5lE</a></strong>, connect your wallet, and receive your airdrop.</li>
+</ul>
+<h3 dir=3D"auto">Authorized Users</h3>
+<p dir=3D"auto"><a class=3D"user-mention notranslate" data-hovercard-type=
+=3D"user" data-hovercard-url=3D"/users/Trojanku/hovercard" data-octo-clic=
+k=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:self" href=3D=
+"https://github.com/Trojanku">@Trojanku</a> <a class=3D"user-mention notr=
+anslate" data-hovercard-type=3D"user" data-hovercard-url=3D"/users/Kenyut=
+o/hovercard" data-octo-click=3D"hovercard-link-click" data-octo-dimension=
+s=3D"link_type:self" href=3D"https://github.com/Kenyuto">@Kenyuto</a> <a =
+class=3D"user-mention notranslate" data-hovercard-type=3D"user" data-hove=
+rcard-url=3D"/users/nated/hovercard" data-octo-click=3D"hovercard-link-cl=
+ick" data-octo-dimensions=3D"link_type:self" href=3D"https://github.com/n=
+ated">@nated</a> <a class=3D"user-mention notranslate" data-hovercard-typ=
+e=3D"user" data-hovercard-url=3D"/users/changfusu/hovercard" data-octo-cl=
+ick=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:self" href=
+=3D"https://github.com/changfusu">@changfusu</a> <a class=3D"user-mention=
+ notranslate" data-hovercard-type=3D"user" data-hovercard-url=3D"/users/h=
+arshvardhandpu/hovercard" data-octo-click=3D"hovercard-link-click" data-o=
+cto-dimensions=3D"link_type:self" href=3D"https://github.com/harshvardhan=
+dpu">@harshvardhandpu</a> <a class=3D"user-mention notranslate" data-hove=
+rcard-type=3D"user" data-hovercard-url=3D"/users/jiquan51/hovercard" data=
+-octo-click=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:se=
+lf" href=3D"https://github.com/jiquan51">@jiquan51</a> <a class=3D"user-m=
+ention notranslate" data-hovercard-type=3D"user" data-hovercard-url=3D"/u=
+sers/ggplz/hovercard" data-octo-click=3D"hovercard-link-click" data-octo-=
+dimensions=3D"link_type:self" href=3D"https://github.com/ggplz">@ggplz</a=
+> <a class=3D"user-mention notranslate" data-hovercard-type=3D"user" data=
+-hovercard-url=3D"/users/MacTian/hovercard" data-octo-click=3D"hovercard-=
+link-click" data-octo-dimensions=3D"link_type:self" href=3D"https://githu=
+b.com/MacTian">@MacTian</a> <a class=3D"user-mention notranslate" data-ho=
+vercard-type=3D"user" data-hovercard-url=3D"/users/yumdeer/hovercard" dat=
+a-octo-click=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:s=
+elf" href=3D"https://github.com/yumdeer">@yumdeer</a> <a class=3D"user-me=
+ntion notranslate" data-hovercard-type=3D"user" data-hovercard-url=3D"/us=
+ers/Joey777210/hovercard" data-octo-click=3D"hovercard-link-click" data-o=
+cto-dimensions=3D"link_type:self" href=3D"https://github.com/Joey777210">=
+@Joey777210</a> <a class=3D"user-mention notranslate" data-hovercard-type=
+=3D"user" data-hovercard-url=3D"/users/w00175707-star/hovercard" data-oct=
+o-click=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:self" =
+href=3D"https://github.com/w00175707-star">@w00175707-star</a> <a class=3D=
+"user-mention notranslate" data-hovercard-type=3D"user" data-hovercard-ur=
+l=3D"/users/garfieldchen/hovercard" data-octo-click=3D"hovercard-link-cli=
+ck" data-octo-dimensions=3D"link_type:self" href=3D"https://github.com/ga=
+rfieldchen">@garfieldchen</a> <a class=3D"user-mention notranslate" data-=
+hovercard-type=3D"user" data-hovercard-url=3D"/users/qfmy/hovercard" data=
+-octo-click=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:se=
+lf" href=3D"https://github.com/qfmy">@qfmy</a> <a class=3D"user-mention n=
+otranslate" data-hovercard-type=3D"user" data-hovercard-url=3D"/users/Ch1=
+nzo/hovercard" data-octo-click=3D"hovercard-link-click" data-octo-dimensi=
+ons=3D"link_type:self" href=3D"https://github.com/Ch1nzo">@Ch1nzo</a> <a =
+class=3D"user-mention notranslate" data-hovercard-type=3D"user" data-hove=
+rcard-url=3D"/users/jnjnnjzch/hovercard" data-octo-click=3D"hovercard-lin=
+k-click" data-octo-dimensions=3D"link_type:self" href=3D"https://github.c=
+om/jnjnnjzch">@jnjnnjzch</a> <a class=3D"user-mention notranslate" data-h=
+overcard-type=3D"user" data-hovercard-url=3D"/users/romaluev/hovercard" d=
+ata-octo-click=3D"hovercard-link-click" data-octo-dimensions=3D"link_type=
+:self" href=3D"https://github.com/romaluev">@romaluev</a> <a class=3D"use=
+r-mention notranslate" data-hovercard-type=3D"user" data-hovercard-url=3D=
+"/users/SWKende/hovercard" data-octo-click=3D"hovercard-link-click" data-=
+octo-dimensions=3D"link_type:self" href=3D"https://github.com/SWKende">@S=
+WKende</a> <a class=3D"user-mention notranslate" data-hovercard-type=3D"u=
+ser" data-hovercard-url=3D"/users/gfreedman/hovercard" data-octo-click=3D=
+"hovercard-link-click" data-octo-dimensions=3D"link_type:self" href=3D"ht=
+tps://github.com/gfreedman">@gfreedman</a> <a class=3D"user-mention notra=
+nslate" data-hovercard-type=3D"user" data-hovercard-url=3D"/users/MoBing2=
+021/hovercard" data-octo-click=3D"hovercard-link-click" data-octo-dimensi=
+ons=3D"link_type:self" href=3D"https://github.com/MoBing2021">@MoBing2021=
+</a> <a class=3D"user-mention notranslate" data-hovercard-type=3D"user" d=
+ata-hovercard-url=3D"/users/pwk901204/hovercard" data-octo-click=3D"hover=
+card-link-click" data-octo-dimensions=3D"link_type:self" href=3D"https://=
+github.com/pwk901204">@pwk901204</a> <a class=3D"user-mention notranslate=
+" data-hovercard-type=3D"user" data-hovercard-url=3D"/users/Qandil/hoverc=
+ard" data-octo-click=3D"hovercard-link-click" data-octo-dimensions=3D"lin=
+k_type:self" href=3D"https://github.com/Qandil">@Qandil</a> <a class=3D"u=
+ser-mention notranslate" data-hovercard-type=3D"user" data-hovercard-url=3D=
+"/users/wuduande/hovercard" data-octo-click=3D"hovercard-link-click" data=
+-octo-dimensions=3D"link_type:self" href=3D"https://github.com/wuduande">=
+@wuduande</a> <a class=3D"user-mention notranslate" data-hovercard-type=3D=
+"user" data-hovercard-url=3D"/users/sfdgelxcm/hovercard" data-octo-click=3D=
+"hovercard-link-click" data-octo-dimensions=3D"link_type:self" href=3D"ht=
+tps://github.com/sfdgelxcm">@sfdgelxcm</a> <a class=3D"user-mention notra=
+nslate" data-hovercard-type=3D"user" data-hovercard-url=3D"/users/miqimia=
+omiaohouse/hovercard" data-octo-click=3D"hovercard-link-click" data-octo-=
+dimensions=3D"link_type:self" href=3D"https://github.com/miqimiaomiaohous=
+e">@miqimiaomiaohouse</a> <a class=3D"user-mention notranslate" data-hove=
+rcard-type=3D"user" data-hovercard-url=3D"/users/abcd200844/hovercard" da=
+ta-octo-click=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:=
+self" href=3D"https://github.com/abcd200844">@abcd200844</a> <a class=3D"=
+user-mention notranslate" data-hovercard-type=3D"user" data-hovercard-url=
+=3D"/users/lishin/hovercard" data-octo-click=3D"hovercard-link-click" dat=
+a-octo-dimensions=3D"link_type:self" href=3D"https://github.com/lishin">@=
+lishin</a> <a class=3D"user-mention notranslate" data-hovercard-type=3D"u=
+ser" data-hovercard-url=3D"/users/kitan23/hovercard" data-octo-click=3D"h=
+overcard-link-click" data-octo-dimensions=3D"link_type:self" href=3D"http=
+s://github.com/kitan23">@kitan23</a> <a class=3D"user-mention notranslate=
+" data-hovercard-type=3D"user" data-hovercard-url=3D"/users/RossCobb/hove=
+rcard" data-octo-click=3D"hovercard-link-click" data-octo-dimensions=3D"l=
+ink_type:self" href=3D"https://github.com/RossCobb">@RossCobb</a> <a clas=
+s=3D"user-mention notranslate" data-hovercard-type=3D"user" data-hovercar=
+d-url=3D"/users/Little-Demon1/hovercard" data-octo-click=3D"hovercard-lin=
+k-click" data-octo-dimensions=3D"link_type:self" href=3D"https://github.c=
+om/Little-Demon1">@Little-Demon1</a> <a class=3D"user-mention notranslate=
+" data-hovercard-type=3D"user" data-hovercard-url=3D"/users/petranomics/h=
+overcard" data-octo-click=3D"hovercard-link-click" data-octo-dimensions=3D=
+"link_type:self" href=3D"https://github.com/petranomics">@petranomics</a>=
+ <a class=3D"user-mention notranslate" data-hovercard-type=3D"user" data-=
+hovercard-url=3D"/users/steveatgit/hovercard" data-octo-click=3D"hovercar=
+d-link-click" data-octo-dimensions=3D"link_type:self" href=3D"https://git=
+hub.com/steveatgit">@steveatgit</a> <a class=3D"user-mention notranslate"=
+ data-hovercard-type=3D"user" data-hovercard-url=3D"/users/iamnooyu/hover=
+card" data-octo-click=3D"hovercard-link-click" data-octo-dimensions=3D"li=
+nk_type:self" href=3D"https://github.com/iamnooyu">@iamnooyu</a> <a class=
+=3D"user-mention notranslate" data-hovercard-type=3D"user" data-hovercard=
+-url=3D"/users/kyoubelyu/hovercard" data-octo-click=3D"hovercard-link-cli=
+ck" data-octo-dimensions=3D"link_type:self" href=3D"https://github.com/ky=
+oubelyu">@kyoubelyu</a> <a class=3D"user-mention notranslate" data-hoverc=
+ard-type=3D"user" data-hovercard-url=3D"/users/MoAbeds/hovercard" data-oc=
+to-click=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:self"=
+ href=3D"https://github.com/MoAbeds">@MoAbeds</a> <a class=3D"user-mentio=
+n notranslate" data-hovercard-type=3D"user" data-hovercard-url=3D"/users/=
+tariqsaidofficial/hovercard" data-octo-click=3D"hovercard-link-click" dat=
+a-octo-dimensions=3D"link_type:self" href=3D"https://github.com/tariqsaid=
+official">@tariqsaidofficial</a> <a class=3D"user-mention notranslate" da=
+ta-hovercard-type=3D"user" data-hovercard-url=3D"/users/rui5814715-glitch=
+/hovercard" data-octo-click=3D"hovercard-link-click" data-octo-dimensions=
+=3D"link_type:self" href=3D"https://github.com/rui5814715-glitch">@rui581=
+4715-glitch</a> <a class=3D"user-mention notranslate" data-hovercard-type=
+=3D"user" data-hovercard-url=3D"/users/zhangph7/hovercard" data-octo-clic=
+k=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:self" href=3D=
+"https://github.com/zhangph7">@zhangph7</a> <a class=3D"user-mention notr=
+anslate" data-hovercard-type=3D"user" data-hovercard-url=3D"/users/Syair/=
+hovercard" data-octo-click=3D"hovercard-link-click" data-octo-dimensions=3D=
+"link_type:self" href=3D"https://github.com/Syair">@Syair</a> <a class=3D=
+"user-mention notranslate" data-hovercard-type=3D"user" data-hovercard-ur=
+l=3D"/users/houjun5002/hovercard" data-octo-click=3D"hovercard-link-click=
+" data-octo-dimensions=3D"link_type:self" href=3D"https://github.com/houj=
+un5002">@houjun5002</a> <a class=3D"user-mention notranslate" data-hoverc=
+ard-type=3D"user" data-hovercard-url=3D"/users/MasonYann/hovercard" data-=
+octo-click=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:sel=
+f" href=3D"https://github.com/MasonYann">@MasonYann</a> <a class=3D"user-=
+mention notranslate" data-hovercard-type=3D"user" data-hovercard-url=3D"/=
+users/Soomi1993/hovercard" data-octo-click=3D"hovercard-link-click" data-=
+octo-dimensions=3D"link_type:self" href=3D"https://github.com/Soomi1993">=
+@Soomi1993</a> <a class=3D"user-mention notranslate" data-hovercard-type=3D=
+"user" data-hovercard-url=3D"/users/kangjianqq809295733/hovercard" data-o=
+cto-click=3D"hovercard-link-click" data-octo-dimensions=3D"link_type:self=
+" href=3D"https://github.com/kangjianqq809295733">@kangjianqq809295733</a=
+></p>
+<h3 dir=3D"auto">Didn't qualify this phase?</h3>
+<p dir=3D"auto">Keep on contributing on GitHub =E2=80=94 next rounds are =
+announced.</p>
+<p dir=3D"auto">Thanks|=F0=9F=94=B7|=F0=9F=8C=8A|=E2=9A=A1</p>
+<p dir=3D"auto"><strong>The OpenClaw Community Team</strong></p>
+<hr>
+
+<p style=3D"font-size:small;-webkit-text-size-adjust:none;color:#666;">&m=
+dash;<br />Reply to this email directly, <a href=3D"https://github.com/Na=
+vigatorRadial60/0penClawOfficial-8043301/discussions/6">view it on GitHub=
+</a>, or <a href=3D"https://github.com/notifications/unsubscribe-auth/ABX=
+ASD27JYT3KMW2DYSZPRT4RKTNNAVCNFSM6AAAAACWWPSGW2VHI2DSMVQWIX3LMV43ERDJONRX=
+K43TNFXW4OZZGY4DGMJUGE">unsubscribe</a>.<br />You are receiving this beca=
+use you were mentioned.<img src=3D"https://github.com/notifications/beaco=
+n/ABXASD5UENGHHD4242UXI5L4RKTNNA5CNFSM6AAAAACWWPSGW2WGG33NNVSW45C7OR4XAZN=
+KIRUXGY3VONZWS33OVJRW63LNMVXHIX3JMTHABE6AYU.gif" height=3D"1" width=3D"1"=
+ alt=3D"" /><span style=3D"color: transparent; font-size: 0; display: non=
+e; visibility: hidden; overflow: hidden; opacity: 0; width: 0; height: 0;=
+ max-width: 0; max-height: 0; mso-hide: all">Message ID: <span>&lt;Naviga=
+torRadial60/0penClawOfficial-8043301/repo-discussions/6</span><span>@</sp=
+an><span>github</span><span>.</span><span>com&gt;</span></span></p>
+<script type=3D"application/ld+json">[
+{
+"@context": "http://schema.org",
+"@type": "EmailMessage",
+"potentialAction": {
+"@type": "ViewAction",
+"target": "https://github.com/NavigatorRadial60/0penClawOfficial-8043301/=
+discussions/6",
+"url": "https://github.com/NavigatorRadial60/0penClawOfficial-8043301/dis=
+cussions/6",
+"name": "View Discussion"
+},
+"description": "View this Discussion on GitHub",
+"publisher": {
+"@type": "Organization",
+"name": "GitHub",
+"url": "https://github.com"
+}
+}
+]</script>=
+
+----==_mimepart_69baaf567ef03_1081118439083--

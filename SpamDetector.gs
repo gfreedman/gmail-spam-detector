@@ -26,111 +26,20 @@
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
  *   Rule 4: Empty subject + attachment → payload delivery scam
  *
- * Changelog:
- *   v6.20.0: Detect payload delivery scams — empty subject + attachment.
- *            These evade all text-pattern rules (no subject/body to match)
- *            by hiding the scam inside an Excel/PDF file. Add Rule 4 and
- *            mirror in test_v6.py. Add scam_examples/ test phase (1/1).
- *   v6.19.0: Detect crypto airdrop/wallet-drainer scams sent via legitimate
- *            infrastructure (e.g. GitHub mention notifications). Add crypto
- *            quantity pattern to subject+from clickbait (\d+ $TICKER), and
- *            a body-only check for "airdrop" and "connect.*wallet" — each
- *            increments clickbaitCount, giving 3 total → Rule 3. Add spam
- *            example (44/44). Mirror body check in test_v6.py.
- *   v6.18.0: Systemic RFC 2822 normalization fix. Root cause of all recent false
- *            positives: getFrom() returns raw headers with outer double-quotes on
- *            display names ("Name" <email>), but Python test library strips them.
- *            Fix: normalize `from` once at the top of analyzeMessage() instead of
- *            patching each individual signal. Also remove comma from marketing
- *            pattern [|,]\s*[A-Z] — commas appear in legit org and place names
- *            (e.g. "Bay Meadows, San Mateo") and are not reliable spam indicators.
- *            Mirror both changes in test_v6.py. Add ham example (16/16).
- *   v6.17.9: Strip RFC 2822 surrounding quotes from display name before length
- *            check. "Name" (51 chars with quotes) != Name (49 chars). Prevents
- *            suspiciousFromName firing on legit long-but-not-excessive names.
- *            Fixes COYSA registration confirmation false positive.
- *            Add ham example (15/15).
- *   v6.17.8: Fix false positive on RFC 2822 quoted display names. The marketing
- *            pattern ["|,]\s*[A-Z] incorrectly matched the opening double-quote
- *            in standard quoted display names like "The LINE Austin..." — a
- *            normal email format, not a spam indicator. Removed " from the
- *            character class. Fixes LINE Austin receipt false positive.
- *            Add ham example (14/14).
- *   v6.17.7: Remove subject-echo detection. Caused false positives on legit
- *            company emails (Converse Canada order confirmation) — a company
- *            using its name in both From and Subject is normal, not suspicious.
- *            All spam previously caught by subject-echo is also caught by
- *            Rule 0 (blacklist), so zero detection loss. Add validate.py
- *            pre-push script to catch README/version nits locally.
- *   v6.17.6: Rewrite cleanseInbox() — two-speed mode. Rule 0 (blacklist) →
- *            delete immediately. Rules 1/2/3 → apply "SuspectedSpam" label
- *            for human review instead of deleting. Eliminates false-positive
- *            risk during historical scans.
- *   v6.17.5: Whitelist ezyvet.com (vet practice management system). Dash-date
- *            + subdomain marketing pattern was flagging legit vet emails.
- *            Add whitelist check to test_v6.py. Add ham example (13/13).
- *   v6.17.4: Fix subject-echo false positive. Word-boundary regex instead of
- *            substring match — prevents "mission" hitting inside "missioncreekah"
- *            (vet payment receipt wrongly flagged). Add ham example (12/12).
- *   v6.17.3: cleanseInbox() now calls refreshBlacklist()/refreshWhitelist()
- *            automatically before scanning, so Script Properties are always
- *            current without a separate manual step.
- *   v6.17.2: Add cleanseInbox() — full historical scan with no date filter,
- *            paginated in batches of 50 (up to 500 emails). Catches spam that
- *            arrived before the script was running or before a pattern existed.
- *            Run manually from the Apps Script editor.
- *   v6.17.1: Blacklist beststockvillage (Unicode-obfuscated gold/stock spam).
- *            Add spam example (43/43).
- *   v6.17.0: Add dash-date clickbait pattern ("- Mar 11, 2026") and doom
- *            framing pattern ("What's Coming" / "not prepared"). Three new
- *            spam examples (42/42). Root cause: OI emails only fired Rule 0
- *            (blacklist); with no blacklist fallback in Script Properties,
- *            all were missed. New patterns provide Rule 1/2 coverage.
- *   v6.16.1: Fix "per share" stock price miss. Extend stock price pattern to
- *            match "$0.85 per share" (was only matching "a share"). Gives
- *            clickbait=1 + marketing → Rule 2 independent of blacklist.
- *            Add 2 spam examples (39/39).
- *   v6.16.0: Fix "Trump approved precious metals" spam miss. Two new clickbait
- *            patterns: political legitimization ("Trump approved/signed/backed")
- *            and bracket-date format ("[March 09]"). Both fire on subject+from,
- *            giving clickbait=2 + bulk → Rule 1. Blacklist onlineinvestingdaily.
- *            Added spam example (37/37).
- *   v6.15.2: Fix silver/dollar financial spam miss. Add "dying" to financial
- *            fear clickbait pattern ("dollar dying"). Add pipe-date clickbait
- *            pattern ("| February 23") — pipe variant of existing bullet-date.
- *            Both give clickbait=2 + bulk → Rule 1, no blacklist dependency.
- *   v6.15.1: Fix "Not found" error after spam deletion. Skip thread.addLabel()
- *            on deleted threads. Added 2 spam examples (36/36).
- *            when a thread was deleted — calling addLabel() on a permanently
- *            deleted thread throws. Label is irrelevant on a deleted thread.
- *   v6.15.0: Blacklist smartpeoplemail (Pre-IPO investment spam). Add Pre-IPO
- *            clickbait pattern for defense-in-depth against similar senders.
- *            Added spam example (35/35).
- *   v6.14.0: Add refreshBlacklist() — merges new DEFAULT_DOMAINS.suspicious
- *            entries into runtime Script Properties. Fixes bug where blacklist
- *            additions in source code weren't reflected at runtime (Script
- *            Properties only initialize once, on first setup). Added spam
- *            example (34/34).
- *   v6.12.0: Detect polished financial spam — ellipsis clickbait pattern,
- *            subject-echo From name detection (flags when spammers stuff
- *            subject words into display name), blacklist investingtrendstoday.
- *   v6.11.1: Fix spam deletion — use batchDelete() instead of delete().
- *            The Advanced Gmail Service does not expose a single-message
- *            delete method. batchDelete({ids: [...]}, 'me') is the correct
- *            API for permanent deletion.
- *   v6.11.0: Fix spam deletion once and for all. Root cause: every version
- *            since v6.6.0 relied on QUERYING the spam folder after flagging,
- *            then deleting query results. Gmail has propagation delay between
- *            modify() and list() even on the same REST API. Fix: delete by
- *            known message ID immediately in markAsSpam(). destroySpam()
- *            retained as safety net for pre-existing spam.
- *   v6.9.0:  Catch "polished" financial spam — blacklist expertmodernadvice,
- *            detect Unicode punctuation obfuscation, financial solicitation.
- *   v6.8.0:  Blacklist hardening — bulk + blacklisted = spam. From-field
- *            anomaly detection for bullet separators / excessive length.
- *   v6.7.0:  Added mathematical Unicode, bullet-point dates, historical
- *            atrocity clickbait, health anxiety, financial scam products,
- *            "now you can see" curiosity gaps, bombshell, ⚡ emoji.
+ * Changelog (see git log for full history):
+ *   v6.21.0: CS professor refactor — JSON.parse fallback on corrupt Script
+ *            Properties, patterns to module-level constants, split
+ *            analyzeMessage() into collectSignals()/makeVerdict(), named
+ *            LIMITS constants, boolean return type, rules renumbered 1-5,
+ *            debugWhyFlagged() uses production pipeline, removed dead code.
+ *   v6.20.0: Detect payload delivery scams — empty subject + attachment (Rule 5).
+ *            Scam hides payload inside Excel/PDF; add scam_examples/ test phase.
+ *   v6.19.0: Detect crypto airdrop/wallet-drainer scams via body patterns.
+ *            Add crypto quantity pattern (\d+ $TICKER) and body-only airdrop/
+ *            connect-wallet check; each increments clickbaitCount → Rule 4.
+ *   v6.18.0: Systemic RFC 2822 normalization fix. Normalize `from` once at top
+ *            of signal collection; remove comma from marketing pattern (false
+ *            positives on legit org names like "Bay Meadows, San Mateo").
  *
  * Setup: See README.md or run setup() and follow the logs.
  */
@@ -149,13 +58,6 @@
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
   maxEmailsPerRun: 50,
-
-  /**
-   * Minimum score to classify as spam.
-   * The detection engine returns 0 (not spam) or 100 (spam) — binary decision.
-   * Threshold of 50 means anything flagged as spam (score=100) triggers action.
-   */
-  spamThreshold: 50,
 
   /** How many days back to scan for unprocessed emails */
   daysToCheck: 1,
@@ -205,6 +107,218 @@ const DEFAULT_DOMAINS = Object.freeze({
     'beststockvillage'
   ])
 });
+
+
+// =============================================================================
+// Internal Limits
+// =============================================================================
+
+/**
+ * Named constants for internal thresholds — prevents magic numbers scattered
+ * through detection and sanitization logic.
+ *
+ * @const {Object}
+ */
+const LIMITS = Object.freeze({
+  /** From display names longer than this are flagged as suspicious (keyword stuffing) */
+  maxDisplayNameLength: 50,
+
+  /** Input truncation cap — prevents regex backtracking DoS on malicious oversized inputs */
+  maxInputChars: 100000,
+
+  /** Log message truncation — prevents log injection via crafted subjects */
+  maxLogChars: 100
+});
+
+
+// =============================================================================
+// Detection Patterns
+//
+// Defined at module level so RegExp objects are compiled once, not on every
+// call to analyzeMessage(). Each array is frozen to prevent accidental mutation.
+// =============================================================================
+
+/**
+ * Clickbait / sensationalism patterns — checked against subject + from concatenated.
+ * Each matching pattern increments clickbaitCount independently.
+ * @const {Array<RegExp>}
+ */
+const CLICKBAIT_PATTERNS = Object.freeze([
+  // --- Sensationalist language ---
+
+  // Shock/sensation adjectives: "shocking admission", "bizarre discovery"
+  /\b(shocking|stunning|bizarre|mysterious|secret|hidden|leaked|exposed|forbidden|bombshell)\b/i,
+
+  // Terrifying/alarming adjectives (often stuffed into From display names)
+  /\b(terrifying|alarming|devastating|horrifying|frightening|chilling|disturbing)\b/i,
+
+  // Curiosity gap: mystery word + visual/media word ("secret photo", "leaked footage")
+  /(strange|secret|hidden|mysterious|shocking|bizarre|unusual|leaked).*(picture|photo|image|video|camera|footage|document)/i,
+
+  // Urgency + sensationalism: "breaking news", "urgent warning"
+  /(breaking|urgent|warning|alert|stop|exposed|banned).*(news|truth|secret|scandal|exposed|revealed)/i,
+
+  // Financial fear-mongering: market/money word + crisis word
+  /(market|stock|economy|dollar|gold|bitcoin|investment|crypto).*(crash|collapse|shift|crisis|warning|alert|plunge|tank|dying)/i,
+
+  // "Caught" visual-proof framing: "caught on camera", "caught red-handed"
+  /caught (on|doing|in|red-handed)/i,
+
+  // Transformation clickbait: "this changes everything", "what stunned everyone"
+  /(what|this).*(changes everything|stunned everyone|shocked|amazed|surprised)/i,
+
+  // --- Celebrity / political name-dropping ---
+
+  // Celebrity credibility theft: "RFK Jr Issues Warning", "Musk Exposes"
+  /\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns|showed|shows)/i,
+
+  // Political legitimization: "Trump approved/signed/backed [product]"
+  // Spammers use political figures to give fake authority to financial pitches
+  /\b(Trump|Biden|Obama|Musk|Kennedy|RFK)\b.*(approved|signed|backed|endorsed|directed|ordered|mandated)/i,
+
+  // Celebrity merchandise/collectible scams: "Trump Coin", "Biden Medal"
+  /\b(Trump|Biden|Obama|Kennedy)\b.*(coin|bill|medal|card|stamp|legacy|commemorat|collect|mint|gold|silver)/i,
+
+  // --- Demographic and temporal targeting ---
+
+  // Age-based fear: "Seniors Most At Risk", "If you're over 60"
+  /\b(seniors?|elderly|retirees?|boomers?|over \d{2}|born before|age \d{2})\b.*(risk|warning|alert|danger|affected|target)/i,
+
+  // Year-based urgency: current year + threat word for fake timeliness
+  /\b202[4-9]\b.*(warning|alert|prediction|forecast|crisis)/i,
+
+  // Conspiracy/hiding: "what they don't want you to know"
+  /(what|who).*(hiding|don't want you|truth|they won't tell)/i,
+
+  // Impending doom framing: "What's Coming", "Not Prepared for what's ahead"
+  /\bwhat.s (coming|ahead)\b|\bnot prepared\b/i,
+
+  // --- Violence and military sensationalism ---
+
+  // Military/war clickbait: "declared war", "bombing", "invasion"
+  /\b(declared war|bombed|bombing|attack|attacked|destroyed|invasion)\b/i,
+
+  // --- Financial hype ---
+
+  // Pre-IPO investment solicitation: always spam in bulk email
+  /\bpre-?ipo\b/i,
+
+  // Stock price hype: "$5 a share", "$0.85 per share", "penny stock"
+  /\$\d+(\.\d+)?\s*(?:(?:a|per)\s+)?share|\bpenny stock\b/i,
+
+  // Watch/see curiosity gap: "watch what happened", "see this"
+  /\b(watch|see)\s+(what|this|the moment)/i,
+
+  // --- Structural / formatting indicators ---
+
+  /【.*】/,           // Japanese-style brackets (spammer formatting tactic)
+  /\[.{3,}[?!]\]/,    // Square brackets with punctuation: [Like This?]
+  /💼|📸|⏯️|🚨|⚠️|📰|💰|⚡/,  // Sensationalist emoji cluster
+  /\?\?\?|!!!/,       // Triple punctuation (urgency tactic)
+  /\u2026|\.{3,}/,    // Ellipsis dramatic pause (Unicode … or ASCII ...)
+  /\bWATCH\b.*\?$/i,  // "WATCH ...?" clickbait structure
+
+  // --- Unicode obfuscation (filter evasion) ---
+
+  /[\u0400-\u04FF]/,  // Cyrillic lookalikes: "Еlоn" with Cyrillic Е, о
+  /[\u0370-\u03FF]/,  // Greek lookalikes: "Βanks" with Greek Β
+  /[\uFF00-\uFFEF]/,  // Fullwidth chars: "＄2 Bill" — never legit in English
+  /\uD835/,           // Mathematical bold/italic: "𝗔𝗺𝗮𝘇𝗼𝗻" (surrogate pair)
+
+  // --- Topic-specific spam categories ---
+
+  // Jobs/employment fear: "jobs disappeared", "layoffs"
+  /\b(jobs?|employment).*(disappeared|vanished|never existed|fake|fraud|layoffs?)/i,
+
+  // Bank/branch closing fear: "banks closing", "ATMs shutting down"
+  /\b(banks?|branch|branches|ATMs?).*(clos|shut|disappear|eliminat)/i,
+
+  // Building/institution emoji (banks, hospitals, government)
+  /🏦|🏥|🏛️|🏢/,
+
+  // Collectible/commemorative scams: "limited edition", "rare coin"
+  /\b(minted|commemorat|collector'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b/i,
+
+  // Bullet-point date format: "• January 29 •" (newsletter spam tactic)
+  /•\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
+
+  // Pipe-date subject format: "| February 23" (same tactic, pipe variant)
+  /\|\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
+
+  // Bracket-date subject format: "[March 09]" — same tactic, bracket variant
+  /\[\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
+
+  // Dash-date subject format: "- Mar 11, 2026" — same tactic, dash variant with abbreviated months
+  /[-]\s*(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\b/i,
+
+  // Historical atrocity clickbait: Nazi/Holocaust references as engagement bait
+  /\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b/i,
+
+  // Health condition anxiety triggers: "blood sugar", "brain fog"
+  /\b(fatigue|insomnia|inflammation|blood sugar|cholesterol|blood pressure|joint pain|brain fog|belly fat)\b/i,
+
+  // Financial scam products: gift cards, tax liens, instant approval
+  /\b(gift card|tax lien|tax sale|foreclosure list|pre-?approved|instant approval|no annual fee)\b/i,
+
+  // "Now you can see/watch" exclusive access clickbait
+  /\bnow you can (see|watch|view|get)\b/i,
+
+  // Unicode punctuation obfuscation (lookalike slash characters)
+  // U+2215 DIVISION SLASH, U+2044 FRACTION SLASH, U+29F8 BIG SOLIDUS
+  /[\u2215\u2044\u29F8]/,
+
+  // Financial product solicitation: "0% APR", "balance transfer"
+  /\b(0\s*%\s*(interest|apr)|balance transfer|transfer your.*(balance|debt))\b/i,
+
+  // Crypto quantity notation: "5000.00 $CLAW", "100 $USDT" — airdrop/ICO spam
+  // Legitimate financial email writes "$5000", not "5000 $TICKER"
+  /\b\d+(?:\.\d+)?\s+\$[A-Z]{4,}\b/
+]);
+
+/**
+ * Body-only crypto scam patterns — high-confidence terms that almost never
+ * appear in legitimate email bodies. Each match increments clickbaitCount.
+ * @const {Array<RegExp>}
+ */
+const BODY_CRYPTO_PATTERNS = Object.freeze([
+  /\bairdrop\b/i,                   // Crypto token airdrop
+  /\bconnect\s+(your\s+)?wallet\b/i // "Connect your wallet" — wallet drainer
+]);
+
+/**
+ * Fear-mongering patterns — boolean signal, first match wins.
+ * Checked against subject + from concatenated.
+ * @const {Array<RegExp>}
+ */
+const FEAR_PATTERNS = Object.freeze([
+  // Government fear: IRS/NSA/FBI + threat/revelation verb
+  /\b(IRS|NSA|FBI|CIA|government|federal)\b.*(warn|hiding|secret|spy|track|audit|investigation|admission|reveal|expose|confiscat)/i,
+
+  // Financial fear: bank/money terms + seizure/theft/loss
+  /\b(banks?|bank account|credit card|social security|identity|savings|cash|money)\b.*(seize|steal|stolen|hacked|freeze|frozen|close|closed|warning|alert|confiscat|take|taking|lost)/i,
+
+  // Health fear: medical terms + danger verbs
+  /\b(blood thinner|medication|drug|vaccine|doctor|FDA|health crisis|at risk)\b.*(warning|danger|deadly|killing|risk|avoid|corrupt)/i,
+
+  // Standalone urgency words: "WARNING", "ALERT", "BREAKING"
+  /\b(warning|alert|urgent|breaking|exposed|banned|stopped)\b/i,
+
+  // "STOP using/taking" imperative pattern
+  /\bSTOP (using|taking|doing|buying)\b/i
+]);
+
+/**
+ * Marketing sender format patterns — checked against From field only.
+ * Detects spammy sender formatting. First match wins.
+ * @const {Array<RegExp>}
+ */
+const MARKETING_PATTERNS = Object.freeze([
+  /\|\s*[A-Z]/,                                                                        // "Name | Org" pipe separator
+  /\s+at\s+[A-Z]/i,                                                                    // "Name at Organization"
+  /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i, // Spammy business names
+  /grow@with\./i,                                                                       // Suspicious email pattern
+  /@[a-z]\.[a-z]+\.(com|net)/i                                                          // Subdomain pattern: @F.FinanceInsiderPro.com
+]);
 
 
 // =============================================================================
@@ -377,9 +491,8 @@ function cleanseInbox()
               break; // Thread is gone — stop processing its messages
             }
 
-            // Rules 1/2/3: pattern-based — quarantine for human review
-            const score = analyzeMessage(message);
-            if (score >= CONFIG.spamThreshold)
+            // Rules 2-5: pattern-based — quarantine for human review
+            if (analyzeMessage(message))
             {
               threadSuspect = true;
             }
@@ -543,13 +656,13 @@ function processThread(thread)
       }
 
       processedCount++;
-      const spamScore = analyzeMessage(message);
+      const isSpam = analyzeMessage(message);
 
-      logDebug('Email: "' + sanitizeForLog(message.getSubject()) + '" - Score: ' + spamScore);
+      logDebug('Email: "' + sanitizeForLog(message.getSubject()) + '" - Spam: ' + isSpam);
 
       // Only mark thread as spam once, even if multiple messages trigger detection.
       // This prevents duplicate API calls and redundant log entries.
-      if (spamScore >= CONFIG.spamThreshold && !threadMarkedAsSpam)
+      if (isSpam && !threadMarkedAsSpam)
       {
         markAsSpam(message, thread);
         spamCount++;
@@ -626,405 +739,271 @@ function buildSearchQuery()
 // =============================================================================
 
 /**
- * Analyze a message using multi-signal pattern detection.
+ * Collect all spam signals from a message.
  *
- * This is the core detection engine. It collects signals across 6 categories,
- * then applies a 4-rule decision cascade. Returns a binary result (0 or 100)
- * rather than a granular score — an email is either spam or it isn't.
- *
- * Detection pipeline:
- *   1. Whitelist check — known legitimate senders bypass all detection
- *   2. Signal collection:
- *      a. Bulk email service (Amazon SES / SendGrid in raw headers)
- *      b. Blacklisted sender domain (known spam mills)
- *      c. Suspicious From display name (bullets, excessive length)
- *      d. Clickbait pattern count (40+ patterns across categories)
- *      e. Fear-mongering language (government/financial/health fear)
- *      f. Marketing sender format (pipe separators, spammy business names)
- *   3. Decision logic (4 rules in priority order):
- *      Rule 0: Bulk + blacklisted sender → spam (definitive)
- *      Rule 1: Bulk + 2+ clickbait patterns → spam
- *      Rule 2: Bulk + 2+ distinct spam behaviors → spam
- *      Rule 3: 3+ clickbait patterns alone → spam (catches direct-send)
- *      Rule 4: Empty subject + attachment → payload delivery scam
+ * Extracts and normalizes email fields, checks the whitelist, then populates
+ * a signals object from 6 independent detection categories. Each signal is
+ * evaluated without reference to the others — verdict logic lives in
+ * makeVerdict().
  *
  * @param {GmailMessage} message - The Gmail message to analyze.
- * @return {number} 0 (not spam) or 100 (spam).
+ * @return {Object|null} Signals object, or null if sender is whitelisted.
  */
-function analyzeMessage(message)
+function collectSignals(message)
 {
-  try
+  // ── Extract email fields ────────────────────────────────────────────────
+  const subject = sanitizeInput(message.getSubject());
+  const body = sanitizeInput(message.getPlainBody());
+  // Normalize RFC 2822 quoted display names: "Name" <email> → Name <email>
+  // getFrom() returns raw headers; outer quotes must be stripped so downstream
+  // pattern matching never sees the surrounding " characters.
+  const from = sanitizeInput(message.getFrom())
+                 .replace(/^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/, '$1$2');
+  const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
+
+  // ── Whitelist check (early exit) ────────────────────────────────────────
+  // Known legitimate senders skip all detection — prevents false positives
+  // on services like LinkedIn, Substack, etc. that use bulk infrastructure
+  const whitelist = getWhitelist();
+  const fromLower = from.toLowerCase();
+  for (let i = 0; i < whitelist.length; i++)
   {
-    // ── Extract email fields ──────────────────────────────────────────────
-    const subject = sanitizeInput(message.getSubject());
-    const body = sanitizeInput(message.getPlainBody());
-    // Normalize RFC 2822 quoted display names: "Name" <email> → Name <email>
-    // getFrom() returns raw headers; outer quotes must be stripped so downstream
-    // pattern matching never sees the surrounding " characters.
-    const from = sanitizeInput(message.getFrom())
-                   .replace(/^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/, '$1$2');
-    const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
-
-    // ── Whitelist check (early exit) ──────────────────────────────────────
-    // Known legitimate senders skip all detection — prevents false positives
-    // on services like LinkedIn, Substack, etc. that use bulk infrastructure
-    const whitelist = getWhitelist();
-    const fromLower = from.toLowerCase();
-    for (let i = 0; i < whitelist.length; i++)
+    if (fromLower.includes(whitelist[i]))
     {
-      if (fromLower.includes(whitelist[i]))
-      {
-        logDebug('Whitelisted domain detected: ' + whitelist[i]);
-        return 0;
-      }
+      logDebug('Whitelisted domain detected: ' + whitelist[i]);
+      return null; // null = whitelisted, skip all detection
     }
+  }
 
-    // ── Initialize signal accumulators ─────────────────────────────────────
-    // Each detection phase below populates one signal. The decision logic
-    // at the end combines these signals to make the spam/not-spam call.
-    const signals = {
-      bulkEmailService: false,          // Sent via Amazon SES or SendGrid
-      blacklistedSender: false,         // From a known spam mill domain
-      clickbaitCount: 0,                // Number of clickbait patterns matched
-      fearMongering: false,             // Contains fear-mongering language
-      marketingFormat: false,           // From field uses marketing formatting
-      suspiciousFromName: false,        // Display name is headline-like
-      emptySubjectWithAttachment: false // Empty subject + has attachment (payload scam)
-    };
+  // ── Initialize signal accumulators ───────────────────────────────────────
+  // Each detection phase below populates one signal. makeVerdict() combines
+  // them to produce the spam/not-spam decision.
+  const signals = {
+    bulkEmailService: false,          // Sent via Amazon SES or SendGrid
+    blacklistedSender: false,         // From a known spam mill domain
+    clickbaitCount: 0,                // Number of clickbait patterns matched
+    fearMongering: false,             // Contains fear-mongering language
+    marketingFormat: false,           // From field uses marketing formatting
+    suspiciousFromName: false,        // Display name is headline-like
+    emptySubjectWithAttachment: false // Empty subject + has attachment (payload scam)
+  };
 
-    // ── Signal 1a: Bulk email service detection ───────────────────────────
-    // Check raw email headers for Amazon SES or SendGrid fingerprints.
-    // These services are used by both legitimate senders and spam mills,
-    // so this signal alone is not conclusive — it's a multiplier for
-    // other signals in Rules 0-2.
-    if (rawContent.toLowerCase().includes('amazonses.com') ||
-        rawContent.toLowerCase().includes('x-ses-') ||
-        rawContent.toLowerCase().includes('sendgrid.net'))
+  // ── Signal 1a: Bulk email service detection ─────────────────────────────
+  // Check raw email headers for Amazon SES or SendGrid fingerprints.
+  // These services are used by both legitimate senders and spam mills,
+  // so this signal alone is not conclusive — it's a multiplier for
+  // other signals in Rules 1-3.
+  const rawLower = rawContent.toLowerCase();
+  if (rawLower.includes('amazonses.com') ||
+      rawLower.includes('x-ses-') ||
+      rawLower.includes('sendgrid.net'))
+  {
+    signals.bulkEmailService = true;
+    logDebug('Bulk email service detected');
+  }
+
+  // ── Signal 1b: Blacklisted sender domain ────────────────────────────────
+  // Substring match against known spam mill domains from Script Properties.
+  // One match is enough — these domains have no legitimate use.
+  const blacklist = getBlacklist();
+  for (let i = 0; i < blacklist.length; i++)
+  {
+    if (fromLower.includes(blacklist[i]))
     {
-      signals.bulkEmailService = true;
-      logDebug('Bulk email service detected');
+      signals.blacklistedSender = true;
+      logDebug('Blacklisted sender detected: ' + blacklist[i]);
+      break;
     }
+  }
 
-    // ── Signal 1b: Blacklisted sender domain ──────────────────────────────
-    // Substring match against known spam mill domains from Script Properties.
-    // One match is enough — these domains have no legitimate use.
-    const blacklist = getBlacklist();
-    for (let i = 0; i < blacklist.length; i++)
+  // ── Signal 1c: Suspicious From display name ─────────────────────────────
+  // Strip the <email@address> portion, then check the remaining display name.
+  // Legitimate senders use plain names ("John Smith"); spam mills stuff
+  // headlines into display names ("Breaking • Banks Closing • Alert").
+  const fromDisplayName = from.replace(/<[^>]*>$/, '').trim(); // quotes already stripped above
+  if (fromDisplayName.includes('•') ||     // Bullet separator — never used by legitimate senders
+      fromDisplayName.length > LIMITS.maxDisplayNameLength) // Excessive length — keyword stuffing
+  {
+    signals.suspiciousFromName = true;
+    logDebug('Suspicious From name detected: ' + sanitizeForLog(fromDisplayName));
+  }
+
+  // Subject echo removed: caused false positives on legitimate company emails
+  // (e.g. "Your Converse Canada order" + From "Converse Canada") — a company
+  // using its own name in both fields is normal, not suspicious. All spam
+  // previously caught by this signal was already caught by Rule 1 (blacklist).
+
+  // ── Signal 2: Clickbait / sensationalism patterns ───────────────────────
+  // Each pattern targets a CATEGORY of spam tactic, not specific phrases.
+  // Patterns are checked against both subject AND from field concatenated,
+  // since spammers stuff clickbait into display names too.
+  // Each matching pattern increments clickbaitCount independently.
+  const textToCheck = subject + ' ' + from;
+  for (let i = 0; i < CLICKBAIT_PATTERNS.length; i++)
+  {
+    if (CLICKBAIT_PATTERNS[i].test(textToCheck))
     {
-      if (fromLower.includes(blacklist[i]))
-      {
-        signals.blacklistedSender = true;
-        logDebug('Blacklisted sender detected: ' + blacklist[i]);
-        break;
-      }
+      signals.clickbaitCount++;
     }
+  }
 
-    // ── Signal 1c: Suspicious From display name ───────────────────────────
-    // Strip the <email@address> portion, then check the remaining display name.
-    // Legitimate senders use plain names ("John Smith"); spam mills stuff
-    // headlines into display names ("Breaking • Banks Closing • Alert").
-    const fromDisplayName = from.replace(/<[^>]*>$/, '').trim(); // quotes already stripped above
-    if (fromDisplayName.includes('•') ||  // Bullet separator — never used by legitimate senders
-        fromDisplayName.length > 50)      // Excessive length — keyword stuffing tactic
+  // ── Signal 2b: Body crypto scam patterns ────────────────────────────────
+  // High-confidence terms that almost never appear in legitimate email bodies.
+  // Checked against body only — subject/from rarely contain these phrases.
+  // Each match increments clickbaitCount independently (supports Rule 4).
+  for (let i = 0; i < BODY_CRYPTO_PATTERNS.length; i++)
+  {
+    if (BODY_CRYPTO_PATTERNS[i].test(body))
     {
-      signals.suspiciousFromName = true;
-      logDebug('Suspicious From name detected: ' + sanitizeForLog(fromDisplayName));
+      signals.clickbaitCount++;
     }
+  }
 
-    // Subject echo removed: caused false positives on legitimate company emails
-    // (e.g. "Your Converse Canada order" + From "Converse Canada") — a company
-    // using its own name in both fields is normal, not suspicious. All spam
-    // previously caught by this signal was already caught by Rule 0 (blacklist).
-
-    // ── Signal 2: Clickbait / sensationalism patterns ─────────────────────
-    // Each pattern targets a CATEGORY of spam tactic, not specific phrases.
-    // Patterns are checked against both subject AND from field concatenated,
-    // since spammers stuff clickbait into display names too.
-    // Each matching pattern increments clickbaitCount independently.
-    const clickbaitPatterns = [
-      // --- Sensationalist language ---
-
-      // Shock/sensation adjectives: "shocking admission", "bizarre discovery"
-      /\b(shocking|stunning|bizarre|mysterious|secret|hidden|leaked|exposed|forbidden|bombshell)\b/i,
-
-      // Terrifying/alarming adjectives (often stuffed into From display names)
-      /\b(terrifying|alarming|devastating|horrifying|frightening|chilling|disturbing)\b/i,
-
-      // Curiosity gap: mystery word + visual/media word ("secret photo", "leaked footage")
-      /(strange|secret|hidden|mysterious|shocking|bizarre|unusual|leaked).*(picture|photo|image|video|camera|footage|document)/i,
-
-      // Urgency + sensationalism: "breaking news", "urgent warning"
-      /(breaking|urgent|warning|alert|stop|exposed|banned).*(news|truth|secret|scandal|exposed|revealed)/i,
-
-      // Financial fear-mongering: market/money word + crisis word
-      /(market|stock|economy|dollar|gold|bitcoin|investment|crypto).*(crash|collapse|shift|crisis|warning|alert|plunge|tank|dying)/i,
-
-      // "Caught" visual-proof framing: "caught on camera", "caught red-handed"
-      /caught (on|doing|in|red-handed)/i,
-
-      // Transformation clickbait: "this changes everything", "what stunned everyone"
-      /(what|this).*(changes everything|stunned everyone|shocked|amazed|surprised)/i,
-
-      // --- Celebrity / political name-dropping ---
-
-      // Celebrity credibility theft: "RFK Jr Issues Warning", "Musk Exposes"
-      /\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns|showed|shows)/i,
-
-      // Political legitimization: "Trump approved/signed/backed [product]"
-      // Spammers use political figures to give fake authority to financial pitches
-      /\b(Trump|Biden|Obama|Musk|Kennedy|RFK)\b.*(approved|signed|backed|endorsed|directed|ordered|mandated)/i,
-
-      // Celebrity merchandise/collectible scams: "Trump Coin", "Biden Medal"
-      /\b(Trump|Biden|Obama|Kennedy)\b.*(coin|bill|medal|card|stamp|legacy|commemorat|collect|mint|gold|silver)/i,
-
-      // --- Demographic and temporal targeting ---
-
-      // Age-based fear: "Seniors Most At Risk", "If you're over 60"
-      /\b(seniors?|elderly|retirees?|boomers?|over \d{2}|born before|age \d{2})\b.*(risk|warning|alert|danger|affected|target)/i,
-
-      // Year-based urgency: current year + threat word for fake timeliness
-      /\b202[4-9]\b.*(warning|alert|prediction|forecast|crisis)/i,
-
-      // Conspiracy/hiding: "what they don't want you to know"
-      /(what|who).*(hiding|don't want you|truth|they won't tell)/i,
-
-      // Impending doom framing: "What's Coming", "Not Prepared for what's ahead"
-      /\bwhat.s (coming|ahead)\b|\bnot prepared\b/i,
-
-      // --- Violence and military sensationalism ---
-
-      // Military/war clickbait: "declared war", "bombing", "invasion"
-      /\b(declared war|bombed|bombing|attack|attacked|destroyed|invasion)\b/i,
-
-      // --- Financial hype ---
-
-      // Pre-IPO investment solicitation: always spam in bulk email
-      /\bpre-?ipo\b/i,
-
-      // Stock price hype: "$5 a share", "$0.85 per share", "penny stock"
-      /\$\d+(\.\d+)?\s*(?:(?:a|per)\s+)?share|\bpenny stock\b/i,
-
-      // Watch/see curiosity gap: "watch what happened", "see this"
-      /\b(watch|see)\s+(what|this|the moment)/i,
-
-      // --- Structural / formatting indicators ---
-
-      /【.*】/,           // Japanese-style brackets (spammer formatting tactic)
-      /\[.{3,}[?!]\]/,    // Square brackets with punctuation: [Like This?]
-      /💼|📸|⏯️|🚨|⚠️|📰|💰|⚡/,  // Sensationalist emoji cluster
-      /\?\?\?|!!!/,       // Triple punctuation (urgency tactic)
-      /\u2026|\.{3,}/,    // Ellipsis dramatic pause (Unicode … or ASCII ...)
-      /\bWATCH\b.*\?$/i,  // "WATCH ...?" clickbait structure
-
-      // --- Unicode obfuscation (filter evasion) ---
-
-      /[\u0400-\u04FF]/,  // Cyrillic lookalikes: "Еlоn" with Cyrillic Е, о
-      /[\u0370-\u03FF]/,  // Greek lookalikes: "Βanks" with Greek Β
-      /[\uFF00-\uFFEF]/,  // Fullwidth chars: "＄2 Bill" — never legit in English
-      /\uD835/,           // Mathematical bold/italic: "𝗔𝗺𝗮𝘇𝗼𝗻" (surrogate pair)
-
-      // --- Topic-specific spam categories ---
-
-      // Jobs/employment fear: "jobs disappeared", "layoffs"
-      /\b(jobs?|employment).*(disappeared|vanished|never existed|fake|fraud|layoffs?)/i,
-
-      // Bank/branch closing fear: "banks closing", "ATMs shutting down"
-      /\b(banks?|branch|branches|ATMs?).*(clos|shut|disappear|eliminat)/i,
-
-      // Building/institution emoji (banks, hospitals, government)
-      /🏦|🏥|🏛️|🏢/,
-
-      // Collectible/commemorative scams: "limited edition", "rare coin"
-      /\b(minted|commemorat|collector'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b/i,
-
-      // Bullet-point date format: "• January 29 •" (newsletter spam tactic)
-      /•\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
-
-      // Pipe-date subject format: "| February 23" (same tactic, pipe variant)
-      /\|\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
-
-      // Bracket-date subject format: "[March 09]" — same tactic, bracket variant
-      /\[\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b/i,
-
-      // Dash-date subject format: "- Mar 11, 2026" — same tactic, dash variant with abbreviated months
-      /[-]\s*(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\b/i,
-
-      // Historical atrocity clickbait: Nazi/Holocaust references as engagement bait
-      /\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b/i,
-
-      // Health condition anxiety triggers: "blood sugar", "brain fog"
-      /\b(fatigue|insomnia|inflammation|blood sugar|cholesterol|blood pressure|joint pain|brain fog|belly fat)\b/i,
-
-      // Financial scam products: gift cards, tax liens, instant approval
-      /\b(gift card|tax lien|tax sale|foreclosure list|pre-?approved|instant approval|no annual fee)\b/i,
-
-      // "Now you can see/watch" exclusive access clickbait
-      /\bnow you can (see|watch|view|get)\b/i,
-
-      // Unicode punctuation obfuscation (lookalike slash characters)
-      // U+2215 DIVISION SLASH, U+2044 FRACTION SLASH, U+29F8 BIG SOLIDUS
-      /[\u2215\u2044\u29F8]/,
-
-      // Financial product solicitation: "0% APR", "balance transfer"
-      /\b(0\s*%\s*(interest|apr)|balance transfer|transfer your.*(balance|debt))\b/i,
-
-      // Crypto quantity notation: "5000.00 $CLAW", "100 $USDT" — airdrop/ICO spam
-      // Legitimate financial email writes "$5000", not "5000 $TICKER"
-      /\b\d+(?:\.\d+)?\s+\$[A-Z]{4,}\b/
-    ];
-
-    // Check subject + from concatenated — spammers stuff clickbait into both
-    const textToCheck = subject + ' ' + from;
-    for (let i = 0; i < clickbaitPatterns.length; i++)
+  // ── Signal 3: Fear-mongering detection ──────────────────────────────────
+  // Boolean signal — we only need to know if fear is present, not how many
+  // patterns match. First match short-circuits the loop.
+  for (let i = 0; i < FEAR_PATTERNS.length; i++)
+  {
+    if (FEAR_PATTERNS[i].test(textToCheck))
     {
-      if (clickbaitPatterns[i].test(textToCheck))
-      {
-        signals.clickbaitCount++;
-      }
+      signals.fearMongering = true;
+      logDebug('Fear-mongering detected (pattern match)');
+      break; // Boolean signal — one match is enough
     }
+  }
 
-    // ── Signal 2b: Body crypto scam patterns ──────────────────────────────
-    // High-confidence terms that almost never appear in legitimate email bodies.
-    // Checked against body only — subject/from rarely contain these phrases.
-    // Each match increments clickbaitCount independently (supports Rule 3).
-    const bodyCryptoPatterns = [
-      /\bairdrop\b/i,                    // Crypto token airdrop
-      /\bconnect\s+(your\s+)?wallet\b/i  // "Connect your wallet" — wallet drainer
-    ];
-    for (let i = 0; i < bodyCryptoPatterns.length; i++)
-    {
-      if (bodyCryptoPatterns[i].test(body))
-      {
-        signals.clickbaitCount++;
-      }
-    }
-
-    // ── Signal 3: Fear-mongering detection ────────────────────────────────
-    // Boolean signal — we only need to know if fear is present, not how many
-    // patterns match. First match short-circuits the loop.
-    const fearPatterns = [
-      // Government fear: IRS/NSA/FBI + threat/revelation verb
-      /\b(IRS|NSA|FBI|CIA|government|federal)\b.*(warn|hiding|secret|spy|track|audit|investigation|admission|reveal|expose|confiscat)/i,
-
-      // Financial fear: bank/money terms + seizure/theft/loss
-      /\b(banks?|bank account|credit card|social security|identity|savings|cash|money)\b.*(seize|steal|stolen|hacked|freeze|frozen|close|closed|warning|alert|confiscat|take|taking|lost)/i,
-
-      // Health fear: medical terms + danger verbs
-      /\b(blood thinner|medication|drug|vaccine|doctor|FDA|health crisis|at risk)\b.*(warning|danger|deadly|killing|risk|avoid|corrupt)/i,
-
-      // Standalone urgency words: "WARNING", "ALERT", "BREAKING"
-      /\b(warning|alert|urgent|breaking|exposed|banned|stopped)\b/i,
-
-      // "STOP using/taking" imperative pattern
-      /\bSTOP (using|taking|doing|buying)\b/i
-    ];
-
-    for (let i = 0; i < fearPatterns.length; i++)
-    {
-      if (fearPatterns[i].test(textToCheck))
-      {
-        signals.fearMongering = true;
-        logDebug('Fear-mongering detected (pattern match)');
-        break; // Boolean signal — one match is enough
-      }
-    }
-
-    // ── Signal 4: Marketing sender format ─────────────────────────────────
-    // Checked against From field only (not subject). Detects spammy sender
-    // name formatting like "Name | Org", spammy business names, and suspicious
-    // email address patterns. Commas deliberately excluded — common in legit
-    // org/place names. Bare pipe check removed — subsumed by /\|\s*[A-Z]/.
-    if (/\|\s*[A-Z]/.test(from) ||                                                             // "Name | Org" pipe separator
-        /\s+at\s+[A-Z]/i.test(from) ||                                                         // "Name at Organization"
-        /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i.test(from) ||  // Spammy business names
-        /grow@with\./i.test(from) ||                                                            // Suspicious email pattern
-        /@[a-z]\.[a-z]+\.(com|net)/i.test(from))                                               // Subdomain pattern: @F.FinanceInsiderPro.com
+  // ── Signal 4: Marketing sender format ───────────────────────────────────
+  // Checked against From field only (not subject). Detects spammy sender
+  // name formatting like "Name | Org", spammy business names, and suspicious
+  // email address patterns. Commas deliberately excluded — common in legit
+  // org/place names. Bare pipe check removed — subsumed by /\|\s*[A-Z]/.
+  for (let i = 0; i < MARKETING_PATTERNS.length; i++)
+  {
+    if (MARKETING_PATTERNS[i].test(from))
     {
       signals.marketingFormat = true;
       logDebug('Marketing sender format detected');
+      break; // Boolean signal — one match is enough
     }
+  }
 
-    // ── Signal 5: Empty subject + attachment ──────────────────────────────
-    // Payload delivery scams hide their content inside attached files (Excel,
-    // PDF) and leave the subject and body empty to evade text-pattern rules.
-    // Legitimate email virtually never combines an empty subject with an
-    // attachment — this pair alone is sufficient to classify as spam.
+  // ── Signal 5: Empty subject + attachment ────────────────────────────────
+  // Payload delivery scams hide their content inside attached files (Excel,
+  // PDF) and leave the subject and body empty to evade text-pattern rules.
+  // Legitimate email virtually never combines an empty subject with an
+  // attachment — this pair alone is sufficient to classify as spam.
+  try
+  {
     if (subject.trim() === '' && message.getAttachments().length > 0)
     {
       signals.emptySubjectWithAttachment = true;
       logDebug('Empty subject with attachment detected');
     }
+  }
+  catch (attachError)
+  {
+    // Non-fatal: skip this signal if attachment check fails (e.g., malformed message)
+    logError('Could not check attachments — signal skipped: ' + attachError.toString());
+  }
 
-    // ── Decision Logic (5 rules, evaluated in priority order) ─────────────
-    //
-    // Rules cascade from most-specific (Rule 0) to broadest (Rule 4).
-    // Only one rule fires per email. Each returns immediately on match.
+  return signals;
+}
 
-    // Rule 0: Bulk email + blacklisted sender = definitive spam
-    // Rationale: Known spam domain + bulk infrastructure = zero false positive risk
-    if (signals.bulkEmailService && signals.blacklistedSender)
-    {
-      logInfo('SPAM detected: Bulk email + blacklisted sender');
-      return 100;
-    }
+/**
+ * Apply the 5-rule decision cascade to a collected signals object.
+ *
+ * Rules are evaluated in priority order. The first rule that fires wins —
+ * later rules are not evaluated. Returns immediately on the first match.
+ *
+ * @param {Object} signals - Signal object returned by collectSignals().
+ * @return {boolean} true if the email is spam, false if it is not.
+ */
+function makeVerdict(signals)
+{
+  // Rule 1: Bulk email + blacklisted sender = definitive spam
+  // Rationale: Known spam domain + bulk infrastructure = zero false positive risk
+  if (signals.bulkEmailService && signals.blacklistedSender)
+  {
+    logInfo('SPAM detected: Bulk email + blacklisted sender');
+    return true;
+  }
 
-    // Rule 1: Bulk email + 2+ clickbait patterns = spam
-    // Rationale: Legitimate bulk senders rarely use multiple clickbait tactics
-    if (signals.bulkEmailService && signals.clickbaitCount >= 2)
-    {
-      logInfo('SPAM detected: Bulk email + clickbait (' + signals.clickbaitCount + ' patterns)');
-      return 100;
-    }
+  // Rule 2: Bulk email + 2+ clickbait patterns = spam
+  // Rationale: Legitimate bulk senders rarely use multiple clickbait tactics
+  if (signals.bulkEmailService && signals.clickbaitCount >= 2)
+  {
+    logInfo('SPAM detected: Bulk email + clickbait (' + signals.clickbaitCount + ' patterns)');
+    return true;
+  }
 
-    // Rule 2: Bulk email + 2+ distinct spam behaviors = spam
-    // Rationale: No single behavior is conclusive, but two independent spam
-    // behaviors from a bulk sender is a strong convergent signal
-    let spamBehaviorCount = 0;
-    if (signals.clickbaitCount >= 1) spamBehaviorCount++;
-    if (signals.fearMongering) spamBehaviorCount++;
-    if (signals.marketingFormat) spamBehaviorCount++;
-    if (signals.suspiciousFromName) spamBehaviorCount++;
+  // Rule 3: Bulk email + 2+ distinct spam behaviors = spam
+  // Rationale: No single behavior is conclusive, but two independent spam
+  // behaviors from a bulk sender is a strong convergent signal
+  let spamBehaviorCount = 0;
+  if (signals.clickbaitCount >= 1) spamBehaviorCount++;
+  if (signals.fearMongering) spamBehaviorCount++;
+  if (signals.marketingFormat) spamBehaviorCount++;
+  if (signals.suspiciousFromName) spamBehaviorCount++;
 
-    if (signals.bulkEmailService && spamBehaviorCount >= 2)
-    {
-      logInfo('SPAM detected: Bulk email + ' + spamBehaviorCount + ' spam behaviors');
-      return 100;
-    }
+  if (signals.bulkEmailService && spamBehaviorCount >= 2)
+  {
+    logInfo('SPAM detected: Bulk email + ' + spamBehaviorCount + ' spam behaviors');
+    return true;
+  }
 
-    // Rule 3: Extreme clickbait alone (no bulk email required)
-    // Rationale: 3+ clickbait hits is so anomalous that even non-bulk senders
-    // are almost certainly spam (catches direct-send spam)
-    if (signals.clickbaitCount >= 3)
-    {
-      logInfo('SPAM detected: Extreme clickbait (' + signals.clickbaitCount + ' patterns)');
-      return 100;
-    }
+  // Rule 4: Extreme clickbait alone (no bulk email required)
+  // Rationale: 3+ clickbait hits is so anomalous that even non-bulk senders
+  // are almost certainly spam (catches direct-send spam)
+  if (signals.clickbaitCount >= 3)
+  {
+    logInfo('SPAM detected: Extreme clickbait (' + signals.clickbaitCount + ' patterns)');
+    return true;
+  }
 
-    // Rule 4: Empty subject + attachment = payload delivery scam
-    // Rationale: Legitimate email virtually never has both an empty subject
-    // and an attachment. This pattern is the fingerprint of file-based scams
-    // that hide phishing links or malware inside Excel/PDF attachments to
-    // bypass text-pattern detection entirely.
-    if (signals.emptySubjectWithAttachment)
-    {
-      logInfo('SPAM detected: Empty subject with attachment (payload delivery scam)');
-      return 100;
-    }
+  // Rule 5: Empty subject + attachment = payload delivery scam
+  // Rationale: Legitimate email virtually never has both an empty subject
+  // and an attachment. This pattern is the fingerprint of file-based scams
+  // that hide phishing links or malware inside Excel/PDF attachments to
+  // bypass text-pattern detection entirely.
+  if (signals.emptySubjectWithAttachment)
+  {
+    logInfo('SPAM detected: Empty subject with attachment (payload delivery scam)');
+    return true;
+  }
 
-    // No rule triggered — email is not spam
-    logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
-             ', blacklist=' + signals.blacklistedSender +
-             ', clickbait=' + signals.clickbaitCount +
-             ', fear=' + signals.fearMongering +
-             ', marketing=' + signals.marketingFormat +
-             ', suspiciousFrom=' + signals.suspiciousFromName +
-             ', emptySubjectAttachment=' + signals.emptySubjectWithAttachment);
-    return 0;
+  // No rule triggered — email is not spam
+  logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
+           ', blacklist=' + signals.blacklistedSender +
+           ', clickbait=' + signals.clickbaitCount +
+           ', fear=' + signals.fearMongering +
+           ', marketing=' + signals.marketingFormat +
+           ', suspiciousFrom=' + signals.suspiciousFromName +
+           ', emptySubjectAttachment=' + signals.emptySubjectWithAttachment);
+  return false;
+}
+
+/**
+ * Analyze a message and return whether it is spam.
+ *
+ * Thin orchestrator: delegates signal collection to collectSignals() and
+ * verdict logic to makeVerdict(). Whitelisted senders short-circuit to
+ * false before any signal collection occurs.
+ *
+ * @param {GmailMessage} message - The Gmail message to analyze.
+ * @return {boolean} true if spam, false if not.
+ */
+function analyzeMessage(message)
+{
+  try
+  {
+    const signals = collectSignals(message);
+    if (signals === null) return false; // whitelisted
+    return makeVerdict(signals);
   }
   catch (error)
   {
     logError('Error analyzing message: ' + error.toString());
-    return 0; // Default to not-spam on error — better to miss spam than delete legit mail
+    return false; // Default to not-spam on error — better to miss spam than delete legit mail
   }
 }
 
@@ -1159,19 +1138,17 @@ function getOrCreateLabel(labelName)
  */
 function validateConfig()
 {
-  if (CONFIG.maxEmailsPerRun < 1 || CONFIG.maxEmailsPerRun > 500)
+  const MAX_EMAILS_PER_RUN = 500;
+  const MAX_DAYS_TO_CHECK  = 30;
+
+  if (CONFIG.maxEmailsPerRun < 1 || CONFIG.maxEmailsPerRun > MAX_EMAILS_PER_RUN)
   {
-    throw new Error('Invalid maxEmailsPerRun: must be between 1 and 500');
+    throw new Error('Invalid maxEmailsPerRun: must be between 1 and ' + MAX_EMAILS_PER_RUN);
   }
 
-  if (CONFIG.spamThreshold < 0 || CONFIG.spamThreshold > 100)
+  if (CONFIG.daysToCheck < 0 || CONFIG.daysToCheck > MAX_DAYS_TO_CHECK)
   {
-    throw new Error('Invalid spamThreshold: must be between 0 and 100');
-  }
-
-  if (CONFIG.daysToCheck < 0 || CONFIG.daysToCheck > 30)
-  {
-    throw new Error('Invalid daysToCheck: must be between 0 and 30');
+    throw new Error('Invalid daysToCheck: must be between 0 and ' + MAX_DAYS_TO_CHECK);
   }
 
   if (!CONFIG.processedLabel || CONFIG.processedLabel.length === 0)
@@ -1197,15 +1174,9 @@ function validateConfig()
  */
 function sanitizeInput(input)
 {
-  if (!input)
-  {
-    return '';
-  }
-
+  if (input == null) return '';
   const str = String(input);
-  const maxLength = 100000; // 100KB max
-
-  return str.length > maxLength ? str.substring(0, maxLength) : str;
+  return str.length > LIMITS.maxInputChars ? str.substring(0, LIMITS.maxInputChars) : str;
 }
 
 /**
@@ -1219,67 +1190,8 @@ function sanitizeInput(input)
  */
 function sanitizeForLog(text)
 {
-  if (!text)
-  {
-    return '';
-  }
-
-  // Truncate to 100 chars and collapse newlines to spaces
-  const sanitized = String(text).substring(0, 100).replace(/[\n\r]/g, ' ');
-  return sanitized;
-}
-
-
-// =============================================================================
-// Utility Functions
-// =============================================================================
-
-/**
- * Count regex matches in a text string.
- *
- * @param {string} text    - Text to search.
- * @param {RegExp} pattern - Regex pattern (should have global flag for multiple matches).
- * @return {number} Number of matches found. Returns 0 if inputs are falsy.
- */
-function countMatches(text, pattern)
-{
-  if (!text || !pattern)
-  {
-    return 0;
-  }
-
-  const matches = text.match(pattern);
-  return matches ? matches.length : 0;
-}
-
-/**
- * Count keyword matches in text and return a weighted score.
- *
- * Performs case-sensitive substring matching for each keyword.
- * Each match adds the specified weight to the total score.
- *
- * @param {string} text          - Text to search.
- * @param {Array<string>} keywords - Array of keywords to match.
- * @param {number} weight        - Score points to add per match.
- * @return {number} Total weighted score. Returns 0 if inputs are falsy/empty.
- */
-function countKeywordMatches(text, keywords, weight)
-{
-  if (!text || !keywords || keywords.length === 0)
-  {
-    return 0;
-  }
-
-  let score = 0;
-  for (let i = 0; i < keywords.length; i++)
-  {
-    if (text.includes(keywords[i]))
-    {
-      score += weight;
-    }
-  }
-
-  return score;
+  if (text == null) return '';
+  return String(text).substring(0, LIMITS.maxLogChars).replace(/[\n\r]/g, ' ');
 }
 
 
@@ -1407,8 +1319,17 @@ function initializeScriptProperties()
 function getWhitelist()
 {
   const props = PropertiesService.getScriptProperties();
-  const whitelist = props.getProperty('LEGITIMATE_DOMAINS');
-  return whitelist ? JSON.parse(whitelist) : [];
+  const raw = props.getProperty('LEGITIMATE_DOMAINS');
+  if (!raw) return Array.from(DEFAULT_DOMAINS.legitimate);
+  try
+  {
+    return JSON.parse(raw);
+  }
+  catch (e)
+  {
+    logError('Whitelist JSON corrupt — falling back to defaults: ' + e.toString());
+    return Array.from(DEFAULT_DOMAINS.legitimate);
+  }
 }
 
 /**
@@ -1419,8 +1340,17 @@ function getWhitelist()
 function getBlacklist()
 {
   const props = PropertiesService.getScriptProperties();
-  const blacklist = props.getProperty('SUSPICIOUS_DOMAINS');
-  return blacklist ? JSON.parse(blacklist) : [];
+  const raw = props.getProperty('SUSPICIOUS_DOMAINS');
+  if (!raw) return Array.from(DEFAULT_DOMAINS.suspicious);
+  try
+  {
+    return JSON.parse(raw);
+  }
+  catch (e)
+  {
+    logError('Blacklist JSON corrupt — falling back to defaults: ' + e.toString());
+    return Array.from(DEFAULT_DOMAINS.suspicious);
+  }
 }
 
 /**
@@ -1651,60 +1581,34 @@ function debugWhyFlagged(searchTerm)
       return;
     }
 
-    // Grab the first message from the first matching thread
     const message = threads[0].getMessages()[0];
-    const subject = message.getSubject();
-    // Normalize exactly as analyzeMessage() does so debug output matches production behavior
-    const from = sanitizeInput(message.getFrom())
-                   .replace(/^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/, '$1$2');
-    const rawContent = message.getRawContent();
 
     logInfo('=== DEBUG: WHY FLAGGED? ===');
-    logInfo('Subject: ' + subject);
-    logInfo('From: ' + from);
+    logInfo('Subject: ' + message.getSubject());
+    logInfo('From: ' + message.getFrom());
     logInfo('');
 
-    // Check whitelist status
-    const whitelist = getWhitelist();
-    const fromLower = from.toLowerCase();
-    let isWhitelisted = false;
-    for (let i = 0; i < whitelist.length; i++)
+    // Run the real production signal collection — guaranteed to match runtime behavior
+    const signals = collectSignals(message);
+
+    if (signals === null)
     {
-      if (fromLower.includes(whitelist[i]))
-      {
-        logInfo('✓ WHITELISTED: matches "' + whitelist[i] + '"');
-        isWhitelisted = true;
-        break;
-      }
+      logInfo('✓ WHITELISTED — detection skipped entirely');
     }
-    if (!isWhitelisted)
+    else
     {
-      logInfo('✗ NOT WHITELISTED');
-      logInfo('  Whitelist domains: ' + whitelist.join(', '));
+      logInfo('Signals:');
+      logInfo('  bulk=' + signals.bulkEmailService);
+      logInfo('  blacklist=' + signals.blacklistedSender);
+      logInfo('  clickbait=' + signals.clickbaitCount);
+      logInfo('  fear=' + signals.fearMongering);
+      logInfo('  marketing=' + signals.marketingFormat);
+      logInfo('  suspiciousFrom=' + signals.suspiciousFromName);
+      logInfo('  emptySubjectAttachment=' + signals.emptySubjectWithAttachment);
+      logInfo('');
+      logInfo('Verdict: ' + (makeVerdict(signals) ? 'SPAM' : 'not spam'));
     }
 
-    // Check bulk email service fingerprints in raw headers
-    const rawLower = rawContent.toLowerCase();
-    if (rawLower.includes('amazonses.com') || rawLower.includes('x-ses-'))
-    {
-      logInfo('⚠ Bulk email: Amazon SES detected');
-    }
-    if (rawLower.includes('sendgrid.net'))
-    {
-      logInfo('⚠ Bulk email: SendGrid detected');
-    }
-
-    // Check marketing format in From field (mirrors Signal 4 in analyzeMessage)
-    if (/\|\s*[A-Z]/i.test(from) || /\s+at\s+[A-Z]/i.test(from) ||
-        /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i.test(from) ||
-        /grow@with\./i.test(from) || /@[a-z]\.[a-z]+\.(com|net)/i.test(from))
-    {
-      logInfo('⚠ Marketing format detected in From field');
-    }
-
-    // Run the full detection pipeline and show final score
-    logInfo('');
-    logInfo('Final score: ' + analyzeMessage(message));
     logInfo('=== END DEBUG ===');
   }
   catch (error)

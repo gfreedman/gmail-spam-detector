@@ -27,6 +27,15 @@ from pathlib import Path
 
 
 # =============================================================================
+# Internal Limits (mirrored from SpamDetector.gs LIMITS constant)
+# =============================================================================
+
+MAX_DISPLAY_NAME_LENGTH = 50   # From display names longer than this are suspicious
+MAX_INPUT_CHARS         = 100000  # Input truncation cap (100KB)
+MAX_LOG_CHARS           = 100  # Log message truncation
+
+
+# =============================================================================
 # Detection Patterns (mirrored from SpamDetector.gs)
 #
 # These MUST stay in sync with the patterns in the Apps Script source.
@@ -363,7 +372,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Strip the <email@address> portion, then check the remaining display name
     # for bullet separators (spammer tactic) or excessive length (keyword stuffing)
     display_name = re.sub(r'<[^>]*>$', '', from_field).strip()  # quotes already stripped above
-    if '•' in display_name or len(display_name) > 50:
+    if '•' in display_name or len(display_name) > MAX_DISPLAY_NAME_LENGTH:
         signals['suspicious_from_name'] = True
         signals['matched_patterns'].append('suspicious_from')
 
@@ -411,25 +420,25 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
 
     # ── Decision Logic (5 rules, evaluated in priority order) ──────────────
     #
-    # The rules cascade from most-specific (Rule 0) to broadest (Rule 4).
+    # The rules cascade from most-specific (Rule 1) to broadest (Rule 5).
     # Only one rule can fire per email. This matches SpamDetector.gs exactly.
     is_spam = False
     rule = ''
 
-    # Rule 0: Bulk email + blacklisted sender = definitive spam
+    # Rule 1: Bulk email + blacklisted sender = definitive spam
     #   Rationale: Known spam domain + bulk infrastructure = no false positives
     if signals['bulk_email'] and signals['blacklisted_sender']:
         is_spam = True
-        rule = 'RULE 0: Bulk + blacklisted sender'
+        rule = 'RULE 1: Bulk + blacklisted sender'
 
-    # Rule 1: Bulk email + 2+ clickbait patterns = spam
+    # Rule 2: Bulk email + 2+ clickbait patterns = spam
     #   Rationale: Legitimate bulk senders rarely use multiple clickbait tactics
     elif signals['bulk_email'] and signals['clickbait_count'] >= 2:
         is_spam = True
-        rule = 'RULE 1: Bulk + 2+ clickbait'
+        rule = 'RULE 2: Bulk + 2+ clickbait'
 
     else:
-        # Rule 2: Bulk email + 2+ distinct spam behaviors = spam
+        # Rule 3: Bulk email + 2+ distinct spam behaviors = spam
         #   Rationale: Convergent signals — no single behavior is conclusive,
         #   but two independent spam behaviors from a bulk sender are
         behavior_count = 0
@@ -444,22 +453,22 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
 
         if signals['bulk_email'] and behavior_count >= 2:
             is_spam = True
-            rule = 'RULE 2: Bulk + 2+ behaviors'
+            rule = 'RULE 3: Bulk + 2+ behaviors'
 
-        # Rule 3: Extreme clickbait alone (no bulk email required)
+        # Rule 4: Extreme clickbait alone (no bulk email required)
         #   Rationale: 3+ clickbait hits is so anomalous that even non-bulk
         #   senders are almost certainly spam (catches direct-send spam)
         elif signals['clickbait_count'] >= 3:
             is_spam = True
-            rule = 'RULE 3: Extreme clickbait'
+            rule = 'RULE 4: Extreme clickbait'
 
-        # Rule 4: Empty subject + attachment = payload delivery scam
+        # Rule 5: Empty subject + attachment = payload delivery scam
         #   Rationale: Legitimate email virtually never has an empty subject
         #   and an attachment together — this is the fingerprint of file-based
         #   scams that bypass text-pattern detection entirely.
         elif signals['empty_subject_with_attachment']:
             is_spam = True
-            rule = 'RULE 4: Empty subject with attachment'
+            rule = 'RULE 5: Empty subject with attachment'
 
     return signals, is_spam, rule
 

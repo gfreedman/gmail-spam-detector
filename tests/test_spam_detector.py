@@ -36,8 +36,16 @@ from pathlib import Path
 # JS → Python conversion notes:
 #   - /pattern/i  → re.compile(r'pattern', re.IGNORECASE)
 #   - /pattern/   → re.compile(r'pattern')
-#   - \uD835      → [\U0001D400-\U0001D7FF]  (see _js_pattern_to_python)
-#   - All other JS regex syntax is directly compatible with Python's re module.
+#   - \\uD835      → [\U0001D400-\U0001D7FF]  (see _js_pattern_to_python)
+#   - All other JS regex syntax used in this codebase is directly compatible
+#     with Python's re module.
+#
+# FORMATTING CONTRACT (enforced at import time):
+#   - Every constant must be declared as:  const NAME = Object.freeze([
+#   - Each regex must be on its own line:  /pattern/flags,
+#   - Violation causes an import-time ValueError with a diagnostic message.
+#   - _extract_bracket_content uses a state machine (not string search) so
+#     regex character classes like /[a-z]/ and comments are handled correctly.
 # =============================================================================
 
 def _parse_js_regex_literal(line):
@@ -56,14 +64,35 @@ def _parse_js_regex_literal(line):
 
 
 def _js_flags_to_python(js_flags):
-    """Convert a JS regex flag string ('i', 'im', etc.) to Python re flags."""
+    """
+    Convert a JS regex flag string ('i', 'im', etc.) to a Python re flags int.
+
+    Supported flags (directly translatable):
+        i → re.IGNORECASE
+        m → re.MULTILINE
+        s → re.DOTALL
+
+    Raises ValueError on JS-only flags (g, u, y) — they either have no Python
+    equivalent or change semantics in ways the test doesn't account for.
+    Raises ValueError on unrecognized flags (typos, future JS additions).
+    """
+    _SUPPORTED = {'i': re.IGNORECASE, 'm': re.MULTILINE, 's': re.DOTALL}
+    _JS_ONLY   = set('guy')   # global, Unicode mode, sticky — no Python equivalent
+
+    unknown = set(js_flags) - set(_SUPPORTED) - _JS_ONLY
+    if unknown:
+        raise ValueError(f'Unrecognized JS regex flags: {unknown!r}')
+    unsupported = set(js_flags) & _JS_ONLY
+    if unsupported:
+        raise ValueError(
+            f'JS-only regex flag(s) {unsupported!r} cannot be mapped to Python re. '
+            f'Add explicit handling in _js_pattern_to_python() for this case.'
+        )
+
     flags = 0
-    if 'i' in js_flags:
-        flags |= re.IGNORECASE
-    if 'm' in js_flags:
-        flags |= re.MULTILINE
-    if 's' in js_flags:
-        flags |= re.DOTALL
+    for flag, py_flag in _SUPPORTED.items():
+        if flag in js_flags:
+            flags |= py_flag
     return flags
 
 
@@ -80,25 +109,103 @@ def _js_pattern_to_python(js_pattern):
     return js_pattern.replace(r'\uD835', r'[\U0001D400-\U0001D7FF]')
 
 
-def _extract_bracket_content(source, marker, terminator='\n]);'):
+def _extract_bracket_content(source, marker):
     """
-    Find `marker` in source, then return the content between the opening [
-    and the given `terminator` string.
+    Find `marker` in source and return the content between the outer [ and its
+    matching ].
 
-    Depth-counting would miscount `[` inside regex character classes like
-    /[a-z]/, so we rely on structural terminators instead:
-    - Top-level Object.freeze([...]) arrays end with bare `]);`  (default)
-    - Nested sub-arrays (e.g. inside DEFAULT_DOMAINS) end with `]),` or `])`
-      and need '\n  ])' passed as the terminator.
+    Uses a mini state machine that skips over:
+        - Line comments   //...
+        - Block comments  /* ... */
+        - String literals '...' and "..."
+        - Regex literals  /pattern/flags  (including character classes /[a-z]/)
+
+    This correctly handles `[` and `]` inside regex character classes, which
+    would fool a naive bracket-depth counter (e.g., /[a-z]/ has a `[` that
+    is NOT opening a new array — it's part of the regex syntax).
     """
     start = source.find(marker)
     if start == -1:
-        raise ValueError(f'Marker not found in SpamDetector.gs: {marker!r}')
+        raise ValueError(
+            f'Marker not found in SpamDetector.gs: {marker!r}\n'
+            f'Expected:  const NAME = Object.freeze([\n'
+            f'Check the constant name is spelled correctly.'
+        )
     bracket_start = source.index('[', start)
-    end = source.find(terminator, bracket_start)
-    if end == -1:
-        raise ValueError(f'No closing {terminator!r} found after marker: {marker!r}')
-    return source[bracket_start + 1:end]
+    i = bracket_start
+    depth = 0
+
+    while i < len(source):
+        c = source[i]
+
+        # ── Skip line comment (//) ──────────────────────────────────────────
+        if c == '/' and i + 1 < len(source) and source[i + 1] == '/':
+            newline = source.find('\n', i)
+            i = newline + 1 if newline != -1 else len(source)
+            continue
+
+        # ── Skip block comment (/* ... */) ─────────────────────────────────
+        if c == '/' and i + 1 < len(source) and source[i + 1] == '*':
+            end = source.find('*/', i + 2)
+            i = end + 2 if end != -1 else len(source)
+            continue
+
+        # ── Skip string literal ('...' or "...") ───────────────────────────
+        if c in ('"', "'"):
+            quote = c
+            i += 1
+            while i < len(source):
+                if source[i] == '\\':
+                    i += 2          # Skip escaped character (e.g. \', \")
+                    continue
+                if source[i] == quote:
+                    break
+                i += 1
+            i += 1                  # Move past the closing quote
+            continue
+
+        # ── Skip regex literal (/pattern/flags) ────────────────────────────
+        # Inside Object.freeze([...]) arrays `/` is always a regex literal —
+        # division never appears here. (Comments handled above come first.)
+        if c == '/':
+            i += 1
+            while i < len(source):
+                if source[i] == '\\':
+                    i += 2          # Skip escaped character (e.g. \/, \[)
+                    continue
+                if source[i] == '[':
+                    # Regex character class — skip to its closing ]
+                    # (] inside [] is NOT an array bracket; track it separately)
+                    i += 1
+                    while i < len(source):
+                        if source[i] == '\\':
+                            i += 2
+                            continue
+                        if source[i] == ']':
+                            break
+                        i += 1
+                    i += 1
+                    continue
+                if source[i] == '/':
+                    break
+                i += 1
+            i += 1                  # Past closing /
+            while i < len(source) and source[i] in 'gimsuy':
+                i += 1              # Skip flags (i, g, m, s, u, y)
+            continue
+
+        # ── Track bracket depth (only reaches here for bare [ and ]) ───────
+        if c == '[':
+            depth += 1
+        elif c == ']':
+            depth -= 1
+            if depth == 0:
+                return source[bracket_start + 1:i]
+
+        i += 1
+
+    line_num = source[:bracket_start].count('\n') + 1
+    raise ValueError(f'Unmatched [ at line {line_num} after marker: {marker!r}')
 
 
 def _extract_brace_content(source, marker):
@@ -129,6 +236,20 @@ def _load_regex_array(source, const_name):
             patterns.append(
                 re.compile(_js_pattern_to_python(js_pat), _js_flags_to_python(js_flags))
             )
+
+    # Cross-check: every non-comment line starting with / should yield one pattern.
+    # A mismatch means the parser silently skipped something — fail loudly so the
+    # bug is diagnosed as "parser problem" not "detection problem".
+    expected = sum(
+        1 for line in content.splitlines()
+        if line.strip().startswith('/') and not line.strip().startswith('//')
+    )
+    if len(patterns) != expected:
+        raise ValueError(
+            f'{const_name}: counted {expected} regex literal lines but compiled '
+            f'{len(patterns)} patterns — parser may have truncated or skipped some'
+        )
+
     return patterns
 
 
@@ -175,9 +296,9 @@ def _load_gs_constants(gs_path):
     }
 
     # DEFAULT_DOMAINS: two named inner arrays inside the outer object.
-    # These end with ]), (comma) or ]) not ]); so pass the nested terminator.
-    legit_content      = _extract_bracket_content(source, 'legitimate: Object.freeze([',  '\n  ])')
-    suspicious_content = _extract_bracket_content(source, 'suspicious: Object.freeze([', '\n  ])')
+    # The state machine in _extract_bracket_content handles the nested structure.
+    legit_content      = _extract_bracket_content(source, 'legitimate: Object.freeze([')
+    suspicious_content = _extract_bracket_content(source, 'suspicious: Object.freeze([')
 
     return {
         'CLICKBAIT_PATTERNS':      _load_regex_array(source, 'CLICKBAIT_PATTERNS'),
@@ -199,7 +320,12 @@ def _load_gs_constants(gs_path):
 # =============================================================================
 
 _GS_PATH = Path(__file__).parent.parent / 'SpamDetector.gs'
-_gs = _load_gs_constants(_GS_PATH)
+try:
+    _gs = _load_gs_constants(_GS_PATH)
+except Exception as _e:
+    print(f'\nFATAL: Could not parse SpamDetector.gs — {_e}', file=sys.stderr)
+    print('Check that SpamDetector.gs exists and has not been reformatted.', file=sys.stderr)
+    sys.exit(1)
 
 CLICKBAIT_PATTERNS      = _gs['CLICKBAIT_PATTERNS']
 BODY_CRYPTO_PATTERNS    = _gs['BODY_CRYPTO_PATTERNS']
@@ -292,8 +418,11 @@ def parse_eml(filepath):
             - has_attachment: True if the message has one or more attachments
     """
     # Parse structured email for decoded headers (Subject, From, etc.)
-    with open(filepath, 'rb') as f:
-        msg = email.message_from_binary_file(f, policy=policy.default)
+    try:
+        with open(filepath, 'rb') as f:
+            msg = email.message_from_binary_file(f, policy=policy.default)
+    except Exception as e:
+        raise ValueError(f'Failed to parse {Path(filepath).name}: {e}') from e
 
     # Re-read as raw text — bulk service indicators live in Received/Return-Path
     # headers that the email library doesn't expose as structured fields
@@ -496,6 +625,87 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             rule = 'RULE 5: Empty subject with attachment'
 
     return signals, is_spam, rule
+
+
+# =============================================================================
+# Phase 0: Parser Self-Tests
+# =============================================================================
+
+def run_parser_tests():
+    """
+    Unit-test the JS→Python parser functions before running detection tests.
+
+    Catches parser bugs early so failures are diagnosed as "parser broken"
+    rather than "detection broken". Each check() call asserts a specific
+    expected output from a single parser function.
+
+    Returns True if all assertions pass, False (with printed failures) if any fail.
+    """
+    failures = []
+
+    def check(desc, got, expected):
+        if got != expected:
+            failures.append(f'  {desc}\n    expected {expected!r}\n    got      {got!r}')
+
+    # ── _parse_js_regex_literal ─────────────────────────────────────────────
+    check('basic pattern + flag',       _parse_js_regex_literal('  /foo/i,'),      ('foo', 'i'))
+    check('multiple flags',             _parse_js_regex_literal('/bar/im'),         ('bar', 'im'))
+    check('no flags',                   _parse_js_regex_literal('/baz/,'),          ('baz', ''))
+    check('escaped slash in pattern',   _parse_js_regex_literal(r'/foo\/bar/'),     (r'foo\/bar', ''))
+    check('comment line → None',        _parse_js_regex_literal('// comment'),      None)
+    check('blank line → None',         _parse_js_regex_literal(''),                None)
+    check('closing bracket → None',    _parse_js_regex_literal(']);'),             None)
+
+    # ── _js_flags_to_python ─────────────────────────────────────────────────
+    check('empty flags → 0',            _js_flags_to_python(''),                   0)
+    check('i → IGNORECASE',             _js_flags_to_python('i'),                  re.IGNORECASE)
+    check('im → IGNORECASE|MULTILINE',  _js_flags_to_python('im'),                 re.IGNORECASE | re.MULTILINE)
+    check('ims → all three',            _js_flags_to_python('ims'),                re.IGNORECASE | re.MULTILINE | re.DOTALL)
+
+    for bad in ('g', 'u', 'y', 'z'):
+        try:
+            _js_flags_to_python(bad)
+            failures.append(f'  _js_flags_to_python({bad!r}) should raise ValueError')
+        except ValueError:
+            pass  # Expected
+
+    # ── _js_pattern_to_python ──────────────────────────────────────────────
+    converted = _js_pattern_to_python(r'\uD835foo')
+    if r'[\U0001D400-\U0001D7FF]' not in converted:
+        failures.append(f'  \\uD835 not converted: {converted!r}')
+    check('passthrough — char class',     _js_pattern_to_python('[a-z]'),          '[a-z]')
+    check('passthrough — word boundary',  _js_pattern_to_python(r'\bword\b'),      r'\bword\b')
+
+    # ── _extract_bracket_content ────────────────────────────────────────────
+    # Basic string array
+    src = "const FOO = Object.freeze([\n  'a',\n  'b'\n]);"
+    content = _extract_bracket_content(src, 'const FOO = Object.freeze([')
+    if "'a'" not in content or "'b'" not in content:
+        failures.append(f"  basic string array extraction: {content!r}")
+
+    # Regex array with character classes — the key regression test.
+    # A naive depth-counter sees /[a-z]/ as opening a nested bracket level,
+    # which causes it to stop at the wrong ] and return truncated content.
+    src2 = "const BAR = Object.freeze([\n  /[a-z]/i,\n  /[0-9]+/\n]);"
+    content2 = _extract_bracket_content(src2, 'const BAR = Object.freeze([')
+    if '/[a-z]/i,' not in content2 or '/[0-9]+/' not in content2:
+        failures.append(f"  regex with character classes truncated: {content2!r}")
+
+    # Marker not found → ValueError
+    try:
+        _extract_bracket_content('const OTHER = []', 'const MISSING = Object.freeze([')
+        failures.append('  missing marker should raise ValueError')
+    except ValueError:
+        pass  # Expected
+
+    if failures:
+        print('❌ PARSER SELF-TESTS FAILED:')
+        for msg in failures:
+            print(msg)
+        return False
+
+    print('✅ All parser self-tests passed')
+    return True
 
 
 # =============================================================================
@@ -719,6 +929,18 @@ def main():
 
     Exits 0 if all phases pass, 1 if any phase fails.
     """
+    # ── Phase 0: Parser Self-Tests ─────────────────────────────────────────
+    # Run before detection tests so a parser bug is diagnosed correctly.
+    # If the parser is broken, detection failures are misdiagnosed as pattern
+    # problems — waste of debugging time.
+    print('=' * 80)
+    print('Parser Self-Tests')
+    print('=' * 80)
+    if not run_parser_tests():
+        print('\nFix the parser before running detection tests.')
+        sys.exit(1)
+    print()
+
     # ── Phase 1: Gmail API Method Validation ───────────────────────────────
     # Fail fast: if the source code calls nonexistent Gmail methods, stop here.
     # No point running detection tests if the deployment would crash anyway.

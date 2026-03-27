@@ -78,6 +78,7 @@ jobs:
         run: |
           SPAM_COUNT=$(ls tests/spam_examples/*.eml | wc -l | tr -d ' ')
           HAM_COUNT=$(ls tests/ham_examples/*.eml | wc -l | tr -d ' ')
+          SCAM_COUNT=$(ls tests/scam_examples/*.eml 2>/dev/null | wc -l | tr -d ' ')
           STALE=0
           if ! grep -q "${SPAM_COUNT}/" README.md; then
             echo "::error::README spam count is stale (found $SPAM_COUNT spam examples)"
@@ -85,6 +86,10 @@ jobs:
           fi
           if ! grep -q "${HAM_COUNT}/" README.md; then
             echo "::error::README ham count is stale (found $HAM_COUNT ham examples)"
+            STALE=1
+          fi
+          if [ "$SCAM_COUNT" -gt 0 ] && ! grep -q "${SCAM_COUNT}/.*scam" README.md; then
+            echo "::error::README scam count is stale (found $SCAM_COUNT scam examples)"
             STALE=1
           fi
           if [ "$STALE" -eq 1 ]; then

@@ -6,10 +6,11 @@ Validates the spam detection engine against real-world .eml samples and ensures
 the deployed Google Apps Script only calls methods that actually exist on the
 Gmail Advanced Service API.
 
-Three test phases run in order:
+Four test phases run in order:
     1. Gmail API method validation — static analysis of SpamDetector.gs
     2. Spam detection — every .eml in spam_examples/ must be flagged
-    3. Ham verification — every .eml in ham_examples/ must NOT be flagged
+    3. Scam detection — every .eml in scam_examples/ must be flagged
+    4. Ham verification — every .eml in ham_examples/ must NOT be flagged
 
 Exit codes:
     0 — all tests passed
@@ -248,11 +249,12 @@ def parse_eml(filepath):
         filepath: Path to the .eml file.
 
     Returns:
-        Tuple of (subject, from_field, has_bulk_service, body) where:
+        Tuple of (subject, from_field, has_bulk_service, body, has_attachment) where:
             - subject: Decoded subject line
             - from_field: Decoded From header (display name + address)
             - has_bulk_service: True if Amazon SES or SendGrid signatures found
             - body: Plain-text body for body-only pattern checks
+            - has_attachment: True if the message has one or more attachments
     """
     # Parse structured email for decoded headers (Subject, From, etc.)
     with open(filepath, 'rb') as f:
@@ -277,23 +279,29 @@ def parse_eml(filepath):
 
     # Extract plain-text body for body-only pattern checks (e.g. crypto airdrop)
     body = ''
+    has_attachment = False
     if msg.is_multipart():
         for part in msg.walk():
-            if part.get_content_type() == 'text/plain':
+            ct = part.get_content_type()
+            disp = part.get_content_disposition() or ''
+            if ct == 'text/plain' and not body:
                 body = part.get_content()
-                break
+            elif disp == 'attachment' or (ct not in ('text/plain', 'text/html', 'multipart/mixed',
+                                                      'multipart/alternative', 'multipart/related')):
+                if part.get_filename():
+                    has_attachment = True
     elif msg.get_content_type() == 'text/plain':
         body = msg.get_content()
 
-    return subject, from_field, has_amazon_ses, body
+    return subject, from_field, has_amazon_ses, body, has_attachment
 
 
-def analyze_email(subject, from_field, has_amazon_ses, body=''):
+def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=False):
     """
     Run the v6 detection logic against a single email's fields.
 
     Mirrors the analyzeMessage() function in SpamDetector.gs. Collects signals
-    from multiple pattern categories, then applies the 4-rule decision logic.
+    from multiple pattern categories, then applies the 5-rule decision logic.
 
     The detection pipeline:
         1. Check sender against blacklisted domains
@@ -302,13 +310,15 @@ def analyze_email(subject, from_field, has_amazon_ses, body=''):
         4. Check body for high-confidence crypto scam terms (airdrop, wallet drainer)
         5. Check for fear-mongering language
         6. Check for marketing sender format
-        7. Apply 4-rule decision logic (rules evaluated in priority order)
+        7. Check for empty subject + attachment (payload delivery scam)
+        8. Apply 5-rule decision logic (rules evaluated in priority order)
 
     Args:
         subject:        Decoded email subject line.
         from_field:     Decoded From header (display name + email address).
         has_amazon_ses: Whether bulk email service signatures were found.
         body:           Plain-text body for body-only pattern checks.
+        has_attachment: Whether the message has one or more attachments.
 
     Returns:
         Tuple of (signals, is_spam, rule) where:
@@ -322,6 +332,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body=''):
             return {'bulk_email': has_amazon_ses, 'blacklisted_sender': False,
                     'clickbait_count': 0, 'fear_mongering': False,
                     'marketing_format': False, 'suspicious_from_name': False,
+                    'empty_subject_with_attachment': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -332,6 +343,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body=''):
         'fear_mongering': False,
         'marketing_format': False,
         'suspicious_from_name': False,
+        'empty_subject_with_attachment': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -390,9 +402,16 @@ def analyze_email(subject, from_field, has_amazon_ses, body=''):
             signals['matched_patterns'].append('marketing')
             break
 
-    # ── Decision Logic (4 rules, evaluated in priority order) ──────────────
+    # ── Signal: Empty subject + attachment ─────────────────────────────────
+    # Payload delivery scams hide scam content inside attached files (Excel,
+    # PDF) and leave the subject and body empty to evade text-pattern rules.
+    if subject.strip() == '' and has_attachment:
+        signals['empty_subject_with_attachment'] = True
+        signals['matched_patterns'].append('empty_subject_attachment')
+
+    # ── Decision Logic (5 rules, evaluated in priority order) ──────────────
     #
-    # The rules cascade from most-specific (Rule 0) to broadest (Rule 3).
+    # The rules cascade from most-specific (Rule 0) to broadest (Rule 4).
     # Only one rule can fire per email. This matches SpamDetector.gs exactly.
     is_spam = False
     rule = ''
@@ -433,6 +452,14 @@ def analyze_email(subject, from_field, has_amazon_ses, body=''):
         elif signals['clickbait_count'] >= 3:
             is_spam = True
             rule = 'RULE 3: Extreme clickbait'
+
+        # Rule 4: Empty subject + attachment = payload delivery scam
+        #   Rationale: Legitimate email virtually never has an empty subject
+        #   and an attachment together — this is the fingerprint of file-based
+        #   scams that bypass text-pattern detection entirely.
+        elif signals['empty_subject_with_attachment']:
+            is_spam = True
+            rule = 'RULE 4: Empty subject with attachment'
 
     return signals, is_spam, rule
 
@@ -524,8 +551,8 @@ def run_spam_tests(spam_dir):
 
     for filepath in files:
         # Parse email and run detection pipeline
-        subject, from_field, has_amazon_ses, body = parse_eml(filepath)
-        signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses, body)
+        subject, from_field, has_amazon_ses, body, has_attachment = parse_eml(filepath)
+        signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses, body, has_attachment)
 
         if is_spam:
             # Expected: spam correctly detected
@@ -603,8 +630,8 @@ def run_ham_tests(ham_dir):
 
     for filepath in ham_files:
         # Parse email and run detection pipeline
-        subject, from_field, has_amazon_ses, body = parse_eml(filepath)
-        signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses, body)
+        subject, from_field, has_amazon_ses, body, has_attachment = parse_eml(filepath)
+        signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses, body, has_attachment)
 
         if not is_spam:
             # Expected: legitimate email correctly allowed through
@@ -654,7 +681,8 @@ def main():
                  point testing detection if the deployed code will crash on
                  bad API calls.
         Phase 2: Spam detection against spam_examples/.
-        Phase 3: Ham verification against ham_examples/.
+        Phase 3: Scam detection against scam_examples/.
+        Phase 4: Ham verification against ham_examples/.
 
     Exits 0 if all phases pass, 1 if any phase fails.
     """
@@ -687,7 +715,19 @@ def main():
 
     passed, failed, spam_failures = run_spam_tests(spam_dir)
 
-    # ── Phase 3: Ham Verification ──────────────────────────────────────────
+    # ── Phase 3: Scam Detection ────────────────────────────────────────────
+    # Every .eml in scam_examples/ must be correctly flagged as spam.
+    # Scam examples cover attack vectors that evade text-pattern rules (e.g.
+    # empty subject + attachment payload delivery).
+    scam_dir = Path(__file__).parent / 'scam_examples'
+    scam_passed = 0
+    scam_failed = 0
+    scam_failures = []
+
+    if scam_dir.exists():
+        scam_passed, scam_failed, scam_failures = run_spam_tests(scam_dir)
+
+    # ── Phase 4: Ham Verification ──────────────────────────────────────────
     # Every .eml in ham_examples/ must NOT be flagged (no false positives).
     ham_dir = Path(__file__).parent / 'ham_examples'
     ham_passed = 0
@@ -713,6 +753,15 @@ def main():
         all_good = False
     else:
         print(f'✅ SPAM: {passed}/{passed + failed} detected (100%)')
+
+    # Report any missed scams (false negatives)
+    if scam_failures:
+        print(f'❌ SCAMS MISSED: {len(scam_failures)}')
+        for f in scam_failures:
+            print(f'   - {f["file"]}: {f["subject"][:50]}')
+        all_good = False
+    elif scam_dir.exists():
+        print(f'✅ SCAM: {scam_passed}/{scam_passed + scam_failed} detected (100%)')
 
     # Report any wrongly flagged ham (false positives)
     if ham_false_positives:

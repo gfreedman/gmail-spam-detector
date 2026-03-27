@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.19.0
+ * @version 6.20.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger, scanning the inbox for unprocessed emails and applying a
@@ -24,8 +24,13 @@
  *   Rule 1: Bulk + 2+ clickbait patterns → spam
  *   Rule 2: Bulk + 2+ distinct spam behaviors → spam
  *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
+ *   Rule 4: Empty subject + attachment → payload delivery scam
  *
  * Changelog:
+ *   v6.20.0: Detect payload delivery scams — empty subject + attachment.
+ *            These evade all text-pattern rules (no subject/body to match)
+ *            by hiding the scam inside an Excel/PDF file. Add Rule 4 and
+ *            mirror in test_v6.py. Add scam_examples/ test phase (1/1).
  *   v6.19.0: Detect crypto airdrop/wallet-drainer scams sent via legitimate
  *            infrastructure (e.g. GitHub mention notifications). Add crypto
  *            quantity pattern to subject+from clickbait (\d+ $TICKER), and
@@ -641,6 +646,7 @@ function buildSearchQuery()
  *      Rule 1: Bulk + 2+ clickbait patterns → spam
  *      Rule 2: Bulk + 2+ distinct spam behaviors → spam
  *      Rule 3: 3+ clickbait patterns alone → spam (catches direct-send)
+ *      Rule 4: Empty subject + attachment → payload delivery scam
  *
  * @param {GmailMessage} message - The Gmail message to analyze.
  * @return {number} 0 (not spam) or 100 (spam).
@@ -677,12 +683,13 @@ function analyzeMessage(message)
     // Each detection phase below populates one signal. The decision logic
     // at the end combines these signals to make the spam/not-spam call.
     const signals = {
-      bulkEmailService: false,    // Sent via Amazon SES or SendGrid
-      blacklistedSender: false,   // From a known spam mill domain
-      clickbaitCount: 0,          // Number of clickbait patterns matched
-      fearMongering: false,       // Contains fear-mongering language
-      marketingFormat: false,     // From field uses marketing formatting
-      suspiciousFromName: false   // Display name is headline-like
+      bulkEmailService: false,          // Sent via Amazon SES or SendGrid
+      blacklistedSender: false,         // From a known spam mill domain
+      clickbaitCount: 0,                // Number of clickbait patterns matched
+      fearMongering: false,             // Contains fear-mongering language
+      marketingFormat: false,           // From field uses marketing formatting
+      suspiciousFromName: false,        // Display name is headline-like
+      emptySubjectWithAttachment: false // Empty subject + has attachment (payload scam)
     };
 
     // ── Signal 1a: Bulk email service detection ───────────────────────────
@@ -937,9 +944,20 @@ function analyzeMessage(message)
       logDebug('Marketing sender format detected');
     }
 
-    // ── Decision Logic (4 rules, evaluated in priority order) ─────────────
+    // ── Signal 5: Empty subject + attachment ──────────────────────────────
+    // Payload delivery scams hide their content inside attached files (Excel,
+    // PDF) and leave the subject and body empty to evade text-pattern rules.
+    // Legitimate email virtually never combines an empty subject with an
+    // attachment — this pair alone is sufficient to classify as spam.
+    if (subject.trim() === '' && message.getAttachments().length > 0)
+    {
+      signals.emptySubjectWithAttachment = true;
+      logDebug('Empty subject with attachment detected');
+    }
+
+    // ── Decision Logic (5 rules, evaluated in priority order) ─────────────
     //
-    // Rules cascade from most-specific (Rule 0) to broadest (Rule 3).
+    // Rules cascade from most-specific (Rule 0) to broadest (Rule 4).
     // Only one rule fires per email. Each returns immediately on match.
 
     // Rule 0: Bulk email + blacklisted sender = definitive spam
@@ -982,13 +1000,25 @@ function analyzeMessage(message)
       return 100;
     }
 
+    // Rule 4: Empty subject + attachment = payload delivery scam
+    // Rationale: Legitimate email virtually never has both an empty subject
+    // and an attachment. This pattern is the fingerprint of file-based scams
+    // that hide phishing links or malware inside Excel/PDF attachments to
+    // bypass text-pattern detection entirely.
+    if (signals.emptySubjectWithAttachment)
+    {
+      logInfo('SPAM detected: Empty subject with attachment (payload delivery scam)');
+      return 100;
+    }
+
     // No rule triggered — email is not spam
     logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
              ', blacklist=' + signals.blacklistedSender +
              ', clickbait=' + signals.clickbaitCount +
              ', fear=' + signals.fearMongering +
              ', marketing=' + signals.marketingFormat +
-             ', suspiciousFrom=' + signals.suspiciousFromName);
+             ', suspiciousFrom=' + signals.suspiciousFromName +
+             ', emptySubjectAttachment=' + signals.emptySubjectWithAttachment);
     return 0;
   }
   catch (error)

@@ -148,6 +148,21 @@ jobs:
         run: |
           echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"."}' > .clasp.json
 
+      # Patch @version in SpamDetector.gs to match the commit message version
+      # (e.g. "v6.22.0: ..." → @version 6.22.0). This runs only in CI so the
+      # deployed script always shows the correct version without requiring a
+      # manual source-file edit on every commit.
+      - name: Patch @version in SpamDetector.gs
+        run: |
+          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
+          if [ -n "$VERSION" ]; then
+            VER_NUM="${VERSION#v}"
+            sed -i "s/@version .*/@version ${VER_NUM}/" SpamDetector.gs
+            echo "Patched @version to ${VER_NUM}"
+          else
+            echo "No version in commit message — @version left unchanged"
+          fi
+
       # Push source files to Google Apps Script (--force overwrites remote)
       - name: Push to Apps Script
         run: clasp push --force

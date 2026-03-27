@@ -59,6 +59,13 @@
 
 /**
  * Global configuration — frozen to prevent accidental modification at runtime.
+ *
+ * Why "frozen"? In JavaScript, objects are normally mutable — any code can do
+ * CONFIG.maxEmailsPerRun = 999. Object.freeze() prevents that. If you try to
+ * modify a frozen object, JavaScript throws a TypeError immediately instead of
+ * silently ignoring the change (which is the default JS behavior and a common
+ * source of hard-to-find bugs).
+ *
  * These values control processing limits, detection thresholds, and safety caps.
  *
  * @const {Object}
@@ -139,7 +146,10 @@ const LIMITS = Object.freeze({
    *  (e.g. a subject of "OK\n[ERROR] Deleted everything" would print two log lines). */
   maxLogChars: 100,
 
-  /** Upper bounds used by validateConfig() — not operational thresholds */
+  /** Upper bounds used by validateConfig() to catch misconfiguration.
+   *  For example, setting maxEmailsPerRun to 10 000 would hit Apps Script's
+   *  6-minute timeout and crash every run. These constants prevent that.
+   *  They are NOT used by the detector itself — only by validateConfig(). */
   maxAllowedEmailsPerRun: 500,
   maxAllowedDaysToCheck: 30
 });
@@ -175,7 +185,16 @@ const RFC2822_QUOTED_NAME = /^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/;
 
 /**
  * Clickbait / sensationalism patterns — checked against subject + from concatenated.
- * Each matching pattern increments clickbaitCount independently.
+ *
+ * Each pattern targets a CATEGORY of spam tactic, not a specific phrase.
+ * Example: the "shock words" pattern catches "shocking", "stunning", "bizarre", etc.
+ * Spammers rotate specific words constantly, but they can't change their tactics —
+ * sensationalism is how they make money. We detect the tactic, not the words.
+ *
+ * Each matching pattern increments clickbaitCount independently, which feeds:
+ *   - Rule 2: bulk + 2+ clickbait patterns → spam
+ *   - Rule 4: 3+ clickbait patterns (even without bulk email) → spam
+ *
  * @const {Array<RegExp>}
  */
 const CLICKBAIT_PATTERNS = Object.freeze([
@@ -813,13 +832,22 @@ function isBulkEmail(rawContent)
 /**
  * Collect all spam signals from a message.
  *
+ * Design principle — separation of concerns:
+ *   collectSignals() answers "what's in this email?" (facts)
+ *   makeVerdict()    answers "is this spam?"           (judgement)
+ * Keeping them separate makes each function easier to test and debug.
+ * If an email is incorrectly flagged, you can inspect the signals object
+ * to see exactly which patterns fired, without needing to trace through
+ * the rule logic at the same time.
+ *
  * Extracts and normalizes email fields, checks the whitelist, then populates
- * a signals object from 6 independent detection categories. Each signal is
+ * a signals object from independent detection categories. Each signal is
  * evaluated without reference to the others — verdict logic lives in
  * makeVerdict().
  *
  * @param {GmailMessage} message - The Gmail message to analyze.
- * @return {Object|null} Signals object, or null if sender is whitelisted.
+ * @return {Object|null} Signals object with boolean/numeric fields,
+ *                       or null if sender is whitelisted (skip detection).
  */
 function collectSignals(message)
 {
@@ -860,9 +888,11 @@ function collectSignals(message)
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
   // Check raw email headers for bulk service fingerprints (see BULK_EMAIL_FINGERPRINTS).
-  // These services are used by both legitimate senders and spam mills,
-  // so this signal alone is not conclusive — it's a multiplier for
-  // other signals in Rules 1-3.
+  // Bulk email services (Amazon SES, SendGrid) are used by both legitimate senders
+  // like LinkedIn AND spam mills, so this signal alone is not enough to call
+  // something spam. But it "multiplies" other signals: if you're using bulk
+  // infrastructure AND have clickbait subjects, that combination is very suspicious.
+  // Rules 1-3 all require bulk email as a prerequisite for exactly this reason.
   if (isBulkEmail(rawContent))
   {
     signals.bulkEmailService = true;
@@ -1004,9 +1034,11 @@ function makeVerdict(signals)
   }
 
   // Rule 3: Bulk email + 2+ distinct spam behaviors = spam
-  // Rationale: No single behavior is conclusive, but two independently-detected
-  // spam signals from a bulk sender is strong evidence — it's very unlikely that
-  // two unrelated spam indicators both fire on a legitimate email
+  // "Distinct behaviors" are: any clickbait, fear-mongering, marketing format,
+  // or suspicious From name — four INDEPENDENT signals that each detect a
+  // different aspect of spam. Finding 2+ of them is strong evidence because
+  // it's very unlikely that two unrelated spam indicators both fire on a
+  // legitimate email by coincidence.
   let spamBehaviorCount = 0;
   if (signals.clickbaitCount >= 1) spamBehaviorCount++;
   if (signals.fearMongering) spamBehaviorCount++;

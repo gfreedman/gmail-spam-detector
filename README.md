@@ -132,25 +132,21 @@ Bank Account, Government Hiding, Blood Thinner
 **Conservative approach - requires multiple signals:**
 
 ```javascript
-// RULE 0: Bulk email + known spam domain
-if (amazonSES && blacklistedSender) {
-  return SPAM;
-}
+// RULE 1: Bulk email + known spam domain → definitive spam
+if (bulkEmail && blacklistedSender) { return SPAM; }
 
-// RULE 1: Bulk email + obvious clickbait
-if (amazonSES && clickbaitCount >= 2) {
-  return SPAM;
-}
+// RULE 2: Bulk email + 2+ clickbait patterns → spam
+if (bulkEmail && clickbaitCount >= 2) { return SPAM; }
 
-// RULE 2: Bulk email + multiple spam behaviors
-if (amazonSES && (clickbait + fear + marketing + suspiciousFrom >= 2)) {
-  return SPAM;
-}
+// RULE 3: Bulk email + 2+ independent spam behaviors → spam
+// (behaviors = any of: clickbait, fear, marketing format, suspicious From name)
+if (bulkEmail && spamBehaviorCount >= 2) { return SPAM; }
 
-// RULE 3: Extreme clickbait even without bulk email
-if (clickbaitCount >= 3) {
-  return SPAM;
-}
+// RULE 4: Extreme clickbait alone (3+) → spam (catches direct-send spam)
+if (clickbaitCount >= 3) { return SPAM; }
+
+// RULE 5: Empty subject + attachment → payload delivery scam
+if (emptySubject && hasAttachment) { return SPAM; }
 
 return NOT_SPAM;
 ```

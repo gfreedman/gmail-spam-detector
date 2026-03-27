@@ -6,7 +6,8 @@ Validates the spam detection engine against real-world .eml samples and ensures
 the deployed Google Apps Script only calls methods that actually exist on the
 Gmail Advanced Service API.
 
-Four test phases run in order:
+Five test phases run in order:
+    0. Parser self-tests — unit-test the JS→Python regex extractor
     1. Gmail API method validation — static analysis of SpamDetector.gs
     2. Spam detection — every .eml in spam_examples/ must be flagged
     3. Scam detection — every .eml in scam_examples/ must be flagged
@@ -52,8 +53,16 @@ def _parse_js_regex_literal(line):
     """
     Parse a single JS regex literal /pattern/flags from a source line.
 
-    Returns (pattern_str, flags_str) or None if the line has no regex
-    (e.g. comment lines, blank lines, closing brackets).
+    The tricky part: a regex like /foo\/bar/i has an escaped slash inside the
+    pattern. Naively splitting on '/' breaks here — we'd get ['', 'foo\\', 'bar', 'i'].
+    The regex below handles backslash escapes so it correctly finds the CLOSING /.
+
+    Args:
+        line: One line of JavaScript source code.
+
+    Returns:
+        (pattern_str, flags_str) if line contains a regex literal, or None if not
+        (e.g. comment lines '// ...', blank lines, or closing brackets ']);').
     """
     line = line.strip()
     if not line or line.startswith('//'):
@@ -100,11 +109,19 @@ def _js_pattern_to_python(js_pattern):
     """
     Convert a JS regex pattern string to a Python-compatible one.
 
-    The only conversion needed: \\uD835 is the UTF-16 high surrogate for the
-    mathematical alphanumeric Unicode block (U+1D400–U+1DFFF, e.g. "𝗔𝗺𝗮𝘇𝗼𝗻").
-    JS strings are UTF-16 so matching the surrogate catches all of them. Python
-    strings are UCS-4 (full codepoints), so we match the actual range instead.
-    All other JS regex syntax is directly compatible with Python's re module.
+    Almost all JS regex syntax works unchanged in Python. ONE exception: fancy
+    Unicode characters like "𝗔𝗺𝗮𝘇𝗼𝗻" (bold math font used in spam subjects).
+
+    Background: JavaScript stores strings as UTF-16 (16-bit code units). Characters
+    above U+FFFF — like the bold math block U+1D400–U+1DFFF — need TWO 16-bit
+    "surrogate" units to encode. \\uD835 is the HIGH surrogate shared by the entire
+    bold math block, so the JS pattern /\\uD835/ matches any bold math character.
+
+    Python 3 uses full Unicode codepoints natively, so we convert \\uD835 to the
+    actual character range [\\U0001D400-\\U0001D7FF] instead.
+
+    All other JS regex features used in this codebase (\\b, \\d, \\s, |, {n,m},
+    character classes, flags i/m/s) work identically in Python's re module.
     """
     return js_pattern.replace(r'\uD835', r'[\U0001D400-\U0001D7FF]')
 
@@ -114,15 +131,18 @@ def _extract_bracket_content(source, marker):
     Find `marker` in source and return the content between the outer [ and its
     matching ].
 
-    Uses a mini state machine that skips over:
+    Why a state machine instead of simple bracket-counting?
+    A naive counter (depth++ on '[', depth-- on ']') breaks on patterns like:
+        /[a-z]+/,   ← the '[' here is inside a regex, NOT opening a nested array
+    The naive counter increments depth, then can't find the matching ']', and
+    either returns truncated content or raises an error.
+
+    Solution: track context. A '[' only counts toward depth when we're NOT inside
+    a regex literal, string literal, or comment. The state machine skips over:
         - Line comments   //...
         - Block comments  /* ... */
         - String literals '...' and "..."
         - Regex literals  /pattern/flags  (including character classes /[a-z]/)
-
-    This correctly handles `[` and `]` inside regex character classes, which
-    would fool a naive bracket-depth counter (e.g., /[a-z]/ has a `[` that
-    is NOT opening a new array — it's part of the regex syntax).
     """
     start = source.find(marker)
     if start == -1:
@@ -919,7 +939,8 @@ def main():
     """
     Run all test phases and exit with appropriate code for CI.
 
-    Executes four phases in order, failing fast on critical errors:
+    Executes five phases in order, failing fast on critical errors:
+        Phase 0: Parser self-tests — verifies JS→Python extraction before anything else.
         Phase 1: Gmail API method validation — fails fast because there's no
                  point testing detection if the deployed code will crash on
                  bad API calls.

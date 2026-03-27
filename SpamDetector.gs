@@ -31,7 +31,7 @@
  *            maxAllowedEmailsPerRun/maxAllowedDaysToCheck into LIMITS, empty-domain
  *            guard on addToWhitelist/addToBlacklist, \uD835 surrogate explanation.
  *   v6.23.0: Extract BULK_EMAIL_FINGERPRINTS constant + isBulkEmail() helper.
- *            Fixes cleanseInbox() missing toLowerCase and test_v6.py missing x-ses-.
+ *            Fixes cleanseInbox() missing toLowerCase and test_spam_detector.py missing x-ses-.
  *   v6.22.0: Improve all comments for clarity at introductory CS level.
  *            Fix @version tag, rule numbering in header and docstrings,
  *            plain-English explanations for ReDoS, log injection, RFC 2822.

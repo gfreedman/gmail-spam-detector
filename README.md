@@ -252,7 +252,7 @@ addToWhitelist('domain.com');
 ├── docs/
 │   └── EXPORTING_EMAILS.md      # How to export .eml files
 ├── tests/
-│   ├── test_v6.py               # Python test suite
+│   ├── test_spam_detector.py    # Python test suite
 │   ├── spam_examples/           # Real spam .eml files (44)
 │   ├── scam_examples/           # Scam .eml files — attachment-based (1)
 │   └── ham_examples/            # Legitimate .eml files (17)

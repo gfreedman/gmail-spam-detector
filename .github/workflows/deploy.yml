@@ -69,7 +69,7 @@ jobs:
       # Run the Python test suite: Gmail API method validation, spam detection
       # (31 examples), and ham verification (11 examples). Exits 1 on failure.
       - name: Run spam detection tests
-        run: python tests/test_v6.py
+        run: python tests/test_spam_detector.py
 
       # Validate that README.md test result counts (e.g., "31/31", "11/11")
       # match the actual number of .eml files in the test directories.

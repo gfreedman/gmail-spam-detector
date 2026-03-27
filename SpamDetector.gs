@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.24.0
+ * @version 6.27.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and

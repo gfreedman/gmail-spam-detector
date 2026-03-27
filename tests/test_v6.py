@@ -528,7 +528,7 @@ def validate_api_methods():
 # Test: Spam Detection
 # =============================================================================
 
-def run_spam_tests(spam_dir):
+def run_spam_tests(spam_dir, label='Spam'):
     """
     Test that every .eml in spam_dir is correctly detected as spam.
 
@@ -541,6 +541,7 @@ def run_spam_tests(spam_dir):
 
     Args:
         spam_dir: Path to directory containing spam .eml files.
+        label:    Display label for the test phase header (e.g. 'Spam', 'Scam').
 
     Returns:
         Tuple of (passed, failed, failures) where:
@@ -552,9 +553,9 @@ def run_spam_tests(spam_dir):
     files = sorted([f for f in spam_dir.iterdir() if f.suffix == '.eml'])
 
     print('=' * 80)
-    print('Spam Detection Test Results')
+    print(f'{label} Detection Test Results')
     print('=' * 80)
-    print(f'Testing {len(files)} spam examples...\n')
+    print(f'Testing {len(files)} {label.lower()} examples...\n')
 
     passed = 0
     failed = 0
@@ -736,7 +737,7 @@ def main():
     scam_failures = []
 
     if scam_dir.exists():
-        scam_passed, scam_failed, scam_failures = run_spam_tests(scam_dir)
+        scam_passed, scam_failed, scam_failures = run_spam_tests(scam_dir, label='Scam')
 
     # ── Phase 4: Ham Verification ──────────────────────────────────────────
     # Every .eml in ham_examples/ must NOT be flagged (no false positives).

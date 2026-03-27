@@ -80,11 +80,11 @@ jobs:
           HAM_COUNT=$(ls tests/ham_examples/*.eml | wc -l | tr -d ' ')
           SCAM_COUNT=$(ls tests/scam_examples/*.eml 2>/dev/null | wc -l | tr -d ' ')
           STALE=0
-          if ! grep -q "${SPAM_COUNT}/" README.md; then
+          if ! grep -q "${SPAM_COUNT}/${SPAM_COUNT}" README.md; then
             echo "::error::README spam count is stale (found $SPAM_COUNT spam examples)"
             STALE=1
           fi
-          if ! grep -q "${HAM_COUNT}/" README.md; then
+          if ! grep -q "${HAM_COUNT}/${HAM_COUNT}" README.md; then
             echo "::error::README ham count is stale (found $HAM_COUNT ham examples)"
             STALE=1
           fi
@@ -158,6 +158,8 @@ jobs:
           if [ -n "$VERSION" ]; then
             VER_NUM="${VERSION#v}"
             sed -i "s/@version .*/@version ${VER_NUM}/" SpamDetector.gs
+            grep -q "@version ${VER_NUM}" SpamDetector.gs \
+              || { echo "::error::@version patch failed — sed found no match in SpamDetector.gs"; exit 1; }
             echo "Patched @version to ${VER_NUM}"
           else
             echo "No version in commit message — @version left unchanged"

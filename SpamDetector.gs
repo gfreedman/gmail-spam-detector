@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.23.0
+ * @version 6.24.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,9 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.24.0: L3/L5 review fixes — RFC2822_QUOTED_NAME constant, Rule 0→1 comments,
+ *            maxAllowedEmailsPerRun/maxAllowedDaysToCheck into LIMITS, empty-domain
+ *            guard on addToWhitelist/addToBlacklist, \uD835 surrogate explanation.
  *   v6.23.0: Extract BULK_EMAIL_FINGERPRINTS constant + isBulkEmail() helper.
  *            Fixes cleanseInbox() missing toLowerCase and test_v6.py missing x-ses-.
  *   v6.22.0: Improve all comments for clarity at introductory CS level.
@@ -98,7 +101,7 @@ const DEFAULT_DOMAINS = Object.freeze({
     'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'e.linkedin.com',
     'linkedin.email', 'dsf.ca', 'dragonfly', 'ezyvet.com'
   ]),
-  /** Known spam mill domains — triggers Rule 0 when combined with bulk email */
+  /** Known spam mill domains — triggers Rule 1 when combined with bulk email */
   suspicious: Object.freeze([
     'financeinsiderpro.com', 'financebuzz', 'smartinvestmenttools',
     'investorplace', 'weissratings', 'americanprofitinsight.com',
@@ -134,8 +137,33 @@ const LIMITS = Object.freeze({
 
   /** Log message truncation — prevents a crafted subject from inserting fake log lines
    *  (e.g. a subject of "OK\n[ERROR] Deleted everything" would print two log lines). */
-  maxLogChars: 100
+  maxLogChars: 100,
+
+  /** Upper bounds used by validateConfig() — not operational thresholds */
+  maxAllowedEmailsPerRun: 500,
+  maxAllowedDaysToCheck: 30
 });
+
+
+// =============================================================================
+// Normalization
+// =============================================================================
+
+/**
+ * Matches RFC 2822 quoted display names: `"Name" <email@domain>`
+ *
+ * The email standard allows display names to be wrapped in quotes. This regex
+ * strips them so pattern matching always sees: `Name <email@domain>`
+ *
+ * Capture groups:
+ *   $1 — display name content (handles escaped chars like \")
+ *   $2 — the <email@address> portion
+ *
+ * Usage: from.replace(RFC2822_QUOTED_NAME, '$1$2')
+ *
+ * @const {RegExp}
+ */
+const RFC2822_QUOTED_NAME = /^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/;
 
 
 // =============================================================================
@@ -230,7 +258,11 @@ const CLICKBAIT_PATTERNS = Object.freeze([
   /[\u0400-\u04FF]/,  // Cyrillic lookalikes: "Еlоn" with Cyrillic Е, о
   /[\u0370-\u03FF]/,  // Greek lookalikes: "Βanks" with Greek Β
   /[\uFF00-\uFFEF]/,  // Fullwidth chars: "＄2 Bill" — never legit in English
-  /\uD835/,           // Mathematical bold/italic: "𝗔𝗺𝗮𝘇𝗼𝗻" (surrogate pair)
+  // JS strings are UTF-16. Mathematical alphanumeric chars (U+1D400–U+1D7FF,
+  // e.g. "𝗔𝗺𝗮𝘇𝗼𝗻") are encoded as surrogate pairs whose high surrogate is
+  // always \uD835. Matching it catches all math bold/italic chars in one shot.
+  // (Python uses \U0001D400-\U0001D7FF instead — same coverage, different encoding model.)
+  /\uD835/,
 
   // --- Topic-specific spam categories ---
 
@@ -493,7 +525,7 @@ function cleanseInbox()
             }
             if (whitelisted) continue;
 
-            // Rule 0 pre-check: bulk + blacklisted = definitive, delete immediately
+            // Rule 1 pre-check: bulk + blacklisted = definitive, delete immediately
             const rawContent = message.getRawContent();
             const isBulk     = isBulkEmail(rawContent);
             let isBlacklisted = false;
@@ -545,7 +577,7 @@ function cleanseInbox()
       Utilities.sleep(1000); // 1s between batches to respect quota
     }
 
-    logInfo('CLEANSE COMPLETE: ' + deletedCount + ' deleted (Rule 0), ' +
+    logInfo('CLEANSE COMPLETE: ' + deletedCount + ' deleted (Rule 1), ' +
             suspectCount + ' quarantined (review SuspectedSpam label), ' +
             cleanCount + ' clean, ' + errorCount + ' errors');
 
@@ -795,22 +827,8 @@ function collectSignals(message)
   const subject = sanitizeInput(message.getSubject());
   const body = sanitizeInput(message.getPlainBody());
   // Normalize RFC 2822 quoted display names: "Name" <email> → Name <email>
-  //
-  // The email standard (RFC 2822) allows display names to be wrapped in quotes:
-  //   "John Smith" <john@example.com>   ← technically valid, but the quotes are noise
-  // We strip those outer quotes so all downstream pattern matching sees a clean name:
-  //   John Smith <john@example.com>
-  //
-  // Regex anatomy:
-  //   ^"                  — string starts with a quote
-  //   ((?:[^"\\]|\\.)*)   — capture group 1: any chars except " and \, OR an
-  //                         escaped char like \" (backslash then anything)
-  //   "                   — the matching closing quote
-  //   (\s*<[^>]*>)        — capture group 2: optional space + <email@address>
-  //   $                   — end of string
-  // Replace with "$1$2" → keep the inner name and the <email>, drop the quotes.
-  const from = sanitizeInput(message.getFrom())
-                 .replace(/^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/, '$1$2');
+  // See RFC2822_QUOTED_NAME constant for regex anatomy.
+  const from = sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2');
   const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
 
   // ── Whitelist check (early exit) ────────────────────────────────────────
@@ -1188,17 +1206,14 @@ function getOrCreateLabel(labelName)
  */
 function validateConfig()
 {
-  const MAX_EMAILS_PER_RUN = 500;
-  const MAX_DAYS_TO_CHECK  = 30;
-
-  if (CONFIG.maxEmailsPerRun < 1 || CONFIG.maxEmailsPerRun > MAX_EMAILS_PER_RUN)
+  if (CONFIG.maxEmailsPerRun < 1 || CONFIG.maxEmailsPerRun > LIMITS.maxAllowedEmailsPerRun)
   {
-    throw new Error('Invalid maxEmailsPerRun: must be between 1 and ' + MAX_EMAILS_PER_RUN);
+    throw new Error('Invalid maxEmailsPerRun: must be between 1 and ' + LIMITS.maxAllowedEmailsPerRun);
   }
 
-  if (CONFIG.daysToCheck < 0 || CONFIG.daysToCheck > MAX_DAYS_TO_CHECK)
+  if (CONFIG.daysToCheck < 0 || CONFIG.daysToCheck > LIMITS.maxAllowedDaysToCheck)
   {
-    throw new Error('Invalid daysToCheck: must be between 0 and ' + MAX_DAYS_TO_CHECK);
+    throw new Error('Invalid daysToCheck: must be between 0 and ' + LIMITS.maxAllowedDaysToCheck);
   }
 
   if (!CONFIG.processedLabel || CONFIG.processedLabel.length === 0)
@@ -1415,6 +1430,12 @@ function getBlacklist()
  */
 function addToWhitelist(domain)
 {
+  if (!domain || domain.trim().length === 0)
+  {
+    logError('addToWhitelist: domain must not be empty');
+    return;
+  }
+
   const props = PropertiesService.getScriptProperties();
   const whitelist = getWhitelist();
 
@@ -1432,7 +1453,7 @@ function addToWhitelist(domain)
 }
 
 /**
- * Add a domain to the blacklist (triggers Rule 0 when combined with bulk email).
+ * Add a domain to the blacklist (triggers Rule 1 when combined with bulk email).
  *
  * Duplicate-safe: silently skips if the domain is already in the list.
  *
@@ -1440,6 +1461,12 @@ function addToWhitelist(domain)
  */
 function addToBlacklist(domain)
 {
+  if (!domain || domain.trim().length === 0)
+  {
+    logError('addToBlacklist: domain must not be empty');
+    return;
+  }
+
   const props = PropertiesService.getScriptProperties();
   const blacklist = getBlacklist();
 

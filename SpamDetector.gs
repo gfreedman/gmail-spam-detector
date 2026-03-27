@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.22.0
+ * @version 6.23.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,8 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.23.0: Extract BULK_EMAIL_FINGERPRINTS constant + isBulkEmail() helper.
+ *            Fixes cleanseInbox() missing toLowerCase and test_v6.py missing x-ses-.
  *   v6.22.0: Improve all comments for clarity at introductory CS level.
  *            Fix @version tag, rule numbering in header and docstrings,
  *            plain-English explanations for ReDoS, log injection, RFC 2822.

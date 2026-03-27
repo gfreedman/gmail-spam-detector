@@ -1,10 +1,10 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.20.0
+ * @version 6.22.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
- * trigger, scanning the inbox for unprocessed emails and applying a
- * multi-signal pattern detection engine.
+ * trigger (a scheduled task), scanning the inbox for unprocessed emails and
+ * applying a multi-signal pattern detection engine.
  *
  * Detection strategy — target behavioral patterns spammers can't easily change:
  *   - Bulk email infrastructure (Amazon SES, SendGrid)
@@ -19,14 +19,17 @@
  *   2. markAsSpam()   — report to Gmail (trains filters) + immediately delete by ID
  *   3. destroySpam()  — safety-net sweep of spam folder for stragglers
  *
- * Decision logic (4 rules, evaluated in priority order):
- *   Rule 0: Bulk + blacklisted sender domain → spam
- *   Rule 1: Bulk + 2+ clickbait patterns → spam
- *   Rule 2: Bulk + 2+ distinct spam behaviors → spam
- *   Rule 3: 3+ clickbait patterns (no bulk required) → spam
- *   Rule 4: Empty subject + attachment → payload delivery scam
+ * Decision logic (5 rules, evaluated in priority order — first match wins):
+ *   Rule 1: Bulk email + blacklisted sender domain → spam
+ *   Rule 2: Bulk email + 2+ clickbait patterns → spam
+ *   Rule 3: Bulk email + 2+ distinct spam behaviors → spam
+ *   Rule 4: 3+ clickbait patterns (no bulk email required) → spam
+ *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.22.0: Improve all comments for clarity at introductory CS level.
+ *            Fix @version tag, rule numbering in header and docstrings,
+ *            plain-English explanations for ReDoS, log injection, RFC 2822.
  *   v6.21.0: CS professor refactor — JSON.parse fallback on corrupt Script
  *            Properties, patterns to module-level constants, split
  *            analyzeMessage() into collectSignals()/makeVerdict(), named
@@ -123,10 +126,12 @@ const LIMITS = Object.freeze({
   /** From display names longer than this are flagged as suspicious (keyword stuffing) */
   maxDisplayNameLength: 50,
 
-  /** Input truncation cap — prevents regex backtracking DoS on malicious oversized inputs */
+  /** Input truncation cap — some regex patterns take exponentially long on huge strings
+   *  (called "ReDoS"). 100 000 chars is far more than any real email field needs. */
   maxInputChars: 100000,
 
-  /** Log message truncation — prevents log injection via crafted subjects */
+  /** Log message truncation — prevents a crafted subject from inserting fake log lines
+   *  (e.g. a subject of "OK\n[ERROR] Deleted everything" would print two log lines). */
   maxLogChars: 100
 });
 
@@ -347,7 +352,9 @@ function processInbox()
 
   try
   {
-    // Fail fast if config is invalid (before doing any work)
+    // Validate config before doing any work. If something is misconfigured we
+    // want a clear error immediately rather than silent misbehavior later on
+    // ("fail fast" — crash early with a useful message instead of limping along).
     validateConfig();
 
     // Get or create the "SpamChecked" label used to track processed emails
@@ -407,8 +414,8 @@ function processInbox()
 /**
  * Full historical inbox cleanse — two-speed mode:
  *
- *   DELETED:   Bulk + blacklisted sender (Rule 0 only) — zero false-positive risk.
- *   QUARANTINE: Everything else that scores as spam (Rules 1/2/3) — gets a
+ *   DELETED:   Bulk + blacklisted sender (Rule 1 only) — zero false-positive risk.
+ *   QUARANTINE: Everything else that scores as spam (Rules 2/3/4/5) — gets a
  *               "SuspectedSpam" label instead of being deleted. Review these
  *               in Gmail and drop false positives into tests/ham_examples/ so
  *               patterns can be improved.
@@ -755,8 +762,20 @@ function collectSignals(message)
   const subject = sanitizeInput(message.getSubject());
   const body = sanitizeInput(message.getPlainBody());
   // Normalize RFC 2822 quoted display names: "Name" <email> → Name <email>
-  // getFrom() returns raw headers; outer quotes must be stripped so downstream
-  // pattern matching never sees the surrounding " characters.
+  //
+  // The email standard (RFC 2822) allows display names to be wrapped in quotes:
+  //   "John Smith" <john@example.com>   ← technically valid, but the quotes are noise
+  // We strip those outer quotes so all downstream pattern matching sees a clean name:
+  //   John Smith <john@example.com>
+  //
+  // Regex anatomy:
+  //   ^"                  — string starts with a quote
+  //   ((?:[^"\\]|\\.)*)   — capture group 1: any chars except " and \, OR an
+  //                         escaped char like \" (backslash then anything)
+  //   "                   — the matching closing quote
+  //   (\s*<[^>]*>)        — capture group 2: optional space + <email@address>
+  //   $                   — end of string
+  // Replace with "$1$2" → keep the inner name and the <email>, drop the quotes.
   const from = sanitizeInput(message.getFrom())
                  .replace(/^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/, '$1$2');
   const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
@@ -937,8 +956,9 @@ function makeVerdict(signals)
   }
 
   // Rule 3: Bulk email + 2+ distinct spam behaviors = spam
-  // Rationale: No single behavior is conclusive, but two independent spam
-  // behaviors from a bulk sender is a strong convergent signal
+  // Rationale: No single behavior is conclusive, but two independently-detected
+  // spam signals from a bulk sender is strong evidence — it's very unlikely that
+  // two unrelated spam indicators both fire on a legitimate email
   let spamBehaviorCount = 0;
   if (signals.clickbaitCount >= 1) spamBehaviorCount++;
   if (signals.fearMongering) spamBehaviorCount++;
@@ -1165,9 +1185,10 @@ function validateConfig()
 /**
  * Sanitize input strings to prevent memory issues from oversized content.
  *
- * Truncates to 100KB max. Applied to subject, body, and from fields before
- * pattern matching. This prevents regex backtracking DoS on maliciously
- * crafted emails with extremely long headers.
+ * Truncates to 100 KB max. Applied to subject, body, and from fields before
+ * pattern matching. Some regular expressions take exponentially longer as input
+ * grows (called "ReDoS" — Regular Expression Denial of Service). Capping input
+ * at 100 KB closes that window; no real email field is longer than a few KB.
  *
  * @param {string} input - Input string to sanitize.
  * @return {string} Sanitized string (truncated if over 100KB). Empty string if falsy.
@@ -1182,8 +1203,10 @@ function sanitizeInput(input)
 /**
  * Sanitize text for safe inclusion in log messages.
  *
- * Truncates to 100 chars and strips newlines to prevent log injection
- * (where a crafted subject could insert fake log entries).
+ * Truncates to 100 chars and strips newlines to prevent "log injection".
+ * Example: a spam subject of "OK\n[ERROR] Deleted your inbox" would print two
+ * separate log lines without sanitization — the second line looks like the
+ * script emitted it. Stripping newlines closes that loophole.
  *
  * @param {string} text - Text to sanitize for logging.
  * @return {string} Truncated, single-line string safe for log output.

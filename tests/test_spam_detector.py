@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test suite for SpamDetector v6.
+Test suite for SpamDetector.gs.
 
 Validates the spam detection engine against real-world .eml samples and ensures
 the deployed Google Apps Script only calls methods that actually exist on the
@@ -17,7 +17,6 @@ Exit codes:
     1 — one or more tests failed (CI will block deploy)
 """
 
-import os
 import re
 import sys
 import email
@@ -27,165 +26,192 @@ from pathlib import Path
 
 
 # =============================================================================
-# Internal Limits (mirrored from SpamDetector.gs LIMITS constant)
-# =============================================================================
-
-MAX_DISPLAY_NAME_LENGTH = 50   # From display names longer than this are suspicious
-MAX_INPUT_CHARS         = 100000  # Input truncation cap (100KB)
-MAX_LOG_CHARS           = 100  # Log message truncation
-
-
-# =============================================================================
-# Detection Patterns (mirrored from SpamDetector.gs)
+# SpamDetector.gs Pattern Loader
 #
-# These MUST stay in sync with the patterns in the Apps Script source.
-# Each pattern targets a *category* of spam tactic, not specific phrases.
+# Option B: single source of truth. All detection constants (regex patterns,
+# domain lists, numeric limits) are extracted directly from SpamDetector.gs at
+# import time. The test never re-defines a pattern — if a pattern changes in
+# the source, the test automatically picks it up on the next run.
+#
+# JS → Python conversion notes:
+#   - /pattern/i  → re.compile(r'pattern', re.IGNORECASE)
+#   - /pattern/   → re.compile(r'pattern')
+#   - \uD835      → [\U0001D400-\U0001D7FF]  (see _js_pattern_to_python)
+#   - All other JS regex syntax is directly compatible with Python's re module.
 # =============================================================================
 
-# --- Clickbait / Sensationalism Patterns ---
-# Matched against the concatenation of subject + from field.
-# Each hit increments clickbait_count by 1.
-CLICKBAIT_PATTERNS = [
-    # Sensationalist adjectives: shocking, bizarre, bombshell, etc.
-    re.compile(r'\b(shocking|stunning|bizarre|mysterious|secret|hidden|leaked|exposed|forbidden|bombshell)\b', re.I),
-    # Terrifying/alarming adjectives (often stuffed into From display names)
-    re.compile(r'\b(terrifying|alarming|devastating|horrifying|frightening|chilling|disturbing)\b', re.I),
-    # Curiosity gap: mystery word + visual/media word ("secret photo", "leaked footage")
-    re.compile(r'(strange|secret|hidden|mysterious|shocking|bizarre|unusual|leaked).*(picture|photo|image|video|camera|footage|document)', re.I),
-    # Urgency + sensationalism: "breaking news", "urgent warning", etc.
-    re.compile(r'(breaking|urgent|warning|alert|stop|exposed|banned).*(news|truth|secret|scandal|exposed|revealed)', re.I),
-    # Financial fear-mongering: market/money word + crisis word
-    re.compile(r'(market|stock|economy|dollar|gold|bitcoin|investment|crypto).*(crash|collapse|shift|crisis|warning|alert|plunge|tank|dying)', re.I),
-    # "Caught" visual-proof framing: "caught on camera", "caught red-handed"
-    re.compile(r'caught (on|doing|in|red-handed)', re.I),
-    # Transformation clickbait: "this changes everything", "what stunned everyone"
-    re.compile(r'(what|this).*(changes everything|stunned everyone|shocked|amazed|surprised)', re.I),
-    # Celebrity/political name-dropping for false credibility
-    re.compile(r'\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns|showed|shows)', re.I),
-    # Political legitimization: "Trump approved/signed/backed [product]"
-    re.compile(r'\b(Trump|Biden|Obama|Musk|Kennedy|RFK)\b.*(approved|signed|backed|endorsed|directed|ordered|mandated)', re.I),
-    # Celebrity merchandise/collectible scams
-    re.compile(r'\b(Trump|Biden|Obama|Kennedy)\b.*(coin|bill|medal|card|stamp|legacy|commemorat|collect|mint|gold|silver)', re.I),
-    # Demographic targeting: age-based fear ("Seniors Most At Risk")
-    re.compile(r'\b(seniors?|elderly|retirees?|boomers?|over \d{2}|born before|age \d{2})\b.*(risk|warning|alert|danger|affected|target)', re.I),
-    # Year-based urgency: current year + threat word ("2026 Warning")
-    re.compile(r'\b202[4-9]\b.*(warning|alert|prediction|forecast|crisis)', re.I),
-    # Conspiracy/hiding: "what they don't want you to know"
-    re.compile(r'(what|who).*(hiding|don\'t want you|truth|they won\'t tell)', re.I),
-    # Impending doom framing: "What's Coming", "Not Prepared for what's ahead"
-    re.compile(r"\bwhat.s (coming|ahead)\b|\bnot prepared\b", re.I),
-    # Military/war sensationalism: "declared war", "bombing", "invasion"
-    re.compile(r'\b(declared war|bombed|bombing|attack|attacked|destroyed|invasion)\b', re.I),
-    # Pre-IPO investment solicitation: always spam in bulk email
-    re.compile(r'\bpre-?ipo\b', re.I),
-    # Stock price hype: "$5 a share", "$0.85 per share", "penny stock"
-    re.compile(r'\$\d+(\.\d+)?\s*(?:(?:a|per)\s+)?share|\bpenny stock\b', re.I),
-    # Watch/see curiosity gap: "watch what happened", "see this"
-    re.compile(r'\b(watch|see)\s+(what|this|the moment)', re.I),
+def _parse_js_regex_literal(line):
+    """
+    Parse a single JS regex literal /pattern/flags from a source line.
 
-    # --- Structural / Formatting Indicators ---
-    re.compile(r'【.*】'),           # Japanese-style brackets (spammer tactic)
-    re.compile(r'\[.{3,}[?!]\]'),    # Square brackets with punctuation: [Like This?]
-    re.compile(r'💼|📸|⏯️|🚨|⚠️|📰|💰|⚡'),  # Sensationalist emoji
-    re.compile(r'\?\?\?|!!!'),       # Triple punctuation (urgency tactic)
-    re.compile(r'\u2026|\.{3,}'),    # Ellipsis dramatic pause (Unicode … or ASCII ...)
-    re.compile(r'\bWATCH\b.*\?$', re.I),  # "WATCH ...?" clickbait structure
+    Returns (pattern_str, flags_str) or None if the line has no regex
+    (e.g. comment lines, blank lines, closing brackets).
+    """
+    line = line.strip()
+    if not line or line.startswith('//'):
+        return None
+    # Match /pattern/flags — handles escaped slashes inside the pattern (\/)
+    m = re.match(r'^/((?:[^/\\]|\\.)*)/([gimsuy]*)', line)
+    return (m.group(1), m.group(2)) if m else None
 
-    # --- Unicode Obfuscation (filter evasion) ---
-    re.compile(r'[\u0400-\u04FF]'),          # Cyrillic lookalikes ("Еlоn" with Cyrillic Е, о)
-    re.compile(r'[\u0370-\u03FF]'),          # Greek lookalikes ("Βanks" with Greek Β)
-    re.compile(r'[\uFF00-\uFFEF]'),          # Fullwidth chars ("＄2 Bill") — never legit in English
-    re.compile(r'[\U0001D400-\U0001D7FF]'),  # Mathematical bold/italic ("𝗔𝗺𝗮𝘇𝗼𝗻")
-    re.compile(r'[\u2215\u2044\u29F8]'),     # Lookalike slash chars (division/fraction slash)
 
-    # --- Topic-Specific Spam Categories ---
-    # Jobs/employment fear: "jobs disappeared", "layoffs"
-    re.compile(r'\b(jobs?|employment).*(disappeared|vanished|never existed|fake|fraud|layoffs?)', re.I),
-    # Bank/branch closing fear: "banks closing", "ATMs shutting down"
-    re.compile(r'\b(banks?|branch|branches|ATMs?).*(clos|shut|disappear|eliminat)', re.I),
-    # Building/institution emoji (banks, hospitals)
-    re.compile(r'🏦|🏥|🏛️|🏢'),
-    # Collectible/commemorative scams: "limited edition", "rare coin"
-    re.compile(r'\b(minted|commemorat|collector\'?s?|limited edition|rare coin|gold.?plated|silver.?plated)\b', re.I),
-    # Bullet-point date format: "• January 29 •" (newsletter spam tactic)
-    re.compile(r'•\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
-    # Pipe-date subject format: "| February 23" (same tactic, pipe variant)
-    re.compile(r'\|\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
-    # Bracket-date subject format: "[March 09]" — same tactic, bracket variant
-    re.compile(r'\[\s*(January|February|March|April|May|June|July|August|September|October|November|December)\b', re.I),
-    # Dash-date subject format: "- Mar 11, 2026" — same tactic, dash variant with abbreviated months
-    re.compile(r'[-]\s*(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\b', re.I),
-    # Historical atrocity clickbait: Nazi/Holocaust references as engagement bait
-    re.compile(r'\b(nazi|hitler|auschwitz|gestapo|mengele|third reich)\b', re.I),
-    # Health condition anxiety triggers: "blood sugar", "brain fog", etc.
-    re.compile(r'\b(fatigue|insomnia|inflammation|blood sugar|cholesterol|blood pressure|joint pain|brain fog|belly fat)\b', re.I),
-    # Financial scam products: gift cards, tax liens, instant approval
-    re.compile(r'\b(gift card|tax lien|tax sale|foreclosure list|pre-?approved|instant approval|no annual fee)\b', re.I),
-    # "Now you can see/watch" exclusive access clickbait
-    re.compile(r'\bnow you can (see|watch|view|get)\b', re.I),
-    # Financial product solicitation: "0% APR", "balance transfer"
-    re.compile(r'\b(0\s*%\s*(interest|apr)|balance transfer|transfer your.*(balance|debt))\b', re.I),
-    # Crypto quantity notation: "5000.00 $CLAW", "100 $USDT" — airdrop/ICO spam
-    # Legitimate financial email writes "$5000", not "5000 $TICKER"
-    re.compile(r'\b\d+(?:\.\d+)?\s+\$[A-Z]{4,}\b'),
-]
+def _js_flags_to_python(js_flags):
+    """Convert a JS regex flag string ('i', 'im', etc.) to Python re flags."""
+    flags = 0
+    if 'i' in js_flags:
+        flags |= re.IGNORECASE
+    if 'm' in js_flags:
+        flags |= re.MULTILINE
+    if 's' in js_flags:
+        flags |= re.DOTALL
+    return flags
 
-# --- Body-Only Crypto Scam Patterns ---
-# High-confidence terms checked against email body only. Each match increments
-# clickbait_count (same pool as CLICKBAIT_PATTERNS) to support Rule 3.
-BODY_CRYPTO_PATTERNS = [
-    re.compile(r'\bairdrop\b', re.I),                    # Crypto token airdrop
-    re.compile(r'\bconnect\s+(your\s+)?wallet\b', re.I), # "Connect your wallet" — wallet drainer
-]
 
-# --- Fear-Mongering Patterns ---
-# Matched against subject + from. A single hit sets fear_mongering = True.
-FEAR_PATTERNS = [
-    # Government fear: IRS/NSA/FBI + threat/revelation verb
-    re.compile(r'\b(IRS|NSA|FBI|CIA|government|federal)\b.*(warn|hiding|secret|spy|track|audit|investigation|admission|reveal|expose|confiscat)', re.I),
-    # Financial fear: bank/money terms + seizure/theft verbs
-    re.compile(r'\b(banks?|bank account|credit card|social security|identity|savings|cash|money)\b.*(seize|steal|stolen|hacked|freeze|frozen|close|closed|warning|alert|confiscat|take|taking|lost)', re.I),
-    # Health fear: medical terms + danger verbs
-    re.compile(r'\b(blood thinner|medication|drug|vaccine|doctor|FDA|health crisis|at risk)\b.*(warning|danger|deadly|killing|risk|avoid|corrupt)', re.I),
-    # Standalone urgency words: "WARNING", "ALERT", "BREAKING"
-    re.compile(r'\b(warning|alert|urgent|breaking|exposed|banned|stopped)\b', re.I),
-    # "STOP using/taking" imperative pattern
-    re.compile(r'\bSTOP (using|taking|doing|buying)\b', re.I),
-]
+def _js_pattern_to_python(js_pattern):
+    """
+    Convert a JS regex pattern string to a Python-compatible one.
 
-# --- Whitelisted Sender Domains ---
-# Known legitimate senders — bypass all detection.
-WHITELISTED_DOMAINS = [
-    'sardine.ai', 'meetup.com', 'substack.com', 'conservative.ca',
-    'sundaymass.store', 'customerservice@stan', 'privaterelay.appleid.com',
-    'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'e.linkedin.com',
-    'linkedin.email', 'dsf.ca', 'dragonfly', 'ezyvet.com',
-]
+    The only conversion needed: \\uD835 is the UTF-16 high surrogate for the
+    mathematical alphanumeric Unicode block (U+1D400–U+1DFFF, e.g. "𝗔𝗺𝗮𝘇𝗼𝗻").
+    JS strings are UTF-16 so matching the surrogate catches all of them. Python
+    strings are UCS-4 (full codepoints), so we match the actual range instead.
+    All other JS regex syntax is directly compatible with Python's re module.
+    """
+    return js_pattern.replace(r'\uD835', r'[\U0001D400-\U0001D7FF]')
 
-# --- Blacklisted Sender Domains ---
-# Known spam mill domains. Substring-matched against the From field.
-BLACKLISTED_DOMAINS = [
-    'financeinsiderpro.com', 'financebuzz', 'smartinvestmenttools',
-    'investorplace', 'weissratings', 'americanprofitinsight.com',
-    'saferetirementreports.com', 'thinkrichtoday.com',
-    'brightcrestcapital.com', 'turbotradepro.com',
-    'budgetingjournals.com', 'investorbusinesstalk.com',
-    'expertmodernadvice',
-    'investingtrendstoday',
-    'smartpeoplemail',
-    'onlineinvestingdaily',
-    'beststockvillage',
-]
 
-# --- Marketing Sender Format Patterns ---
-# Matched against the From field only. Detects spammy sender name formatting.
-MARKETING_PATTERNS = [
-    re.compile(r'\|\s*[A-Z]', re.I),            # "Name | Org" pipe separator (commas excluded: legit in org/place names)
-    re.compile(r'\s+at\s+[A-Z]', re.I),        # "Name at Organization"
-    re.compile(r'\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)', re.I),  # Spammy business names
-    re.compile(r'grow@with\.', re.I),           # Suspicious email pattern
-    re.compile(r'@[a-z]\.[a-z]+\.(com|net)', re.I),  # Subdomain pattern (@F.FinanceInsiderPro.com)
-]
+def _extract_bracket_content(source, marker, terminator='\n]);'):
+    """
+    Find `marker` in source, then return the content between the opening [
+    and the given `terminator` string.
+
+    Depth-counting would miscount `[` inside regex character classes like
+    /[a-z]/, so we rely on structural terminators instead:
+    - Top-level Object.freeze([...]) arrays end with bare `]);`  (default)
+    - Nested sub-arrays (e.g. inside DEFAULT_DOMAINS) end with `]),` or `])`
+      and need '\n  ])' passed as the terminator.
+    """
+    start = source.find(marker)
+    if start == -1:
+        raise ValueError(f'Marker not found in SpamDetector.gs: {marker!r}')
+    bracket_start = source.index('[', start)
+    end = source.find(terminator, bracket_start)
+    if end == -1:
+        raise ValueError(f'No closing {terminator!r} found after marker: {marker!r}')
+    return source[bracket_start + 1:end]
+
+
+def _extract_brace_content(source, marker):
+    """Like _extract_bracket_content but for { }."""
+    start = source.find(marker)
+    if start == -1:
+        raise ValueError(f'Marker not found in SpamDetector.gs: {marker!r}')
+    brace_start = source.index('{', start)
+    depth = 0
+    for i in range(brace_start, len(source)):
+        if source[i] == '{':
+            depth += 1
+        elif source[i] == '}':
+            depth -= 1
+            if depth == 0:
+                return source[brace_start + 1:i]
+    raise ValueError(f'Unmatched {{ after marker: {marker!r}')
+
+
+def _load_regex_array(source, const_name):
+    """Extract a JS Object.freeze([...]) regex array and compile to Python."""
+    content = _extract_bracket_content(source, f'const {const_name} = Object.freeze([')
+    patterns = []
+    for line in content.splitlines():
+        parsed = _parse_js_regex_literal(line)
+        if parsed:
+            js_pat, js_flags = parsed
+            patterns.append(
+                re.compile(_js_pattern_to_python(js_pat), _js_flags_to_python(js_flags))
+            )
+    return patterns
+
+
+def _load_string_array(source, const_name):
+    """Extract a JS Object.freeze([...]) string array as a Python list."""
+    content = _extract_bracket_content(source, f'const {const_name} = Object.freeze([')
+    return re.findall(r"""['"]([^'"]+)['"]""", content)
+
+
+def _load_single_regex(source, const_name):
+    """Extract a standalone JS const NAME = /pattern/flags; and compile."""
+    marker = f'const {const_name} = '
+    start = source.find(marker)
+    if start == -1:
+        raise ValueError(f'{const_name} not found in SpamDetector.gs')
+    line_end = source.index('\n', start)
+    line = source[start + len(marker):line_end].strip()
+    parsed = _parse_js_regex_literal(line)
+    if not parsed:
+        raise ValueError(f'Could not parse regex for {const_name}')
+    js_pat, js_flags = parsed
+    return re.compile(_js_pattern_to_python(js_pat), _js_flags_to_python(js_flags))
+
+
+def _load_gs_constants(gs_path):
+    """
+    Parse SpamDetector.gs and extract all detection constants used by the test.
+
+    Called once at module load time. Returns a dict with:
+        CLICKBAIT_PATTERNS, BODY_CRYPTO_PATTERNS, FEAR_PATTERNS,
+        MARKETING_PATTERNS     — lists of compiled re.Pattern objects
+        BULK_EMAIL_FINGERPRINTS — list of strings
+        RFC2822_QUOTED_NAME    — single compiled re.Pattern
+        LIMITS                 — dict of int values (maxDisplayNameLength, etc.)
+        DEFAULT_DOMAINS        — dict with 'legitimate' and 'suspicious' lists
+    """
+    source = gs_path.read_text(encoding='utf-8')
+
+    # LIMITS: extract key: integer_value pairs from the Object.freeze({}) block
+    limits_content = _extract_brace_content(source, 'const LIMITS = Object.freeze({')
+    limits = {
+        m.group(1): int(m.group(2))
+        for m in re.finditer(r'(\w+)\s*:\s*(\d+)', limits_content)
+    }
+
+    # DEFAULT_DOMAINS: two named inner arrays inside the outer object.
+    # These end with ]), (comma) or ]) not ]); so pass the nested terminator.
+    legit_content      = _extract_bracket_content(source, 'legitimate: Object.freeze([',  '\n  ])')
+    suspicious_content = _extract_bracket_content(source, 'suspicious: Object.freeze([', '\n  ])')
+
+    return {
+        'CLICKBAIT_PATTERNS':      _load_regex_array(source, 'CLICKBAIT_PATTERNS'),
+        'BODY_CRYPTO_PATTERNS':    _load_regex_array(source, 'BODY_CRYPTO_PATTERNS'),
+        'FEAR_PATTERNS':           _load_regex_array(source, 'FEAR_PATTERNS'),
+        'MARKETING_PATTERNS':      _load_regex_array(source, 'MARKETING_PATTERNS'),
+        'BULK_EMAIL_FINGERPRINTS': _load_string_array(source, 'BULK_EMAIL_FINGERPRINTS'),
+        'RFC2822_QUOTED_NAME':     _load_single_regex(source, 'RFC2822_QUOTED_NAME'),
+        'LIMITS':                  limits,
+        'DEFAULT_DOMAINS': {
+            'legitimate': re.findall(r"""['"]([^'"]+)['"]""", legit_content),
+            'suspicious':  re.findall(r"""['"]([^'"]+)['"]""", suspicious_content),
+        },
+    }
+
+
+# =============================================================================
+# Loaded Constants (single source of truth — all from SpamDetector.gs)
+# =============================================================================
+
+_GS_PATH = Path(__file__).parent.parent / 'SpamDetector.gs'
+_gs = _load_gs_constants(_GS_PATH)
+
+CLICKBAIT_PATTERNS      = _gs['CLICKBAIT_PATTERNS']
+BODY_CRYPTO_PATTERNS    = _gs['BODY_CRYPTO_PATTERNS']
+FEAR_PATTERNS           = _gs['FEAR_PATTERNS']
+MARKETING_PATTERNS      = _gs['MARKETING_PATTERNS']
+BULK_EMAIL_FINGERPRINTS = _gs['BULK_EMAIL_FINGERPRINTS']
+RFC2822_QUOTED_NAME     = _gs['RFC2822_QUOTED_NAME']
+WHITELISTED_DOMAINS     = _gs['DEFAULT_DOMAINS']['legitimate']
+BLACKLISTED_DOMAINS     = _gs['DEFAULT_DOMAINS']['suspicious']
+MAX_DISPLAY_NAME_LENGTH = _gs['LIMITS']['maxDisplayNameLength']
+MAX_INPUT_CHARS         = _gs['LIMITS']['maxInputChars']
+MAX_LOG_CHARS           = _gs['LIMITS']['maxLogChars']
 
 
 # =============================================================================
@@ -269,24 +295,21 @@ def parse_eml(filepath):
     with open(filepath, 'rb') as f:
         msg = email.message_from_binary_file(f, policy=policy.default)
 
-    # Re-read as raw text — bulk service indicators (amazonses.com, sendgrid.net)
-    # live in Received/Return-Path headers that the email library doesn't decode
+    # Re-read as raw text — bulk service indicators live in Received/Return-Path
+    # headers that the email library doesn't expose as structured fields
     with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
         content = f.read()
 
-    # Case-insensitive check for bulk email service fingerprints.
-    # Mirror BULK_EMAIL_FINGERPRINTS in SpamDetector.gs — keep both in sync.
-    BULK_EMAIL_FINGERPRINTS = ['amazonses.com', 'x-ses-', 'sendgrid.net']
+    # Case-insensitive check using BULK_EMAIL_FINGERPRINTS loaded from SpamDetector.gs
     content_lower = content.lower()
     has_amazon_ses = any(fp in content_lower for fp in BULK_EMAIL_FINGERPRINTS)
 
     # Decode headers (handles RFC 2047 encoded-words like =?utf-8?B?...?=)
     subject = decode_email_header(msg.get('subject', ''))
     from_raw = decode_email_header(msg.get('from', ''))
-    # Mirror getFrom() normalization in SpamDetector.gs: strip outer RFC 2822 quotes
-    # from display names. Python sometimes keeps them (when display name contains
-    # RFC 2822 specials like . , ( ) @ etc.) while Apps Script always returns them.
-    from_field = re.sub(r'^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$', r'\1\2', from_raw)
+    # Strip outer RFC 2822 quotes from display names using the RFC2822_QUOTED_NAME
+    # pattern loaded from SpamDetector.gs — same normalization as getFrom() in GAS
+    from_field = RFC2822_QUOTED_NAME.sub(r'\1\2', from_raw)
 
     # Extract plain-text body for body-only pattern checks (e.g. crypto airdrop)
     body = ''
@@ -309,10 +332,13 @@ def parse_eml(filepath):
 
 def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=False):
     """
-    Run the v6 detection logic against a single email's fields.
+    Run the detection logic against a single email's fields.
 
     Mirrors the analyzeMessage() function in SpamDetector.gs. Collects signals
     from multiple pattern categories, then applies the 5-rule decision logic.
+
+    All patterns and constants used here are loaded from SpamDetector.gs at
+    import time — any change to the source is automatically reflected.
 
     The detection pipeline:
         1. Check sender against blacklisted domains
@@ -373,17 +399,14 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # ── Signal: Suspicious From display name ───────────────────────────────
     # Strip the <email@address> portion, then check the remaining display name
     # for bullet separators (spammer tactic) or excessive length (keyword stuffing)
-    display_name = re.sub(r'<[^>]*>$', '', from_field).strip()  # quotes already stripped above
+    display_name = re.sub(r'<[^>]*>$', '', from_field).strip()
     if '•' in display_name or len(display_name) > MAX_DISPLAY_NAME_LENGTH:
         signals['suspicious_from_name'] = True
         signals['matched_patterns'].append('suspicious_from')
 
-    # Subject echo removed: caused false positives on legitimate company emails.
-    # All spam previously caught by this signal is caught by Rule 0 (blacklist).
-
     # ── Signal: Clickbait pattern count ────────────────────────────────────
     # Each matching pattern increments the counter independently — this allows
-    # Rule 1 (bulk + 2 clickbait) and Rule 3 (3+ clickbait alone) to trigger
+    # Rule 2 (bulk + 2 clickbait) and Rule 4 (3+ clickbait alone) to trigger
     for i, pattern in enumerate(CLICKBAIT_PATTERNS):
         if pattern.search(text_to_check):
             signals['clickbait_count'] += 1
@@ -391,7 +414,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
 
     # ── Signal: Body crypto scam patterns ──────────────────────────────────
     # High-confidence terms checked against body only. Each match increments
-    # clickbait_count (same pool) — supports Rule 3 on non-bulk senders.
+    # clickbait_count (same pool) — supports Rule 4 on non-bulk senders.
     for i, pattern in enumerate(BODY_CRYPTO_PATTERNS):
         if pattern.search(body):
             signals['clickbait_count'] += 1
@@ -441,8 +464,8 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
 
     else:
         # Rule 3: Bulk email + 2+ distinct spam behaviors = spam
-        #   Rationale: Convergent signals — no single behavior is conclusive,
-        #   but two independent spam behaviors from a bulk sender are
+        #   Rationale: Two independent spam signals from a bulk sender is strong
+        #   evidence — very unlikely to both fire on a legitimate email
         behavior_count = 0
         if signals['clickbait_count'] >= 1:
             behavior_count += 1
@@ -496,13 +519,11 @@ def validate_api_methods():
         List of error strings. Empty list means all methods are valid.
         Returns False if SpamDetector.gs is not found at expected path.
     """
-    # Locate SpamDetector.gs relative to this test file (../SpamDetector.gs)
-    gs_path = Path(__file__).parent.parent / 'SpamDetector.gs'
-    if not gs_path.exists():
-        print(f"ERROR: SpamDetector.gs not found at {gs_path}")
+    if not _GS_PATH.exists():
+        print(f"ERROR: SpamDetector.gs not found at {_GS_PATH}")
         return False
 
-    source = gs_path.read_text()
+    source = _GS_PATH.read_text()
 
     errors = []
     for api_object, valid_methods in GMAIL_API_METHODS.items():
@@ -688,7 +709,7 @@ def main():
     """
     Run all test phases and exit with appropriate code for CI.
 
-    Executes three phases in order, failing fast on critical errors:
+    Executes four phases in order, failing fast on critical errors:
         Phase 1: Gmail API method validation — fails fast because there's no
                  point testing detection if the deployed code will crash on
                  bad API calls.

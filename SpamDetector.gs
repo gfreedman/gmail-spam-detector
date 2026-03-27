@@ -313,6 +313,18 @@ const FEAR_PATTERNS = Object.freeze([
 ]);
 
 /**
+ * Bulk email service fingerprints — substring matches against raw email headers.
+ * These strings appear in Received/Return-Path headers when the email was routed
+ * through Amazon SES or SendGrid. Legitimate direct senders won't have them.
+ * @const {Array<string>}
+ */
+const BULK_EMAIL_FINGERPRINTS = Object.freeze([
+  'amazonses.com', // Amazon Simple Email Service — used by many bulk senders
+  'x-ses-',        // Amazon SES custom header prefix
+  'sendgrid.net'   // SendGrid relay fingerprint
+]);
+
+/**
  * Marketing sender format patterns — checked against From field only.
  * Detects spammy sender formatting. First match wins.
  * @const {Array<RegExp>}
@@ -480,10 +492,8 @@ function cleanseInbox()
             if (whitelisted) continue;
 
             // Rule 0 pre-check: bulk + blacklisted = definitive, delete immediately
-            const rawContent = message.getRawContent().toLowerCase();
-            const isBulk     = rawContent.includes('amazonses.com') ||
-                               rawContent.includes('x-ses-') ||
-                               rawContent.includes('sendgrid.net');
+            const rawContent = message.getRawContent();
+            const isBulk     = isBulkEmail(rawContent);
             let isBlacklisted = false;
             for (let b = 0; b < blacklist.length; b++)
             {
@@ -742,6 +752,27 @@ function buildSearchQuery()
 
 
 // =============================================================================
+// Bulk Email Detection
+// =============================================================================
+
+/**
+ * Return true if the raw email content contains any bulk email service fingerprint.
+ *
+ * Lowercases internally so callers don't need to pre-process.
+ *
+ * @param {string} rawContent - Full raw RFC 822 message content.
+ * @return {boolean} True if a bulk service fingerprint is found.
+ */
+function isBulkEmail(rawContent)
+{
+  const lower = rawContent.toLowerCase();
+  return BULK_EMAIL_FINGERPRINTS.some(function(fingerprint) {
+    return lower.includes(fingerprint);
+  });
+}
+
+
+// =============================================================================
 // Spam Detection Engine
 // =============================================================================
 
@@ -808,14 +839,11 @@ function collectSignals(message)
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
-  // Check raw email headers for Amazon SES or SendGrid fingerprints.
+  // Check raw email headers for bulk service fingerprints (see BULK_EMAIL_FINGERPRINTS).
   // These services are used by both legitimate senders and spam mills,
   // so this signal alone is not conclusive — it's a multiplier for
   // other signals in Rules 1-3.
-  const rawLower = rawContent.toLowerCase();
-  if (rawLower.includes('amazonses.com') ||
-      rawLower.includes('x-ses-') ||
-      rawLower.includes('sendgrid.net'))
+  if (isBulkEmail(rawContent))
   {
     signals.bulkEmailService = true;
     logDebug('Bulk email service detected');

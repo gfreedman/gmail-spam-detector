@@ -274,9 +274,11 @@ def parse_eml(filepath):
     with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
         content = f.read()
 
-    # Case-insensitive check for bulk email service fingerprints
+    # Case-insensitive check for bulk email service fingerprints.
+    # Mirror BULK_EMAIL_FINGERPRINTS in SpamDetector.gs — keep both in sync.
+    BULK_EMAIL_FINGERPRINTS = ['amazonses.com', 'x-ses-', 'sendgrid.net']
     content_lower = content.lower()
-    has_amazon_ses = 'amazonses.com' in content_lower or 'sendgrid.net' in content_lower
+    has_amazon_ses = any(fp in content_lower for fp in BULK_EMAIL_FINGERPRINTS)
 
     # Decode headers (handles RFC 2047 encoded-words like =?utf-8?B?...?=)
     subject = decode_email_header(msg.get('subject', ''))

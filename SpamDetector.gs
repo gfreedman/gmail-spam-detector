@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.27.0
+ * @version 6.28.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -119,7 +119,8 @@ const DEFAULT_DOMAINS = Object.freeze({
     'investingtrendstoday',
     'smartpeoplemail',
     'onlineinvestingdaily',
-    'beststockvillage'
+    'beststockvillage',
+    'frontiercapitalreport.com'
   ])
 });
 
@@ -314,6 +315,10 @@ const CLICKBAIT_PATTERNS = Object.freeze([
 
   // Health condition anxiety triggers: "blood sugar", "brain fog"
   /\b(fatigue|insomnia|inflammation|blood sugar|cholesterol|blood pressure|joint pain|brain fog|belly fat)\b/i,
+
+  // Numbered-threat framing: "#1 danger", "#1 killer", "the #1 cause of"
+  // Common in health/diet spam — e.g. "This Toxic Vegetable Is The #1 Danger In Your Diet"
+  /#\s*1\s*(danger|killer|risk|threat|cause|reason|enemy|mistake)/i,
 
   // Financial scam products: gift cards, tax liens, instant approval
   /\b(gift card|tax lien|tax sale|foreclosure list|pre-?approved|instant approval|no annual fee)\b/i,

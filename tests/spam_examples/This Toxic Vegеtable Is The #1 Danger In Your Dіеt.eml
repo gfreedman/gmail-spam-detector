@@ -1,0 +1,760 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:125:b0:1c1:bf75:a6ba with SMTP id 37csp174883rdd;
+        Fri, 3 Apr 2026 14:30:18 -0700 (PDT)
+X-Received: by 2002:a05:6214:29c4:b0:89c:4cac:74c5 with SMTP id 6a1803df08f44-8a70326db2cmr76355986d6.25.1775251817817;
+        Fri, 03 Apr 2026 14:30:17 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1775251817; cv=none;
+        d=google.com; s=arc-20240605;
+        b=RwmCQqVvYLTeQJY2mUUIsp3VapolUQcSCxJfa7o40rUc00IXPu5VTHZptCjzwA2vlE
+         pdCiLlbf9JuiJF830Rnp8x5RTXnx2XmPnrdWfwShQGgmWmh5OawxVFEXrmhJQg+waTDD
+         1z2wEafoosW5BZcrj1PjQtW1OA4HoA021/SNknKMMl7Fy2hgnlmtX4cFxd6KXfWeIzRF
+         xz8JPb/9mUGHpwXshgoZbmcjHlW9I95Su29VVl6al18Crkwoe1YqeGa1+aFXASE0C19Y
+         BZWzqgi2YjQvPFQhkntrBRxH09VPeC/o0eKq5LGQcxoFDJ9FPeO4b/S32hJQDPWJDRyX
+         M9sw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=XJI66dHy74marNqrdkhn13fEs8hoXzrJTb7XSx5sj8c=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=U6O6LuCCDDbTxxjLuWXMmfbz2ujOBy8aFOcpFrxtS/LtN60vujkdk2KRtbrIU85tL7
+         HZ5eOxtkMVClUM4OVZX2tbjwk6M10S763oL36ZMBZJvbzvcjBFJ9WuY4U8EM7xsN53UO
+         fkS7LmLvW8cHGXk5xbsxuzHIPRCs5gfaSYbXiudHxQweCYiXdX4KWedqTHLrw5a+hfMG
+         iJeNTUpl21oD8yb2VNCMSGE9PsCXM51E5R583RsUs6HHt4DjwZl81J/Sa6ajCK5zpZrT
+         NGDAo3B4y3+3WuqvI21n8kIdlrMmg/4XGntL6UYOfDej8JDz5PraCjAvJaXWYemkqj7A
+         yq2Q==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@news.frontiercapitalreport.com header.s=axyncflk2djwpyi7iys6gd5qz6o6lhqc header.b=bw2zsoyp;
+       dkim=pass header.i=@amazonses.com header.s=224i4yxa5dv7c2xz3womw6peuasteono header.b=rLkb9re9;
+       spf=pass (google.com: domain of 0100019d55410351-b4d2510e-17ea-4e4f-83f4-66e83653d0fe-000000@amazonses.com designates 54.240.78.152 as permitted sender) smtp.mailfrom=0100019d55410351-b4d2510e-17ea-4e4f-83f4-66e83653d0fe-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=frontiercapitalreport.com
+Return-Path: <0100019d55410351-b4d2510e-17ea-4e4f-83f4-66e83653d0fe-000000@amazonses.com>
+Received: from a78-152.smtp-out.amazonses.com (a78-152.smtp-out.amazonses.com. [54.240.78.152])
+        by mx.google.com with ESMTPS id 6a1803df08f44-8a6459aa016si82357916d6.356.2026.04.03.14.30.17
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 03 Apr 2026 14:30:17 -0700 (PDT)
+Received-SPF: pass (google.com: domain of 0100019d55410351-b4d2510e-17ea-4e4f-83f4-66e83653d0fe-000000@amazonses.com designates 54.240.78.152 as permitted sender) client-ip=54.240.78.152;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@news.frontiercapitalreport.com header.s=axyncflk2djwpyi7iys6gd5qz6o6lhqc header.b=bw2zsoyp;
+       dkim=pass header.i=@amazonses.com header.s=224i4yxa5dv7c2xz3womw6peuasteono header.b=rLkb9re9;
+       spf=pass (google.com: domain of 0100019d55410351-b4d2510e-17ea-4e4f-83f4-66e83653d0fe-000000@amazonses.com designates 54.240.78.152 as permitted sender) smtp.mailfrom=0100019d55410351-b4d2510e-17ea-4e4f-83f4-66e83653d0fe-000000@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=frontiercapitalreport.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=axyncflk2djwpyi7iys6gd5qz6o6lhqc;
+	d=news.frontiercapitalreport.com; t=1775251817;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=XJI66dHy74marNqrdkhn13fEs8hoXzrJTb7XSx5sj8c=;
+	b=bw2zsoypsYmG5leAChpS9MxwZtUgGQYjDKZMogAe2r/jxu0grT4uZOrMCiOYyY95
+	s/AI8Ikr469Ne4eN4sVZ0oXIHOaA9Axw45OHweeIxvBV36JZiB/Rrr13fXAXREMaYoc
+	hpf6/lk/SKv2o0Cvlc7RcopsnzUgF1Y+aLVsETcjaWiKiLxSn65Vml08Eb0T03oNI4g
+	sj2lemDUlh9pv86/d3+5V5MQNuCY/KjgaP/YE4IkgIT5tzQdt8z2h5egJywMZjAPrZR
+	hY3Et9cDUWS+hJeG5y8RXnh7I1l1pXmJt0W90KNaTooUivbtZ3mBtooJdKsU1N758qs
+	+rImRRSaKg==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=224i4yxa5dv7c2xz3womw6peuasteono; d=amazonses.com; t=1775251817;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=XJI66dHy74marNqrdkhn13fEs8hoXzrJTb7XSx5sj8c=;
+	b=rLkb9re97N7UURPBr51W1d2qDyf8QvKrNfPbCucyRKKY8aCun0XRQSfp6upx784k
+	T1SFk4kbMR8+xtXJw+0c4TQC7yPqDg4LL7UbePeQ4bnfykTaljeS274N+b/SkxVAdh9
+	vof6Zy1Tv+In8MSjuUzgMKf1vmLXfpfRUEuJT95Q=
+Date: Fri, 3 Apr 2026 21:30:17 +0000
+From: "U.S. Heart Surgeon Says - Frontier Capital Report" <intel@news.frontiercapitalreport.com>
+Reply-To: support@frontiercapitalreport.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019d55410351-b4d2510e-17ea-4e4f-83f4-66e83653d0fe-000000@email.amazonses.com>
+Subject: =?UTF-8?Q?This_Toxic_Veg=D0=B5table_Is_T?=
+ =?UTF-8?Q?he_#1_Danger_In_Your_D=D1=96=D0=B5t?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_8336046_467674551.1775251817284"
+X-Campaign-ID: 17535506
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=b0d459f7fa924e61b86129573ade7b5c&_s=5de87f7df4b445f1a83168d27cf667e3&_t=xWAS_NZCHJIwwehnUnvvIqbcSjgtK0S09zfdsMWymt-KntIGRwhJB2IkUEUf7uYenaIlZapSDj-DPx80YtLRmDXTwzeGaFdsOQ6RrucfC4XMX0tfGetF6d0EOgHtHtanV_gbGAXZqxBbX1bFi9wnkw%3D%3D>,<mailto:unsubscribe+17535506+22830069@unsubscribe.iterable.com>
+X-Feedback-ID: 22830069:17535506:127695:iterable
+X-Message-ID: 5de87f7df4b445f1a83168d27cf667e3
+X-SES-Outgoing: 2026.04.03-54.240.78.152
+
+------=_Part_8336046_467674551.1775251817284
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+ Attention, Th=D0=B5r=D0=B5 is 1 =E2=80=9Ctoxic=E2=80=9D veg=D0=B5table tha=
+t you should r=D0=B5m=CE=BFv=D0=B5 from your d=D1=96=D0=B5t=20
+=CE=99=CE=9C=CE=9C=CE=95D=CE=99=CE=91=CE=A4=CE=95LY. This veg=D0=B5table co=
+uld be toxic to your health and may a=CF=B2tua=E2=85=BC=E2=85=BCy be=20
+causing weight gain, digestive issues, brain fog, and fatigue.
+
+
+
+ <https://frontiercapitalreport.com/>
+ <https://frontiercapitalreport.com/>
+
+
+
+ THIS TOXIC VEG=D0=95TABLE IS THE #1 DANGER IN YOUR D=D0=86=D0=95T
+
+=20
+<https://link.frontiercapitalreport.com/6962c31abbf3b86b147bf838?sub1=3Dgeo=
+ff.c.freedman@gmail.com&sub2=3Dfcr-aku&sub3=3DB&sub4=3D00132_1>
+
+
+
+
+
+
+
+ Attention,=20
+
+ Th=D0=B5r=D0=B5 is 1 =E2=80=9Ctoxic=E2=80=9D veg=D0=B5table that you shoul=
+d r=D0=B5m=CE=BFv=D0=B5 from your d=D1=96=D0=B5t=20
+=CE=99=CE=9C=CE=9C=CE=95D=CE=99=CE=91=CE=A4=CE=95LY.=20
+
+ This veg=D0=B5table could be toxic to your health and may a=CF=B2tua=E2=85=
+=BC=E2=85=BCy be causing=20
+weight gain, digestive issues, brain fog, and fatigue.=20
+
+ Many food manufa=CF=B2turers market this 1 veg=D0=B5table as a =E2=80=9Che=
+alth super food.=E2=80=9D=20
+
+ This veg=D0=B5table is one that most Americans consume on a daily basis.=
+=20
+
+=D0=A1=E2=85=BC=D1=96=CF=B2k h=D0=B5r=D0=B5 to find out this =E2=80=9Ctoxic=
+=E2=80=9D veg=D0=B5table >>=20
+<https://link.frontiercapitalreport.com/6962c31abbf3b86b147bf838?sub1=3Dgeo=
+ff.c.freedman@gmail.com&sub2=3Dfcr-aku&sub3=3DB&sub4=3D00132_1>
+
+ P.S. Th=D0=B5r=D0=B5 is also a =E2=80=9Ctoxic=E2=80=9D plant protein that =
+is hiding in foods that we=20
+have considered healthy our entire lives and according to research it could=
+ be=20
+the#1 biggest danger in the American d=D1=96=D0=B5t.=20
+
+Watch The Shocking presentation n=CE=BFw=20
+<https://link.frontiercapitalreport.com/6962c31abbf3b86b147bf838?sub1=3Dgeo=
+ff.c.freedman@gmail.com&sub2=3Dfcr-aku&sub3=3DB&sub4=3D00132_1>
+ before it=E2=80=99s too late.=20
+ *=CE=91=E2=85=BC=E2=85=BC individuals are unique. Results can and will var=
+y.=20
+
+ If you no longer wish to get these emails, you can unsubscribe by clicking=
+=20
+here.=20
+<https://link.frontiercapitalreport.com/6962563ff3e33c19bd7e6729?sub1=3Dgeo=
+ff.c.freedman@gmail.com&sub2=3Dfcr-aku&sub3=3Dunsub>
+
+
+
+
+
+ <https://frontiercapitalreport.com/>
+
+This email was sent to you by Frontier Capital Report, a part of TerraTranc=
+e=20
+Technologies, LLC.
+
+ You can contact us by replying to this email or by sending a direct messag=
+e to
+support@frontiercapitalreport.com <mailto:support@frontiercapitalreport.com=
+>
+
+Reproducing or distributing any text, images, or information in any form=20
+without written permission from TerraTrance Technologies, LLC is strictly=
+=20
+prohibited.
+
+ 200 Broadway Blvd NE, Albuquerque, NM 87102=20
+=20
+<https://links.news.frontiercapitalreport.com/e/encryptedUnsubscribe?_r=3Db=
+0d459f7fa924e61b86129573ade7b5c&_s=3D5de87f7df4b445f1a83168d27cf667e3&_t=3D=
+xWAS_NZCHJIwwehnUnvvIqbcSjgtK0S09zfdsMWymt-KntIGRwhJB2IkUEUf7uYenaIlZapSDj-=
+DPx80YtLRmDXTwzeGaFdsOQ6RrucfC4XMX0tfGetF6d0EOgHtHtanV_gbGAXZqxBbX1bFi9wnkw=
+%3D%3D>
+=C2=A9 2026 FrontierCapitalReport.com. All Rights Reserved.
+
+
+Privacy Policy <https://frontiercapitalreport.com/privacy-policy/> Terms &=
+=20
+Conditions <https://frontiercapitalreport.com/terms-conditions/> Unsubscrib=
+e=20
+<https://links.news.frontiercapitalreport.com/e/encryptedUnsubscribe?_r=3Db=
+0d459f7fa924e61b86129573ade7b5c&_s=3D5de87f7df4b445f1a83168d27cf667e3&_t=3D=
+xWAS_NZCHJIwwehnUnvvIqbcSjgtK0S09zfdsMWymt-KntIGRwhJB2IkUEUf7uYenaIlZapSDj-=
+DPx80YtLRmDXTwzeGaFdsOQ6RrucfC4XMX0tfGetF6d0EOgHtHtanV_gbGAXZqxBbX1bFi9wnkw=
+%3D%3D>
+
+
+
+
+
+This email was sent to you by Frontier Capital Report, a part of TerraTranc=
+e=20
+Technologies, LLC.
+
+ You can contact us by replying to this email or by sending a direct messag=
+e to
+support@frontiercapitalreport.com <mailto:support@frontiercapitalreport.com=
+>
+
+Reproducing or distributing any text, images, or information in any form=20
+without written permission from TerraTrance Technologies, LLC is strictly=
+=20
+prohibited.
+
+200 Broadway Blvd NE, Albuquerque, NM 87102=20
+
+=C2=A9 2026 FrontierCapitalReport.com.
+All Rights Reserved.
+
+Privacy Policy <https://frontiercapitalreport.com/privacy-policy/> Unsubscr=
+ibe=20
+<https://links.news.frontiercapitalreport.com/e/encryptedUnsubscribe?_r=3Db=
+0d459f7fa924e61b86129573ade7b5c&_s=3D5de87f7df4b445f1a83168d27cf667e3&_t=3D=
+xWAS_NZCHJIwwehnUnvvIqbcSjgtK0S09zfdsMWymt-KntIGRwhJB2IkUEUf7uYenaIlZapSDj-=
+DPx80YtLRmDXTwzeGaFdsOQ6RrucfC4XMX0tfGetF6d0EOgHtHtanV_gbGAXZqxBbX1bFi9wnkw=
+%3D%3D>
+
+Terms & Conditions <https://frontiercapitalreport.com/terms-conditions/>=20
+
+
+ <https://frontiercapitalreport.com/>
+------=_Part_8336046_467674551.1775251817284
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: bo=
+rder-box;"><head><title></title><meta http-equiv=3D"Content-Type" content=
+=3D"text/html; charset=3Dutf-8"><meta name=3D"viewport" content=3D"width=3D=
+device-width,initial-scale=3D1"><!--[if mso]><xml><w:WordDocument xmlns:w=
+=3D"urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyRead=
+ingMail/></w:WordDocument> <o:OfficeDocumentSettings><o:PixelsPerInch>96</o=
+:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]--><!=
+--[if !mso]><!--><link href=3D"https://fonts.googleapis.com/css2?family=3DM=
+ontserrat:wght@100;400;700;900&amp;display=3Dswap" rel=3D"stylesheet" type=
+=3D"text/css"><!--<![endif]--><style>*{box-sizing:border-box}body{margin:0;=
+padding:0}a[x-apple-data-detectors]{color:inherit!important;text-decoration=
+:inherit!important}#MessageViewBody a{color:inherit;text-decoration:none}p{=
+line-height:inherit}.desktop_hide,.desktop_hide table{mso-hide:all;display:=
+none;max-height:0;overflow:hidden}.image_block img+div{display:none}sub,sup=
+{font-size:75%;line-height:0}@media(max-width:620px){.image_block div.fullW=
+idth{max-width:100%!important}.mobile_hide{display:none}.row-content{width:=
+100%!important}.stack .column{width:100%;display:block}.mobile_hide{min-hei=
+ght:0;max-height:0;max-width:0;overflow:hidden;font-size:0}.desktop_hide,.d=
+esktop_hide table{display:table!important;max-height:none!important}.row-2 =
+.column-1 .block-1.heading_block h1{text-align:center!important}.row-2 .col=
+umn-1 .block-1.heading_block td.pad{padding:10px 5px 5px!important}.row-2 .=
+column-2 .block-1.image_block td.pad{padding:5px!important}.row-3 .column-1=
+ .block-4.image_block td.pad{padding:0 0 15px!important}.row-5 .column-1 .b=
+lock-1.heading_block h1{text-align:left!important}.row-5 .column-1 .block-1=
+.heading_block td.pad{padding:0 5px 15px 10px!important}.row-5 .column-1 .b=
+lock-2.image_block td.pad{padding:15px 5px 10px!important}}</style><!--[if =
+mso ]><style>sup,sub{font-size:100%!important}sup{mso-text-raise:10%}sub{ms=
+o-text-raise:-10%}</style><![endif]--></head><body class=3D"body" style=3D"=
+box-sizing: border-box; background-color: #fff; margin: 0; padding: 0; -web=
+kit-text-size-adjust: none; text-size-adjust: none;"><span style=3D"color:t=
+ransparent;visibility:hidden;display:none;opacity:0;height:0;width:0;font-s=
+ize:0;"> Attention, Th=D0=B5r=D0=B5 is 1 =E2=80=9Ctoxic=E2=80=9D veg=D0=B5t=
+able that you should r=D0=B5m=CE=BFv=D0=B5 from your d=D1=96=D0=B5t =CE=99=
+=CE=9C=CE=9C=CE=95D=CE=99=CE=91=CE=A4=CE=95LY. This veg=D0=B5table could be=
+ toxic to your health and may a=CF=B2tua=E2=85=BC=E2=85=BCy be causing weig=
+ht gain, digestive issues, brain fog, and fatigue.</span><img src=3D"https:=
+//links.news.frontiercapitalreport.com/e/eo?_t=3Db0d459f7fa924e61b86129573a=
+de7b5c&amp;_m=3D5de87f7df4b445f1a83168d27cf667e3&amp;_e=3DxWAS_NZCHJIwwehnU=
+nvvIqbcSjgtK0S09zfdsMWymt-KntIGRwhJB2IkUEUf7uYenaIlZapSDj-DPx80YtLRmDXTwzeG=
+aFdsOQ6RrucfC4VPSM-AZml0ScacAjn9GukArJ9QkGJyuUl5OYL3cZJ-hnbeKs1Rr2UmNONQo8x=
+hKs8%3D" style=3D"border:0;width:1px;height:1px;border-width:0px!important;=
+display:none!important;line-height:0!important;" width=3D"1" height=3D"1"/>=
+<table class=3D"nl-container" width=3D"100%" border=3D"0" cellpadding=3D"0"=
+ cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; m=
+so-table-lspace: 0; mso-table-rspace: 0; background-color: #fff;" bgcolor=
+=3D"#fff"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing:=
+ border-box;"><td style=3D"box-sizing: border-box;"><table class=3D"row row=
+-1" align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspac=
+ing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-=
+lspace: 0; mso-table-rspace: 0; background-color: #c7e4f8;" bgcolor=3D"#c7e=
+4f8"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: bord=
+er-box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-content =
+stack" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" ro=
+le=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; m=
+so-table-rspace: 0; border-radius: 0; color: #000; width: 600px; margin: 0 =
+auto;" width=3D"600"><tbody style=3D"box-sizing: border-box;"><tr style=3D"=
+box-sizing: border-box;"><td class=3D"column column-1" width=3D"100%" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font-=
+weight: 400; text-align: left; vertical-align: top;" align=3D"left" valign=
+=3D"top"><table class=3D"image_block block-1 desktop_hide" width=3D"100%" b=
+order=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; mso-h=
+ide: all; display: none; max-height: 0; overflow: hidden;"><tr style=3D"box=
+-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; wi=
+dth: 100%;" width=3D"100%"><div class=3D"alignment" align=3D"center" style=
+=3D"box-sizing: border-box;"><div style=3D"box-sizing: border-box; max-widt=
+h: 600px;"> <a href=3D"https://links.news.frontiercapitalreport.com/u/click=
+?_t=3Db0d459f7fa924e61b86129573ade7b5c&_m=3D5de87f7df4b445f1a83168d27cf667e=
+3&_e=3DSAPXyThCT4MLLzpMDvmh5gTwdPm5CF_TQGZ0ygnsMWy9oFx7YVX6-bL8jVLM4OrepkaQ=
+3CPT8E4_agCbw-yoXqD34RjHuXG5lwJpwJFAkOYd-l9pXZ8EnkubOdJBGwjibnLelueZ1kxRFfl=
+O3piHEVlrbmeGdqmUYeEPKJDXNLkkbaHbLkvYdAYjcdCd_9dLewPshjLae77QJPKtX8G4vYRv_Q=
+znHfqNzN8uuBNdMU6vhxgAL9fSJk_uITbCyKHv6ljGxeQrC8b5DT1Xl8Ym8SaS5afmpT-TpdDsc=
+oCU8dmuJbWwixNQI76TJiQ8SEs3HPuBS7K7yei2Cj780cG8p6urWNys0xKeaeyc34L4kms%3D" =
+target=3D"_blank" style=3D"box-sizing: border-box;"><img src=3D"https://lib=
+rary.iterable.com/2346/28675/9a2489dde20341799403d2f2a2590ebe-header-2026-0=
+3-29t165035583.png" style=3D"box-sizing: border-box; display: block; height=
+: auto; border: 0; width: 100%;" width=3D"600" alt=3D"Welcome from FCR (LOG=
+O) Mobile" title=3D"Welcome from FCR (LOGO) Mobile" height=3D"auto"></a></d=
+iv></div></td></tr></table><table class=3D"image_block block-2 mobile_hide"=
+ width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pr=
+esentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table=
+-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=
+=3D"box-sizing: border-box; padding-top: 5px; width: 100%;" width=3D"100%">=
+<div class=3D"alignment" align=3D"center" style=3D"box-sizing: border-box;"=
+><div style=3D"box-sizing: border-box; max-width: 600px;"><a href=3D"https:=
+//links.news.frontiercapitalreport.com/u/click?_t=3Db0d459f7fa924e61b861295=
+73ade7b5c&_m=3D5de87f7df4b445f1a83168d27cf667e3&_e=3DSAPXyThCT4MLLzpMDvmh5g=
+TwdPm5CF_TQGZ0ygnsMWy9oFx7YVX6-bL8jVLM4Ore4-Q2uDD5hDCMTRto_gJ6AMXic3Gyl7g62=
+9-rrq0idBvT7-rG7uibie2Mc8dT9xfJnMjb6fcIaXoiFozz8d9-tJab5cjAfj5jnGZaf8GKS4gc=
+Sm1Vc6zLpRLHQnXRM18iPADdzjZvA_G9-78vF9CyoZDLAGIpU1x_OdaRiswZS-XdvfNDfhD2NhT=
+K5Od22RIlRc5AoajEpnwaPCGd_xwpSfutH40uYfYu79KmHKyeN6njhgA1yXHH86Ml7kjkaOaORv=
+txJ1JSsnwTLjDflL19vShKH0HlNwwSUXzT4iQbgYs%3D" target=3D"_blank" style=3D"bo=
+x-sizing: border-box;"><img src=3D"https://library.iterable.com/2346/28675/=
+38f70fc4c1424a238d9b59e7608f1490-header-2026-03-29t164828609.png" style=3D"=
+box-sizing: border-box; display: block; height: auto; border: 0; width: 100=
+%;" width=3D"600" alt=3D"Welcome from FCR (LOGO)" title=3D"Welcome from FCR=
+ (LOGO)" height=3D"auto"></a></div></div></td></tr></table></td></tr></tbod=
+y></table></td></tr></tbody></table><table class=3D"row row-2" align=3D"cen=
+ter" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso=
+-table-rspace: 0; background-color: #c7e4f8;" bgcolor=3D"#c7e4f8"><tbody st=
+yle=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td s=
+tyle=3D"box-sizing: border-box;"><table class=3D"row-content stack" align=
+=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presen=
+tation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rsp=
+ace: 0; background-color: #fff; color: #000; border-radius: 0; width: 600px=
+; margin: 0 auto;" width=3D"600" bgcolor=3D"#fff"><tbody style=3D"box-sizin=
+g: border-box;"><tr style=3D"box-sizing: border-box;"><td class=3D"column c=
+olumn-1" width=3D"66.66666666666667%" style=3D"box-sizing: border-box; mso-=
+table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; p=
+adding-top: 5px; vertical-align: top;" align=3D"left" valign=3D"top"><table=
+ class=3D"heading_block block-1" width=3D"100%" border=3D"0" cellpadding=3D=
+"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box=
+; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: borde=
+r-box;"><td class=3D"pad" style=3D"box-sizing: border-box; padding-left: 20=
+px; padding-right: 5px; padding-top: 20px; text-align: center; width: 100%;=
+" width=3D"100%" align=3D"center"><h1 style=3D"box-sizing: border-box; marg=
+in: 0; color: #297eaf; direction: ltr; font-family: Montserrat,'Trebuchet M=
+S','Lucida Grande','Lucida Sans Unicode','Lucida Sans',Tahoma,sans-serif; f=
+ont-size: 22px; font-weight: 700; letter-spacing: normal; line-height: 1.5;=
+ text-align: left; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 33=
+px;"> THIS TOXIC VEG=D0=95TABLE IS THE #1 DANGER IN YOUR D=D0=86=D0=95T<spa=
+n class=3D"tinyMce-placeholder" style=3D"box-sizing: border-box; word-break=
+: break-word;"></span></h1></td></tr></table></td><td class=3D"column colum=
+n-2" width=3D"33.333333333333336%" style=3D"box-sizing: border-box; mso-tab=
+le-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; padd=
+ing-bottom: 5px; padding-top: 5px; vertical-align: top;" align=3D"left" val=
+ign=3D"top"><table class=3D"image_block block-1" width=3D"100%" border=3D"0=
+" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-si=
+zing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"b=
+ox-sizing: border-box;"> <td class=3D"pad" style=3D"box-sizing: border-box;=
+ padding-top: 20px; width: 100%; padding-right: 0; padding-left: 0;" width=
+=3D"100%"><div class=3D"alignment" align=3D"center" style=3D"box-sizing: bo=
+rder-box;"><div style=3D"box-sizing: border-box; max-width: 160px;"><a href=
+=3D"https://links.news.frontiercapitalreport.com/u/click?_t=3Db0d459f7fa924=
+e61b86129573ade7b5c&_m=3D5de87f7df4b445f1a83168d27cf667e3&_e=3DSAPXyThCT4ML=
+LzpMDvmh5guneAKNdyENnoUTQu6v3K0VqoYiA6qY7A0YtbA--_T34wh6jGFVDgPuYem0RkQvZK2=
+hlPhrFG0wIsEY7vXd5RUpJjFPXlBWqk6IJVQJgr3g8gDmx2Q3eXwUx5tqRHVftDHGmbV8PXH9vY=
+lmJU3cuiZ5iO5MPlcgVZsfHai30sPIQELA8pKlx3ffy6zOOKeOeIIzAXBdRCGOYZwUYVOsl8cgP=
+fub1sZG1bqccYCNo70YDM9zinMQZ61E7MQnr3PRBwkq8e4feZ2qpz0RNdJoDRUZz3xWWeMifPGN=
+Gt3sXu-yvQa8cJoIEzbAQneDG3IIsBl6iKODM3ZYM03Z1XafQF77aFNFS5A_jxf9SlGRTgnNH-7=
+kKnqfYbSwyBtQFMpy_1jROaKGndScmrQ7lNsd_hrHBzd72bcVm5orVQ-Mkz7PyIRuLpU9cbHjRz=
+6WEsg2vjELUlBXctDFsFekfAqmOKlVoVmxEfMF8K1LxWr7PaODRsNNZJW26c_73MuKJjagNyhZZ=
+W5knzxwmAHWFx2Mx6Z91FoJnHuNU6O6WCaOU-vpXlB8cY2eBnItBr4KEEcpMqEG4MXVNEPsYJaI=
+4hyrXj4%3D" target=3D"_blank" style=3D"box-sizing: border-box;"><img src=3D=
+"https://library.iterable.com/2346/28675/6ec446c190da4578aca48321f98c5041-b=
+utton-2026-03-29t165140673.png" style=3D"box-sizing: border-box; display: b=
+lock; height: auto; border: 0; width: 100%;" width=3D"160" alt=3D"image" ti=
+tle=3D"image" height=3D"auto"></a></div></div></td></tr></table></td></tr> =
+</tbody></table></td></tr></tbody></table><table class=3D"row row-3" align=
+=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0"=
+ role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0=
+; mso-table-rspace: 0; background-color: #c7e4f8; background-size: auto;" b=
+gcolor=3D"#c7e4f8"><tbody style=3D"box-sizing: border-box;"><tr style=3D"bo=
+x-sizing: border-box;"><td style=3D"box-sizing: border-box;"><table class=
+=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=3D"0" cell=
+spacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-ta=
+ble-lspace: 0; mso-table-rspace: 0; background-color: #fff; color: #000; ba=
+ckground-size: auto; width: 600px; margin: 0 auto;" width=3D"600" bgcolor=
+=3D"#fff"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing:=
+ border-box;"><td class=3D"column column-1" width=3D"100%" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400=
+; text-align: left; padding-top: 10px; vertical-align: top;" align=3D"left"=
+ valign=3D"top"><table class=3D"image_block block-1 mobile_hide" width=3D"1=
+00%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation"=
+ style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;=
+"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizi=
+ng: border-box; width: 100%; padding-right: 0; padding-left: 0;" width=3D"1=
+00%"><div class=3D"alignment" align=3D"center" style=3D"box-sizing: border-=
+box;"><div class=3D"fullWidth" style=3D"box-sizing: border-box; max-width: =
+540px;"><img src=3D"https://library.iterable.com/2346/28675/726fcb16c164437=
+894485c607cbe5709-divider-18.png" style=3D"box-sizing: border-box; display:=
+ block; height: auto; border: 0; width: 100%;" width=3D"540" alt=3D"Divider=
+ FCR" title=3D"Divider FCR" height=3D"auto"></div></div></td></tr></table><=
+table class=3D"image_block block-2 desktop_hide" width=3D"100%" border=3D"0=
+" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-si=
+zing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; mso-hide: all; =
+display: none; max-height: 0; overflow: hidden;"><tr style=3D"box-sizing: b=
+order-box;"><td class=3D"pad" style=3D"box-sizing: border-box; width: 100%;=
+ padding-right: 0; padding-left: 0;" width=3D"100%"><div class=3D"alignment=
+" align=3D"center" style=3D"box-sizing: border-box;"><div style=3D"box-sizi=
+ng: border-box; max-width: 300px;"><img src=3D"https://library.iterable.com=
+/2346/28675/4460561eb1e241c393e576d561f19b3f-divider-19.png" style=3D"box-s=
+izing: border-box; display: block; height: auto; border: 0; width: 100%;" w=
+idth=3D"300" alt=3D"Divider FCR" title=3D"Divider FCR" height=3D"auto"></di=
+v></div></td></tr> </table><table class=3D"html_block block-3" width=3D"100=
+%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" s=
+tyle=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;">=
+<tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing=
+: border-box;"><div style=3D"box-sizing: border-box; font-family: Arial,'He=
+lvetica Neue',Helvetica,sans-serif; text-align: center;" align=3D"center"><=
+table width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; font-family: 'Arial', Ar=
+ial, Helvetica, sans-serif; max-width: 600px; padding-top: 10px; padding-ri=
+ght: 10px; padding-bottom: 10px; padding-left: 10px;"> <tbody style=3D"box-=
+sizing: border-box; max-width: 600px;"> <tr style=3D"box-sizing: border-box=
+;"> <td align=3D"center" valign=3D"top" style=3D"box-sizing: border-box; fo=
+nt-family: 'Arial', Arial, Helvetica, sans-serif; max-width: 600px;"> <tabl=
+e class=3D"main-table" bgcolor=3D"#FFFFFF" border=3D"0" cellspacing=3D"0" c=
+ellpadding=3D"0" role=3D"presentation" width=3D"100%" style=3D"box-sizing: =
+border-box; font-family: 'Arial', Arial, Helvetica, sans-serif; max-width: =
+600px;"> <tbody style=3D"box-sizing: border-box; max-width: 600px;"> <tr st=
+yle=3D"box-sizing: border-box;"> <td class=3D"content-wrapper" align=3D"cen=
+ter" style=3D"box-sizing: border-box; padding-left: 21px; padding-right: 21=
+px; font-family: 'Arial', Arial, Helvetica, sans-serif; max-width: 600px;">=
+ <table class=3D"inner-content-wrapper" border=3D"0" cellspacing=3D"0" role=
+=3D"presentation" cellpadding=3D"0" width=3D"100%" style=3D"box-sizing: bor=
+der-box; width: 100%; font-family: 'Arial', Arial, Helvetica, sans-serif; m=
+ax-width: 600px;"> <tbody style=3D"box-sizing: border-box; max-width: 600px=
+;"> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border-=
+box; font-style: normal; font-weight: normal; line-height: 1.5; text-align:=
+ left; color: #000000; padding-top: 15px; padding-bottom: 15px; font-family=
+: 'Arial', Arial, Helvetica, sans-serif; font-size: 20px; max-width: 600px;=
+" align=3D"left"> <div style=3D"box-sizing: border-box; font-style: normal;=
+ font-weight: normal; line-height: 1.5; text-align: left; color: #000000; f=
+ont-family: 'Arial', Arial, Helvetica, sans-serif; font-size: 20px; max-wid=
+th: 600px;"> Attention, <br style=3D"box-sizing: border-box;"><br style=3D"=
+box-sizing: border-box;"> Th=D0=B5r=D0=B5 is <b style=3D"box-sizing: border=
+-box;">1 =E2=80=9Ctoxic=E2=80=9D veg=D0=B5table that you should r=D0=B5m=CE=
+=BFv=D0=B5 from your d=D1=96=D0=B5t =CE=99=CE=9C=CE=9C=CE=95D=CE=99=CE=91=
+=CE=A4=CE=95LY.</b> <br style=3D"box-sizing: border-box;"><br style=3D"box-=
+sizing: border-box;"> This veg=D0=B5table could be toxic to your health and=
+ may a=CF=B2tua=E2=85=BC=E2=85=BCy be <b style=3D"box-sizing: border-box;">=
+causing weight gain, digestive issues, brain fog, and fatigue.</b> <br styl=
+e=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> Many f=
+ood manufa=CF=B2turers market this 1 veg=D0=B5table as a =E2=80=9Chealth su=
+per food.=E2=80=9D <br style=3D"box-sizing: border-box;"><br style=3D"box-s=
+izing: border-box;"> This veg=D0=B5table is one that most Americans consume=
+ on a daily basis. <br style=3D"box-sizing: border-box;"><br style=3D"box-s=
+izing: border-box;"> <a href=3D"https://links.news.frontiercapitalreport.co=
+m/u/click?_t=3Db0d459f7fa924e61b86129573ade7b5c&_m=3D5de87f7df4b445f1a83168=
+d27cf667e3&_e=3DSAPXyThCT4MLLzpMDvmh5guneAKNdyENnoUTQu6v3K0VqoYiA6qY7A0YtbA=
+--_T34wh6jGFVDgPuYem0RkQvZK2hlPhrFG0wIsEY7vXd5RUpJjFPXlBWqk6IJVQJgr3g8gDmx2=
+Q3eXwUx5tqRHVftDHGmbV8PXH9vYlmJU3cuiZ5iO5MPlcgVZsfHai30sPIAYQbMVfhXsMRBE0R2=
+TAgUoNBnkkiLBOU3kj6X5e5G_l-NYUpywNN7OPbxx1fnM4trUE4pmtAvI_sylmdp-cz95_dC1t8=
+9gqXPeybTa86WdP3VzEbLE7MXE02tkhp4lRUbGX1ZbcvaWXWOya1Soxmvm6cTjeANfQl78I_Gh6=
+JyinU2c_tRDNax4fBIwZIMyTGCEnA48bVaBKZ8lzxJ8EWfwRS-OQKJWC9uurdj8gZVaWC5Bjs7b=
+4Z7P0AeHIBPJRrNRujTp-6PyZ6Huk6nAmLlkVh5jantPTKM893dpYESjToHMKMvYqw2sUj84XVx=
+AuX7a1LsiHW0EUWa6ywG5oejqvcyxS5zYn8KqFbDxS0xyKQ0h4wguQEVoo0XCItKlqsYXbMydwW=
+PYY2ADN0XsYNuBj1eG-goLOLWK3eG2yLgc4%3D" style=3D"box-sizing: border-box; te=
+xt-decoration: underline; font-weight: 700; font-family: 'Arial', Arial, He=
+lvetica, sans-serif; color: #0097ee;">=D0=A1=E2=85=BC=D1=96=CF=B2k h=D0=B5r=
+=D0=B5 to find out this =E2=80=9Ctoxic=E2=80=9D veg=D0=B5table >></a> <br s=
+tyle=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> P.S=
+. Th=D0=B5r=D0=B5 is also a =E2=80=9Ctoxic=E2=80=9D plant protein that is h=
+iding in foods that we have considered healthy our entire lives and accordi=
+ng to research it could be the <b style=3D"box-sizing: border-box;">#1 bigg=
+est danger in the American d=D1=96=D0=B5t.</b> <br style=3D"box-sizing: bor=
+der-box;"><br style=3D"box-sizing: border-box;"> <a href=3D"https://links.n=
+ews.frontiercapitalreport.com/u/click?_t=3Db0d459f7fa924e61b86129573ade7b5c=
+&_m=3D5de87f7df4b445f1a83168d27cf667e3&_e=3DSAPXyThCT4MLLzpMDvmh5guneAKNdyE=
+NnoUTQu6v3K0VqoYiA6qY7A0YtbA--_T34wh6jGFVDgPuYem0RkQvZK2hlPhrFG0wIsEY7vXd5R=
+UpJjFPXlBWqk6IJVQJgr3g8gDmx2Q3eXwUx5tqRHVftDHGmbV8PXH9vYlmJU3cuiZ5iO5MPlcgV=
+ZsfHai30sPIGO6CDQAq-wVPwdzsc4QFp4bIm6cVfHqg1OA7qB3Tlt7L-KkudrPvvvJVKNRnGaNd=
+Z7rYbcwCKYR2ASt9g28u--kjUG0RqTfdBuKy_NaOgHzO4GVZ3phla6z6RJWOjNQGqCL-HFGJOS8=
+-Z82fBfW39bOKK_6TYjOzNyyWhfu2YR-vRtGfb2UB5KergSrr5_rwvK81b-9uTqB4LFQp_AtNtL=
+g53zS6tf4gazuWhISv5s1_UtQHL1E6LTGmqAsZzmPCs5CA6Xh4vpvoBKurG8QCp7MVg_7eZBjt4=
+6X6Nqf32kX_k2TUkrfDZQVrliI21toevsdoy66gYSRCGBOCuoyKiNUsntFPE9I9IZOy0HtOKzCJ=
+0FqTJIp_zdYbpTyUYFWYrmveUtFppehWandnSRZwcP-Cn0sD582RVQFJg6-J1OM%3D" style=
+=3D"box-sizing: border-box; text-decoration: underline; font-weight: 700; f=
+ont-family: 'Arial', Arial, Helvetica, sans-serif; color: #0097ee;">Watch T=
+he Shocking presentation n=CE=BFw</a><b style=3D"box-sizing: border-box;"> =
+before it=E2=80=99s too late.</b> </div> </td> </tr> <tr style=3D"box-sizin=
+g: border-box;"> <td style=3D"box-sizing: border-box; font-size: 12px; font=
+-style: normal; font-weight: normal; line-height: 1.5; text-align: left; co=
+lor: #000000; padding-top: 15px; padding-bottom: 15px; font-family: 'Arial'=
+, Arial, Helvetica, sans-serif; max-width: 600px;" align=3D"left"> <div sty=
+le=3D"box-sizing: border-box; font-size: 12px; font-style: normal; font-wei=
+ght: normal; line-height: 1.5; text-align: left; color: #000000; font-famil=
+y: 'Arial', Arial, Helvetica, sans-serif; max-width: 600px;"> *=CE=91=E2=85=
+=BC=E2=85=BC individuals are unique. Results can and will vary. </div> </td=
+> </tr> </tbody> </table> </td> </tr> </tbody> </table> </td> </tr> </tbody=
+> </table> <table role=3D"presentation" cellpadding=3D"0" cellspacing=3D"0"=
+ align=3D"left" style=3D"box-sizing: border-box;"> <tr style=3D"box-sizing:=
+ border-box;"> <td align=3D"left" style=3D"box-sizing: border-box; text-ali=
+gn: left; padding: 10px 30px 10px 30px;"> <p style=3D"box-sizing: border-bo=
+x; line-height: inherit; color: #000000; font-weight: 400; font-size: 12px;=
+ font-family: Arial; margin: 0; padding: 0;"> If you no longer wish to get =
+these emails, you can unsubscribe by <a href=3D"https://links.news.frontier=
+capitalreport.com/u/click?_t=3Db0d459f7fa924e61b86129573ade7b5c&_m=3D5de87f=
+7df4b445f1a83168d27cf667e3&_e=3DSAPXyThCT4MLLzpMDvmh5guneAKNdyENnoUTQu6v3K0=
+VqoYiA6qY7A0YtbA--_T3wT_gbFy9915eWNwKvYedqrgWq5mcWPPnSzHtMMqCtUL_l7GHkhdy-P=
+ZYlggEQxukCG-eer8S9hm59T_4giCjPx2BcxPU14hq4F5ArmvA1GRSgZCWXZuBeeoMBU3L9nlcN=
+qvXLIAowuTfqFSdmAKCvFkxYkEGfwinK9XvrL97a8KO2Q9ZWXdsp0LzrSrhg4CWRWWSKxh9YKx3=
+jngi0MAAfkPvMBkWAv6AX5BWqyg3Y7VHnVhfjeoDeewXFsy7dBjvYA5c9pYgm1cch-Nte4rzadf=
+V2TIFGwpHXaMhQAsZgv8Fb5IvqOo-IgGsrKSNikhsN2FaLqQ_NGBrBJqBWl04XCaXE61qs1Gsrl=
+4YCcc3zKyUrW9oy0k3jOWYgZVXYmut1o_qjC-b9HXyMaYCCjDAyOrvnoXOBWX2G6nNy-c9-XCzn=
+6OSwRGcLFn3A96lPUjLIjnzY-rwOta2oXceSl-tk7O1zu3YY8ZT_TWZEtaH1WdLodqfNo4XGfMS=
+cahzIuF0" style=3D"box-sizing: border-box; font-weight: bold; text-decorati=
+on: underline; color: #000000; font-size: 12px; font-family: Arial;">clicki=
+ng here.</a> </p> </td> </tr> </table> </div></td></tr></table><table class=
+=3D"image_block block-4 desktop_hide" width=3D"100%" border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: borde=
+r-box; mso-table-lspace: 0; mso-table-rspace: 0; mso-hide: all; display: no=
+ne; max-height: 0; overflow: hidden;"><tr style=3D"box-sizing: border-box;"=
+><td class=3D"pad" style=3D"box-sizing: border-box; width: 100%; padding-ri=
+ght: 0; padding-left: 0;" width=3D"100%"><div class=3D"alignment" align=3D"=
+center" style=3D"box-sizing: border-box;"><div style=3D"box-sizing: border-=
+box; max-width: 300px;"><img src=3D"https://library.iterable.com/2346/28675=
+/bdc4cdbd26cb4f4bb186ea42fd80d1a1-divider-19.png" style=3D"box-sizing: bord=
+er-box; display: block; height: auto; border: 0; width: 100%;" width=3D"300=
+" alt=3D"Divider FCR Mob" title=3D"Divider FCR Mob" height=3D"auto"></div><=
+/div></td></tr></table><table class=3D"image_block block-5 mobile_hide" wid=
+th=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presen=
+tation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rsp=
+ace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"b=
+ox-sizing: border-box; padding-bottom: 15px; width: 100%; padding-right: 0;=
+ padding-left: 0;" width=3D"100%"><div class=3D"alignment" align=3D"center"=
+ style=3D"box-sizing: border-box;"><div class=3D"fullWidth" style=3D"box-si=
+zing: border-box; max-width: 540px;"><img src=3D"https://library.iterable.c=
+om/2346/28675/04e6dedb16cd4132bdcd6ff16002a4d9-divider-18.png" style=3D"box=
+-sizing: border-box; display: block; height: auto; border: 0; width: 100%;"=
+ width=3D"540" alt=3D"Divider FCR" title=3D"Divider FCR" height=3D"auto"></=
+div></div></td></tr></table></td></tr></tbody></table></td></tr></tbody></t=
+able><table class=3D"row row-4 mobile_hide" align=3D"center" width=3D"100%"=
+ border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" sty=
+le=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; bac=
+kground-color: #c7e4f8; background-image: url(https://library.iterable.com/=
+2346/28675/a3d596d00d294f9e99a06d1554d72017-footer-17.png); background-posi=
+tion: top center; background-repeat: no-repeat; background-size: auto;" bgc=
+olor=3D"#c7e4f8" background=3D"https://library.iterable.com/2346/28675/a3d5=
+96d00d294f9e99a06d1554d72017-footer-17.png"><tbody style=3D"box-sizing: bor=
+der-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing: bo=
+rder-box;"><table class=3D"row-content stack" align=3D"center" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-size:=
+ auto; border-radius: 0; color: #000; width: 600px; margin: 0 auto;" width=
+=3D"600"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: =
+border-box;"><td class=3D"column column-1" width=3D"100%" style=3D"box-sizi=
+ng: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400;=
+ text-align: left; padding-bottom: 10px; padding-top: 5px; vertical-align: =
+top;" align=3D"left" valign=3D"top"><table class=3D"image_block block-1" wi=
+dth=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"prese=
+ntation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rs=
+pace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"=
+box-sizing: border-box; padding-bottom: 10px; padding-left: 25px; padding-r=
+ight: 10px; padding-top: 20px; width: 100%;" width=3D"100%"><div class=3D"a=
+lignment" align=3D"left" style=3D"box-sizing: border-box;"><div style=3D"bo=
+x-sizing: border-box; max-width: 300px;"><a href=3D"https://links.news.fron=
+tiercapitalreport.com/u/click?_t=3Db0d459f7fa924e61b86129573ade7b5c&_m=3D5d=
+e87f7df4b445f1a83168d27cf667e3&_e=3DSAPXyThCT4MLLzpMDvmh5gTwdPm5CF_TQGZ0ygn=
+sMWy9oFx7YVX6-bL8jVLM4Ore-d1hXm3pwz_klG4YTXL-70oUDsiAc7nVKX5CDZEXPTh_H7jD3n=
+ej81-DXbVd_QctIjtTj3xr8FIxuLFPnvB4pm-vHFNSpN3CUr86zSiDliENNKQ8qsOENnv42d_yZ=
+iBUei2AfclX8bye73868n5jC0PWNdJYTysN7xD98Gpx3TtsZY8xHTYhXRWvxwmAE-2Tg-tVXb83=
+qF9OO7rR6kS1Msg0GZpz0RqOyvix733Q_yXSgaUCoSSDWFPP0yTDLSP7zC_oQ35eHt06B1r7ZvZ=
+OBoNvKwGzml9oLHQDHH6kNqA%3D" target=3D"_blank" style=3D"box-sizing: border-=
+box;"><img src=3D"https://library.iterable.com/2346/28675/169a1e75d86d48cf8=
+556e8f63110922e-logo_footer-2.png" style=3D"box-sizing: border-box; display=
+: block; height: auto; border: 0; width: 100%;" width=3D"300" alt=3D"LOGO F=
+CR" title=3D"LOGO FCR" height=3D"auto"></a></div></div></td></tr></table><t=
+able class=3D"heading_block block-2" width=3D"100%" border=3D"0" cellpaddin=
+g=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border=
+-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: b=
+order-box;"><td class=3D"pad" style=3D"box-sizing: border-box; padding-bott=
+om: 15px; padding-left: 30px; padding-right: 20px; padding-top: 15px; text-=
+align: center; width: 100%;" width=3D"100%" align=3D"center"><h1 style=3D"b=
+ox-sizing: border-box; margin: 0; color: #000; direction: ltr; font-family:=
+ Arial,'Helvetica Neue',Helvetica,sans-serif; font-size: 13px; font-weight:=
+ 400; letter-spacing: normal; line-height: 1.2; text-align: left; margin-to=
+p: 0; margin-bottom: 0; mso-line-height-alt: 16px;">This email was sent to =
+you by Frontier Capital Report, a part of TerraTrance Technologies, LLC.<br=
+ style=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> Y=
+ou can contact us by replying to this email or by sending a direct message =
+to <a href=3D"mailto:support@frontiercapitalreport.com" target=3D"_blank" t=
+itle=3D"support@frontiercapitalreport.com" rel=3D"noopener" style=3D"box-si=
+zing: border-box; text-decoration: underline; color: #000000;">support@fron=
+tiercapitalreport.com</a><br style=3D"box-sizing: border-box;"><br style=3D=
+"box-sizing: border-box;">Reproducing or distributing any text, images, or =
+information in any form without written permission from TerraTrance Technol=
+ogies, LLC is strictly prohibited.<br style=3D"box-sizing: border-box;"><br=
+ style=3D"box-sizing: border-box;"> 200 Broadway Blvd NE, Albuquerque, NM 8=
+7102&nbsp;<br style=3D"box-sizing: border-box;"><a href=3D"https://links.ne=
+ws.frontiercapitalreport.com/e/encryptedUnsubscribe?_r=3Db0d459f7fa924e61b8=
+6129573ade7b5c&_s=3D5de87f7df4b445f1a83168d27cf667e3&_t=3DxWAS_NZCHJIwwehnU=
+nvvIqbcSjgtK0S09zfdsMWymt-KntIGRwhJB2IkUEUf7uYenaIlZapSDj-DPx80YtLRmDXTwzeG=
+aFdsOQ6RrucfC4XMX0tfGetF6d0EOgHtHtanV_gbGAXZqxBbX1bFi9wnkw%3D%3D" target=3D=
+"_blank" rel=3D"noopener" style=3D"box-sizing: border-box; text-decoration:=
+ underline; color: #000000;"></a><br style=3D"box-sizing: border-box;">=C2=
+=A9 2026 FrontierCapitalReport.com. All Rights Reserved.<br style=3D"box-si=
+zing: border-box;"><br style=3D"box-sizing: border-box;"><span style=3D"box=
+-sizing: border-box; word-break: break-word; color: #47528c;"><br style=3D"=
+box-sizing: border-box;"> <a href=3D"https://links.news.frontiercapitalrepo=
+rt.com/u/click?_t=3Db0d459f7fa924e61b86129573ade7b5c&_m=3D5de87f7df4b445f1a=
+83168d27cf667e3&_e=3DSAPXyThCT4MLLzpMDvmh5gTwdPm5CF_TQGZ0ygnsMWxlcBxikWW6Bz=
+lvWsjLJoJy9JI18fWVSXQTJEe-1rqM9VUisLO4tnH76JNzDNYQp9zxgV2PlLPZdgg5kG896_8CM=
+J1XrFq6Lh9DasUvhdYe1ekm0zoA54ejUoQAwDOTQ3zkxPGaqnxsJ3-KTxvZ1nvYggk6HTYeJUgd=
+-6gkRPHSGJZI2ORUXMAjD_K27fYHKEOvPZxAqmRdvK6HHiMnQ_U28UPXjVeyyXy_Avziv0A-zXP=
+jMWHMe5yeMTr39_nXtUqK0RGS1p_qZ2wndxIZgga8uv_9ytUiC6cXjJAO86sUn2ebYZmDJ2kOL4=
+DdUkQj-Vcoy-8NdRS5lE7pmkklAhWav1LwhvhaTlq8csZYy96wuQ%3D%3D" target=3D"_blan=
+k" style=3D"box-sizing: border-box; text-decoration: underline; color: #000=
+000;" rel=3D"noopener"><strong style=3D"box-sizing: border-box;">Privacy Po=
+licy</strong></a></span><strong style=3D"box-sizing: border-box;"> &nbsp;</=
+strong> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbs=
+p; &nbsp; &nbsp; <strong style=3D"box-sizing: border-box;"><span style=3D"b=
+ox-sizing: border-box; word-break: break-word; color: #47528c;"><a href=3D"=
+https://links.news.frontiercapitalreport.com/u/click?_t=3Db0d459f7fa924e61b=
+86129573ade7b5c&_m=3D5de87f7df4b445f1a83168d27cf667e3&_e=3DSAPXyThCT4MLLzpM=
+Dvmh5gTwdPm5CF_TQGZ0ygnsMWyfD3Oak_2IRg34fRVW_h3Fs3J5r3HDt5_5xA5uKG3GVyevtqJ=
+QVbDndlAoVK62tR5Kdt5r4miAtXHnw7baos1RI69rM01DnR2A44GlYieUY-WiKSCC6FhGmu9bHZ=
+OsV0q4UPs78zjys81_jlzPrQ3mvQEKpJSFx2xiP6X5ZkZaNDoyieqegT5Bv3GBNAaBHgRjU-k32=
+NB_Yq9mddwqPsUf8dWBOQcqIYK8OI7Ai9HEzMWWL1W1KA6xjZLFyif0TKdgIQjFPVlh5hWlKgC-=
+35f0cj87dPc0cDDSFHL-XRFAp5DkkC6DeIpdXBJG9_KfvXQjqTi23D9meOjLzx3-YOy5dXBXowl=
+Cpg_gzY8MpaVI6Q%3D%3D" target=3D"_blank" style=3D"box-sizing: border-box; t=
+ext-decoration: underline; color: #000000;" rel=3D"noopener">Terms & Condit=
+ions</a> </span>&nbsp;</strong> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &=
+nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; <span style=3D"box-sizing: =
+border-box; word-break: break-word; color: #47528c;"><strong style=3D"box-s=
+izing: border-box;"><a href=3D"https://links.news.frontiercapitalreport.com=
+/e/encryptedUnsubscribe?_r=3Db0d459f7fa924e61b86129573ade7b5c&_s=3D5de87f7d=
+f4b445f1a83168d27cf667e3&_t=3DxWAS_NZCHJIwwehnUnvvIqbcSjgtK0S09zfdsMWymt-Kn=
+tIGRwhJB2IkUEUf7uYenaIlZapSDj-DPx80YtLRmDXTwzeGaFdsOQ6RrucfC4XMX0tfGetF6d0E=
+OgHtHtanV_gbGAXZqxBbX1bFi9wnkw%3D%3D" target=3D"_blank" style=3D"box-sizing=
+: border-box; text-decoration: underline; color: #000000;" rel=3D"noopener"=
+>Unsubscribe</a></strong></span> <br style=3D"box-sizing: border-box;"></h1=
+></td></tr></table></td></tr></tbody></table></td></tr></tbody></table><!--=
+[if !mso]><!--><table class=3D"row row-5 desktop_hide" align=3D"center" wid=
+th=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presen=
+tation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rsp=
+ace: 0; mso-hide: all; display: none; max-height: 0; overflow: hidden; back=
+ground-color: #c7e4f8; background-image: url(https://library.iterable.com/2=
+346/28675/f76d00006769412c8c4c7d394131d1e0-footer-18.png); background-posit=
+ion: top center; background-repeat: no-repeat; background-size: auto;" bgco=
+lor=3D"#c7e4f8" background=3D"https://library.iterable.com/2346/28675/f76d0=
+0006769412c8c4c7d394131d1e0-footer-18.png"><tbody style=3D"box-sizing: bord=
+er-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing: bor=
+der-box;"><table class=3D"row-content stack" align=3D"center" border=3D"0" =
+cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizi=
+ng: border-box; mso-table-lspace: 0; mso-table-rspace: 0; mso-hide: all; di=
+splay: none; max-height: 0; overflow: hidden; background-size: auto; border=
+-radius: 0; color: #000; width: 600px; margin: 0 auto;" width=3D"600"><tbod=
+y style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><=
+td class=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-box=
+; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: l=
+eft; padding-bottom: 5px; padding-top: 5px; vertical-align: top;" align=3D"=
+left" valign=3D"top"><table class=3D"heading_block block-1" width=3D"100%" =
+border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" styl=
+e=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; mso-=
+hide: all; display: none; max-height: 0; overflow: hidden;"><tr style=3D"bo=
+x-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; p=
+adding-bottom: 15px; padding-left: 30px; padding-right: 20px; padding-top: =
+15px; text-align: center; width: 100%;" width=3D"100%" align=3D"center"><h1=
+ style=3D"box-sizing: border-box; margin: 0; color: #000; direction: ltr; f=
+ont-family: Arial,'Helvetica Neue',Helvetica,sans-serif; font-size: 14px; f=
+ont-weight: 400; letter-spacing: normal; line-height: 1.2; text-align: left=
+; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 17px;"> <span style=
+=3D"box-sizing: border-box; word-break: break-word; background-color: #c9ef=
+ff;"><span class=3D"tinyMce-placeholder" style=3D"box-sizing: border-box; w=
+ord-break: break-word;">This email was sent to you by Frontier Capital Repo=
+rt, a part of TerraTrance Technologies, LLC.<br style=3D"box-sizing: border=
+-box;"><br style=3D"box-sizing: border-box;"> You can contact us by replyin=
+g to this email or by sending a direct message to <a href=3D"mailto:support=
+@frontiercapitalreport.com" target=3D"_blank" title=3D"support@frontiercapi=
+talreport.com" rel=3D"noopener" style=3D"box-sizing: border-box; text-decor=
+ation: underline; background-color: #c9efff; color: #000000;">support@front=
+iercapitalreport.com</a><br style=3D"box-sizing: border-box;"><br style=3D"=
+box-sizing: border-box;">Reproducing or distributing any text, images, or i=
+nformation in any form without written permission from TerraTrance Technolo=
+gies, LLC is strictly prohibited. <br style=3D"box-sizing: border-box;"><br=
+ style=3D"box-sizing: border-box;"></span><span class=3D"tinyMce-placeholde=
+r" style=3D"box-sizing: border-box; word-break: break-word;">200 Broadway B=
+lvd NE, Albuquerque, NM 87102&nbsp;</span></span><span style=3D"box-sizing:=
+ border-box; word-break: break-word; background-color: #ffffff;"><span clas=
+s=3D"tinyMce-placeholder" style=3D"box-sizing: border-box; word-break: brea=
+k-word;"><br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: bor=
+der-box;"><span style=3D"box-sizing: border-box; word-break: break-word; ba=
+ckground-color: #c9efff;">=C2=A9 2026 FrontierCapitalReport.com.</span><br =
+style=3D"box-sizing: border-box;"><span style=3D"box-sizing: border-box; wo=
+rd-break: break-word; background-color: #c9efff;">All Rights Reserved.</spa=
+n><br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box=
+;"> </span></span><span class=3D"tinyMce-placeholder" style=3D"box-sizing: =
+border-box; word-break: break-word; color: #47528c;"><span style=3D"box-siz=
+ing: border-box; word-break: break-word; background-color: #c9efff;"><stron=
+g style=3D"box-sizing: border-box;"><a href=3D"https://links.news.frontierc=
+apitalreport.com/u/click?_t=3Db0d459f7fa924e61b86129573ade7b5c&_m=3D5de87f7=
+df4b445f1a83168d27cf667e3&_e=3DSAPXyThCT4MLLzpMDvmh5gTwdPm5CF_TQGZ0ygnsMWxl=
+cBxikWW6BzlvWsjLJoJy9JI18fWVSXQTJEe-1rqM9fkNVWZ2YSEKFIWgjSbalHyyMh9vBUFfSXa=
+KEWaJe5pk3Q5jGiw6xc184JYz6gZ4Xj0MWYZhT762EA_wJeeZpj27QPd8TtaKL4Yq8o60dqfOsB=
+hojA23xX3-yOxUrSQ-C3u6BX6C4mRsWvPogm_hcvIZ3O4LCFFzkg4LPGH3T0Jssjch6cLks9jcV=
+HaVo_C6LqTW98oVcRfxdmi8sLPRc0esIs95mMxKks_NRuezKkQPEIFao0WFlHUGmW6jBO7LDhO9=
+FFM7Y50BderHlT2pFuktDLKXIfqbrvNeJXo9h_Rk3SAUm-8qABc1TvTYVEh6cg%3D%3D" targe=
+t=3D"_blank" style=3D"box-sizing: border-box; text-decoration: underline; c=
+olor: #000000; background-color: #c9efff;" rel=3D"noopener">Privacy Policy<=
+/a></strong></span> &nbsp; &nbsp; &nbsp; <span style=3D"box-sizing: border-=
+box; word-break: break-word; background-color: #c9efff;"><a href=3D"https:/=
+/links.news.frontiercapitalreport.com/e/encryptedUnsubscribe?_r=3Db0d459f7f=
+a924e61b86129573ade7b5c&_s=3D5de87f7df4b445f1a83168d27cf667e3&_t=3DxWAS_NZC=
+HJIwwehnUnvvIqbcSjgtK0S09zfdsMWymt-KntIGRwhJB2IkUEUf7uYenaIlZapSDj-DPx80YtL=
+RmDXTwzeGaFdsOQ6RrucfC4XMX0tfGetF6d0EOgHtHtanV_gbGAXZqxBbX1bFi9wnkw%3D%3D" =
+target=3D"_blank" style=3D"box-sizing: border-box; text-decoration: underli=
+ne; color: #000000; background-color: #c9efff;" rel=3D"noopener"><strong st=
+yle=3D"box-sizing: border-box;">Unsubscribe</strong></a></span> <br style=
+=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> </span>=
+<span class=3D"tinyMce-placeholder" style=3D"box-sizing: border-box; word-b=
+reak: break-word;"><span style=3D"box-sizing: border-box; word-break: break=
+-word; color: #47528c;"><span style=3D"box-sizing: border-box; word-break: =
+break-word; background-color: #c9efff;"><a href=3D"https://links.news.front=
+iercapitalreport.com/u/click?_t=3Db0d459f7fa924e61b86129573ade7b5c&_m=3D5de=
+87f7df4b445f1a83168d27cf667e3&_e=3DSAPXyThCT4MLLzpMDvmh5gTwdPm5CF_TQGZ0ygns=
+MWyfD3Oak_2IRg34fRVW_h3Fs3J5r3HDt5_5xA5uKG3GV1wK9uCft4_6j0Cc8cQ8dsecjcyyWyV=
+UEc7msA_UvOI7rN8nhc35d81nMHn0Nji0jkxiITPrhIL2Nf1eXiYdHJRwXsENZzFVxxv8OI5PL8=
+hGwtvWbWVMarzaWFV8qKa9BWgTMShB-FoqhQ2YOfbL4HQUVh0rA0_VxncepZf3rbDGSSwrRg-AH=
+lT5Iq_TMAkIjrfx4754y4N-kN38TGRXd37ePow-a5HAfKp-Ugt2ymEg30cJCPUIKEMzEQv9LPpC=
+74Z6BBVrwYgmkiCLp7eHfCDDAstrubOerxjFqYVNkGhbebst9CVNY5-_VQv2IcQBfQ%3D%3D" t=
+arget=3D"_blank" style=3D"box-sizing: border-box; text-decoration: underlin=
+e; color: #000000; background-color: #c9efff;" rel=3D"noopener"><strong sty=
+le=3D"box-sizing: border-box;">Terms & Conditions</strong></a></span>&nbsp;=
+</span></span><span style=3D"box-sizing: border-box; word-break: break-word=
+; background-color: #ffffff;"><span class=3D"tinyMce-placeholder" style=3D"=
+box-sizing: border-box; word-break: break-word;"> <br style=3D"box-sizing: =
+border-box;"></span></span></h1></td></tr></table><table class=3D"image_blo=
+ck block-2" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0"=
+ role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0=
+; mso-table-rspace: 0; mso-hide: all; display: none; max-height: 0; overflo=
+w: hidden;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=
+=3D"box-sizing: border-box; width: 100%; padding-right: 0; padding-left: 0;=
+" width=3D"100%"><div class=3D"alignment" align=3D"center" style=3D"box-siz=
+ing: border-box;"><div class=3D"fullWidth" style=3D"box-sizing: border-box;=
+ max-width: 600px;"><a href=3D"https://links.news.frontiercapitalreport.com=
+/u/click?_t=3Db0d459f7fa924e61b86129573ade7b5c&_m=3D5de87f7df4b445f1a83168d=
+27cf667e3&_e=3DSAPXyThCT4MLLzpMDvmh5gTwdPm5CF_TQGZ0ygnsMWy9oFx7YVX6-bL8jVLM=
+4OrehO8PiLmjAeK7bwQxv_TPAl1UWbSMETO5vHBPyMBzTiP9GmOijHIb0Vxw3aRtFTKc8JeJqG2=
+6_62IjoBmuHgEZkFsDcYGjWHJWzE80DrVeH-OhC-mzgvvryfMgqrQ_d3_6H5lunEGYHoAHpIfsN=
+BtVOK7L0JRnf4r2q34dWbhaAmZRtGVUXx8gPkm0z2uDVQd_g94DOftP0zndrH4BZ7U4wfIPuCxz=
+krVv6-bHlf2OCdFF39kI4p9ZQx4oxLGv89iFjlkCIZFK1Gv44l2zBWfiOz1YUfY-ubWh5ScVGPF=
+CpA%3D" target=3D"_blank" style=3D"box-sizing: border-box;"><img src=3D"htt=
+ps://library.iterable.com/2346/28675/c2f0de5960bb4861af5cff28f65fb767-logo_=
+footer-3.png" style=3D"box-sizing: border-box; display: block; height: auto=
+; border: 0; width: 100%;" width=3D"600" alt=3D"LOGO FCR" title=3D"LOGO FCR=
+" height=3D"auto"></a></div></div></td></tr></table></td></tr></tbody></tab=
+le></td></tr></tbody></table><!--<![endif]--></td></tr></tbody></table><!--=
+ End --></body></html>
+------=_Part_8336046_467674551.1775251817284--

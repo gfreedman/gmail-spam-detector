@@ -184,6 +184,28 @@ const RFC2822_QUOTED_NAME = /^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/;
 // call to analyzeMessage(). Each array is frozen to prevent accidental mutation.
 // =============================================================================
 
+// ── ReDoS safety analysis ────────────────────────────────────────────────────
+// All patterns below (and in BODY_CRYPTO_PATTERNS, FEAR_PATTERNS, etc.) are
+// checked against inputs that have been truncated to LIMITS.maxInputChars
+// (100KB) by sanitizeInput(). Within that bound:
+//
+//   No nested quantifiers: no pattern uses constructs like /(a+)+/ or /(ab*)+/
+//   that cause exponential backtracking. All quantifiers operate on single-width
+//   atoms, character classes, or fixed-length alternations.
+//
+//   Alternation groups like /(foo|bar|baz)/ are anchored with \b or surrounded
+//   by literal characters, preventing catastrophic backtracking on near-misses.
+//   Example: /\b(warning|alert|urgent)\b/i fails immediately at a word boundary
+//   rather than exploring all alternation paths on a mismatch.
+//
+//   Unicode range patterns like /[\u0400-\u04FF]/ scan linearly — O(n) with
+//   no backtracking. They are always standalone character classes.
+//
+//   Estimated worst-case runtime: 100KB × ~50 patterns × ~1μs/KB ≈ 5ms/email.
+//   This is well within the Apps Script 6-minute per-trigger budget even at
+//   the maximum 50-email-per-run limit.
+// ─────────────────────────────────────────────────────────────────────────────
+
 /**
  * Clickbait / sensationalism patterns — checked against subject + from concatenated.
  *
@@ -858,7 +880,11 @@ function collectSignals(message)
 {
   // ── Extract email fields ────────────────────────────────────────────────
   const subject = sanitizeInput(message.getSubject());
-  const body = sanitizeInput(message.getPlainBody());
+  // Fall back to HTML-stripped body if plain body is empty (HTML-only emails).
+  // Without this fallback, BODY_CRYPTO_PATTERNS would silently never fire on
+  // messages that have no text/plain part.
+  const plainBody = message.getPlainBody();
+  const body = sanitizeInput(plainBody || stripHtmlTags(message.getBody()));
   // Normalize RFC 2822 quoted display names: "Name" <email> → Name <email>
   // See RFC2822_QUOTED_NAME constant for regex anatomy.
   const from = sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2');
@@ -866,12 +892,17 @@ function collectSignals(message)
 
   // ── Whitelist check (early exit) ────────────────────────────────────────
   // Known legitimate senders skip all detection — prevents false positives
-  // on services like LinkedIn, Substack, etc. that use bulk infrastructure
+  // on services like LinkedIn, Substack, etc. that use bulk infrastructure.
+  // IMPORTANT: match against the email address only, not the full From string.
+  // Matching the full string would allow display-name spoofing:
+  //   "LinkedIn News <spammer@spam.com>" would incorrectly bypass detection
+  //   if "linkedin" appeared in the display name.
   const whitelist = getWhitelist();
   const fromLower = from.toLowerCase();
+  const senderAddress = extractEmailAddress(from);
   for (let i = 0; i < whitelist.length; i++)
   {
-    if (fromLower.includes(whitelist[i]))
+    if (senderAddress.includes(whitelist[i]))
     {
       logDebug('Whitelisted domain detected: ' + whitelist[i]);
       return null; // null = whitelisted, skip all detection
@@ -907,10 +938,12 @@ function collectSignals(message)
   // ── Signal 1b: Blacklisted sender domain ────────────────────────────────
   // Substring match against known spam mill domains from Script Properties.
   // One match is enough — these domains have no legitimate use.
+  // Match against the extracted email address only (not the display name) for
+  // the same reason as the whitelist check above — prevents spoofing both ways.
   const blacklist = getBlacklist();
   for (let i = 0; i < blacklist.length; i++)
   {
-    if (fromLower.includes(blacklist[i]))
+    if (senderAddress.includes(blacklist[i]))
     {
       signals.blacklistedSender = true;
       logDebug('Blacklisted sender detected: ' + blacklist[i]);
@@ -1280,6 +1313,42 @@ function sanitizeInput(input)
   if (input == null) return '';
   const str = String(input);
   return str.length > LIMITS.maxInputChars ? str.substring(0, LIMITS.maxInputChars) : str;
+}
+
+/**
+ * Strip HTML tags from a string, collapsing whitespace.
+ *
+ * Used as a fallback body source when getPlainBody() returns empty (HTML-only
+ * email). Without this, body pattern checks (e.g. BODY_CRYPTO_PATTERNS) would
+ * silently never fire on HTML-only messages.
+ *
+ * The regex /<[^>]+>/ has no nested quantifiers — it is O(n) on input length
+ * and safe against ReDoS. Input is also pre-truncated by sanitizeInput().
+ *
+ * @param {string} html - Raw HTML string.
+ * @return {string}       Plain text with tags removed and whitespace collapsed.
+ */
+function stripHtmlTags(html)
+{
+  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Extract the email address from a From header value.
+ *
+ * Handles both "Display Name <user@domain.com>" and bare "user@domain.com".
+ * Used so whitelist/blacklist checks operate on the actual sender address,
+ * not the display name — prevents display-name spoofing such as:
+ *   "LinkedIn News <spammer@spam.com>" bypassing the whitelist, or
+ *   "financeinsiderpro.com news <legit@gmail.com>" triggering the blacklist.
+ *
+ * @param {string} from - Normalized From header value (RFC 2822 quotes stripped).
+ * @return {string}       Lowercase email address, or full from if no <> present.
+ */
+function extractEmailAddress(from)
+{
+  const match = from.match(/<([^>]+)>/);
+  return (match ? match[1] : from).toLowerCase();
 }
 
 /**

@@ -1,0 +1,28 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:8090:b0:1b0:f2cc:f19c with SMTP id abc789;
+        Tue, 11 Feb 2026 10:00:00 -0800 (PST)
+Return-Path: <bounce@cryptoinsiderreport.com>
+Received: from mail.amazonses.com (mail.amazonses.com [205.251.242.1])
+        by mx.google.com with ESMTPS id xyz123
+        for <geoff.c.freedman@gmail.com>;
+        Tue, 11 Feb 2026 10:00:00 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amazonses.com;
+        s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw;
+        bh=FAKEHASHFORHTMLONLYCRYPTOTEST=; b=FAKESIGNATURE==
+X-SES-Outgoing: 2026.02.11-205.251.242.1
+Feedback-ID: 9999999999:cryptoinsiderreport.com:amazonses
+From: Crypto Insider <alerts@cryptoinsiderreport.com>
+To: geoff.c.freedman@gmail.com
+Subject: Shocking crypto opportunity — act now
+Date: Tue, 11 Feb 2026 10:00:00 -0800
+MIME-Version: 1.0
+Content-Type: text/html; charset=utf-8
+
+<html>
+<body>
+<p>You have been selected for an exclusive crypto airdrop.</p>
+<p>Connect your wallet now to claim your free tokens before the offer expires.</p>
+<p><a href="https://cryptoinsiderreport.com/claim">Claim Now</a></p>
+<p><small>To unsubscribe: https://cryptoinsiderreport.com/unsubscribe</small></p>
+</body>
+</html>

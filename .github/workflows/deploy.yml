@@ -138,11 +138,13 @@ jobs:
           key: npm-clasp-${{ runner.os }}
 
       - name: Install clasp
-        run: npm install -g @google/clasp
+        run: npm install -g @google/clasp@3.3.0
 
-      # Write the OAuth token to ~/.clasprc.json (clasp's credential file)
+      # Write the OAuth token to ~/.clasprc.json (clasp's credential file).
+      # printf avoids the trailing newline that echo appends, which can cause
+      # JSON parse errors in clasp's credential reader.
       - name: Write clasp credentials
-        run: echo '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
+        run: printf '%s' '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
 
       # Write .clasp.json with the target script ID and root directory
       - name: Write clasp config

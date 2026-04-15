@@ -6,12 +6,14 @@ Validates the spam detection engine against real-world .eml samples and ensures
 the deployed Google Apps Script only calls methods that actually exist on the
 Gmail Advanced Service API.
 
-Five test phases run in order:
+Seven test phases run in order:
     0. Parser self-tests — unit-test the JS→Python regex extractor
     1. Gmail API method validation — static analysis of SpamDetector.gs
     2. Spam detection — every .eml in spam_examples/ must be flagged
     3. Scam detection — every .eml in scam_examples/ must be flagged
     4. Ham verification — every .eml in ham_examples/ must NOT be flagged
+    5. Edge cases — robustness against malformed/boundary/pathological inputs
+    6. Performance — informational P50/P95/P99 timing (not pass/fail)
 
 Exit codes:
     0 — all tests passed
@@ -20,6 +22,7 @@ Exit codes:
 
 import re
 import sys
+import time
 import email
 from email import policy
 from email.header import decode_header
@@ -475,6 +478,19 @@ def parse_eml(filepath):
                     has_attachment = True
     elif msg.get_content_type() == 'text/plain':
         body = msg.get_content()
+    elif msg.get_content_type() == 'text/html':
+        # HTML-only single-part message — strip tags, mirrors stripHtmlTags() in GS
+        body = re.sub(r'<[^>]+>', ' ', msg.get_content())
+        body = re.sub(r'\s+', ' ', body).strip()
+
+    # HTML fallback for multipart messages with no text/plain part
+    if not body and msg.is_multipart():
+        for part in msg.walk():
+            if part.get_content_type() == 'text/html' and not part.get_content_disposition():
+                raw_html = part.get_content()
+                body = re.sub(r'<[^>]+>', ' ', raw_html)
+                body = re.sub(r'\s+', ' ', body).strip()
+                break
 
     return subject, from_field, has_amazon_ses, body, has_attachment
 
@@ -512,9 +528,13 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             - is_spam: Boolean verdict
             - rule: String describing which rule triggered (empty if not spam)
     """
-    # Whitelist check — known legitimate senders bypass all detection
+    # Whitelist check — known legitimate senders bypass all detection.
+    # Match against the email address only (not the display name) to prevent
+    # display-name spoofing: "LinkedIn News <spammer@spam.com>" must NOT bypass.
+    email_match = re.search(r'<([^>]+)>', from_field)
+    sender_address = (email_match.group(1) if email_match else from_field).lower()
     for domain in WHITELISTED_DOMAINS:
-        if domain in from_field.lower():
+        if domain in sender_address:
             return {'bulk_email': has_amazon_ses, 'blacklisted_sender': False,
                     'clickbait_count': 0, 'fear_mongering': False,
                     'marketing_format': False, 'suspicious_from_name': False,
@@ -538,9 +558,10 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     from_lower = from_field.lower()
 
     # ── Signal: Blacklisted sender domain ──────────────────────────────────
-    # Substring match against known spam mill domains (one match is enough)
+    # Substring match against known spam mill domains (one match is enough).
+    # Use sender_address (email only, not display name) — mirrors SpamDetector.gs.
     for domain in BLACKLISTED_DOMAINS:
-        if domain in from_lower:
+        if domain in sender_address:
             signals['blacklisted_sender'] = True
             signals['matched_patterns'].append(f'blacklist:{domain}')
             break
@@ -932,6 +953,165 @@ def run_ham_tests(ham_dir):
 
 
 # =============================================================================
+# Phase 6: Performance Benchmark
+# =============================================================================
+
+def run_performance_tests(all_emails):
+    """
+    Benchmark analyze_email() throughput across the full test corpus.
+
+    Informational only — not a pass/fail test. Prints P50/P95/P99 per-email
+    timings and a rough Apps Script estimate. Helps verify that the detection
+    engine won't approach the 6-minute per-trigger timeout even at the
+    50-email-per-run limit.
+
+    Python executes regex 5-10x faster than Apps Script V8. Multiply the
+    measured P99 by 10 and by MAX_EMAILS_PER_RUN (50) to get a conservative
+    upper-bound GAS estimate.
+
+    Args:
+        all_emails: List of (subject, from_field, has_amazon_ses, body, has_attachment)
+                    tuples — typically the combined spam + scam + ham corpus.
+    """
+    if not all_emails:
+        print('  (no emails to benchmark)')
+        return
+
+    RUNS = 10  # repeat the full corpus N times for stable percentiles
+    timings_ms = []
+
+    for _ in range(RUNS):
+        for subject, from_field, has_ses, body, has_att in all_emails:
+            t0 = time.perf_counter()
+            analyze_email(subject, from_field, has_ses, body, has_att)
+            timings_ms.append((time.perf_counter() - t0) * 1000)
+
+    timings_ms.sort()
+    n = len(timings_ms)
+    p50 = timings_ms[n // 2]
+    p95 = timings_ms[int(n * 0.95)]
+    p99 = timings_ms[int(n * 0.99)]
+
+    print('=' * 80)
+    print('Performance Benchmark (informational)')
+    print('=' * 80)
+    print(f'  Corpus: {len(all_emails)} emails × {RUNS} runs = {n} samples')
+    print(f'  Per-email timing (Python):  P50={p50:.3f}ms  P95={p95:.3f}ms  P99={p99:.3f}ms')
+
+    # Conservative GAS estimate: Python is ~10x faster than Apps Script V8.
+    # Multiply P99 × 10 (GAS overhead) × 50 (max emails/run) for worst case.
+    gas_estimate_s = p99 * 10 * 50 / 1000
+    print(f'  Estimated GAS worst case:   P99 × 10x × 50 emails ≈ {gas_estimate_s:.1f}s '
+          f'(budget: 360s)')
+    if gas_estimate_s > 60:
+        print('  ⚠️  WARNING: extrapolated GAS time exceeds 60s — review pattern complexity')
+    else:
+        print('  ✅ Well within 6-minute Apps Script trigger budget')
+
+
+# =============================================================================
+# Phase 5: Edge Case Tests
+# =============================================================================
+
+def run_edge_case_tests():
+    """
+    Verify robustness against malformed, pathological, and boundary inputs.
+
+    These tests call analyze_email() directly with crafted inputs — no .eml
+    files needed. They target crashes and mis-classifications rather than
+    detection accuracy. A failure here means the engine is fragile in ways
+    that could cause silent misses or unhandled exceptions in production.
+
+    Returns:
+        True if all edge cases pass, False if any fail.
+    """
+    passed = 0
+    failed = 0
+
+    def check(name, condition, explanation=''):
+        nonlocal passed, failed
+        if condition:
+            passed += 1
+            print(f'  ✅ {name}')
+        else:
+            failed += 1
+            print(f'  ❌ FAIL: {name}' + (f' — {explanation}' if explanation else ''))
+
+    print('=' * 80)
+    print('Edge Case Tests')
+    print('=' * 80)
+
+    # ── Bare address From (no display name, no angle brackets) ───────────────
+    # extractEmailAddress() must fall back to full string and not crash
+    _, is_spam, _ = analyze_email('', 'noreply@example.com', False)
+    check('bare address From: no crash', not is_spam,
+          'empty subject + no signals should not be spam')
+
+    # ── Display name only (no @ address) ────────────────────────────────────
+    # Malformed From with no email address at all — should not crash or whitelist
+    _, is_spam, _ = analyze_email('Amazing shocking offer', 'A Random Person', True)
+    check('display-name-only From: no crash', True)  # just no exception
+
+    # ── Display-name spoofing: whitelisted domain in name, spammer address ───
+    # "LinkedIn News <spammer@spam.com>" must NOT bypass whitelist
+    signals, is_spam, rule = analyze_email(
+        'Shocking investment secret revealed',
+        'LinkedIn News <info@smartinvestmenttools.com>',
+        has_amazon_ses=True
+    )
+    check('display-name spoof: not whitelisted',
+          signals['blacklisted_sender'],
+          'smartinvestmenttools.com in address should be blacklisted')
+
+    # ── Null bytes and control characters in subject ─────────────────────────
+    # sanitizeInput() must truncate cleanly; no crash or unexpected pattern fire
+    null_subject = 'Hello\x00World\x01\x02\x03'
+    _, is_spam, _ = analyze_email(null_subject, 'sender@example.com', False)
+    check('null bytes in subject: no crash', True)
+
+    # ── Maximum-length display name triggers suspiciousFromName ─────────────
+    # MAX_DISPLAY_NAME_LENGTH is 50; a 51-char name must trip the signal
+    long_name = 'A' * (MAX_DISPLAY_NAME_LENGTH + 1)
+    signals, _, _ = analyze_email('Hello', f'{long_name} <sender@example.com>', False)
+    check('51-char display name → suspiciousFromName',
+          signals['suspicious_from_name'],
+          f'name length {MAX_DISPLAY_NAME_LENGTH + 1} > limit {MAX_DISPLAY_NAME_LENGTH}')
+
+    # ── Exactly at display name limit: no false positive ────────────────────
+    exact_name = 'B' * MAX_DISPLAY_NAME_LENGTH
+    signals, _, _ = analyze_email('Hello', f'{exact_name} <sender@example.com>', False)
+    check(f'{MAX_DISPLAY_NAME_LENGTH}-char display name: no suspiciousFromName flag',
+          not signals['suspicious_from_name'],
+          f'name length exactly {MAX_DISPLAY_NAME_LENGTH} should not trigger')
+
+    # ── Empty subject + attachment triggers Rule 5 ───────────────────────────
+    signals, is_spam, rule = analyze_email('', 'sender@example.com', False,
+                                            body='', has_attachment=True)
+    check('empty subject + attachment → Rule 5 spam',
+          is_spam and 'RULE 5' in rule)
+
+    # ── Empty subject + NO attachment: not spam ──────────────────────────────
+    _, is_spam, _ = analyze_email('', 'sender@example.com', False,
+                                   body='', has_attachment=False)
+    check('empty subject without attachment: not spam', not is_spam)
+
+    # ── All-empty inputs: no crash, not spam ─────────────────────────────────
+    _, is_spam, _ = analyze_email('', '', False, body='', has_attachment=False)
+    check('all-empty inputs: no crash, not spam', not is_spam)
+
+    # ── 100KB subject: truncated, no crash, no false positive ───────────────
+    # sanitizeInput() caps at LIMITS.maxInputChars; verify no exception and
+    # that a string of neutral chars doesn't trigger any pattern
+    big_subject = 'a' * 100_001
+    _, is_spam, _ = analyze_email(big_subject, 'sender@example.com', False)
+    check('100KB subject: no crash, not spam', not is_spam)
+
+    print()
+    print(f'Edge case results: {passed} passed, {failed} failed')
+    return failed == 0
+
+
+# =============================================================================
 # Main Entry Point
 # =============================================================================
 
@@ -939,7 +1119,7 @@ def main():
     """
     Run all test phases and exit with appropriate code for CI.
 
-    Executes five phases in order, failing fast on critical errors:
+    Executes seven phases in order, failing fast on critical errors:
         Phase 0: Parser self-tests — verifies JS→Python extraction before anything else.
         Phase 1: Gmail API method validation — fails fast because there's no
                  point testing detection if the deployed code will crash on
@@ -947,6 +1127,8 @@ def main():
         Phase 2: Spam detection against spam_examples/.
         Phase 3: Scam detection against scam_examples/.
         Phase 4: Ham verification against ham_examples/.
+        Phase 5: Edge cases — robustness against malformed/boundary inputs.
+        Phase 6: Performance — informational timing benchmark (not pass/fail).
 
     Exits 0 if all phases pass, 1 if any phase fails.
     """
@@ -991,6 +1173,11 @@ def main():
 
     passed, failed, spam_failures = run_spam_tests(spam_dir)
 
+    # Collect parsed email tuples for the performance benchmark (Phase 6)
+    all_email_tuples = []
+    for filepath in sorted([f for f in spam_dir.iterdir() if f.suffix == '.eml']):
+        all_email_tuples.append(parse_eml(filepath))
+
     # ── Phase 3: Scam Detection ────────────────────────────────────────────
     # Every .eml in scam_examples/ must be correctly flagged as spam.
     # Scam examples cover attack vectors that evade text-pattern rules (e.g.
@@ -1002,6 +1189,8 @@ def main():
 
     if scam_dir.exists():
         scam_passed, scam_failed, scam_failures = run_spam_tests(scam_dir, label='Scam')
+        for filepath in sorted([f for f in scam_dir.iterdir() if f.suffix == '.eml']):
+            all_email_tuples.append(parse_eml(filepath))
 
     # ── Phase 4: Ham Verification ──────────────────────────────────────────
     # Every .eml in ham_examples/ must NOT be flagged (no false positives).
@@ -1012,6 +1201,14 @@ def main():
 
     if ham_dir.exists():
         ham_passed, ham_total, ham_false_positives = run_ham_tests(ham_dir)
+        for filepath in sorted([f for f in ham_dir.iterdir() if f.suffix == '.eml']):
+            all_email_tuples.append(parse_eml(filepath))
+
+    # ── Phase 5: Edge Case Tests ───────────────────────────────────────────
+    # Robustness checks: malformed inputs, boundary values, spoofing attempts.
+    # These catch crashes and mis-classifications that .eml tests can't cover.
+    print()
+    edge_cases_passed = run_edge_case_tests()
 
     # ── Final Summary ──────────────────────────────────────────────────────
     # Aggregate results from all phases and determine exit code for CI
@@ -1047,6 +1244,18 @@ def main():
         all_good = False
     elif ham_total > 0:
         print(f'✅ HAM: {ham_passed}/{ham_total} correctly allowed (0% false positives)')
+
+    # Report edge case results
+    if not edge_cases_passed:
+        print('❌ EDGE CASES: one or more edge case tests failed')
+        all_good = False
+    else:
+        print('✅ EDGE CASES: all passed')
+
+    # ── Phase 6: Performance Benchmark ────────────────────────────────────
+    # Informational only — does not affect pass/fail.
+    print()
+    run_performance_tests(all_email_tuples)
 
     # Exit 0 for CI success, 1 for failure
     if all_good:

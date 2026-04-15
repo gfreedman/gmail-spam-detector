@@ -33,7 +33,7 @@ All sent via bulk email services like Amazon SES — often hiding in Gmail's **U
 
 ## 📊 Results
 
-- ✅ **100% detection** on 45/45 spam + 1/1 scam (.eml files)
+- ✅ **100% detection** on 47/47 spam + 1/1 scam (.eml files)
 - ✅ **0% false positives** on 17/17 legitimate emails
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Clean, maintainable code** (~120 lines of detection logic)

@@ -1,0 +1,27 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:8090:b0:1b0:f2cc:f19c with SMTP id abc123;
+        Mon, 10 Feb 2026 09:00:00 -0800 (PST)
+X-Google-Smtp-Source: AGHT+IFrWhsDummyHeaderForTestingPurposesOnly
+Return-Path: <bounce@smartinvestmenttools.com>
+Received: from mail.amazonses.com (mail.amazonses.com [205.251.242.1])
+        by mx.google.com with ESMTPS id abc456
+        for <geoff.c.freedman@gmail.com>;
+        Mon, 10 Feb 2026 09:00:00 -0800 (PST)
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed; d=amazonses.com;
+        s=6gbrjpgwjskckoa6a5zn6fwqkn67xbtw;
+        bh=FAKEHASHFORDISPLAYNAMESPOOFTEST=; b=FAKESIGNATURE==
+X-SES-Outgoing: 2026.02.10-205.251.242.1
+Feedback-ID: 1234567890:smartinvestmenttools.com:amazonses
+From: "linkedin.com Investment Alerts" <info@smartinvestmenttools.com>
+To: geoff.c.freedman@gmail.com
+Subject: Shocking: The stock LinkedIn insiders are quietly buying right now
+Date: Mon, 10 Feb 2026 09:00:00 -0800
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+The one stock that LinkedIn executives are buying hand over fist.
+
+Our shocking research reveals the hidden opportunity they don't want
+you to know about. Click now before it's too late.
+
+To unsubscribe visit: https://smartinvestmenttools.com/unsubscribe

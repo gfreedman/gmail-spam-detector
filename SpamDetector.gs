@@ -27,6 +27,20 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.29.0: Security hardening — fix display-name spoofing bypass (whitelist/
+ *            blacklist now match against extracted email address only, not full
+ *            From string). Add stripHtmlTags() HTML body fallback so
+ *            BODY_CRYPTO_PATTERNS fire on HTML-only emails. Add Phase 5 edge
+ *            case tests, Phase 6 performance benchmark, ReDoS analysis comment.
+ *            Pin clasp@3.3.0 in CI. Delete stale archive/.
+ *   v6.28.0: Catch homoglyph-obfuscated health spam (frontiercapitalreport.com).
+ *            Add Unicode homoglyph pattern to CLICKBAIT_PATTERNS.
+ *   v6.27.0: Comment pass + README/CI fixes for 1st-year CS student clarity.
+ *   v6.26.0: Harden test parser — state machine bracket tracking, flag
+ *            validation, pattern count cross-checks, parser self-tests.
+ *   v6.25.0: Option B — test suite parses SpamDetector.gs directly (single
+ *            source of truth). Tests extract all patterns at import time;
+ *            no pattern duplication between source and tests.
  *   v6.24.0: L3/L5 review fixes — RFC2822_QUOTED_NAME constant, Rule 0→1 comments,
  *            maxAllowedEmailsPerRun/maxAllowedDaysToCheck into LIMITS, empty-domain
  *            guard on addToWhitelist/addToBlacklist, \uD835 surrogate explanation.

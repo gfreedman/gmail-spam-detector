@@ -67,7 +67,7 @@ jobs:
         run: node -e "new (require('vm').Script)(require('fs').readFileSync('SpamDetector.gs','utf8'))"
 
       # Run the Python test suite: parser self-tests, Gmail API method validation,
-      # spam detection (44 examples), scam detection (1 example), and ham
+      # spam detection (47 examples), scam detection (1 example), and ham
       # verification (17 examples). Exits 1 on failure.
       - name: Run spam detection tests
         run: python tests/test_spam_detector.py

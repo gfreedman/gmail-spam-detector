@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.29.0
+ * @version 6.30.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,8 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.30.0: Blacklist morningstockadviser. Add income-opportunity clickbait
+ *            pattern (second/passive/extra/side income).
  *   v6.29.0: Security hardening — fix display-name spoofing bypass (whitelist/
  *            blacklist now match against extracted email address only, not full
  *            From string). Add stripHtmlTags() HTML body fallback so
@@ -134,7 +136,8 @@ const DEFAULT_DOMAINS = Object.freeze({
     'smartpeoplemail',
     'onlineinvestingdaily',
     'beststockvillage',
-    'frontiercapitalreport.com'
+    'frontiercapitalreport.com',
+    'morningstockadviser'
   ])
 });
 
@@ -371,7 +374,11 @@ const CLICKBAIT_PATTERNS = Object.freeze([
 
   // Crypto quantity notation: "5000.00 $CLAW", "100 $USDT" — airdrop/ICO spam
   // Legitimate financial email writes "$5000", not "5000 $TICKER"
-  /\b\d+(?:\.\d+)?\s+\$[A-Z]{4,}\b/
+  /\b\d+(?:\.\d+)?\s+\$[A-Z]{4,}\b/,
+
+  // Income opportunity lures: "second income", "passive income", "extra income"
+  // Classic financial spam framing — promises of easy additional money
+  /\b(second|extra|side|passive|additional|supplemental)\s+income\b/i
 ]);
 
 /**

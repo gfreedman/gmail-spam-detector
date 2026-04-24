@@ -219,11 +219,8 @@ jobs:
           echo "Checking that @version $VER_NUM is live in Google Apps Script..."
 
           # clasp writes/refreshes ~/.clasprc.json during push — token is fresh
-          ACCESS_TOKEN=$(python3 -c "
-import json, os
-with open(os.path.expanduser('~/.clasprc.json')) as f:
-    print(json.load(f)['token']['access_token'])
-")
+          # Single-line python to avoid YAML block-scalar indentation issues
+          ACCESS_TOKEN=$(python3 -c "import json,os; print(json.load(open(os.path.expanduser('~/.clasprc.json')))['token']['access_token'])")
 
           # Fetch the deployed script content via the Apps Script REST API.
           # -s = silent (no progress bar), -o = write body to file,

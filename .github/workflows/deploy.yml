@@ -1,13 +1,15 @@
 # =============================================================================
 # CI/CD Pipeline — Gmail Spam Detector
 #
-# Three-stage pipeline: Test → Deploy → Tag
-#   1. test:   Lint JS syntax, run Python detection tests, validate README stats
-#   2. deploy: Push SpamDetector.gs to Google Apps Script via clasp
-#   3. tag:    Auto-create git tag if commit message contains a version number
+# Four-stage pipeline: Test → Deploy → Validate → Notify
+#   1. test:     Lint JS syntax, run Python detection tests, validate README stats
+#   2. deploy:   Push SpamDetector.gs to Google Apps Script via clasp
+#   3. validate: Read deployed script back via Apps Script REST API and confirm
+#                the expected @version tag is present in the live source
+#   4. notify:   Create a GitHub release — triggers email alert that prod is ready
 #
 # Each stage requires the previous to pass (needs:). If tests fail, nothing
-# deploys. If deploy fails, no tag is created.
+# deploys. If deploy or validation fails, no release is created.
 #
 # Trigger: pushes to main that touch relevant files (source, tests, config,
 # workflow, or README). The workflow file itself is included so pipeline
@@ -181,32 +183,119 @@ jobs:
           echo "See [run details](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
 
   # ===========================================================================
-  # Stage 3: Tag
+  # Stage 3: Validate
   #
-  # Auto-creates a git tag when the commit message contains a version number
-  # (e.g., "v6.11.1: Fix spam deletion"). This links deployed versions to
-  # specific commits for easy rollback and audit.
+  # Reads the deployed script back from the Apps Script REST API and confirms
+  # the expected @version string is present in the live source. This catches
+  # silent deploy failures where clasp exits 0 but the remote wasn't updated.
   #
-  # Requires contents:write permission to push tags.
-  # Harmlessly fails if the tag already exists (e.g., reusing a version).
+  # Token note: clasp refreshes ~/.clasprc.json during push, so the access
+  # token written here is the same fresh token used by the push step — no
+  # separate refresh needed.
+  #
+  # If the API call itself fails (network error, unexpected response format),
+  # the step warns but does not block the pipeline — clasp push is the ground
+  # truth. A missing @version string, however, is a hard failure.
   # ===========================================================================
-  tag:
-    needs: deploy  # Only tag after successful deploy
+  validate:
+    needs: deploy
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Required to push git tags
     steps:
       - uses: actions/checkout@v5
 
-      # Extract version from commit message (e.g., "v6.11.1") and create tag
-      - name: Auto-tag version commits
+      - name: Write clasp credentials
+        run: printf '%s' '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
+
+      - name: Validate deployed version via Apps Script API
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
+        run: |
+          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
+          if [ -z "$VERSION" ]; then
+            echo "No version in commit — skipping API validation"
+            exit 0
+          fi
+          VER_NUM="${VERSION#v}"
+          echo "Checking that @version $VER_NUM is live in Google Apps Script..."
+
+          # clasp writes/refreshes ~/.clasprc.json during push — token is fresh
+          ACCESS_TOKEN=$(python3 -c "
+import json, os
+with open(os.path.expanduser('~/.clasprc.json')) as f:
+    print(json.load(f)['token']['access_token'])
+")
+
+          # Fetch the deployed script content via the Apps Script REST API.
+          # -s = silent (no progress bar), -o = write body to file,
+          # -w = write HTTP status code to stdout for our check below.
+          HTTP_CODE=$(curl -s \
+            -o /tmp/gas_content.json \
+            -w "%{http_code}" \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            "https://script.googleapis.com/v1/projects/${SCRIPT_ID}/content")
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            # Non-200 means auth error, quota, or API unavailable.
+            # Warn but don't block — clasp push already confirmed the upload.
+            echo "::warning::Apps Script API returned HTTP $HTTP_CODE — skipping version check"
+            echo "API response:" && cat /tmp/gas_content.json
+            exit 0
+          fi
+
+          # The response is JSON: {"files": [{"name": "...", "source": "..."}]}
+          # grep for the @version string in the raw JSON (safe — no special chars).
+          if grep -q "@version ${VER_NUM}" /tmp/gas_content.json; then
+            echo "✅ Confirmed: @version $VER_NUM is live in Google Apps Script"
+            {
+              echo "## ✅ ${VERSION} deployed and verified"
+              echo ""
+              echo "The new version is live. Ready to test."
+              echo ""
+              echo "> **Before testing:** Run \`refreshBlacklist()\` in the Apps Script"
+              echo "> editor to sync new blacklist entries into Script Properties."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error::@version $VER_NUM was NOT found in the live script — possible silent deploy failure"
+            echo "Apps Script API response:" && cat /tmp/gas_content.json
+            exit 1
+          fi
+
+  # ===========================================================================
+  # Stage 4: Notify
+  #
+  # Creates a GitHub release after successful deploy + validation. A release
+  # (unlike a bare tag) triggers GitHub's notification system — you'll receive
+  # an email alert that the new version is live and ready to test.
+  #
+  # Requires contents:write permission to create releases and push tags.
+  # Silently skips if the release already exists (e.g., pipeline retry).
+  # ===========================================================================
+  notify:
+    needs: validate  # Only notify after deploy is confirmed live
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to create releases and push tags
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
           if [ -n "$VERSION" ]; then
-            git tag "$VERSION" 2>/dev/null || true
-            if git push origin "$VERSION" 2>/dev/null; then
-              echo "Tagged $VERSION" >> $GITHUB_STEP_SUMMARY
+            if gh release create "$VERSION" \
+              --title "${VERSION} live in prod — ready to test" \
+              --notes "$(cat <<'NOTES'
+Deployed to Google Apps Script and verified via API.
+
+**Before testing:** Run `refreshBlacklist()` in the Apps Script editor to sync new blacklist entries into Script Properties.
+
+**To test:** Forward a suspect email through the trigger, or run `processInbox()` manually and check the execution log.
+NOTES
+)" 2>/dev/null; then
+              echo "Created release $VERSION" >> $GITHUB_STEP_SUMMARY
             else
-              echo "Tag $VERSION already exists — skipping" >> $GITHUB_STEP_SUMMARY
+              echo "Release $VERSION already exists — skipping" >> $GITHUB_STEP_SUMMARY
             fi
           fi

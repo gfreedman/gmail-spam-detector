@@ -1,0 +1,548 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:991b:b0:1ce:24ed:10d8 with SMTP id kd27csp578877rdb;
+        Fri, 24 Apr 2026 09:01:56 -0700 (PDT)
+X-Received: by 2002:a05:620a:29c6:b0:8cf:c451:cc1c with SMTP id af79cd13be357-8e7928527cbmr4514703685a.58.1777046514078;
+        Fri, 24 Apr 2026 09:01:54 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1777046514; cv=none;
+        d=google.com; s=arc-20240605;
+        b=J163tPAO4HTdFqNzJPdIOuGPRdbVr1X+lZbX8p8MHuusGGiF8G17FFeqHgAWR9wQC1
+         NSzLgeYPsLMGjfwfOSFhqvuClpzmEqYXB1wav92KYKlW+gLd2QeqHa2ABx55wM3eXTdQ
+         tLlRDKzBbIo4w43VHzNUKZ4qJWu0AY+5b1asu0K3vXXSpM8IsXnP57TV5LcbgzXZBbPY
+         3yiocMgxL4gDViI5VC34+TY4d4cGbs75QaEeK5FPU9hrZw/Hr0JeJJVzxJxq9yf/pZyz
+         K2lDOO2n4QHqtFlRtByTB/XQDCucpHOHdSnSAImH5Um1x/KPK+P+bPbe5443zJEhGkIl
+         BKZw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20240605;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=7k2UzpTwmFnAof3yj9fKdW/k/Tsaq+wAFJQWU/P1mqM=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=Evy4jyQObu4qXlA9nejAU91M9oxMS9L8fkGC6JEFZDLuFg84dd2Bg88di/i11XsxoM
+         1aJriSqx6gohzvrffjTWYfPqj349ac4wqtW3slefGhVd3lSy2CKADT7RsO+Tj+vGdaRh
+         qVXGn303OoZjbeMfz60VimMiPN/0uzV/0kmahusuJE+vxyu5gQsW5GMnaU6g6Xtts0x4
+         GjApHwJbuG+RazWZNleWnE4D2wntiDvDv+1PzF9SMDOX91PipQjQaTqOGnBiG+0Sws8c
+         sljUiEj1x8gSDm4kkYbS6tYkb86MBMonvvkr30svEryJ3/zElyYZ+i+kEXMXBO5hUn1s
+         +Eew==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@my.1stamericanpath.com header.s=4dppuzefjs7ob2mgp5l3zdm7jj7eliqg header.b=CUOFw8JO;
+       dkim=pass header.i=@amazonses.com header.s=224i4yxa5dv7c2xz3womw6peuasteono header.b=M9pMYYru;
+       spf=pass (google.com: domain of 0100019dc039e433-c61f8d99-f20d-4eaa-8ca0-5fbd902af369-000000@amazonses.com designates 23.251.255.222 as permitted sender) smtp.mailfrom=0100019dc039e433-c61f8d99-f20d-4eaa-8ca0-5fbd902af369-000000@amazonses.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=my.1stamericanpath.com
+Return-Path: <0100019dc039e433-c61f8d99-f20d-4eaa-8ca0-5fbd902af369-000000@amazonses.com>
+Received: from e255-222.smtp-out.amazonses.com (e255-222.smtp-out.amazonses.com. [23.251.255.222])
+        by mx.google.com with ESMTPS id af79cd13be357-8ee6720a99asi1413503185a.344.2026.04.24.09.01.52
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Fri, 24 Apr 2026 09:01:53 -0700 (PDT)
+Received-SPF: pass (google.com: domain of 0100019dc039e433-c61f8d99-f20d-4eaa-8ca0-5fbd902af369-000000@amazonses.com designates 23.251.255.222 as permitted sender) client-ip=23.251.255.222;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@my.1stamericanpath.com header.s=4dppuzefjs7ob2mgp5l3zdm7jj7eliqg header.b=CUOFw8JO;
+       dkim=pass header.i=@amazonses.com header.s=224i4yxa5dv7c2xz3womw6peuasteono header.b=M9pMYYru;
+       spf=pass (google.com: domain of 0100019dc039e433-c61f8d99-f20d-4eaa-8ca0-5fbd902af369-000000@amazonses.com designates 23.251.255.222 as permitted sender) smtp.mailfrom=0100019dc039e433-c61f8d99-f20d-4eaa-8ca0-5fbd902af369-000000@amazonses.com;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=my.1stamericanpath.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=4dppuzefjs7ob2mgp5l3zdm7jj7eliqg; d=my.1stamericanpath.com;
+	t=1777046512;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=7k2UzpTwmFnAof3yj9fKdW/k/Tsaq+wAFJQWU/P1mqM=;
+	b=CUOFw8JOEhtW4SZ0spzQ+KkLdneEzFY507L2bDkGErz8S2inDuk0k/CMxeqMgJIy
+	R1tmTjyQc32K7cJbOFiCP79gV13U+nlahu3j1zoPHAt5NjnCod05Yi3rnMG9W3/3sON
+	fqE9da2LjnzdFel+IEei1+Lr9MNFLt5w+YTjXmJG7csxS0X+3Ha1nWYzt56iclTfPwl
+	/qz4r5gflB0lUbt/CCC+jqOfJi2ZLfuAuw03r3CE17qFd4bFG/TkIOEbRa3PL6sRSIk
+	rFsuS4HZWm0RgWxCUYWqWLjpVCzclJFlCeDDsdwrWA+hiOoZNJt4v6O0XuXgwoUdMQ2
+	bUPXDZwMiw==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=224i4yxa5dv7c2xz3womw6peuasteono; d=amazonses.com; t=1777046512;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=7k2UzpTwmFnAof3yj9fKdW/k/Tsaq+wAFJQWU/P1mqM=;
+	b=M9pMYYruc6u8ajaCtuJTucYFOPaHKLezwyEsGQwHpUkSxuXrtdOJQvN+62HtT0Ft
+	U3lmRzLp6hfuuyCg0Rvh/JqHy+PtBRXWQzunVWiKdORc+zpucERq+3Y175B111MpR+g
+	sDIDE1ZrJKT/qhoAWPfWh03KZQlZvLPusMlEtT/Q=
+Date: Fri, 24 Apr 2026 16:01:52 +0000
+From: "$0.72/share - 1st American Path" <check@my.1stamericanpath.com>
+Reply-To: support@1stamericanpath.com
+To: geoff.c.freedman@gmail.com
+Message-ID: <0100019dc039e433-c61f8d99-f20d-4eaa-8ca0-5fbd902af369-000000@email.amazonses.com>
+Subject: The Pre-IPO AI Company Tech Giants Tried to Acquire
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_430535_1271129724.1777046512678"
+X-Campaign-ID: 17841458
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=7fe279169e04485e8b90cd04df29ddb4&_s=8389e56a30a549be9c6e3a3c50df7fb7&_t=XakXCYMzQ5GmlEZ0QqpG9cn-62P17YPmJcu-q8Ksm2b0mC94l0ViXeqw1EWfPV3rlU0SliE_r-3xgC41qWVUuctETzWnzYaM6SxcyApm-xjxqi8b1gOj-hk92qsvJnUn>,<mailto:unsubscribe+17841458+23223041@unsubscribe.iterable.com>
+X-Feedback-ID: 23223041:17841458:139251:iterable
+X-Message-ID: 8389e56a30a549be9c6e3a3c50df7fb7
+X-SES-Outgoing: 2026.04.24-23.251.255.222
+
+------=_Part_430535_1271129724.1777046512678
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+#1 work app on the Meta Quest Store. Samsung headset=E2=80=99s launch partn=
+er. Intel's=20
+former CEO invested.=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E=20
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E=20
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E=20
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E=20
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E=20
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E=20
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E=20
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E
+
+
+
+
+
+
+
+ <https://1stamericanpath.com/>=20
+
+ =D0=A1=E2=85=BC=D1=96=CF=B2kh=D0=B5r=D0=B5 and I'll reveal the shocking de=
+tails. =20
+<https://track.1stamericanpath.com/698c6971458b26d12e8a825b?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D857FAP&type=3DB&product=3DIMG2149_5>
+
+ #1 work app on the Meta Quest Store.=20
+ Samsung headset=E2=80=99s launch partner.=20
+ Intel's former CEO invested.=20
+
+ 1.5M users have already adopted Immersed's spatial computing platform. The=
+=20
+company is now building Visor for the computing shift expected to follow th=
+e=20
+smartphone, and you can invest before a potential public listing.
+
+ Current Pre-IPO price: $0.72/share.=20
+
+Invest Before the Pre-IPO Round Closes=20
+<https://track.1stamericanpath.com/698c6971458b26d12e8a825b?email=3Dgeoff.c=
+.freedman@gmail.com&domain=3D857FAP&type=3DB&product=3DIMG2149_5>
+Disclaimer: Immersed is offering securities through the use of an Offering=
+=20
+Statement that has been qualified by the Securities and Exchange Commission=
+=20
+under Tier II of Regulation A. The valuation is set by the Company and ther=
+e is=20
+currently no public market for the Company's Common Stock. Please read the=
+=20
+offering circular and related risks at invest.immersed.com. Nasdaq ticker=
+=20
+=E2=80=9CIMRS=E2=80=9D has been reserved by Immersed and any potential list=
+ing is subject to=20
+future regulatory approval and market conditions.=20
+
+ <https://1stamericanpath.com/>=20
+
+
+ 1st American Path is provided under the management of Sparks Affiliates, L=
+LC.=20
+
+ Have questions? Contact us at support@1stamericanpath.com=20
+<mailto:support@1stamericanpath.com>=20
+
+ 848 Main St Ste 10, Billings, MT 59105.=20
+
+
+
+Privacy Policy <https://1stamericanpath.com/privacy-policy/>=20
+
+
+Unsubscribe=20
+<https://links.my.1stamericanpath.com/e/encryptedUnsubscribe?_r=3D7fe279169=
+e04485e8b90cd04df29ddb4&_s=3D8389e56a30a549be9c6e3a3c50df7fb7&_t=3DXakXCYMz=
+Q5GmlEZ0QqpG9cn-62P17YPmJcu-q8Ksm2b0mC94l0ViXeqw1EWfPV3rlU0SliE_r-3xgC41qWV=
+UuctETzWnzYaM6SxcyApm-xjxqi8b1gOj-hk92qsvJnUn>
+
+
+ =C2=A9 2026 All rights reserved. 1stamericanpath.com=20
+------=_Part_430535_1271129724.1777046512678
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: bo=
+rder-box;"><head><title></title><meta http-equiv=3D"Content-Type" content=
+=3D"text/html; charset=3Dutf-8"><meta name=3D"viewport" content=3D"width=3D=
+device-width,initial-scale=3D1"><!--[if mso]><xml><w:WordDocument xmlns:w=
+=3D"urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyRead=
+ingMail/></w:WordDocument> <o:OfficeDocumentSettings><o:PixelsPerInch>96</o=
+:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]--><s=
+tyle>*{box-sizing:border-box}body{margin:0;padding:0}a[x-apple-data-detecto=
+rs]{color:inherit!important;text-decoration:inherit!important}#MessageViewB=
+ody a{color:inherit;text-decoration:none}p{line-height:inherit}.desktop_hid=
+e,.desktop_hide table{mso-hide:all;display:none;max-height:0;overflow:hidde=
+n}.image_block img+div{display:none}sub,sup{font-size:75%;line-height:0}@me=
+dia(max-width:720px){.mobile_hide{display:none}.row-content{width:100%!impo=
+rtant}.stack .column{width:100%;display:block}.mobile_hide{min-height:0;max=
+-height:0;max-width:0;overflow:hidden;font-size:0}.desktop_hide,.desktop_hi=
+de table{display:table!important;max-height:none!important}}</style><!--[if=
+ mso ]><style>sup,sub{font-size:100%!important}sup{mso-text-raise:10%}sub{m=
+so-text-raise:-10%}</style><![endif]--></head><body class=3D"body" style=3D=
+"box-sizing: border-box; margin: 0; background-color: #f9fbfe; padding: 0; =
+-webkit-text-size-adjust: none; text-size-adjust: none;"><span style=3D"col=
+or:transparent;visibility:hidden;display:none;opacity:0;height:0;width:0;fo=
+nt-size:0;">#1 work app on the Meta Quest Store. Samsung headset=E2=80=99s =
+launch partner. Intel's former CEO invested.=E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=
+=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=
+=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =E2=80=8E =
+=E2=80=8E =E2=80=8E</span><img src=3D"https://links.my.1stamericanpath.com/=
+e/eo?_t=3D7fe279169e04485e8b90cd04df29ddb4&amp;_m=3D8389e56a30a549be9c6e3a3=
+c50df7fb7&amp;_e=3DXakXCYMzQ5GmlEZ0QqpG9cn-62P17YPmJcu-q8Ksm2b0mC94l0ViXeqw=
+1EWfPV3rlU0SliE_r-3xgC41qWVUuctETzWnzYaM6SxcyApm-xjmfv9HaUGbu1rmCSm_PPDF5d-=
+VGpN1WqgB6qjq8HIyvA%3D%3D" style=3D"border:0;width:1px;height:1px;border-wi=
+dth:0px!important;display:none!important;line-height:0!important;" width=3D=
+"1" height=3D"1"/><table class=3D"nl-container" width=3D"100%" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color=
+: #f9fbfe;" bgcolor=3D"#f9fbfe"><tbody style=3D"box-sizing: border-box;"><t=
+r style=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"><=
+table class=3D"row row-1" align=3D"center" width=3D"100%" border=3D"0" cell=
+padding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: =
+border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-size: auto=
+;"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border=
+-box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-content st=
+ack" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso=
+-table-rspace: 0; background-color: #f9fbfe; background-size: auto; color: =
+#000; width: 700px; margin: 0 auto;" width=3D"700" bgcolor=3D"#f9fbfe"><tbo=
+dy style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;">=
+<td class=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-bo=
+x; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: =
+left; padding-bottom: 5px; padding-top: 5px; vertical-align: top;" align=3D=
+"left" valign=3D"top"><table class=3D"html_block block-1" width=3D"100%" bo=
+rder=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr =
+style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: bo=
+rder-box;"><div style=3D"box-sizing: border-box; font-family: Arial,'Helvet=
+ica Neue',Helvetica,sans-serif; text-align: center;" align=3D"center"><html=
+ style=3D"box-sizing: border-box;"> <head> <meta content=3D"text/html; char=
+set=3Dutf-8"> <title></title> <meta content=3D"width=3Ddevice-width, initia=
+l-scale=3D1"> <link> <style>*{box-sizing:border-box}img{outline:0;text-deco=
+ration:none;border:0;-ms-interpolation-mode:bicubic}table{mso-table-lspace:=
+0;mso-table-rspace:0}[style*=3D"Montserrat"]{font-family:'Montserrat',sans-=
+serif}[style*=3D"Inter"]{font-family:'Inter',sans-serif}.main-bg{background=
+-color:transparent!important}@media screen and (max-width:602px){table.main=
+-table{width:100%!important;max-width:100%!important;min-width:100%!importa=
+nt}img{background-color:transparent!important}.td-gap{padding-top:0!importa=
+nt}.gap-link{width:1px!important;min-width:1px!important}.line-pad{padding-=
+left:0!important;padding-right:0!important}.td-full{display:block!important=
+;width:100%!important;min-width:100%!important}.hide-mob{display:none!impor=
+tant}}</style> </head> <center style=3D"box-sizing: border-box;"> <table bg=
+color=3D"#ffffff" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D=
+"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0pt; mso-table-rs=
+pace: 0pt; border-spacing: 0; border-collapse: collapse; background-color: =
+#ffffff; min-width: 100%;"> <tr style=3D"box-sizing: border-box;"> <td alig=
+n=3D"center" valign=3D"top" style=3D"box-sizing: border-box; margin-left: 0=
+; margin-right: 0; margin-top: 0; margin-bottom: 0; padding-left: 0; paddin=
+g-right: 0; padding-top: 0; padding-bottom: 0;"> <table class=3D"main-table=
+" bgcolor=3D"#ffffff" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" widt=
+h=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0pt; mso-tabl=
+e-rspace: 0pt; border-spacing: 0; border-collapse: collapse; padding: 0; ma=
+rgin: 0; max-width: 1000px;"> <tr style=3D"box-sizing: border-box;"> <td bg=
+color=3D"#EDF7FE" style=3D"box-sizing: border-box; margin: 0; padding: 0; b=
+ackground: linear-gradient(180deg, rgba(224, 238, 253, 0.20) 0%, rgba(115, =
+195, 247, 0.20) 100%);"> <table class=3D"main-bg" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"box-sizing: border-box; ms=
+o-table-lspace: 0pt; mso-table-rspace: 0pt; margin: 0; padding: 0; border-s=
+pacing: 0; border-collapse: collapse; min-width: 100%; background-color: tr=
+ansparent !important;" bgcolor=3D"transparent !important"> <tr style=3D"box=
+-sizing: border-box;"> <td align=3D"center" style=3D"box-sizing: border-box=
+; margin: 0; padding: 0;"> <table class=3D"main-table" border=3D"0" cellpad=
+ding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"box-sizing: border-box=
+; mso-table-lspace: 0pt; mso-table-rspace: 0pt; border-spacing: 0; border-c=
+ollapse: separate; padding: 0; margin: 0; max-width: 700px; width: 100%;"> =
+<tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border-box;=
+ margin: 0; padding: 0;"> <a class=3D"es-button" href=3D"https://links.my.1=
+stamericanpath.com/u/click?_t=3D7fe279169e04485e8b90cd04df29ddb4&_m=3D8389e=
+56a30a549be9c6e3a3c50df7fb7&_e=3DDcFj4rdR8frMLWz-e4EEu2XbVkVsaQpmBJdAmYgZSj=
+gwOFpoh_jX-jwbCLMpn-TrnrlSpXWfOTpHpkvc7EdQsHpqrDCVexvt8AkmdxH0eJAxRjuxkJlWg=
+5CptbupdNfeakQGQDW0D6Nvr78dkx4e_TaRn7thx_lkX5HbeoAERxylCmtC58PLfRA2mboyuDR4=
+XCI0ZaUhAgWnmWMK-4ngcwE7t8eEx2vA-FlSVl_vaRdGCbAkCHkB59Om8D3PiJkKpuPpYAHl1iP=
+DaxYvEGNzniqEln2JCd8ylW8fJYoY1U73IhnsClL4lfCGkKHeQQL75Gull-QnPxU79WtWeJL0cg=
+%3D%3D" style=3D"box-sizing: border-box; padding: 0; text-decoration: none;=
+" target=3D"_blank"> <img alt=3D"Logo" height=3D"auto" width=3D"700" src=3D=
+"https://library.iterable.com/2798/31021/a06a28c12b5d4ce9aa64a67f85240882-h=
+eade.png" style=3D"box-sizing: border-box; outline: none; text-decoration: =
+none; border: none; -ms-interpolation-mode: bicubic; width: 100%; height: a=
+uto; font-size: 13px; display: block;"> </a> </td> </tr> <table width=3D"10=
+0%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" =
+style=3D"box-sizing: border-box; mso-table-lspace: 0pt; mso-table-rspace: 0=
+pt; font-family: 'Roboto', Arial, Helvetica, sans-serif; line-height: 1.6; =
+max-width: 700px; padding-top: 0px; padding-right: 0px; padding-bottom: 0px=
+; padding-left: 0px;"> <tbody style=3D"box-sizing: border-box; max-width: 7=
+00px;"> <tr style=3D"box-sizing: border-box;"> <td align=3D"center" valign=
+=3D"top" style=3D"box-sizing: border-box; font-family: 'Roboto', Arial, Hel=
+vetica, sans-serif; line-height: 1.6; max-width: 700px;"> <table role=3D"pr=
+esentation" cellpadding=3D"0" cellspacing=3D"0" align=3D"center" style=3D"b=
+ox-sizing: border-box; mso-table-lspace: 0pt; mso-table-rspace: 0pt; displa=
+y: none; width: 0px; max-height: 0px; overflow: hidden; mso-hide: all; heig=
+ht: 0; font-size: 0; max-height: 0; line-height: 0; margin: 0;" width=3D"0"=
+> <tr style=3D"box-sizing: border-box;"> <td align=3D"center" style=3D"box-=
+sizing: border-box;"> <a class=3D"es-button" href=3D"https://links.my.1stam=
+ericanpath.com/u/click?_t=3D7fe279169e04485e8b90cd04df29ddb4&_m=3D8389e56a3=
+0a549be9c6e3a3c50df7fb7&_e=3DDcFj4rdR8frMLWz-e4EEu-dWW-qQEBQeoPFjexu-5knO7Z=
+cIIsi4ltWJfzqsK7-_4os2dK1Ykr2GPv6r4-8aySQb1ceA2QXXv_P7BdT8QFWQzn3NdIGtgoyx7=
+jxQnvMIFjqV2WYIInMd0zUjo-o8u6FeVAjY1XaNrHCN9MqJDxO1exlskYcSnGYNYwJxSC-OfGpr=
+hppMc4M284TrUQF1cKbo53Ixftb6kV7pKWp-w2EtZewv8lzjCXK4xVJVUf8_BIs3tnqVhFEEEWl=
+dHMgC86Wy5f2xQEFm-8OOJpxKpog7llSXron0Qh4Uw17X0Bc0PZfXNBw6pzBmLQ4u1rG6qvm11z=
+TIbHAeMD52wY8DX9OwLHQpeBx91iVvKfHoxMh2dwH_40yOBbI2JHCbmvLPApgVpZ8G7kmB1H9mE=
+BUxr2gmI4U3JbwRe-I6ZuNQkXbQIW7mb1UIcEUZxmWermUAhL_M-fSIdVNCF4oyvKt40Ijr4PzD=
+idtQiPEahdv4vOpHwTh5VeAS53lUAtS0DuBYnsTeSe1grkhV82GWOsloeL3O9HxrGC9YSNDLHkj=
+fhDOIRm44MRk2T2PYfmklzMtmpQ%3D%3D" style=3D"box-sizing: border-box; font-si=
+ze: 18px; text-decoration: underline; font-weight: 700; color: #1376c8;"> =
+=D0=A1=E2=85=BC=D1=96=CF=B2kh=D0=B5r=D0=B5 and I'll reveal the shocking det=
+ails. </a> </td> </tr> </table> <table class=3D"primary-table-limit content=
+-table" bgcolor=3D"#FFFFFF" border=3D"0" cellspacing=3D"0" cellpadding=3D"0=
+" role=3D"presentation" width=3D"100%" style=3D"box-sizing: border-box; mso=
+-table-lspace: 0pt; mso-table-rspace: 0pt; font-family: 'Roboto', Arial, He=
+lvetica, sans-serif; line-height: 1.6; max-width: 700px;"> <tbody style=3D"=
+box-sizing: border-box; max-width: 700px;"> <tr style=3D"box-sizing: border=
+-box;"> <td class=3D"content-vertical-space" align=3D"center" style=3D"box-=
+sizing: border-box; padding-left: 20px; padding-right: 20px; font-family: '=
+Roboto', Arial, Helvetica, sans-serif; line-height: 1.6; max-width: 700px;"=
+> <table class=3D"content-inner-table" border=3D"0" cellspacing=3D"0" role=
+=3D"presentation" cellpadding=3D"0" width=3D"100%" style=3D"box-sizing: bor=
+der-box; mso-table-lspace: 0pt; mso-table-rspace: 0pt; width: 100%; font-fa=
+mily: 'Roboto', Arial, Helvetica, sans-serif; line-height: 1.6; max-width: =
+700px;"> <tbody style=3D"box-sizing: border-box; max-width: 700px;"> <tr st=
+yle=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border-box; font-=
+style: normal; font-weight: normal; text-align: left; color: #000000; paddi=
+ng-top: 14px; padding-bottom: 14px; font-family: 'Roboto', Arial, Helvetica=
+, sans-serif; font-size: 21px; line-height: 1.6; max-width: 700px;" align=
+=3D"left"> <span style=3D"box-sizing: border-box; font-style: normal; font-=
+weight: normal; text-align: left; color: #000000; font-family: 'Roboto', Ar=
+ial, Helvetica, sans-serif; font-size: 21px; line-height: 1.6;"> #1 work ap=
+p on the Meta Quest Store. <br style=3D"box-sizing: border-box;"> Samsung h=
+eadset=E2=80=99s launch partner. <br style=3D"box-sizing: border-box;"> Int=
+el's former CEO invested. <br style=3D"box-sizing: border-box;"><br style=
+=3D"box-sizing: border-box;"> 1.5M users have already adopted Immersed's sp=
+atial computing platform. The company is now building Visor for the computi=
+ng shift expected to follow the smartphone, and you can invest before a pot=
+ential public listing. <br style=3D"box-sizing: border-box;"><br style=3D"b=
+ox-sizing: border-box;"> Current Pre-IPO price: $0.72/share. <br style=3D"b=
+ox-sizing: border-box;"><br style=3D"box-sizing: border-box;"> <a href=3D"h=
+ttps://links.my.1stamericanpath.com/u/click?_t=3D7fe279169e04485e8b90cd04df=
+29ddb4&_m=3D8389e56a30a549be9c6e3a3c50df7fb7&_e=3DDcFj4rdR8frMLWz-e4EEu-dWW=
+-qQEBQeoPFjexu-5knO7ZcIIsi4ltWJfzqsK7-_4os2dK1Ykr2GPv6r4-8aySQb1ceA2QXXv_P7=
+BdT8QFWQzn3NdIGtgoyx7jxQnvMIFjqV2WYIInMd0zUjo-o8u6FeVAjY1XaNrHCN9MqJDxO1exl=
+skYcSnGYNYwJxSC-O2Uj8FilH29QlyziN9svR_MAVNt6I9psIEMsgadR03bPmT4uYfnCJirXV9V=
+YN19A1kCNzxcAZ5HgfE8oZqrYwuFYFaUh0KuV9Nd8s9ebaEERiT5OHB62aGSAHdx3T5YnntW_bQ=
+4aeS1pdWlshaoBnjyNgyDh9rrt46M-1AZGk0t4fXBJPpLTN3c5ejGByXc2id5-lBocfoM2VfYjm=
+dBrVZYQvmj0pAEQhLEkwhrvQJEB1yp2soKuQpPB6v3FE24PTY6BlzzTGE5vOqNAFqDtPMYrcnzP=
+KyawBB7mP5GW0fd5FQKJUfwJLpUPpdatKMXlxqz8mRT6JD_DFSE0kg9q_I3-4sGPicZmsqYw7dR=
+zHASm_gPz16xeW7CcpXOocUG0h36QYAvPqNdZKGhPHCe_Miw%3D%3D" style=3D"box-sizing=
+: border-box; text-decoration: underline; font-weight: 700; font-family: 'R=
+oboto', Arial, Helvetica, sans-serif; line-height: 1.6; color: #0363a8;">In=
+vest Before the Pre-IPO Round Closes</a> </span> </td> </tr> <tr style=3D"b=
+ox-sizing: border-box;"> <td style=3D"box-sizing: border-box; font-size: 12=
+px; font-style: normal; font-weight: normal; text-align: left; color: #0000=
+00; padding-top: 34px; padding-bottom: 14px; font-family: 'Roboto', Arial, =
+Helvetica, sans-serif; line-height: 1.6; max-width: 700px;" align=3D"left">=
+ <span style=3D"box-sizing: border-box; font-size: 12px; font-style: normal=
+; font-weight: normal; text-align: left; color: #000000; font-family: 'Robo=
+to', Arial, Helvetica, sans-serif; line-height: 1.6;"> <b style=3D"box-sizi=
+ng: border-box; font-style: italic;">Disclaimer:</b><em style=3D"box-sizing=
+: border-box;"> Immersed is offering securities through the use of an Offer=
+ing Statement that has been qualified by the Securities and Exchange Commis=
+sion under Tier II of Regulation A. The valuation is set by the Company and=
+ there is currently no public market for the Company's Common Stock. Please=
+ read the offering circular and related risks at invest.immersed.com. Nasda=
+q ticker =E2=80=9CIMRS=E2=80=9D has been reserved by Immersed and any poten=
+tial listing is subject to future regulatory approval and market conditions=
+.</em> </span> </td> </tr> </tbody> </table> </td> </tr> </tbody> </table> =
+</td> </tr> </tbody> </table> <tr style=3D"box-sizing: border-box;"> <td bg=
+color=3D"#095789" align=3D"center" style=3D"box-sizing: border-box; margin:=
+ 0; padding-top: 24px; padding-right: 20px; padding-bottom: 24px; padding-l=
+eft: 20px;"> <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=
+=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0pt; mso-table=
+-rspace: 0pt; margin: 0; padding: 0; border-spacing: 0; border-collapse: co=
+llapse; width: 100%; max-width: 636px;"> <tr style=3D"box-sizing: border-bo=
+x;"> <td align=3D"center" style=3D"box-sizing: border-box; margin: 0; paddi=
+ng-bottom: 20px;"> <a href=3D"https://links.my.1stamericanpath.com/u/click?=
+_t=3D7fe279169e04485e8b90cd04df29ddb4&_m=3D8389e56a30a549be9c6e3a3c50df7fb7=
+&_e=3DDcFj4rdR8frMLWz-e4EEu2XbVkVsaQpmBJdAmYgZSjgwOFpoh_jX-jwbCLMpn-TrC3eZi=
+j3ut5q98Bea7h3eR4gIzYfInzJBg37BorB_4Hh7fp3RWoOBytU-LIBJRRjtW0AePEGZ3EM8EXGM=
+8xw03F1C_LfEuKnY2qSF4pAy_DD_svK7pbzLIidvEKaU0psHqO2lv1kOfbr0YmpxZgJibEmAoaG=
+qGQB3o7KNwdAZRVpIk9s0eGPbAXAEYzulRb3Z26AGJ1Af22XXI9H5644LZRF2L0hWnaZsESRDRR=
+i5D_Fh1CwVbjMt6bxD4h2qu6kFbHkzQVz0Pu0cwRSSJYYH2Q%3D%3D" style=3D"box-sizing=
+: border-box; padding: 0; text-decoration: none;" target=3D"_blank"> <img a=
+lt=3D"Logo" height=3D"auto" width=3D"306" src=3D"https://library.iterable.c=
+om/2798/31021/d8e721e564ca47db89c2d78ae146fa2d-logo-5.png" style=3D"box-siz=
+ing: border-box; outline: none; text-decoration: none; border: none; -ms-in=
+terpolation-mode: bicubic; width: 85%; max-width: 306px; height: auto; font=
+-size: 13px; display: block;"> </a> </td> </tr> <tr style=3D"box-sizing: bo=
+rder-box;"> <td bgcolor=3D"#ffffff" style=3D"box-sizing: border-box; margin=
+: 0; padding: 0;"> <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" =
+width=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0pt; mso-=
+table-rspace: 0pt; margin: 0; padding: 0; border-spacing: 0; border-collaps=
+e: separate; min-width: 100%; background: url(https://library.iterable.com/=
+2798/31021/f25ebfe448dc4287bd9d5df6a77d0632-footer-bg.png); background-posi=
+tion: center center; background-repeat: repeat-y;"> <tr style=3D"box-sizing=
+: border-box;"> <td align=3D"center" style=3D"box-sizing: border-box; margi=
+n: 0; padding-top: 24px; padding-right: 20px; padding-bottom: 24px; padding=
+-left: 20px;"> <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" widt=
+h=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0pt; mso-tabl=
+e-rspace: 0pt; margin: 0; padding: 0; border-spacing: 0; border-collapse: c=
+ollapse; width: 100%; max-width: 636px;"> <tr style=3D"box-sizing: border-b=
+ox;"> <td style=3D"box-sizing: border-box; margin: 0; padding: 0; color: #0=
+00000; font-family: Inter, sans-serif; font-size: 16px; font-style: normal;=
+ font-weight: 400; line-height: 1.3;"> 1st American Path is provided under =
+the management of Sparks Affiliates, LLC. <br style=3D"box-sizing: border-b=
+ox;"><br style=3D"box-sizing: border-box;"> Have questions? Contact us at <=
+a href=3D"mailto:support@1stamericanpath.com" style=3D"box-sizing: border-b=
+ox; color: #095789; text-decoration: underline;">support@1stamericanpath.co=
+m</a> <br style=3D"box-sizing: border-box;"> <br style=3D"box-sizing: borde=
+r-box;"> 848 Main St Ste 10, Billings, MT 59105. </td> </tr> <tr style=3D"b=
+ox-sizing: border-box;"> <td align=3D"center" style=3D"box-sizing: border-b=
+ox; margin: 0; padding-top: 28px;"> <table bgcolor=3D"#ffffff" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"box-sizing: bo=
+rder-box; mso-table-lspace: 0pt; mso-table-rspace: 0pt; margin: 0; padding:=
+ 0; border-spacing: 0; border-collapse: separate; width: 100%; max-width: 3=
+30px; border-radius: 4px; border: 1px solid #AFC0D7;"> <tr style=3D"box-siz=
+ing: border-box;"> <td align=3D"center" style=3D"box-sizing: border-box; ma=
+rgin: 0; padding-top: 7px; padding-right: 0; padding-bottom: 7px; padding-l=
+eft: 0;"> <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" style=3D"=
+box-sizing: border-box; mso-table-lspace: 0pt; mso-table-rspace: 0pt; margi=
+n: 0; padding: 0; border-spacing: 0; border-collapse: collapse; font-size: =
+0; text-align: center;" align=3D"center"> <tr style=3D"box-sizing: border-b=
+ox;"> <td style=3D"box-sizing: border-box; margin: 0; display: inline-block=
+; vertical-align: middle; font-size: 0;" valign=3D"middle"> <table border=
+=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"box-sizi=
+ng: border-box; mso-table-lspace: 0pt; mso-table-rspace: 0pt; margin: 0; pa=
+dding: 0; border-spacing: 0; border-collapse: collapse; min-width: 100%;"> =
+<tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border-box;=
+ margin: 0; padding-top: 8px; padding-left: 15px; padding-bottom: 8px; padd=
+ing-right: 15px; color: #000000; font-family: Inter, sans-serif; font-size:=
+ 16px; font-style: normal; font-weight: 500; line-height: 1.3;"> <a class=
+=3D"es-button" href=3D"https://links.my.1stamericanpath.com/u/click?_t=3D7f=
+e279169e04485e8b90cd04df29ddb4&_m=3D8389e56a30a549be9c6e3a3c50df7fb7&_e=3DD=
+cFj4rdR8frMLWz-e4EEu2XbVkVsaQpmBJdAmYgZSjiEdAhlg4t5Hb71lP6yNkk3JZfxAAQ9lYZS=
+3ma13SugFzw9LOmm8XMz793R49xn4NKr6NqHXrcuNLBW8ZV_x91ECy-9BBEbQ4WVOVp-5CDPJRy=
+M6UEa83UXDiuGzUBnjrdeW4HUKH3XxtiKuWmDh2-gR-CBsDN7h-u12OLuiIGPtl2mLz10ELpGV3=
+ewAD-cf_iZCovJyaltzSOIq2JqcEmnOK3JH2rAOtO51cd59MuRp2_UQyM5TT7K0G8UyZGQD40f4=
+P7UyXd0FBNsgU_FqVfXncUhnHSg8y-ZpczjjmMz9y_ULuf9pNY147FmZ2i3H6dYOq3K6Xee1RC-=
+ed4qmq7c" style=3D"box-sizing: border-box; color: #000000; font-family: Int=
+er, sans-serif; font-size: 16px; font-style: normal; font-weight: 500; line=
+-height: 1.3; text-decoration: underline;">Privacy Policy</a> </td> </tr> <=
+/table> </td> <td class=3D"gap-link" width=3D"27" style=3D"box-sizing: bord=
+er-box; margin: 0; padding: 0; display: inline-block; vertical-align: middl=
+e; font-size: 0; min-width: 27px;" valign=3D"middle"> <table border=3D"0" c=
+ellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"box-sizing: bord=
+er-box; mso-table-lspace: 0pt; mso-table-rspace: 0pt; margin: 0; padding: 0=
+; border-spacing: 0; border-collapse: collapse; min-width: 100%;"> <tr styl=
+e=3D"box-sizing: border-box;"> <td class=3D"line-pad" style=3D"box-sizing: =
+border-box; margin: 0; padding-top: 8px; padding-left: 13px; padding-bottom=
+: 8px; padding-right: 13px;"> <table bgcolor=3D"#000000" border=3D"0" cellp=
+adding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"box-sizing: border-b=
+ox; mso-table-lspace: 0pt; mso-table-rspace: 0pt; margin: 0; padding: 0; bo=
+rder-spacing: 0; border-collapse: collapse; min-width: 100%;"> <tr style=3D=
+"box-sizing: border-box;"> <td style=3D"box-sizing: border-box; margin: 0; =
+padding-top: 14px;"></td> </tr> </table> </td> </tr> </table> </td> <td cla=
+ss=3D"td-full" style=3D"box-sizing: border-box; margin: 0; display: inline-=
+block; vertical-align: middle; font-size: 0;" valign=3D"middle"> <table bor=
+der=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"box-s=
+izing: border-box; mso-table-lspace: 0pt; mso-table-rspace: 0pt; margin: 0;=
+ padding: 0; border-spacing: 0; border-collapse: collapse; min-width: 100%;=
+"> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border-b=
+ox; margin: 0; padding-top: 8px; padding-left: 15px; padding-bottom: 8px; p=
+adding-right: 15px; color: #000000; font-family: Inter, sans-serif; font-si=
+ze: 16px; font-style: normal; font-weight: 500; line-height: 1.3;"> <a href=
+=3D"https://links.my.1stamericanpath.com/e/encryptedUnsubscribe?_r=3D7fe279=
+169e04485e8b90cd04df29ddb4&_s=3D8389e56a30a549be9c6e3a3c50df7fb7&_t=3DXakXC=
+YMzQ5GmlEZ0QqpG9cn-62P17YPmJcu-q8Ksm2b0mC94l0ViXeqw1EWfPV3rlU0SliE_r-3xgC41=
+qWVUuctETzWnzYaM6SxcyApm-xjxqi8b1gOj-hk92qsvJnUn" style=3D"box-sizing: bord=
+er-box; color: #000000; font-family: Inter, sans-serif; font-size: 16px; fo=
+nt-style: normal; font-weight: 500; line-height: 1.3; text-decoration: unde=
+rline;">Unsubscribe</a> </td> </tr> </table> </td> </tr> </table> </td> </t=
+r> </table> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td style=3D=
+"box-sizing: border-box; margin: 0; padding-top: 27px; padding-bottom: 27px=
+;"> <table bgcolor=3D"#095789" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" width=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0p=
+t; mso-table-rspace: 0pt; margin: 0; padding: 0; border-spacing: 0; border-=
+collapse: collapse; min-width: 100%;"> <tr style=3D"box-sizing: border-box;=
+"> <td style=3D"box-sizing: border-box; margin: 0; padding-top: 1px;"></td>=
+ </tr> </table> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td alig=
+n=3D"center" style=3D"box-sizing: border-box; margin: 0; padding: 0; color:=
+ #000000; text-align: center; font-family: Inter, sans-serif; font-size: 16=
+px; font-style: normal; font-weight: 400; line-height: 1.3;"> =C2=A9 2026 A=
+ll rights reserved. 1stamericanpath.com </td> </tr> </table> </td> </tr> </=
+table> </td> </tr> </table> </td> </tr> </table> </td> </tr> </table> </td>=
+ </tr> </table> </td> </tr> </table> </center> </html></div></td></tr></tab=
+le></td></tr></tbody></table></td></tr></tbody> </table></td></tr></tbody><=
+/table><!-- End --></body></html>
+------=_Part_430535_1271129724.1777046512678--

@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.30.0
+ * @version 6.31.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,8 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.31.0: Blacklist 1stamericanpath.com (Pre-IPO investment spam mill).
+ *            Fix stock price pattern to also match $X/share (slash separator).
  *   v6.30.0: Blacklist morningstockadviser. Add income-opportunity clickbait
  *            pattern (second/passive/extra/side income).
  *   v6.29.0: Security hardening — fix display-name spoofing bypass (whitelist/
@@ -137,7 +139,8 @@ const DEFAULT_DOMAINS = Object.freeze({
     'onlineinvestingdaily',
     'beststockvillage',
     'frontiercapitalreport.com',
-    'morningstockadviser'
+    'morningstockadviser',
+    '1stamericanpath.com'
   ])
 });
 
@@ -297,8 +300,8 @@ const CLICKBAIT_PATTERNS = Object.freeze([
   // Pre-IPO investment solicitation: always spam in bulk email
   /\bpre-?ipo\b/i,
 
-  // Stock price hype: "$5 a share", "$0.85 per share", "penny stock"
-  /\$\d+(\.\d+)?\s*(?:(?:a|per)\s+)?share|\bpenny stock\b/i,
+  // Stock price hype: "$5 a share", "$0.85 per share", "$0.72/share", "penny stock"
+  /\$\d+(\.\d+)?(?:\s+(?:a|per)\s+|[\s\/]+)?share|\bpenny stock\b/i,
 
   // Watch/see curiosity gap: "watch what happened", "see this"
   /\b(watch|see)\s+(what|this|the moment)/i,

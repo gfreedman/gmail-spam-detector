@@ -1,12 +1,12 @@
 # =============================================================================
 # CI/CD Pipeline — Gmail Spam Detector
 #
-# Four-stage pipeline: Test → Deploy → Validate → Notify
+# Four-stage pipeline: Test → Deploy → Validate → Tag
 #   1. test:     Lint JS syntax, run Python detection tests, validate README stats
 #   2. deploy:   Push SpamDetector.gs to Google Apps Script via clasp
 #   3. validate: Read deployed script back via Apps Script REST API and confirm
 #                the expected @version tag is present in the live source
-#   4. notify:   Create a GitHub release — triggers email alert that prod is ready
+#   4. tag:      Auto-create git tag if commit message contains a version number
 #
 # Each stage requires the previous to pass (needs:). If tests fail, nothing
 # deploys. If deploy or validation fails, no release is created.
@@ -261,41 +261,31 @@ with open(os.path.expanduser('~/.clasprc.json')) as f:
           fi
 
   # ===========================================================================
-  # Stage 4: Notify
+  # Stage 4: Tag
   #
-  # Creates a GitHub release after successful deploy + validation. A release
-  # (unlike a bare tag) triggers GitHub's notification system — you'll receive
-  # an email alert that the new version is live and ready to test.
+  # Auto-creates a git tag when the commit message contains a version number
+  # (e.g., "v6.11.1: Fix spam deletion"). This links deployed versions to
+  # specific commits for easy rollback and audit.
   #
-  # Requires contents:write permission to create releases and push tags.
-  # Silently skips if the release already exists (e.g., pipeline retry).
+  # Requires contents:write permission to push tags.
+  # Harmlessly fails if the tag already exists (e.g., reusing a version).
   # ===========================================================================
-  notify:
-    needs: validate  # Only notify after deploy is confirmed live
+  tag:
+    needs: validate  # Only tag after deploy is confirmed live
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # Required to create releases and push tags
+      contents: write  # Required to push git tags
     steps:
       - uses: actions/checkout@v5
 
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Auto-tag version commits
         run: |
           VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
           if [ -n "$VERSION" ]; then
-            if gh release create "$VERSION" \
-              --title "${VERSION} live in prod — ready to test" \
-              --notes "$(cat <<'NOTES'
-Deployed to Google Apps Script and verified via API.
-
-**Before testing:** Run `refreshBlacklist()` in the Apps Script editor to sync new blacklist entries into Script Properties.
-
-**To test:** Forward a suspect email through the trigger, or run `processInbox()` manually and check the execution log.
-NOTES
-)" 2>/dev/null; then
-              echo "Created release $VERSION" >> $GITHUB_STEP_SUMMARY
+            git tag "$VERSION" 2>/dev/null || true
+            if git push origin "$VERSION" 2>/dev/null; then
+              echo "Tagged $VERSION" >> $GITHUB_STEP_SUMMARY
             else
-              echo "Release $VERSION already exists — skipping" >> $GITHUB_STEP_SUMMARY
+              echo "Tag $VERSION already exists — skipping" >> $GITHUB_STEP_SUMMARY
             fi
           fi

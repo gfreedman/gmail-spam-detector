@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.31.0
+ * @version 6.32.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,19 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.32.0: Spam intelligence logging — every detected spam is archived as a
+ *            raw EML in Google Drive (Spam Intelligence/Detected/YYYY/MM/) and
+ *            logged as a structured row in a Google Sheets spreadsheet (19 cols:
+ *            timestamp, log type, IDs, Drive URL, sender info, rule fired,
+ *            signals, and manual notes columns). False negatives supported via
+ *            "SpamMissed" Gmail label — user labels escaped spam, next run logs
+ *            and deletes it, populating a FALSE_NEGATIVE row. New functions:
+ *            setupLogging() (one-time setup), checkFalseNegatives(),
+ *            accumulateLogEntry(), flushSpamLog(), getOrCreateLogSubfolder(),
+ *            getRuleFromSignals(), buildSignalsCsv(). Logging is fully
+ *            non-blocking — any Drive/Sheets failure is caught and logged
+ *            without affecting spam deletion. New OAuth scopes: drive.file,
+ *            spreadsheets. Run setupLogging() once after deploy to authorize.
  *   v6.31.0: Blacklist 1stamericanpath.com (Pre-IPO investment spam mill).
  *            Fix stock price pattern to also match $X/share (slash separator).
  *   v6.30.0: Blacklist morningstockadviser. Add income-opportunity clickbait
@@ -516,6 +529,12 @@ function processInbox()
     logInfo('Completed in ' + duration + 'ms: Processed ' + processedCount +
             ' emails, marked ' + spamCount + ' as spam, ' + errorCount + ' errors');
 
+    // Log any emails the user manually labeled SpamMissed (false negatives),
+    // then flush all accumulated log entries to Drive + Sheets before the
+    // safety-net sweep runs.
+    checkFalseNegatives();
+    flushSpamLog();
+
     // Safety-net pass: clean pre-existing spam + any messages where
     // the immediate delete in markAsSpam() failed
     destroySpam();
@@ -613,7 +632,7 @@ function cleanseInbox()
             }
 
             // Rules 2-5: pattern-based — quarantine for human review
-            if (analyzeMessage(message))
+            if (analyzeMessage(message).isSpam)
             {
               threadSuspect = true;
             }
@@ -777,14 +796,16 @@ function processThread(thread)
       }
 
       processedCount++;
-      const isSpam = analyzeMessage(message);
+      const verdict = analyzeMessage(message);
 
-      logDebug('Email: "' + sanitizeForLog(message.getSubject()) + '" - Spam: ' + isSpam);
+      logDebug('Email: "' + sanitizeForLog(message.getSubject()) + '" - Spam: ' + verdict.isSpam);
 
       // Only mark thread as spam once, even if multiple messages trigger detection.
       // This prevents duplicate API calls and redundant log entries.
-      if (isSpam && !threadMarkedAsSpam)
+      if (verdict.isSpam && !threadMarkedAsSpam)
       {
+        // Accumulate log entry BEFORE deletion — getRawContent() is unavailable after batchDelete
+        accumulateLogEntry(message, verdict.signals, 'SPAM_DETECTED');
         markAsSpam(message, thread);
         spamCount++;
         threadMarkedAsSpam = true;
@@ -1159,13 +1180,14 @@ function analyzeMessage(message)
   try
   {
     const signals = collectSignals(message);
-    if (signals === null) return false; // whitelisted
-    return makeVerdict(signals);
+    if (signals === null) return { isSpam: false, signals: null }; // whitelisted
+    const isSpam = makeVerdict(signals);
+    return { isSpam: isSpam, signals: signals };
   }
   catch (error)
   {
     logError('Error analyzing message: ' + error.toString());
-    return false; // Default to not-spam on error — better to miss spam than delete legit mail
+    return { isSpam: false, signals: null }; // Default to not-spam on error
   }
 }
 
@@ -1462,8 +1484,9 @@ function setup()
     // Write default whitelist/blacklist to Script Properties (if not already set)
     initializeScriptProperties();
 
-    logInfo('Setup complete! Now set up a time-based trigger to run processInbox() every 15 minutes.');
-    logInfo('Go to: Triggers (clock icon) > Add Trigger > Function: processInbox > Time-driven > Minutes timer > Every 15 minutes');
+    logInfo('Setup complete! Now:');
+    logInfo('  1. Run setupLogging() to enable spam intelligence logging (Drive + Sheets).');
+    logInfo('  2. Set up a time-based trigger: Triggers > Add Trigger > processInbox > Time-driven > Every 15 minutes');
   }
   catch (error)
   {
@@ -1759,6 +1782,456 @@ function refreshBlacklist()
   }
 
   viewBlacklist();
+}
+
+
+// =============================================================================
+// Debug Tools
+// =============================================================================
+
+// =============================================================================
+// Spam Intelligence Logging
+// =============================================================================
+
+/**
+ * Gmail label the user applies to spam emails the script missed.
+ * On the next run, checkFalseNegatives() finds these, logs them, and deletes them.
+ * @const {string}
+ */
+const SPAM_MISSED_LABEL = 'SpamMissed';
+
+/**
+ * In-memory buffer of log entries accumulated during a processInbox() run.
+ * Populated by accumulateLogEntry(); drained by flushSpamLog() at end of run.
+ * Re-initialized to [] on every Apps Script execution, which is the desired behavior.
+ * @type {Array<Object>}
+ */
+let _pendingLogEntries = [];
+
+/**
+ * One-time setup for spam intelligence logging.
+ *
+ * Creates:
+ *   - "Spam Intelligence/" folder at My Drive root
+ *   - "Detected/" and "False Negatives/" subfolders inside it
+ *   - "Spam Intelligence Log" spreadsheet with a "Raw Log" tab and column headers
+ *   - "SpamMissed" Gmail label for flagging false negatives
+ *
+ * Saves the folder ID and spreadsheet ID to Script Properties so
+ * flushSpamLog() can find them on every subsequent run. Run once manually
+ * from the Apps Script editor after deploying this feature — the time-based
+ * trigger will not prompt for the new OAuth scopes until this is called.
+ *
+ * @throws {Error} If Drive or Sheets creation fails.
+ */
+function setupLogging()
+{
+  try
+  {
+    logInfo('Setting up spam intelligence logging...');
+
+    const props = PropertiesService.getScriptProperties();
+
+    // ── Drive folder ─────────────────────────────────────────────────────────
+    let rootFolder;
+    const existingFolderId = props.getProperty('SPAM_LOG_FOLDER_ID');
+    if (existingFolderId)
+    {
+      try { rootFolder = DriveApp.getFolderById(existingFolderId); }
+      catch (e) { rootFolder = null; }
+    }
+
+    if (!rootFolder)
+    {
+      rootFolder = DriveApp.createFolder('Spam Intelligence');
+      props.setProperty('SPAM_LOG_FOLDER_ID', rootFolder.getId());
+      logInfo('Created "Spam Intelligence" folder in My Drive');
+    }
+    else
+    {
+      logInfo('Using existing "Spam Intelligence" folder');
+    }
+
+    // Create top-level category subfolders.
+    // Year/month leaves are created dynamically at log time.
+    getOrCreateLogSubfolder(rootFolder, ['Detected']);
+    getOrCreateLogSubfolder(rootFolder, ['False Negatives']);
+
+    // ── Spreadsheet ──────────────────────────────────────────────────────────
+    let spreadsheet;
+    const existingSheetId = props.getProperty('SPAM_LOG_SHEET_ID');
+    if (existingSheetId)
+    {
+      try { spreadsheet = SpreadsheetApp.openById(existingSheetId); }
+      catch (e) { spreadsheet = null; }
+    }
+
+    if (!spreadsheet)
+    {
+      spreadsheet = SpreadsheetApp.create('Spam Intelligence Log');
+      props.setProperty('SPAM_LOG_SHEET_ID', spreadsheet.getId());
+
+      const sheet = spreadsheet.getActiveSheet();
+      sheet.setName('Raw Log');
+      sheet.appendRow([
+        'Detected At', 'Log Type', 'Gmail Message ID', 'Gmail Thread ID',
+        'EML Drive URL', 'Subject', 'From Display Name', 'From Address',
+        'Sending Domain', 'Reply-To', 'Rule Triggered', 'Rule Description',
+        'Clickbait Count', 'Signals Detected', 'Bulk Email Service',
+        'Has Attachment', 'List-Unsubscribe Present', 'False Negative Notes', 'Notes'
+      ]);
+      sheet.setFrozenRows(1);
+      logInfo('Created "Spam Intelligence Log" spreadsheet');
+    }
+    else
+    {
+      logInfo('Using existing "Spam Intelligence Log" spreadsheet');
+    }
+
+    // ── SpamMissed label ─────────────────────────────────────────────────────
+    getOrCreateLabel(SPAM_MISSED_LABEL);
+
+    logInfo('Setup complete!');
+    logInfo('Spreadsheet: ' + SpreadsheetApp.openById(props.getProperty('SPAM_LOG_SHEET_ID')).getUrl());
+    logInfo('Drive folder: https://drive.google.com/drive/folders/' + rootFolder.getId());
+    logInfo('Apply the "SpamMissed" label in Gmail to any spam the script misses.');
+  }
+  catch (error)
+  {
+    logError('setupLogging failed: ' + error.toString());
+    throw error;
+  }
+}
+
+/**
+ * Scan for emails labeled "SpamMissed" by the user, log them, then delete them.
+ *
+ * The user labels an escaped spam email "SpamMissed" in Gmail. On the next run,
+ * this function finds it, accumulates a log entry (Log Type = FALSE_NEGATIVE),
+ * removes the label, then calls markAsSpam() to report and permanently delete
+ * the email — identical path to auto-detected spam.
+ *
+ * collectSignals() is run on each false negative so the Sheets row captures WHY
+ * the script missed it. The user fills in "False Negative Notes" manually later.
+ */
+function checkFalseNegatives()
+{
+  try
+  {
+    const threads = GmailApp.search('label:' + SPAM_MISSED_LABEL);
+    if (threads.length === 0) return;
+
+    logInfo('Found ' + threads.length + ' false negative(s) to log');
+
+    const label = GmailApp.getUserLabelByName(SPAM_MISSED_LABEL);
+
+    for (let i = 0; i < threads.length; i++)
+    {
+      try
+      {
+        const thread  = threads[i];
+        const message = thread.getMessages()[0];
+
+        // Collect signals to document why the script missed this email
+        let signals = null;
+        try { signals = collectSignals(message); }
+        catch (e) { /* non-fatal — log entry still captured without signals */ }
+
+        // Accumulate BEFORE deletion — getRawContent() is unavailable after batchDelete
+        accumulateLogEntry(message, signals, 'FALSE_NEGATIVE');
+
+        // Remove label before markAsSpam() — deleted threads can't have labels removed
+        if (label) thread.removeLabel(label);
+
+        markAsSpam(message, thread);
+
+        logInfo('FALSE NEGATIVE LOGGED AND DESTROYED: ' + sanitizeForLog(message.getSubject()));
+      }
+      catch (threadError)
+      {
+        logError('Error processing false negative: ' + threadError.toString());
+      }
+    }
+  }
+  catch (error)
+  {
+    logError('checkFalseNegatives failed: ' + error.toString());
+  }
+}
+
+/**
+ * Capture a spam event into the in-memory log buffer.
+ *
+ * Must be called BEFORE markAsSpam() — getRawContent() is unavailable after
+ * the message is permanently deleted via batchDelete(). The raw MIME content
+ * is held in memory until flushSpamLog() writes it to Drive at end of run.
+ *
+ * Non-blocking: any error is caught and logged; the caller's deletion flow
+ * is unaffected if this function fails.
+ *
+ * @param {GmailMessage} message - The spam message to capture.
+ * @param {Object|null}  signals - Signal object from collectSignals(), or null.
+ * @param {string}       logType - 'SPAM_DETECTED' or 'FALSE_NEGATIVE'.
+ */
+function accumulateLogEntry(message, signals, logType)
+{
+  try
+  {
+    const from            = sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2');
+    const emailAddress    = extractEmailAddress(from);
+    const fromDisplayName = from.replace(/<[^>]*>$/, '').trim();
+
+    const domainMatch  = emailAddress.match(/@(.+)$/);
+    const sendingDomain = domainMatch ? domainMatch[1] : emailAddress;
+
+    let hasAttachment = false;
+    try { hasAttachment = message.getAttachments().length > 0; }
+    catch (e) { /* non-fatal */ }
+
+    let listUnsubscribePresent = false;
+    try { listUnsubscribePresent = message.getHeader('List-Unsubscribe').length > 0; }
+    catch (e) { /* non-fatal */ }
+
+    let rawContent = '';
+    try { rawContent = message.getRawContent(); }
+    catch (e) { logError('getRawContent failed for ' + message.getId() + ': ' + e.toString()); }
+
+    _pendingLogEntries.push({
+      detectedAt:             new Date().toISOString(),
+      logType:                logType,
+      messageId:              message.getId(),
+      threadId:               message.getThread().getId(),
+      rawContent:             rawContent,
+      subject:                message.getSubject() || '',
+      fromDisplayName:        fromDisplayName,
+      fromAddress:            emailAddress,
+      sendingDomain:          sendingDomain,
+      replyTo:                message.getReplyTo() || '',
+      ruleInfo:               getRuleFromSignals(signals),
+      clickbaitCount:         signals ? signals.clickbaitCount : 0,
+      signalsCsv:             buildSignalsCsv(signals),
+      bulkEmailService:       signals ? signals.bulkEmailService : false,
+      hasAttachment:          hasAttachment,
+      listUnsubscribePresent: listUnsubscribePresent
+    });
+  }
+  catch (error)
+  {
+    logError('accumulateLogEntry failed: ' + error.toString());
+  }
+}
+
+/**
+ * Write all pending log entries to Drive (EML files) and Sheets (rows).
+ *
+ * Called once at the end of processInbox(), after all deletions are complete.
+ * Batches all Sheets rows into a single setValues() call. Drive writes are
+ * sequential (one file per entry) since Drive has no batch creation API.
+ *
+ * Non-blocking: errors are caught and logged; spam detection is unaffected.
+ * The finally block always clears _pendingLogEntries to prevent memory growth.
+ */
+function flushSpamLog()
+{
+  if (_pendingLogEntries.length === 0) return;
+
+  try
+  {
+    const props        = PropertiesService.getScriptProperties();
+    const rootFolderId = props.getProperty('SPAM_LOG_FOLDER_ID');
+    const sheetId      = props.getProperty('SPAM_LOG_SHEET_ID');
+
+    if (!rootFolderId || !sheetId)
+    {
+      logInfo('Spam logging not configured — run setupLogging() to enable it');
+      return;
+    }
+
+    let rootFolder;
+    try { rootFolder = DriveApp.getFolderById(rootFolderId); }
+    catch (e)
+    {
+      logError('Spam log Drive folder not found: ' + e.toString());
+      return;
+    }
+
+    let sheet;
+    try
+    {
+      const ss = SpreadsheetApp.openById(sheetId);
+      sheet = ss.getSheetByName('Raw Log');
+      if (!sheet) throw new Error('"Raw Log" tab not found in spreadsheet');
+    }
+    catch (e)
+    {
+      logError('Spam log spreadsheet unavailable: ' + e.toString());
+      return;
+    }
+
+    // Build year/month subfolders once — all entries in a single run share the same bucket
+    const now    = new Date();
+    const year   = now.getFullYear().toString();
+    const month  = Utilities.formatDate(now, Session.getScriptTimeZone(), 'MM');
+
+    const detectedFolder = getOrCreateLogSubfolder(rootFolder, ['Detected',        year, month]);
+    const fnFolder       = getOrCreateLogSubfolder(rootFolder, ['False Negatives', year, month]);
+
+    const rows = [];
+
+    for (let i = 0; i < _pendingLogEntries.length; i++)
+    {
+      const entry = _pendingLogEntries[i];
+
+      // Write EML to Drive — colons are invalid in filenames, replace with dashes
+      let driveUrl = '';
+      try
+      {
+        const safeTs   = entry.detectedAt.replace(/:/g, '-').replace(/\.\d+Z$/, 'Z');
+        const filename = safeTs + '_' + entry.messageId.substring(0, 8) + '.eml';
+        const blob     = Utilities.newBlob(entry.rawContent, 'message/rfc822', filename);
+        const folder   = entry.logType === 'FALSE_NEGATIVE' ? fnFolder : detectedFolder;
+        driveUrl       = folder.createFile(blob).getUrl();
+      }
+      catch (driveError)
+      {
+        logError('Drive write failed for ' + entry.messageId + ': ' + driveError.toString());
+      }
+
+      rows.push([
+        entry.detectedAt,
+        entry.logType,
+        entry.messageId,
+        entry.threadId,
+        driveUrl,
+        entry.subject,
+        entry.fromDisplayName,
+        entry.fromAddress,
+        entry.sendingDomain,
+        entry.replyTo,
+        entry.ruleInfo.rule,
+        entry.ruleInfo.description,
+        entry.clickbaitCount,
+        entry.signalsCsv,
+        entry.bulkEmailService,
+        entry.hasAttachment,
+        entry.listUnsubscribePresent,
+        '', // False Negative Notes (filled in manually by user)
+        ''  // Notes (general free-form)
+      ]);
+    }
+
+    // Single Sheets write for all rows — more efficient than one appendRow() per entry
+    if (rows.length > 0)
+    {
+      sheet.getRange(sheet.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
+      logInfo('Logged ' + rows.length + ' spam intelligence ' +
+              (rows.length === 1 ? 'entry' : 'entries'));
+    }
+  }
+  catch (error)
+  {
+    logError('flushSpamLog failed: ' + error.toString());
+  }
+  finally
+  {
+    _pendingLogEntries = []; // Always clear — prevents memory growth between runs
+  }
+}
+
+/**
+ * Get or create a chain of nested subfolders under a Drive parent folder.
+ *
+ * Given rootFolder and ['Detected', '2026', '05'], returns the "05" folder,
+ * creating any missing intermediate folders along the way.
+ *
+ * @param {DriveFolder}   rootFolder   - Starting parent folder.
+ * @param {Array<string>} pathSegments - Folder names to traverse/create in order.
+ * @return {DriveFolder} The deepest folder at the end of the path.
+ */
+function getOrCreateLogSubfolder(rootFolder, pathSegments)
+{
+  let current = rootFolder;
+  for (let i = 0; i < pathSegments.length; i++)
+  {
+    const name     = pathSegments[i];
+    const existing = current.getFoldersByName(name);
+    current        = existing.hasNext() ? existing.next() : current.createFolder(name);
+  }
+  return current;
+}
+
+/**
+ * Derive which detection rule fired from a signals object.
+ *
+ * Mirrors the rule cascade in makeVerdict() exactly — must be kept in sync
+ * if makeVerdict() rules change. Returns rule 'NONE' for false negatives or
+ * any signals object where no rule matched.
+ *
+ * @param {Object|null} signals - Signal object from collectSignals(), or null.
+ * @return {{rule: string, description: string}}
+ */
+function getRuleFromSignals(signals)
+{
+  if (!signals)
+  {
+    return { rule: 'NONE', description: 'False negative — no rule triggered' };
+  }
+
+  if (signals.bulkEmailService && signals.blacklistedSender)
+  {
+    return { rule: 'Rule 1', description: 'Bulk email + blacklisted sender' };
+  }
+
+  if (signals.bulkEmailService && signals.clickbaitCount >= 2)
+  {
+    return { rule: 'Rule 2', description: 'Bulk email + clickbait (' + signals.clickbaitCount + ' patterns)' };
+  }
+
+  let spamBehaviorCount = 0;
+  if (signals.clickbaitCount >= 1)       spamBehaviorCount++;
+  if (signals.fearMongering)             spamBehaviorCount++;
+  if (signals.marketingFormat)           spamBehaviorCount++;
+  if (signals.suspiciousFromName)        spamBehaviorCount++;
+
+  if (signals.bulkEmailService && spamBehaviorCount >= 2)
+  {
+    return { rule: 'Rule 3', description: 'Bulk email + ' + spamBehaviorCount + ' spam behaviors' };
+  }
+
+  if (signals.clickbaitCount >= 3)
+  {
+    return { rule: 'Rule 4', description: 'Extreme clickbait (' + signals.clickbaitCount + ' patterns)' };
+  }
+
+  if (signals.emptySubjectWithAttachment)
+  {
+    return { rule: 'Rule 5', description: 'Empty subject with attachment (payload delivery scam)' };
+  }
+
+  return { rule: 'NONE', description: 'No rule triggered' };
+}
+
+/**
+ * Format a signals object as a comma-separated list of active signal names.
+ * Used for the "Signals Detected" column in the Sheets log.
+ *
+ * @param {Object|null} signals - Signal object from collectSignals(), or null.
+ * @return {string} CSV string, e.g. "BULK,BLACKLISTED,CLICKBAIT(3),FEAR", or "".
+ */
+function buildSignalsCsv(signals)
+{
+  if (!signals) return '';
+
+  const parts = [];
+  if (signals.bulkEmailService)           parts.push('BULK');
+  if (signals.blacklistedSender)          parts.push('BLACKLISTED');
+  if (signals.clickbaitCount > 0)         parts.push('CLICKBAIT(' + signals.clickbaitCount + ')');
+  if (signals.fearMongering)              parts.push('FEAR');
+  if (signals.marketingFormat)            parts.push('MARKETING');
+  if (signals.suspiciousFromName)         parts.push('SUSPICIOUS_FROM');
+  if (signals.emptySubjectWithAttachment) parts.push('EMPTY_SUBJECT_ATTACHMENT');
+
+  return parts.join(',');
 }
 
 

@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.32.0
+ * @version 6.33.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,8 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.33.0: Remove fixSheetHyperlinks() — one-time migration utility, already
+ *            run. Dead code.
  *   v6.32.0: Spam intelligence logging — every detected spam is archived as a
  *            raw EML in Google Drive (Spam Intelligence/Detected/) and
  *            logged as a structured row in a Google Sheets spreadsheet (19 cols:
@@ -2291,50 +2293,4 @@ function debugWhyFlagged(searchTerm)
   {
     logError('Debug failed: ' + error.toString());
   }
-}
-
-/**
- * One-time fix — convert raw Drive URLs in the EML Drive URL column to
- * HYPERLINK formulas displaying the filename. Needed for rows logged before
- * the HYPERLINK fix was deployed (v6.32.x). Safe to re-run: skips rows
- * that already have a formula or are empty.
- *
- * Run once from the Apps Script editor: fixSheetHyperlinks()
- */
-function fixSheetHyperlinks()
-{
-  const props   = PropertiesService.getScriptProperties();
-  const sheetId = props.getProperty('SPAM_LOG_SHEET_ID');
-  if (!sheetId) { logError('SPAM_LOG_SHEET_ID not set — run setupLogging() first'); return; }
-
-  const sheet = SpreadsheetApp.openById(sheetId).getSheetByName('Raw Log');
-  if (!sheet) { logError('"Raw Log" tab not found'); return; }
-
-  const lastRow = sheet.getLastRow();
-  if (lastRow <= 1) { logInfo('No data rows to fix'); return; }
-
-  const dataRange  = sheet.getRange(2, 5, lastRow - 1, 1);
-  const urlValues  = dataRange.getValues();
-  const urlFormulas = dataRange.getFormulas();
-  let fixed = 0;
-
-  for (let i = 0; i < urlValues.length; i++)
-  {
-    if (urlFormulas[i][0].startsWith('=HYPERLINK')) continue; // already fixed
-    const rawUrl = urlValues[i][0];
-    if (typeof rawUrl !== 'string' || !rawUrl.startsWith('https://')) continue;
-
-    // Extract Drive file ID from URL (format: /d/FILE_ID/)
-    const match = rawUrl.match(/\/d\/([^/?]+)/);
-    if (!match) { logError('Could not parse file ID from URL: ' + rawUrl); continue; }
-
-    let filename;
-    try { filename = DriveApp.getFileById(match[1]).getName(); }
-    catch (e) { logError('Could not fetch Drive file ' + match[1] + ': ' + e.toString()); continue; }
-
-    sheet.getRange(i + 2, 5).setFormula('=HYPERLINK("' + rawUrl + '","' + filename + '")');
-    fixed++;
-  }
-
-  logInfo('Fixed ' + fixed + ' row(s) — HYPERLINK formulas applied');
 }

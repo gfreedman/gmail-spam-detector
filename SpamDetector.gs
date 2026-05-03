@@ -1930,7 +1930,6 @@ function checkFalseNegatives()
         const thread  = threads[i];
         const message = thread.getMessages()[0];
 
-        // Collect signals to document why the script missed this email
         let signals = null;
         try { signals = collectSignals(message); }
         catch (e) { /* non-fatal — log entry still captured without signals */ }

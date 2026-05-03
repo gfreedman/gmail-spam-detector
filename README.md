@@ -72,7 +72,18 @@ All sent via bulk email services like Amazon SES — often hiding in Gmail's **U
 2. Search for **Gmail API**
 3. Click **Add**
 
-### 5. Done!
+### 5. Set Up Spam Intelligence Logging
+
+Run once from the Apps Script editor to create the Drive folder, Sheets log, and SpamMissed label:
+
+1. Select `setupLogging` from the function dropdown
+2. Click **Run**
+3. Authorize the new Drive and Sheets permissions when prompted
+4. Check the execution log - should see "Logging setup complete!"
+
+This creates a **Spam Intelligence** folder in My Drive containing a flat EML archive and a Google Sheets log. Every spam detection is automatically recorded going forward.
+
+### 6. Done!
 
 The script now runs every 15 minutes, automatically detecting spam, reporting it to Gmail, and permanently deleting it.
 
@@ -86,6 +97,21 @@ Detected spam doesn't just go to your Spam folder - it gets **permanently delete
 No more spam cluttering your Spam folder. Gone. Vaporized.
 
 *Requires Gmail API to be enabled (see Quick Start step 4).*
+
+## 📋 Spam Intelligence Logging
+
+Every detected spam is automatically logged to:
+
+- **Google Drive** — full `.eml` file saved flat in `Spam Intelligence/Detected/`
+- **Google Sheets** — one row per event in `Spam Intelligence Log` with 19 columns: timestamp, rule triggered, signals, subject, sender, sending domain, Reply-To, clickbait count, bulk service flag, attachment flag, List-Unsubscribe flag, and a link to the Drive EML
+
+### Log False Negatives (Spam the Script Missed)
+
+1. Find a spam email that reached your inbox
+2. Apply the Gmail label **`SpamMissed`** to it
+3. On the next script run, the email is logged to `Spam Intelligence/False Negatives/` and permanently deleted
+
+The Sheets row shows `Log Type = FALSE_NEGATIVE` and `Rule Triggered = NONE`. Fill in the **False Negative Notes** column to record why it was missed.
 
 ## 📖 How It Works
 
@@ -189,8 +215,9 @@ removeFromWhitelist('example.com');
 [INFO] Found 3 threads to process
 [DEBUG] Bulk email service detected
 [DEBUG] Marketing sender format detected
-[INFO] SPAM detected: Bulk email + 2 spam behaviors
-[INFO] Marked as spam: WARNING: NSA Spied on Millions
+[INFO] SPAM DETECTED: Bulk email + 2 spam behaviors
+[INFO] SPAM REPORTED TO GOOGLE: WARNING: NSA Spied on Millions
+[INFO] SPAM DESTROYED: WARNING: NSA Spied on Millions
 [INFO] Completed in 1250ms: Processed 3 emails, marked 1 as spam
 ```
 
@@ -246,7 +273,8 @@ addToWhitelist('domain.com');
 ├── README.md
 ├── LICENSE
 ├── docs/
-│   └── EXPORTING_EMAILS.md      # How to export .eml files
+│   ├── EXPORTING_EMAILS.md      # How to export .eml files
+│   └── SPAM_LOGGING_PLAN.md     # Spam intelligence logging design
 ├── tests/
 │   ├── test_spam_detector.py    # Python test suite
 │   ├── spam_examples/           # Real spam .eml files (49)
@@ -319,10 +347,11 @@ Found a spam pattern we're missing? Open an issue with:
 
 This repo has CI/CD that auto-deploys to Google Apps Script on every push to `main`.
 
-**Pipeline: test → deploy → tag**
+**Pipeline: test → deploy → validate → tag**
 1. **Test** — Lints `SpamDetector.gs` syntax (Node `vm.Script`) and runs spam/ham detection tests (Python)
 2. **Deploy** — Runs `clasp push` to Apps Script (only if tests pass). Writes failure summary on error.
-3. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.18.0`, etc.)
+3. **Validate** — Reads the deployed script back via the Apps Script REST API and confirms the expected `@version` tag is live. Warns but does not block on API errors.
+4. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.18.0`, etc.)
 
 **Setup for your own fork:**
 

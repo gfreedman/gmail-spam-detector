@@ -1083,7 +1083,7 @@ function makeVerdict(signals)
   // Rationale: Known spam domain + bulk infrastructure = zero false positive risk
   if (signals.bulkEmailService && signals.blacklistedSender)
   {
-    logInfo('SPAM detected: Bulk email + blacklisted sender');
+    logInfo('SPAM DETECTED: Bulk email + blacklisted sender');
     return true;
   }
 
@@ -1091,7 +1091,7 @@ function makeVerdict(signals)
   // Rationale: Legitimate bulk senders rarely use multiple clickbait tactics
   if (signals.bulkEmailService && signals.clickbaitCount >= 2)
   {
-    logInfo('SPAM detected: Bulk email + clickbait (' + signals.clickbaitCount + ' patterns)');
+    logInfo('SPAM DETECTED: Bulk email + clickbait (' + signals.clickbaitCount + ' patterns)');
     return true;
   }
 
@@ -1109,7 +1109,7 @@ function makeVerdict(signals)
 
   if (signals.bulkEmailService && spamBehaviorCount >= 2)
   {
-    logInfo('SPAM detected: Bulk email + ' + spamBehaviorCount + ' spam behaviors');
+    logInfo('SPAM DETECTED: Bulk email + ' + spamBehaviorCount + ' spam behaviors');
     return true;
   }
 
@@ -1118,7 +1118,7 @@ function makeVerdict(signals)
   // are almost certainly spam (catches direct-send spam)
   if (signals.clickbaitCount >= 3)
   {
-    logInfo('SPAM detected: Extreme clickbait (' + signals.clickbaitCount + ' patterns)');
+    logInfo('SPAM DETECTED: Extreme clickbait (' + signals.clickbaitCount + ' patterns)');
     return true;
   }
 
@@ -1129,7 +1129,7 @@ function makeVerdict(signals)
   // bypass text-pattern detection entirely.
   if (signals.emptySubjectWithAttachment)
   {
-    logInfo('SPAM detected: Empty subject with attachment (payload delivery scam)');
+    logInfo('SPAM DETECTED: Empty subject with attachment (payload delivery scam)');
     return true;
   }
 
@@ -1208,7 +1208,7 @@ function markAsSpam(message, thread)
         'me',
         messageId
       );
-      logInfo('SPAM REPORTED: ' + subject);
+      logInfo('SPAM REPORTED TO GOOGLE: ' + subject);
 
       // Step 2: Permanently delete by known message ID.
       // Uses batchDelete() because the Advanced Gmail Service has no single-message
@@ -1228,7 +1228,7 @@ function markAsSpam(message, thread)
     {
       // Fallback: GmailApp API (no direct permanent delete available)
       thread.moveToSpam();
-      logInfo('SPAM REPORTED (fallback): ' + subject);
+      logInfo('SPAM REPORTED TO GOOGLE (fallback): ' + subject);
     }
   }
   catch (error)
@@ -1240,7 +1240,7 @@ function markAsSpam(message, thread)
     try
     {
       thread.moveToSpam();
-      logInfo('SPAM REPORTED (fallback): ' + subject);
+      logInfo('SPAM REPORTED TO GOOGLE (fallback): ' + subject);
     }
     catch (fallbackError)
     {

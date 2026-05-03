@@ -1852,8 +1852,6 @@ function setupLogging()
       logInfo('Using existing "Spam Intelligence" folder');
     }
 
-    // Create top-level category subfolders.
-    // Year/month leaves are created dynamically at log time.
     getOrCreateLogSubfolder(rootFolder, ['Detected']);
     getOrCreateLogSubfolder(rootFolder, ['False Negatives']);
 
@@ -2068,13 +2066,8 @@ function flushSpamLog()
       return;
     }
 
-    // Build year/month subfolders once — all entries in a single run share the same bucket
-    const now    = new Date();
-    const year   = now.getFullYear().toString();
-    const month  = Utilities.formatDate(now, Session.getScriptTimeZone(), 'MM');
-
-    const detectedFolder = getOrCreateLogSubfolder(rootFolder, ['Detected',        year, month]);
-    const fnFolder       = getOrCreateLogSubfolder(rootFolder, ['False Negatives', year, month]);
+    const detectedFolder = getOrCreateLogSubfolder(rootFolder, ['Detected']);
+    const fnFolder       = getOrCreateLogSubfolder(rootFolder, ['False Negatives']);
 
     const rows = [];
 

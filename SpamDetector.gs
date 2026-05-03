@@ -2082,7 +2082,8 @@ function flushSpamLog()
           if (!fnFolder) fnFolder = getOrCreateLogSubfolder(rootFolder, ['False Negatives']);
         }
         const folder   = entry.logType === 'FALSE_NEGATIVE' ? fnFolder : detectedFolder;
-        driveUrl       = folder.createFile(blob).getUrl();
+        const fileUrl  = folder.createFile(blob).getUrl();
+        driveUrl       = '=HYPERLINK("' + fileUrl + '","' + filename + '")';
       }
       catch (driveError)
       {

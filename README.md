@@ -113,6 +113,8 @@ Every detected spam is automatically logged to:
 
 The Sheets row shows `Log Type = FALSE_NEGATIVE` and `Rule Triggered = NONE`. Fill in the **False Negative Notes** column to record why it was missed.
 
+**Full design:** [docs/SPAM_LOGGING_PLAN.md](docs/SPAM_LOGGING_PLAN.md) — Drive/Sheets schema, 19-column log layout, OAuth scopes, false negative workflow, and architecture decisions.
+
 ## 📖 How It Works
 
 ### Detection Signals
@@ -273,8 +275,8 @@ addToWhitelist('domain.com');
 ├── README.md
 ├── LICENSE
 ├── docs/
-│   ├── EXPORTING_EMAILS.md      # How to export .eml files
-│   └── SPAM_LOGGING_PLAN.md     # Spam intelligence logging design
+│   ├── EXPORTING_EMAILS.md      # How to export .eml files from Gmail
+│   └── SPAM_LOGGING_PLAN.md     # Spam intelligence logging — design & schema
 ├── tests/
 │   ├── test_spam_detector.py    # Python test suite
 │   ├── spam_examples/           # Real spam .eml files (49)
@@ -282,6 +284,8 @@ addToWhitelist('domain.com');
 │   └── ham_examples/            # Legitimate .eml files (17)
 └── .github/workflows/           # CI/CD pipeline
 ```
+
+Docs: [Exporting emails](docs/EXPORTING_EMAILS.md) · [Spam logging design](docs/SPAM_LOGGING_PLAN.md)
 
 ## 🔐 Privacy & Security
 
@@ -293,16 +297,18 @@ addToWhitelist('domain.com');
 
 ## 🧪 Testing with Real Emails
 
-**Important:** Don't test with PDFs! They create text extraction artifacts.
+**Important:** `.eml` files only — PDFs create text extraction artifacts that cause 100% false positives.
 
-### Export Real Spam
+Four ways to get emails out of Gmail:
 
-1. Open a spam email in Gmail
-2. Click ⋮ (three dots) → "Download message"
-3. Save as `.eml` file
-4. Analyze with email parsing library
+| Method | Effort | Bulk? | Best for |
+|--------|--------|-------|----------|
+| Gmail web UI — ⋮ → "Download message" | Low | No | 1–20 emails |
+| Google Takeout | Medium | Yes | 100+ emails |
+| Gmail API + Python script | High | Yes | Automation |
+| Thunderbird "Save As" | Low | No | Quick one-offs |
 
-See `docs/EXPORTING_EMAILS.md` for details.
+See **[docs/EXPORTING_EMAILS.md](docs/EXPORTING_EMAILS.md)** for step-by-step instructions on all four methods.
 
 ## 🎓 Why Pattern-Based Detection?
 

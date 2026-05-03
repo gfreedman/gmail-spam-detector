@@ -28,7 +28,7 @@
  *
  * Changelog (see git log for full history):
  *   v6.32.0: Spam intelligence logging — every detected spam is archived as a
- *            raw EML in Google Drive (Spam Intelligence/Detected/YYYY/MM/) and
+ *            raw EML in Google Drive (Spam Intelligence/Detected/) and
  *            logged as a structured row in a Google Sheets spreadsheet (19 cols:
  *            timestamp, log type, IDs, Drive URL, sender info, rule fired,
  *            signals, and manual notes columns). False negatives supported via
@@ -38,7 +38,7 @@
  *            accumulateLogEntry(), flushSpamLog(), getOrCreateLogSubfolder(),
  *            getRuleFromSignals(), buildSignalsCsv(). Logging is fully
  *            non-blocking — any Drive/Sheets failure is caught and logged
- *            without affecting spam deletion. New OAuth scopes: drive.file,
+ *            without affecting spam deletion. New OAuth scopes: drive,
  *            spreadsheets. Run setupLogging() once after deploy to authorize.
  *   v6.31.0: Blacklist 1stamericanpath.com (Pre-IPO investment spam mill).
  *            Fix stock price pattern to also match $X/share (slash separator).
@@ -2066,7 +2066,7 @@ function flushSpamLog()
     }
 
     const detectedFolder = getOrCreateLogSubfolder(rootFolder, ['Detected']);
-    const fnFolder       = getOrCreateLogSubfolder(rootFolder, ['False Negatives']);
+    let   fnFolder       = null; // Created on demand — only when a false negative is present
 
     const rows = [];
 
@@ -2081,6 +2081,10 @@ function flushSpamLog()
         const safeTs   = entry.detectedAt.replace(/:/g, '-').replace(/\.\d+Z$/, 'Z');
         const filename = safeTs + '_' + entry.messageId.substring(0, 8) + '.eml';
         const blob     = Utilities.newBlob(entry.rawContent, 'message/rfc822', filename);
+        if (entry.logType === 'FALSE_NEGATIVE')
+        {
+          if (!fnFolder) fnFolder = getOrCreateLogSubfolder(rootFolder, ['False Negatives']);
+        }
         const folder   = entry.logType === 'FALSE_NEGATIVE' ? fnFolder : detectedFolder;
         driveUrl       = folder.createFile(blob).getUrl();
       }
@@ -2133,8 +2137,8 @@ function flushSpamLog()
 /**
  * Get or create a chain of nested subfolders under a Drive parent folder.
  *
- * Given rootFolder and ['Detected', '2026', '05'], returns the "05" folder,
- * creating any missing intermediate folders along the way.
+ * Given rootFolder and ['Detected'], returns the "Detected" subfolder,
+ * creating it if missing. Supports deeper paths too: ['a', 'b', 'c'].
  *
  * @param {DriveFolder}   rootFolder   - Starting parent folder.
  * @param {Array<string>} pathSegments - Folder names to traverse/create in order.

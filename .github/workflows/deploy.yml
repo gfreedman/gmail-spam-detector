@@ -207,25 +207,50 @@ jobs:
       - name: Write clasp credentials
         run: printf '%s' '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
 
-      # Exchange refresh_token for a fresh access_token via the OAuth2 endpoint.
-      # Reads client_id + client_secret from ~/.clasprc.json (written above), calls
-      # Google's token endpoint with stdlib urllib — no clasp or Node.js needed.
-      # Writes the fresh access_token back into ~/.clasprc.json for the next step.
+      # Try to exchange refresh_token for a fresh access_token.
+      # If the CLASP_TOKEN secret has no refresh_token (e.g. was captured without one),
+      # this step warns and continues — the validate step will use any existing
+      # access_token in the secret, or skip if none is available.
       - name: Refresh OAuth token
+        continue-on-error: true
         run: |
-          python3 -c "
-          import json,os,urllib.request,urllib.parse
-          d=json.load(open(os.path.expanduser('~/.clasprc.json')))
-          t=d.get('token') or d
-          oa=d.get('oauth2ClientSettings',{})
-          p={'client_id':oa.get('clientId',d.get('client_id','')),'client_secret':oa.get('clientSecret',d.get('client_secret','')),'refresh_token':t['refresh_token'],'grant_type':'refresh_token'}
-          r=json.loads(urllib.request.urlopen(urllib.request.Request('https://oauth2.googleapis.com/token',urllib.parse.urlencode(p).encode())).read())
-          t['access_token']=r['access_token']
-          if 'token' in d: d['token']=t
-          else: d.update(t)
-          json.dump(d,open(os.path.expanduser('~/.clasprc.json'),'w'))
+          python3 - << 'PYEOF'
+          import json, os, sys, urllib.request, urllib.parse
+          path = os.path.expanduser('~/.clasprc.json')
+          d = json.load(open(path))
+          t = d.get('token') or d
+          # Print key structure (not values) for debugging
+          print(f'clasprc top-level keys: {sorted(d.keys())}', file=sys.stderr)
+          if 'token' in d:
+              print(f'token sub-keys: {sorted(t.keys())}', file=sys.stderr)
+          refresh_token = t.get('refresh_token')
+          if not refresh_token:
+              print('No refresh_token in credentials — cannot refresh. '
+                    'Regenerate CLASP_TOKEN secret via: clasp login && cat ~/.clasprc.json',
+                    file=sys.stderr)
+              sys.exit(1)
+          oa = d.get('oauth2ClientSettings', {})
+          cid = oa.get('clientId', d.get('client_id', ''))
+          csec = oa.get('clientSecret', d.get('client_secret', ''))
+          if not cid or not csec:
+              print(f'No client credentials. oauth2ClientSettings keys: {sorted(oa.keys())}', file=sys.stderr)
+              sys.exit(1)
+          params = {'client_id': cid, 'client_secret': csec,
+                    'refresh_token': refresh_token, 'grant_type': 'refresh_token'}
+          resp = json.loads(urllib.request.urlopen(
+              urllib.request.Request('https://oauth2.googleapis.com/token',
+                                     urllib.parse.urlencode(params).encode())).read())
+          if 'access_token' not in resp:
+              print(f'OAuth refresh failed — response keys: {list(resp.keys())}', file=sys.stderr)
+              sys.exit(1)
+          t['access_token'] = resp['access_token']
+          if 'token' in d:
+              d['token'] = t
+          else:
+              d.update(t)
+          json.dump(d, open(path, 'w'))
           print('Token refreshed successfully')
-          "
+          PYEOF
 
       - name: Validate deployed version via Apps Script API
         env:
@@ -239,7 +264,17 @@ jobs:
           VER_NUM="${VERSION#v}"
           echo "Checking that @version $VER_NUM is live in Google Apps Script..."
 
-          ACCESS_TOKEN=$(python3 -c "import json,os; d=json.load(open(os.path.expanduser('~/.clasprc.json'))); t=d.get('token') or d; print(t['access_token'])")
+          ACCESS_TOKEN=$(python3 -c "
+          import json,os
+          d=json.load(open(os.path.expanduser('~/.clasprc.json')))
+          t=d.get('token') or d
+          print(t.get('access_token',''))
+          ")
+          if [ -z "$ACCESS_TOKEN" ]; then
+            echo "::warning::No access_token available — skipping API validation"
+            echo "To fix: regenerate the CLASP_TOKEN secret via 'clasp login && cat ~/.clasprc.json'"
+            exit 0
+          fi
 
           # Fetch the deployed script content via the Apps Script REST API.
           # -s = silent (no progress bar), -o = write body to file,

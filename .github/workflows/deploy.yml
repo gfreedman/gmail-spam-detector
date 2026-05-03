@@ -220,7 +220,7 @@ jobs:
 
           # clasp writes/refreshes ~/.clasprc.json during push — token is fresh
           # Single-line python to avoid YAML block-scalar indentation issues
-          ACCESS_TOKEN=$(python3 -c "import json,os; print(json.load(open(os.path.expanduser('~/.clasprc.json')))['token']['access_token'])")
+          ACCESS_TOKEN=$(python3 -c "import json,os; d=json.load(open(os.path.expanduser('~/.clasprc.json'))); t=d.get('token') or d; print(t['access_token'])")
 
           # Fetch the deployed script content via the Apps Script REST API.
           # -s = silent (no progress bar), -o = write body to file,

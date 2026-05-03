@@ -203,8 +203,30 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+
+      - name: Cache npm
+        uses: actions/cache@v5
+        with:
+          path: ~/.npm
+          key: npm-clasp-${{ runner.os }}
+
+      - name: Install clasp
+        run: npm install -g @google/clasp@3.3.0
+
       - name: Write clasp credentials
         run: printf '%s' '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
+
+      - name: Write clasp config
+        run: echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"."}' > .clasp.json
+
+      # Run clasp to force an OAuth token refresh — writes a fresh access_token
+      # back into ~/.clasprc.json so the API call below has a valid bearer token.
+      - name: Refresh OAuth token via clasp
+        run: clasp list > /dev/null 2>&1 || true
 
       - name: Validate deployed version via Apps Script API
         env:
@@ -218,7 +240,7 @@ jobs:
           VER_NUM="${VERSION#v}"
           echo "Checking that @version $VER_NUM is live in Google Apps Script..."
 
-          # clasp writes/refreshes ~/.clasprc.json during push — token is fresh
+          # After clasp refreshes the token, read the fresh access_token.
           # Single-line python to avoid YAML block-scalar indentation issues
           ACCESS_TOKEN=$(python3 -c "import json,os; d=json.load(open(os.path.expanduser('~/.clasprc.json'))); t=d.get('token') or d; print(t['access_token'])")
 

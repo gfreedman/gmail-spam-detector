@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.33.0
+ * @version 6.34.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,9 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.34.0: Add LockService guard to processInbox() — prevents overlapping
+ *            executions when a run takes longer than the trigger interval.
+ *            tryLock(0) skips (rather than queues) concurrent invocations.
  *   v6.33.0: Remove fixSheetHyperlinks() — one-time migration utility, already
  *            run. Dead code.
  *   v6.32.0: Spam intelligence logging — every detected spam is archived as a
@@ -476,6 +479,13 @@ const MARKETING_PATTERNS = Object.freeze([
  */
 function processInbox()
 {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(0))
+  {
+    logInfo('Skipping run — previous execution still in progress');
+    return;
+  }
+
   const startTime = Date.now();
   let spamCount = 0;
   let processedCount = 0;
@@ -545,6 +555,10 @@ function processInbox()
   {
     logError('Critical error in processInbox: ' + error.toString());
     throw error; // Re-throw so trigger failure is visible in Apps Script dashboard
+  }
+  finally
+  {
+    lock.releaseLock();
   }
 }
 

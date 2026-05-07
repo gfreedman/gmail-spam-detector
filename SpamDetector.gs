@@ -480,9 +480,12 @@ const MARKETING_PATTERNS = Object.freeze([
 function processInbox()
 {
   const lock = LockService.getScriptLock();
+  // tryLock(0): skip (don't queue) if another invocation holds the lock.
+  // Queuing via waitLock() would cause executions to pile up under a
+  // short trigger interval, which is exactly what we're trying to prevent.
   if (!lock.tryLock(0))
   {
-    logInfo('Skipping run — previous execution still in progress');
+    logDebug('Skipping run — previous execution still in progress');
     return;
   }
 

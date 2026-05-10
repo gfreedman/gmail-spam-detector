@@ -297,13 +297,15 @@ jobs:
           # grep for the @version string in the raw JSON (safe — no special chars).
           if grep -q "@version ${VER_NUM}" /tmp/gas_content.json; then
             echo "✅ Confirmed: @version $VER_NUM is live in Google Apps Script"
+            # No manual refreshBlacklist()/refreshWhitelist() needed:
+            # getBlacklist()/getWhitelist() merge DEFAULT_DOMAINS at runtime,
+            # so new source-code domain entries are effective immediately after
+            # clasp push — Script Properties stores only user-added custom entries.
             {
               echo "## ✅ ${VERSION} deployed and verified"
               echo ""
-              echo "The new version is live. Ready to test."
-              echo ""
-              echo "> **Before testing:** Run \`refreshBlacklist()\` in the Apps Script"
-              echo "> editor to sync new blacklist entries into Script Properties."
+              echo "The new version is live and ready to use."
+              echo "Domain list changes take effect immediately — no manual refresh required."
             } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "::error::@version $VER_NUM was NOT found in the live script — possible silent deploy failure"

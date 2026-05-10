@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.34.0
+ * @version 6.35.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,14 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.35.0: Catch health/political spam miss (finrisex.com). Blacklist finrisex.com.
+ *            Whitelist conservativebc.ca. Add MAHA to celebrity pattern + "report"
+ *            as a trailing verb. Expand STOP imperative to include "putting/eating/
+ *            drinking". Add suppression conspiracy pattern ("watch before this gets
+ *            buried"). Fix domain-list architecture: getBlacklist()/getWhitelist()
+ *            now merge DEFAULT_DOMAINS directly at runtime so new source-code
+ *            entries are live immediately after deploy — no manual refreshBlacklist()
+ *            / refreshWhitelist() call needed ever again.
  *   v6.34.0: Add LockService guard to processInbox() — prevents overlapping
  *            executions when a run takes longer than the trigger interval.
  *            tryLock(0) skips (rather than queues) concurrent invocations.
@@ -140,6 +148,7 @@ const DEFAULT_DOMAINS = Object.freeze({
   /** Known legitimate senders — bypass spam detection entirely */
   legitimate: Object.freeze([
     'sardine.ai', 'meetup.com', 'substack.com', 'conservative.ca',
+    'conservativebc.ca',
     'sundaymass.store', 'customerservice@stan', 'privaterelay.appleid.com',
     'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'e.linkedin.com',
     'linkedin.email', 'dsf.ca', 'dragonfly', 'ezyvet.com'
@@ -158,7 +167,8 @@ const DEFAULT_DOMAINS = Object.freeze({
     'beststockvillage',
     'frontiercapitalreport.com',
     'morningstockadviser',
-    '1stamericanpath.com'
+    '1stamericanpath.com',
+    'finrisex.com'
   ])
 });
 
@@ -284,8 +294,9 @@ const CLICKBAIT_PATTERNS = Object.freeze([
 
   // --- Celebrity / political name-dropping ---
 
-  // Celebrity credibility theft: "RFK Jr Issues Warning", "Musk Exposes"
-  /\b(RFK|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns|showed|shows)/i,
+  // Celebrity credibility theft: "RFK Jr Issues Warning", "Musk Exposes", "MAHA report"
+  // MAHA = "Make America Healthy Again" — RFK Jr.'s health initiative, used to brand health spam
+  /\b(RFK|MAHA|Trump|Biden|Musk|Elon|Kennedy|Obama|Fauci|Gates)\b.*(warning|says|reveals|exposes|issues|predicts|warns|showed|shows|report)\b/i,
 
   // Political legitimization: "Trump approved/signed/backed [product]"
   // Spammers use political figures to give fake authority to financial pitches
@@ -304,6 +315,10 @@ const CLICKBAIT_PATTERNS = Object.freeze([
 
   // Conspiracy/hiding: "what they don't want you to know"
   /(what|who).*(hiding|don't want you|truth|they won't tell)/i,
+
+  // Suppression conspiracy: "watch before this gets buried/removed/deleted"
+  // Classic spam tactic — false urgency implying authority is hiding the content
+  /\b(watch|read|see)\b.*(before this|before it).*(buried|removed|deleted|censored|banned|taken down)/i,
 
   // Impending doom framing: "What's Coming", "Not Prepared for what's ahead"
   /\bwhat.s (coming|ahead)\b|\bnot prepared\b/i,
@@ -430,8 +445,8 @@ const FEAR_PATTERNS = Object.freeze([
   // Standalone urgency words: "WARNING", "ALERT", "BREAKING"
   /\b(warning|alert|urgent|breaking|exposed|banned|stopped)\b/i,
 
-  // "STOP using/taking" imperative pattern
-  /\bSTOP (using|taking|doing|buying)\b/i
+  // "STOP using/taking/putting" imperative pattern
+  /\bSTOP (using|taking|doing|buying|putting|eating|drinking)\b/i
 ]);
 
 /**
@@ -590,13 +605,9 @@ function cleanseInbox()
 
   try
   {
-    // Sync Script Properties with source-code defaults before scanning
-    refreshBlacklist();
-    refreshWhitelist();
-
     const checkedLabel = getOrCreateLabel(CONFIG.processedLabel);
     const suspectLabel = getOrCreateLabel(SUSPECT_LABEL);
-    const blacklist    = getBlacklist();
+    const blacklist    = getBlacklist();  // DEFAULT_DOMAINS + user-added, merged automatically
     const whitelist    = getWhitelist();
 
     const query = '{in:inbox category:updates category:promotions category:social category:forums}' +
@@ -1552,44 +1563,80 @@ function initializeScriptProperties()
 // =============================================================================
 
 /**
- * Get the current whitelist from Script Properties.
+ * Get the effective whitelist: source-code defaults merged with any custom
+ * domains the user has added via addToWhitelist().
  *
- * @return {Array<string>} Array of whitelisted domain substrings.
+ * Why merge instead of reading Script Properties alone?
+ *   Script Properties were initialized from DEFAULT_DOMAINS at setup() time.
+ *   When DEFAULT_DOMAINS.legitimate is updated in source (e.g., a new whitelist
+ *   entry is deployed), the old Script Properties snapshot doesn't update
+ *   automatically — requiring a manual refreshWhitelist() call after every deploy.
+ *
+ *   By merging DEFAULT_DOMAINS.legitimate directly here, the source-code list
+ *   is always live the moment clasp pushes the new code. Script Properties
+ *   stores only the user-added custom entries; no post-deploy refresh needed.
+ *
+ * @return {Array<string>} DEFAULT_DOMAINS.legitimate ∪ user-added domains.
  */
 function getWhitelist()
 {
+  // Always start with current source-code defaults (updated on every deploy)
+  const list = Array.from(DEFAULT_DOMAINS.legitimate);
+
   const props = PropertiesService.getScriptProperties();
   const raw = props.getProperty('LEGITIMATE_DOMAINS');
-  if (!raw) return Array.from(DEFAULT_DOMAINS.legitimate);
+  if (!raw) return list;
+
   try
   {
-    return JSON.parse(raw);
+    const stored = JSON.parse(raw);
+    // Merge any user-added custom domains not already in the defaults
+    for (let i = 0; i < stored.length; i++)
+    {
+      if (!list.includes(stored[i])) list.push(stored[i]);
+    }
+    return list;
   }
   catch (e)
   {
-    logError('Whitelist JSON corrupt — falling back to defaults: ' + e.toString());
-    return Array.from(DEFAULT_DOMAINS.legitimate);
+    logError('Whitelist JSON corrupt — using defaults only: ' + e.toString());
+    return list;
   }
 }
 
 /**
- * Get the current blacklist from Script Properties.
+ * Get the effective blacklist: source-code defaults merged with any custom
+ * domains the user has added via addToBlacklist().
  *
- * @return {Array<string>} Array of blacklisted domain substrings.
+ * Same merge strategy as getWhitelist() — DEFAULT_DOMAINS.suspicious is always
+ * the live source-code list; Script Properties holds only user-added extras.
+ * No refreshBlacklist() call needed after deploy.
+ *
+ * @return {Array<string>} DEFAULT_DOMAINS.suspicious ∪ user-added domains.
  */
 function getBlacklist()
 {
+  // Always start with current source-code defaults (updated on every deploy)
+  const list = Array.from(DEFAULT_DOMAINS.suspicious);
+
   const props = PropertiesService.getScriptProperties();
   const raw = props.getProperty('SUSPICIOUS_DOMAINS');
-  if (!raw) return Array.from(DEFAULT_DOMAINS.suspicious);
+  if (!raw) return list;
+
   try
   {
-    return JSON.parse(raw);
+    const stored = JSON.parse(raw);
+    // Merge any user-added custom domains not already in the defaults
+    for (let i = 0; i < stored.length; i++)
+    {
+      if (!list.includes(stored[i])) list.push(stored[i]);
+    }
+    return list;
   }
   catch (e)
   {
-    logError('Blacklist JSON corrupt — falling back to defaults: ' + e.toString());
-    return Array.from(DEFAULT_DOMAINS.suspicious);
+    logError('Blacklist JSON corrupt — using defaults only: ' + e.toString());
+    return list;
   }
 }
 

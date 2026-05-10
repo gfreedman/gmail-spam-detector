@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.35.0
+ * @version 6.36.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,11 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.36.0: Auto-recheck false negatives — recheckRecentSpamChecked() runs at the
+ *            end of every processInbox() trigger cycle. Re-evaluates inbox emails
+ *            carrying SpamChecked from the last 2 days against current patterns.
+ *            Any that now score as spam are logged FALSE_NEGATIVE and deleted
+ *            automatically — no manual SpamMissed labeling needed after a fix deploy.
  *   v6.35.0: Catch health/political spam miss (finrisex.com). Blacklist finrisex.com.
  *            Whitelist conservativebc.ca. Add MAHA to celebrity pattern + "report"
  *            as a trailing verb. Expand STOP imperative to include "putting/eating/
@@ -559,10 +564,13 @@ function processInbox()
     logInfo('Completed in ' + duration + 'ms: Processed ' + processedCount +
             ' emails, marked ' + spamCount + ' as spam, ' + errorCount + ' errors');
 
-    // Log any emails the user manually labeled SpamMissed (false negatives),
-    // then flush all accumulated log entries to Drive + Sheets before the
-    // safety-net sweep runs.
+    // 1. Log emails the user manually labeled SpamMissed.
+    // 2. Re-evaluate SpamChecked inbox emails from the last 2 days — catches
+    //    false negatives automatically after a pattern-fix deploy, with no
+    //    manual labeling required.
+    // 3. Flush all accumulated log entries to Drive + Sheets.
     checkFalseNegatives();
+    recheckRecentSpamChecked();
     flushSpamLog();
 
     // Safety-net pass: clean pre-existing spam + any messages where
@@ -2015,6 +2023,72 @@ function checkFalseNegatives()
   catch (error)
   {
     logError('checkFalseNegatives failed: ' + error.toString());
+  }
+}
+
+/**
+ * Re-evaluate recently SpamChecked inbox emails against the current patterns.
+ *
+ * Problem this solves: when a false negative is detected and patterns are
+ * improved, emails that were already stamped SpamChecked (processed before the
+ * fix deployed) are permanently excluded from the normal scan. They sit in the
+ * inbox until the user notices and manually labels them SpamMissed.
+ *
+ * This function closes that gap automatically. On every trigger run it re-checks
+ * inbox emails carrying SpamChecked from the last RECHECK_DAYS days. If any now
+ * score as spam under the updated patterns, they are logged as FALSE_NEGATIVE and
+ * permanently deleted — identical treatment to a manually labeled SpamMissed email.
+ *
+ * Performance: capped at RECHECK_LIMIT emails per run. analyzeMessage() averages
+ * ~2ms per email in GAS, so 20 emails adds ~40ms — negligible vs. the 6-min budget.
+ * getRawContent() is called once per email (needed for bulk-email detection).
+ */
+function recheckRecentSpamChecked()
+{
+  const RECHECK_DAYS  = 2;
+  const RECHECK_LIMIT = 20;
+
+  try
+  {
+    const query   = 'in:inbox label:' + CONFIG.processedLabel + ' newer_than:' + RECHECK_DAYS + 'd';
+    const threads = GmailApp.search(query, 0, RECHECK_LIMIT);
+    if (threads.length === 0) return;
+
+    logDebug('Rechecking ' + threads.length + ' recent SpamChecked inbox email(s)');
+
+    let recaughtCount = 0;
+
+    for (let i = 0; i < threads.length; i++)
+    {
+      try
+      {
+        const thread  = threads[i];
+        const message = thread.getMessages()[0];
+
+        const verdict = analyzeMessage(message);
+        if (!verdict.isSpam) continue;
+
+        logInfo('Auto-recaught false negative: ' + sanitizeForLog(message.getSubject()));
+
+        // Accumulate log entry BEFORE deletion — getRawContent() unavailable after batchDelete
+        accumulateLogEntry(message, verdict.signals, 'FALSE_NEGATIVE');
+        markAsSpam(message, thread);
+        recaughtCount++;
+      }
+      catch (threadError)
+      {
+        logError('recheckRecentSpamChecked thread error: ' + threadError.toString());
+      }
+    }
+
+    if (recaughtCount > 0)
+    {
+      logInfo('Recheck: auto-caught ' + recaughtCount + ' false negative(s) from last ' + RECHECK_DAYS + ' days');
+    }
+  }
+  catch (error)
+  {
+    logError('recheckRecentSpamChecked failed: ' + error.toString());
   }
 }
 

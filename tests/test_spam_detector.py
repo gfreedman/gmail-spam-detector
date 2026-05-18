@@ -56,7 +56,7 @@ def _parse_js_regex_literal(line):
     """
     Parse a single JS regex literal /pattern/flags from a source line.
 
-    The tricky part: a regex like /foo\/bar/i has an escaped slash inside the
+    The tricky part: a regex like /foo\\/bar/i has an escaped slash inside the
     pattern. Naively splitting on '/' breaks here — we'd get ['', 'foo\\', 'bar', 'i'].
     The regex below handles backslash escapes so it correctly finds the CLOSING /.
 

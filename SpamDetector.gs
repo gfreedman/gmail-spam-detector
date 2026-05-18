@@ -7,7 +7,7 @@
  * applying a multi-signal pattern detection engine.
  *
  * Detection strategy — target behavioral patterns spammers can't easily change:
- *   - Bulk email infrastructure (Amazon SES, SendGrid)
+ *   - Bulk email infrastructure (Amazon SES, SendGrid, Mailchimp)
  *   - Clickbait/fear-mongering subject patterns
  *   - Unicode obfuscation (Cyrillic, Greek, fullwidth, mathematical chars)
  *   - Marketing sender format
@@ -463,7 +463,7 @@ const FEAR_PATTERNS = Object.freeze([
 /**
  * Bulk email service fingerprints — substring matches against raw email headers.
  * These strings appear in Received/Return-Path headers when the email was routed
- * through Amazon SES or SendGrid. Legitimate direct senders won't have them.
+ * through Amazon SES, SendGrid, or Mailchimp. Legitimate direct senders won't have them.
  * @const {Array<string>}
  */
 const BULK_EMAIL_FINGERPRINTS = Object.freeze([
@@ -1003,7 +1003,7 @@ function collectSignals(message)
   // Each detection phase below populates one signal. makeVerdict() combines
   // them to produce the spam/not-spam decision.
   const signals = {
-    bulkEmailService: false,          // Sent via Amazon SES or SendGrid
+    bulkEmailService: false,          // Sent via Amazon SES, SendGrid, or Mailchimp
     blacklistedSender: false,         // From a known spam mill domain
     clickbaitCount: 0,                // Number of clickbait patterns matched
     fearMongering: false,             // Contains fear-mongering language
@@ -1014,7 +1014,7 @@ function collectSignals(message)
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
   // Check raw email headers for bulk service fingerprints (see BULK_EMAIL_FINGERPRINTS).
-  // Bulk email services (Amazon SES, SendGrid) are used by both legitimate senders
+  // Bulk email services (Amazon SES, SendGrid, Mailchimp) are used by both legitimate senders
   // like LinkedIn AND spam mills, so this signal alone is not enough to call
   // something spam. But it "multiplies" other signals: if you're using bulk
   // infrastructure AND have clickbait subjects, that combination is very suspicious.

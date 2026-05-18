@@ -748,7 +748,7 @@ function destroySpam()
 
   let destroyed = 0;
   let iterations = 0;
-  const PAGE_SIZE      = 100; // Gmail API max results per page
+  const BATCH_SIZE     = 100; // Gmail API max results per page
   const MAX_ITERATIONS = 10;  // Safety cap: max 10 × 100 = 1000 messages per run
   const RATE_LIMIT_MS  = 500; // 500ms between batches to respect Gmail API quota
 
@@ -763,7 +763,7 @@ function destroySpam()
     {
       response = Gmail.Users.Messages.list('me', {
         labelIds: ['SPAM'],
-        maxResults: PAGE_SIZE
+        maxResults: BATCH_SIZE
       });
     }
     catch (e)

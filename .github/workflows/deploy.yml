@@ -218,20 +218,22 @@ jobs:
           import json, os, sys, urllib.request, urllib.parse
           path = os.path.expanduser('~/.clasprc.json')
           d = json.load(open(path))
-          t = d.get('token') or d
+          # clasp uses 'token' (singular), 'tokens' (plural), or flat structure
+          t = d.get('token') or d.get('tokens') or d
           # Print key structure (not values) for debugging
           print(f'clasprc top-level keys: {sorted(d.keys())}', file=sys.stderr)
-          if 'token' in d:
-              print(f'token sub-keys: {sorted(t.keys())}', file=sys.stderr)
+          nested_key = 'token' if 'token' in d else 'tokens' if 'tokens' in d else None
+          if nested_key:
+              print(f'{nested_key} sub-keys: {sorted(t.keys())}', file=sys.stderr)
           refresh_token = t.get('refresh_token')
           if not refresh_token:
               print('No refresh_token in credentials — cannot refresh. '
                     'Regenerate CLASP_TOKEN secret via: clasp login && cat ~/.clasprc.json',
                     file=sys.stderr)
               sys.exit(1)
-          oa = d.get('oauth2ClientSettings', {})
-          cid = oa.get('clientId', d.get('client_id', ''))
-          csec = oa.get('clientSecret', d.get('client_secret', ''))
+          oa = d.get('oauth2ClientSettings', t.get('oauth2ClientSettings', {}))
+          cid = oa.get('clientId', d.get('client_id', t.get('client_id', '')))
+          csec = oa.get('clientSecret', d.get('client_secret', t.get('client_secret', '')))
           if not cid or not csec:
               print(f'No client credentials. oauth2ClientSettings keys: {sorted(oa.keys())}', file=sys.stderr)
               sys.exit(1)

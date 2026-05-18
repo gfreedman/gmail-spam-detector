@@ -10,13 +10,13 @@ Gmail's spam filter lets certain types of spam through, particularly:
 - Investment opportunity spam
 - Health scare campaigns
 
-All sent via bulk email services like Amazon SES — often hiding in Gmail's **Updates** or **Promotions** tabs where they're never seen.
+All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — often hiding in Gmail's **Updates** or **Promotions** tabs where they're never seen.
 
 ## ✨ The Solution
 
 **Pattern-based detection** that identifies spam by behavioral patterns spammers can't easily change:
 
-1. **Bulk email infrastructure** (Amazon SES, SendGrid)
+1. **Bulk email infrastructure** (Amazon SES, SendGrid, Mailchimp)
 2. **Clickbait subject patterns** ("Caught on Camera", "WARNING:", etc.)
 3. **Fear-mongering language** (IRS, NSA, government warnings)
 4. **Marketing sender format** ("Name | Organization")
@@ -120,7 +120,7 @@ The Sheets row shows `Log Type = FALSE_NEGATIVE` and `Rule Triggered = NONE`. Fi
 ### Detection Signals
 
 **1. Bulk Email Service (Technical Signal)**
-- Detects Amazon SES, SendGrid, Mailgun in email headers
+- Detects Amazon SES, SendGrid, and Mailchimp in email headers
 - Most spam uses these for cheap bulk sending
 - Legitimate senders often use their own SMTP
 
@@ -240,16 +240,6 @@ debugWhyFlagged('from:linkedin');  // Search term
 
 Shows whitelist status, bulk email detection, and all signals for the email.
 
-### Refresh Domain Lists After Deploy
-
-If you added new domains to `DEFAULT_DOMAINS` in the source code, run these
-in the Apps Script editor to sync them into runtime Script Properties:
-
-```javascript
-refreshWhitelist();
-refreshBlacklist();
-```
-
 ### Script Not Running
 - Check **Triggers** tab - verify 15-minute trigger exists
 - Check **Executions** tab for errors
@@ -263,7 +253,7 @@ addToWhitelist('domain.com');
 ### Spam Getting Through
 1. Check execution log - what signals were detected?
 2. The script scans all Gmail category tabs (Primary, Updates, Promotions, Social, Forums) — spam can't hide in tabs
-3. If spam doesn't use Amazon SES (rare), may not be caught
+3. If spam doesn't use a known bulk service (Amazon SES, SendGrid, Mailchimp), may not be caught
 4. Open an issue with the .eml file
 
 ## 📁 Files
@@ -335,7 +325,6 @@ See **[docs/EXPORTING_EMAILS.md](docs/EXPORTING_EMAILS.md)** for step-by-step in
 
 ## 📈 Future Enhancements
 
-- Add more bulk email service patterns
 - Detect new clickbait evolution
 - Machine learning (when dataset > 1000 examples)
 - Multi-platform support (Outlook, Yahoo)

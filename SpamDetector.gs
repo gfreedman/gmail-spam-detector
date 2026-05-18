@@ -748,20 +748,22 @@ function destroySpam()
 
   let destroyed = 0;
   let iterations = 0;
-  const MAX_ITERATIONS = 10; // Safety cap: max 10 batches (~1000 messages)
+  const PAGE_SIZE      = 100; // Gmail API max results per page
+  const MAX_ITERATIONS = 10;  // Safety cap: max 10 × 100 = 1000 messages per run
+  const RATE_LIMIT_MS  = 500; // 500ms between batches to respect Gmail API quota
 
   // Keep pulling pages of spam until the folder is empty or we hit the cap
   while (iterations < MAX_ITERATIONS)
   {
     iterations++;
 
-    // Fetch a page of up to 100 spam messages
+    // Fetch a page of spam messages
     let response;
     try
     {
       response = Gmail.Users.Messages.list('me', {
         labelIds: ['SPAM'],
-        maxResults: 100
+        maxResults: PAGE_SIZE
       });
     }
     catch (e)
@@ -791,8 +793,7 @@ function destroySpam()
       break; // Don't retry — likely a quota or permission issue
     }
 
-    // Brief pause between batches to respect Gmail API rate limits
-    Utilities.sleep(500);
+    Utilities.sleep(RATE_LIMIT_MS);
   }
 
   if (iterations >= MAX_ITERATIONS)

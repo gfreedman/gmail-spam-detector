@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.36.0
+ * @version 6.37.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,12 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *
  * Changelog (see git log for full history):
+ *   v6.37.0: Three operational fixes. (1) Lock-skip log visibility: logDebug →
+ *            logInfo so a blocked manual trigger shows "Skipping run — previous
+ *            execution still in progress" instead of silence. (2) Mailchimp bulk
+ *            detection: add mcsv.net to BULK_EMAIL_FINGERPRINTS so Mailchimp-
+ *            routed spam is recognised as bulk email. (3) Military pattern: extend
+ *            to attacks?|attacking so "-ing" verb forms fire the clickbait signal.
  *   v6.36.0: Auto-recheck false negatives — recheckRecentSpamChecked() runs at the
  *            end of every processInbox() trigger cycle. Re-evaluates inbox emails
  *            carrying SpamChecked from the last 2 days against current patterns.
@@ -330,8 +336,8 @@ const CLICKBAIT_PATTERNS = Object.freeze([
 
   // --- Violence and military sensationalism ---
 
-  // Military/war clickbait: "declared war", "bombing", "invasion"
-  /\b(declared war|bombed|bombing|attack|attacked|destroyed|invasion)\b/i,
+  // Military/war clickbait: "declared war", "bombing", "invasion", "attacking our"
+  /\b(declared war|bombed|bombing|attacks?|attacking|attacked|destroyed|invasion)\b/i,
 
   // --- Financial hype ---
 
@@ -463,7 +469,8 @@ const FEAR_PATTERNS = Object.freeze([
 const BULK_EMAIL_FINGERPRINTS = Object.freeze([
   'amazonses.com', // Amazon Simple Email Service — used by many bulk senders
   'x-ses-',        // Amazon SES custom header prefix
-  'sendgrid.net'   // SendGrid relay fingerprint
+  'sendgrid.net',  // SendGrid relay fingerprint
+  'mcsv.net'       // Mailchimp sending infrastructure
 ]);
 
 /**
@@ -505,7 +512,7 @@ function processInbox()
   // short trigger interval, which is exactly what we're trying to prevent.
   if (!lock.tryLock(0))
   {
-    logDebug('Skipping run — previous execution still in progress');
+    logInfo('Skipping run — previous execution still in progress');
     return;
   }
 

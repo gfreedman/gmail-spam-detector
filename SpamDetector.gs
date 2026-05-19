@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.38.0
+ * @version 6.38.1
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -28,6 +28,11 @@
  *   Rule 6: Cloud service notification subject from non-service sender → phishing
  *
  * Changelog (see git log for full history):
+ *   v6.38.1: Fix logging for Rule 6. getRuleFromSignals() and buildSignalsCsv()
+ *            were not updated when Rule 6 was added — phishing emails logged
+ *            Rule=NONE, empty signals, and Log Type=SPAM_DETECTED. Now logs
+ *            Rule 6, SERVICE_IMPERSONATION in signals, and PHISHING_DETECTED
+ *            as the log type so phishing rows are visually distinct.
  *   v6.38.0: Rule 6 — service impersonation phishing detection. Adds
  *            IMPERSONATION_SUBJECT_PATTERNS (cloud service share notification
  *            subjects) and CLOUD_SERVICE_DOMAINS (trusted sender domains).
@@ -890,7 +895,9 @@ function processThread(thread)
       if (verdict.isSpam && !threadMarkedAsSpam)
       {
         // Accumulate log entry BEFORE deletion — getRawContent() is unavailable after batchDelete
-        accumulateLogEntry(message, verdict.signals, 'SPAM_DETECTED');
+        const detectionLogType = verdict.signals && verdict.signals.serviceImpersonation
+          ? 'PHISHING_DETECTED' : 'SPAM_DETECTED';
+        accumulateLogEntry(message, verdict.signals, detectionLogType);
         markAsSpam(message, thread);
         spamCount++;
         threadMarkedAsSpam = true;
@@ -2185,7 +2192,7 @@ function recheckRecentSpamChecked()
  *
  * @param {GmailMessage} message - The spam message to capture.
  * @param {Object|null}  signals - Signal object from collectSignals(), or null.
- * @param {string}       logType - 'SPAM_DETECTED' or 'FALSE_NEGATIVE'.
+ * @param {string}       logType - 'SPAM_DETECTED', 'PHISHING_DETECTED', or 'FALSE_NEGATIVE'.
  */
 function accumulateLogEntry(message, signals, logType)
 {
@@ -2422,6 +2429,11 @@ function getRuleFromSignals(signals)
     return { rule: 'Rule 5', description: 'Empty subject with attachment (payload delivery scam)' };
   }
 
+  if (signals.serviceImpersonation)
+  {
+    return { rule: 'Rule 6', description: 'Service impersonation phishing (cloud service subject from non-service sender)' };
+  }
+
   return { rule: 'NONE', description: 'No rule triggered' };
 }
 
@@ -2444,6 +2456,7 @@ function buildSignalsCsv(signals)
   if (signals.marketingFormat)            parts.push('MARKETING');
   if (signals.suspiciousFromName)         parts.push('SUSPICIOUS_FROM');
   if (signals.emptySubjectWithAttachment) parts.push('EMPTY_SUBJECT_ATTACHMENT');
+  if (signals.serviceImpersonation)       parts.push('SERVICE_IMPERSONATION');
 
   return parts.join(',');
 }

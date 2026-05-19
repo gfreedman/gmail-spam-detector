@@ -622,6 +622,7 @@ function processInbox()
     // 3. Flush all accumulated log entries to Drive + Sheets.
     checkFalseNegatives();
     recheckRecentSpamChecked();
+    fixPhishingLogRows_();
     flushSpamLog();
 
     // Safety-net pass: clean pre-existing spam + any messages where
@@ -2459,6 +2460,69 @@ function buildSignalsCsv(signals)
   if (signals.serviceImpersonation)       parts.push('SERVICE_IMPERSONATION');
 
   return parts.join(',');
+}
+
+
+/**
+ * One-shot backfill: fix log rows written before v6.38.1 where Rule 6 phishing
+ * emails were incorrectly recorded as Rule=NONE with empty signals.
+ *
+ * Runs automatically once on the next processInbox() trigger, patches any row
+ * whose subject is "Document shared with you" and Rule Triggered is "NONE",
+ * then sets PHISHING_ROW_FIX_DONE in Script Properties so it never runs again.
+ *
+ * Self-contained and non-blocking — any error is caught and logged without
+ * affecting the rest of the trigger run.
+ */
+function fixPhishingLogRows_()
+{
+  const props = PropertiesService.getScriptProperties();
+  if (props.getProperty('PHISHING_ROW_FIX_DONE')) return;
+
+  try
+  {
+    const sheetId = props.getProperty('SPAM_LOG_SHEET_ID');
+    if (!sheetId) { props.setProperty('PHISHING_ROW_FIX_DONE', 'true'); return; }
+
+    const sheet = SpreadsheetApp.openById(sheetId).getSheetByName('Raw Log');
+    if (!sheet) { props.setProperty('PHISHING_ROW_FIX_DONE', 'true'); return; }
+
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 3) { props.setProperty('PHISHING_ROW_FIX_DONE', 'true'); return; }
+
+    // Read all data rows (skip row 1 header + row 2 alignment row)
+    const data = sheet.getRange(3, 1, lastRow - 2, 14).getValues();
+    const fixes = [];
+
+    for (let i = 0; i < data.length; i++)
+    {
+      const subject      = data[i][5];  // col F: Subject
+      const ruleCol      = data[i][10]; // col K: Rule Triggered
+      const signalsCol   = data[i][13]; // col N: Signals Detected
+
+      if (subject === 'Document shared with you' && ruleCol === 'NONE' && signalsCol === '')
+      {
+        fixes.push(i + 3); // convert to 1-indexed sheet row
+      }
+    }
+
+    for (let j = 0; j < fixes.length; j++)
+    {
+      const row = fixes[j];
+      sheet.getRange(row, 11).setValue('Rule 6');
+      sheet.getRange(row, 12).setValue('Service impersonation phishing (cloud service subject from non-service sender)');
+      sheet.getRange(row, 14).setValue('SERVICE_IMPERSONATION');
+      logInfo('Backfilled phishing log row ' + row);
+    }
+
+    props.setProperty('PHISHING_ROW_FIX_DONE', 'true');
+    logInfo('fixPhishingLogRows_: patched ' + fixes.length + ' row(s), will not run again');
+  }
+  catch (e)
+  {
+    logError('fixPhishingLogRows_ failed: ' + e.toString());
+    // Don't set the done flag — retry on next trigger
+  }
 }
 
 

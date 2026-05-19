@@ -218,8 +218,8 @@ jobs:
           import json, os, sys, urllib.request, urllib.parse
           path = os.path.expanduser('~/.clasprc.json')
           d = json.load(open(path))
-          # clasp uses 'token' (singular), 'tokens' (plural), or flat structure
-          t = d.get('token') or d.get('tokens') or d
+          # clasp uses 'token' (singular), 'tokens.default' (clasp@3.x), or flat structure
+          t = d.get('token') or (d.get('tokens') or {}).get('default') or d.get('tokens') or d
           # Print key structure (not values) for debugging
           print(f'clasprc top-level keys: {sorted(d.keys())}', file=sys.stderr)
           nested_key = 'token' if 'token' in d else 'tokens' if 'tokens' in d else None
@@ -269,7 +269,7 @@ jobs:
           ACCESS_TOKEN=$(python3 -c "
           import json,os
           d=json.load(open(os.path.expanduser('~/.clasprc.json')))
-          t=d.get('token') or d
+          t=d.get('token') or (d.get('tokens') or {}).get('default') or d.get('tokens') or d
           print(t.get('access_token',''))
           ")
           if [ -z "$ACCESS_TOKEN" ]; then

@@ -324,13 +324,15 @@ def _load_gs_constants(gs_path):
     suspicious_content = _extract_bracket_content(source, 'suspicious: Object.freeze([')
 
     return {
-        'CLICKBAIT_PATTERNS':      _load_regex_array(source, 'CLICKBAIT_PATTERNS'),
-        'BODY_CRYPTO_PATTERNS':    _load_regex_array(source, 'BODY_CRYPTO_PATTERNS'),
-        'FEAR_PATTERNS':           _load_regex_array(source, 'FEAR_PATTERNS'),
-        'MARKETING_PATTERNS':      _load_regex_array(source, 'MARKETING_PATTERNS'),
-        'BULK_EMAIL_FINGERPRINTS': _load_string_array(source, 'BULK_EMAIL_FINGERPRINTS'),
-        'RFC2822_QUOTED_NAME':     _load_single_regex(source, 'RFC2822_QUOTED_NAME'),
-        'LIMITS':                  limits,
+        'CLICKBAIT_PATTERNS':           _load_regex_array(source, 'CLICKBAIT_PATTERNS'),
+        'BODY_CRYPTO_PATTERNS':         _load_regex_array(source, 'BODY_CRYPTO_PATTERNS'),
+        'FEAR_PATTERNS':                _load_regex_array(source, 'FEAR_PATTERNS'),
+        'MARKETING_PATTERNS':           _load_regex_array(source, 'MARKETING_PATTERNS'),
+        'BULK_EMAIL_FINGERPRINTS':      _load_string_array(source, 'BULK_EMAIL_FINGERPRINTS'),
+        'IMPERSONATION_SUBJECT_PATTERNS': _load_regex_array(source, 'IMPERSONATION_SUBJECT_PATTERNS'),
+        'CLOUD_SERVICE_DOMAINS':        _load_string_array(source, 'CLOUD_SERVICE_DOMAINS'),
+        'RFC2822_QUOTED_NAME':          _load_single_regex(source, 'RFC2822_QUOTED_NAME'),
+        'LIMITS':                       limits,
         'DEFAULT_DOMAINS': {
             'legitimate': re.findall(r"""['"]([^'"]+)['"]""", legit_content),
             'suspicious':  re.findall(r"""['"]([^'"]+)['"]""", suspicious_content),
@@ -350,17 +352,19 @@ except Exception as _e:
     print('Check that SpamDetector.gs exists and has not been reformatted.', file=sys.stderr)
     sys.exit(1)
 
-CLICKBAIT_PATTERNS      = _gs['CLICKBAIT_PATTERNS']
-BODY_CRYPTO_PATTERNS    = _gs['BODY_CRYPTO_PATTERNS']
-FEAR_PATTERNS           = _gs['FEAR_PATTERNS']
-MARKETING_PATTERNS      = _gs['MARKETING_PATTERNS']
-BULK_EMAIL_FINGERPRINTS = _gs['BULK_EMAIL_FINGERPRINTS']
-RFC2822_QUOTED_NAME     = _gs['RFC2822_QUOTED_NAME']
-WHITELISTED_DOMAINS     = _gs['DEFAULT_DOMAINS']['legitimate']
-BLACKLISTED_DOMAINS     = _gs['DEFAULT_DOMAINS']['suspicious']
-MAX_DISPLAY_NAME_LENGTH = _gs['LIMITS']['maxDisplayNameLength']
-MAX_INPUT_CHARS         = _gs['LIMITS']['maxInputChars']
-MAX_LOG_CHARS           = _gs['LIMITS']['maxLogChars']
+CLICKBAIT_PATTERNS              = _gs['CLICKBAIT_PATTERNS']
+BODY_CRYPTO_PATTERNS            = _gs['BODY_CRYPTO_PATTERNS']
+FEAR_PATTERNS                   = _gs['FEAR_PATTERNS']
+MARKETING_PATTERNS              = _gs['MARKETING_PATTERNS']
+BULK_EMAIL_FINGERPRINTS         = _gs['BULK_EMAIL_FINGERPRINTS']
+IMPERSONATION_SUBJECT_PATTERNS  = _gs['IMPERSONATION_SUBJECT_PATTERNS']
+CLOUD_SERVICE_DOMAINS           = _gs['CLOUD_SERVICE_DOMAINS']
+RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
+WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
+BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
+MAX_DISPLAY_NAME_LENGTH         = _gs['LIMITS']['maxDisplayNameLength']
+MAX_INPUT_CHARS                 = _gs['LIMITS']['maxInputChars']
+MAX_LOG_CHARS                   = _gs['LIMITS']['maxLogChars']
 
 
 # =============================================================================
@@ -539,6 +543,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'clickbait_count': 0, 'fear_mongering': False,
                     'marketing_format': False, 'suspicious_from_name': False,
                     'empty_subject_with_attachment': False,
+                    'service_impersonation': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -550,6 +555,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'marketing_format': False,
         'suspicious_from_name': False,
         'empty_subject_with_attachment': False,
+        'service_impersonation': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -613,7 +619,20 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         signals['empty_subject_with_attachment'] = True
         signals['matched_patterns'].append('empty_subject_attachment')
 
-    # ── Decision Logic (5 rules, evaluated in priority order) ──────────────
+    # ── Signal: Service impersonation phishing ──────────────────────────────
+    # Cloud service share notifications only come from the service's own domain.
+    # A "Document shared with you" from ywammaui.org is 100% phishing.
+    matches_service_subject = any(p.search(subject) for p in IMPERSONATION_SUBJECT_PATTERNS)
+    if matches_service_subject:
+        from_trusted = any(
+            sender_address.endswith('@' + d) or sender_address.endswith('.' + d)
+            for d in CLOUD_SERVICE_DOMAINS
+        )
+        if not from_trusted:
+            signals['service_impersonation'] = True
+            signals['matched_patterns'].append('service_impersonation')
+
+    # ── Decision Logic (6 rules, evaluated in priority order) ──────────────
     #
     # The rules cascade from most-specific (Rule 1) to broadest (Rule 5).
     # Only one rule can fire per email. This matches SpamDetector.gs exactly.
@@ -664,6 +683,14 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         elif signals['empty_subject_with_attachment']:
             is_spam = True
             rule = 'RULE 5: Empty subject with attachment'
+
+        # Rule 6: Service impersonation phishing (no bulk email required)
+        #   Rationale: Cloud service notifications (Google Docs, OneDrive, etc.)
+        #   always come from the service's own domain. Any other sender using
+        #   these subject templates is phishing via a compromised account.
+        elif signals['service_impersonation']:
+            is_spam = True
+            rule = 'RULE 6: Service impersonation phishing'
 
     return signals, is_spam, rule
 
@@ -1105,6 +1132,35 @@ def run_edge_case_tests():
     big_subject = 'a' * 100_001
     _, is_spam, _ = analyze_email(big_subject, 'sender@example.com', False)
     check('100KB subject: no crash, not spam', not is_spam)
+
+    # ── Rule 6: Service impersonation — Google Docs subject from attacker ────
+    signals, is_spam, rule = analyze_email(
+        'Document shared with you',
+        'registrar@ywammaui.org',
+        has_amazon_ses=False
+    )
+    check('Google Docs subject from non-Google sender → Rule 6 phishing',
+          is_spam and 'RULE 6' in rule,
+          'service impersonation should fire without bulk email requirement')
+
+    # ── Rule 6: Service impersonation — invite subject from attacker ─────────
+    signals, is_spam, rule = analyze_email(
+        'Registrar YWAM Maui invited you to edit the following document',
+        'registrar@ywammaui.org',
+        has_amazon_ses=False
+    )
+    check('Google Docs invite subject from non-Google sender → Rule 6 phishing',
+          is_spam and 'RULE 6' in rule)
+
+    # ── Rule 6 ham: real Google Docs notification should NOT trigger ──────────
+    _, is_spam, _ = analyze_email(
+        'Document shared with you',
+        'drive-shares-noreply@google.com',
+        has_amazon_ses=False
+    )
+    check('Google Docs subject from google.com → not spam',
+          not is_spam,
+          'real Google notifications must not be false-positived')
 
     print()
     print(f'Edge case results: {passed} passed, {failed} failed')

@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.37.0
+ * @version 6.38.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -25,8 +25,17 @@
  *   Rule 3: Bulk email + 2+ distinct spam behaviors → spam
  *   Rule 4: 3+ clickbait patterns (no bulk email required) → spam
  *   Rule 5: Empty subject + attachment → payload delivery scam
+ *   Rule 6: Cloud service notification subject from non-service sender → phishing
  *
  * Changelog (see git log for full history):
+ *   v6.38.0: Rule 6 — service impersonation phishing detection. Adds
+ *            IMPERSONATION_SUBJECT_PATTERNS (cloud service share notification
+ *            subjects) and CLOUD_SERVICE_DOMAINS (trusted sender domains).
+ *            Emails whose subject matches a known cloud service notification
+ *            template (e.g. "Document shared with you") but whose sender is
+ *            not from the expected service domain are classified as phishing
+ *            without requiring bulk email infrastructure — compromised
+ *            legitimate accounts are the typical delivery vector.
  *   v6.37.0: Three operational fixes. (1) Lock-skip log visibility: logDebug →
  *            logInfo so a blocked manual trigger shows "Skipping run — previous
  *            execution still in progress" instead of silence. (2) Mailchimp bulk
@@ -484,6 +493,36 @@ const MARKETING_PATTERNS = Object.freeze([
   /\b(investment|trading|wealth|profit|finance|insider|market)\s*(tools?|pro|tips?|alert)/i, // Spammy business names
   /grow@with\./i,                                                                       // Suspicious email pattern
   /@[a-z]\.[a-z]+\.(com|net)/i                                                          // Subdomain pattern: @F.FinanceInsiderPro.com
+]);
+
+/**
+ * Subject patterns that are exclusively used by cloud document-sharing services.
+ * A legitimate match comes ONLY from the service's own sending infrastructure.
+ * Any other sender using these subjects is impersonating the service (phishing).
+ * @const {Array<RegExp>}
+ */
+const IMPERSONATION_SUBJECT_PATTERNS = Object.freeze([
+  /\bdocument shared with you\b/i,               // Google Docs share notification subject
+  /\binvited you to (edit|view|comment)\b/i,      // Google Docs access invitation
+  /\bshared a (file|document|folder) with you\b/i // Google Drive / OneDrive share notification
+]);
+
+/**
+ * Trusted sender domains for cloud document-sharing services.
+ * Used with IMPERSONATION_SUBJECT_PATTERNS: if the subject matches a service
+ * notification template and the sender is NOT from one of these domains, it's phishing.
+ * @const {Array<string>}
+ */
+const CLOUD_SERVICE_DOMAINS = Object.freeze([
+  'google.com',
+  'googlemail.com',
+  'microsoft.com',
+  'office.com',
+  'sharepoint.com',
+  'dropbox.com',
+  'box.com',
+  'notion.so',
+  'atlassian.net'
 ]);
 
 
@@ -1010,7 +1049,8 @@ function collectSignals(message)
     fearMongering: false,             // Contains fear-mongering language
     marketingFormat: false,           // From field uses marketing formatting
     suspiciousFromName: false,        // Display name is headline-like
-    emptySubjectWithAttachment: false // Empty subject + has attachment (payload scam)
+    emptySubjectWithAttachment: false, // Empty subject + has attachment (payload scam)
+    serviceImpersonation: false        // Cloud service subject from non-service sender (phishing)
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -1132,11 +1172,32 @@ function collectSignals(message)
     logError('Could not check attachments — signal skipped: ' + attachError.toString());
   }
 
+  // ── Signal 6: Service impersonation phishing ────────────────────────────
+  // Cloud document-sharing notifications (Google Docs, OneDrive, Dropbox) are
+  // ONLY ever sent by the actual service's own mail servers. A "Document shared
+  // with you" email from ywammaui.org is 100% phishing — a compromised
+  // legitimate account used as a delivery vector.
+  const matchesServiceSubject = IMPERSONATION_SUBJECT_PATTERNS.some(function(p) {
+    return p.test(subject);
+  });
+  if (matchesServiceSubject)
+  {
+    const senderLower = senderAddress.toLowerCase();
+    const fromTrustedService = CLOUD_SERVICE_DOMAINS.some(function(d) {
+      return senderLower.endsWith('@' + d) || senderLower.endsWith('.' + d);
+    });
+    if (!fromTrustedService)
+    {
+      signals.serviceImpersonation = true;
+      logDebug('Service impersonation: cloud service subject from untrusted sender ' + sanitizeForLog(senderAddress));
+    }
+  }
+
   return signals;
 }
 
 /**
- * Apply the 5-rule decision cascade to a collected signals object.
+ * Apply the 6-rule decision cascade to a collected signals object.
  *
  * Rules are evaluated in priority order. The first rule that fires wins —
  * later rules are not evaluated. Returns immediately on the first match.
@@ -1200,6 +1261,17 @@ function makeVerdict(signals)
     return true;
   }
 
+  // Rule 6: Service impersonation phishing (no bulk email required)
+  // Rationale: Phishing campaigns impersonating Google Docs/Drive, OneDrive, or
+  // Dropbox are delivered via compromised legitimate accounts — not bulk
+  // infrastructure. The subject template alone is definitive: a real cloud
+  // service ALWAYS sends notifications from its own domain.
+  if (signals.serviceImpersonation)
+  {
+    logInfo('SPAM DETECTED: Service impersonation phishing (cloud service subject from non-service sender)');
+    return true;
+  }
+
   // No rule triggered — email is not spam
   logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
            ', blacklist=' + signals.blacklistedSender +
@@ -1207,7 +1279,8 @@ function makeVerdict(signals)
            ', fear=' + signals.fearMongering +
            ', marketing=' + signals.marketingFormat +
            ', suspiciousFrom=' + signals.suspiciousFromName +
-           ', emptySubjectAttachment=' + signals.emptySubjectWithAttachment);
+           ', emptySubjectAttachment=' + signals.emptySubjectWithAttachment +
+           ', serviceImpersonation=' + signals.serviceImpersonation);
   return false;
 }
 

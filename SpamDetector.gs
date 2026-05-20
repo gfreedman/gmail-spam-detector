@@ -630,6 +630,12 @@ function processInbox()
   }
   catch (error)
   {
+    if (error.toString().includes('Service invoked too many times for one day: gmail'))
+    {
+      logInfo('Gmail quota exhausted for today — skipping run, will resume after quota reset');
+      flushSpamLog();
+      return;
+    }
     logError('Critical error in processInbox: ' + error.toString());
     throw error; // Re-throw so trigger failure is visible in Apps Script dashboard
   }

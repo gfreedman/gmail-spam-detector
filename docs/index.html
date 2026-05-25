@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gmail Spam Detector — Pattern-based spam deletion for Gmail</title>
-  <meta name="description" content="A Google Apps Script that automatically deletes the clickbait newsletters and investment scams Gmail's filters miss. Pattern-based. No machine learning. Runs every 15 minutes in your own Google account.">
+  <meta name="description" content="A Google Apps Script that automatically deletes the clickbait newsletters and investment scams Gmail's filters miss. Pattern-based detection, running every 15 minutes in your own Google account — and building a labeled training corpus for future ML.">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -557,6 +557,54 @@
       font-weight: 700;
     }
 
+    /* ── Dataset stats ───────────────────────────────────────────────── */
+    .dataset-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 14px 0 20px;
+    }
+
+    .stat-chip {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--bg-inset);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.1px;
+    }
+
+    /* ── FAQ ──────────────────────────────────────────────────────────── */
+    .faq-list {
+      display: grid;
+      gap: 1px;
+      margin-top: 16px;
+    }
+
+    .faq-item {
+      background: var(--bg-card);
+      padding: 18px 20px;
+    }
+
+    .faq-item:first-child { border-radius: 8px 8px 0 0; }
+    .faq-item:last-child  { border-radius: 0 0 8px 8px; }
+
+    .faq-q {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .faq-a {
+      font-size: 13.5px;
+      color: var(--body);
+      line-height: 1.6;
+      margin-bottom: 0;
+    }
+
     /* ── Footer ───────────────────────────────────────────────────────── */
     footer {
       border-top: 1px solid var(--border);
@@ -597,6 +645,8 @@
     <a class="hn" href="#signals">Signals</a>
     <a class="hn" href="#patterns">Patterns</a>
     <a class="hn" href="#setup">Setup</a>
+    <a class="hn" href="#dataset">Dataset</a>
+    <a class="hn" href="#faq">FAQ</a>
     <a class="nav-right hn" href="https://github.com/gfreedman/gmail-spam-detector" style="display:inline-flex;align-items:center;gap:5px;">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
       GitHub
@@ -921,6 +971,66 @@ clasp push</code></pre>
       <li>False negative auto-recheck — emails cleared in the last 2 days are re-scored on every run; pattern fixes take effect within 15 minutes of deploy</li>
       <li>Spam intelligence log — every deletion is written to a Google Sheet and archived as a raw EML in Drive for audit and review</li>
     </ul>
+  </div>
+</section>
+
+<!-- ── Dataset ──────────────────────────────────────────────────────────── -->
+<section id="dataset">
+  <div class="wrap">
+    <h2>Building a Training Dataset</h2>
+    <p>Pattern-based detection is precise and auditable, but hand-written rules hit a ceiling. The spam intelligence log isn't just an audit trail — it's a labeled training corpus that grows automatically with every run.</p>
+
+    <div class="dataset-stats">
+      <div class="stat-chip">51 confirmed spam</div>
+      <div class="stat-chip">17 curated ham</div>
+      <div class="stat-chip">growing with every run</div>
+    </div>
+
+    <h3>The signal object is already a feature vector</h3>
+    <p>Every detection event logs 8 independent signals alongside the verdict:</p>
+<pre><code>{ isBulkEmail, clickbaitCount, hasFearLanguage,
+  hasMarketingFormat, hasBlacklistedSender,
+  hasFromAnomaly, hasBodyUnicode, hasBodyCrypto }</code></pre>
+    <p>That 8-dimensional vector is the input a classifier needs. The rule-based system generates the label. High-precision rules produce high-precision training labels — the thing that matters most when training on a small corpus.</p>
+
+    <h3>Spam and ham stay separate</h3>
+    <p>Detected spam is archived under <code>Spam Intelligence/Detected/</code> and logged as spam in the Sheet. The 17 ham examples in <code>tests/ham_examples/</code> are a fixed hold-out set — never mixed into training — used only to validate that pattern changes don't create false positives. That separation maps directly to the train/test split you'd use in supervised learning.</p>
+
+    <h3>False negatives are labeled too</h3>
+    <p>Spam the script misses and you manually flag via the <code>SpamMissed</code> label is archived under <code>Spam Intelligence/False Negatives/</code> with <code>Log Type = FALSE_NEGATIVE</code>. These are the hard examples — the ones that fooled the current rules — and they're the most valuable training signal for a future classifier.</p>
+
+    <h3>Path to ML</h3>
+    <p>At roughly 1,000 labeled examples, the corpus is large enough to train a lightweight classifier (logistic regression or gradient boosting on the 8-signal vector). The rule-based system would continue as a high-precision first pass; the classifier handles edge cases that require subtle combinations the rules don't cover. The intelligence log is already structured for that handoff.</p>
+  </div>
+</section>
+
+<!-- ── FAQ ──────────────────────────────────────────────────────────────── -->
+<section id="faq">
+  <div class="wrap">
+    <h2>FAQ</h2>
+    <div class="faq-list">
+
+      <div class="faq-item">
+        <p class="faq-q">My bank, newsletter, or GitHub sends bulk email — will it get deleted?</p>
+        <p class="faq-a">No, if you whitelist it first. Run <code>addToWhitelist('yourdomain.com')</code> once in the Apps Script editor and that domain bypasses all detection rules permanently. Common high-volume senders — Substack, LinkedIn, GitHub, Stripe, PayPal, your bank's notification domain — are already in <code>DEFAULT_DOMAINS.legitimate</code> and are excluded by default without any configuration.</p>
+      </div>
+
+      <div class="faq-item">
+        <p class="faq-q">Why permanently delete instead of just moving to spam?</p>
+        <p class="faq-a">Two things happen in sequence. First, <code>reportSpam()</code> is called — this signals Gmail's Bayesian classifier the same way clicking "Report spam" in the UI does, training it across your account. Then the message is permanently deleted via the Gmail API. The reason for deletion rather than a folder move: Gmail's Spam folder doesn't auto-clear, particularly on Workspace accounts. Emails you've already positively identified as spam shouldn't consume storage, surface in search results, or require a second manual deletion.</p>
+      </div>
+
+      <div class="faq-item">
+        <p class="faq-q">Does it work with Google Workspace / corporate Gmail?</p>
+        <p class="faq-a">Yes. The script uses <code>GmailApp</code> and <code>Gmail.Users.Messages</code>, which behave identically across personal Gmail and Workspace accounts. One difference: your Workspace administrator may need to authorize the OAuth scopes (<code>gmail.modify</code> and <code>gmail.labels</code>) before the script can run under a managed account. If the authorization prompt fails or is missing scopes, check with your admin about allowing user-installed Apps Script projects.</p>
+      </div>
+
+      <div class="faq-item">
+        <p class="faq-q">What if it deletes something I wanted?</p>
+        <p class="faq-a">Run <code>setupLogging()</code> once from the Apps Script editor. After that, every deletion is written to a Google Sheet — timestamp, rule triggered, sender, subject, all 8 detection signals — and the full raw EML is archived in Google Drive under <code>Spam Intelligence/Detected/</code>. If an email disappears, open the Sheet, find the row, and download the EML from the linked Drive file. The signal columns also tell you exactly which patterns matched, which makes it straightforward to decide whether to whitelist a domain and prevent future catches.</p>
+      </div>
+
+    </div>
   </div>
 </section>
 

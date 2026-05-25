@@ -458,9 +458,9 @@ const CLICKBAIT_PATTERNS = Object.freeze([
   // Combines populist outrage framing with financial pitches (tariff rebate checks, etc.)
   /\b(ripped off|looted|robbed|bilked)\b/i,
 
-  // Payback / revenge framing: "payback time", "now it's time", "get back what's yours"
-  // Paired with looting narrative above — the two always co-occur in this spam class
-  /\bpayback time\b|\bnow (it'?s|its) (time|payback|your turn)\b/i
+  // Payback / revenge framing: "payback time" — common in political-financial scam emails
+  // alongside looting narrative framing; both patterns fire independently
+  /\bpayback time\b/i
 ]);
 
 /**
@@ -475,11 +475,12 @@ const BODY_CRYPTO_PATTERNS = Object.freeze([
 
 /**
  * Unicode obfuscation patterns checked against the email body.
- * The same patterns appear in CLICKBAIT_PATTERNS for subject+from coverage.
- * Separate body check is needed because spammers hide obfuscated text inside
- * HTML (e.g. "Сⅼіϲkhеrе" in a body anchor tag) while keeping the subject clean
- * to avoid naive keyword filters. One match → +1 clickbaitCount (break after
- * first hit — all four detect the same evasion technique, not independent signals).
+ * Mirrors the four Unicode ranges in CLICKBAIT_PATTERNS (subject+from coverage) —
+ * update both constants if extending. Separate body check is needed because
+ * spammers hide obfuscated text inside HTML (e.g. "Сⅼіϲkhеrе" in a body anchor
+ * tag) while keeping the subject clean to evade subject-level filters.
+ * One match → +1 clickbaitCount (break after first hit — all four detect the
+ * same evasion technique, not independent signals).
  * @const {Array<RegExp>}
  */
 const BODY_UNICODE_PATTERNS = Object.freeze([
@@ -522,7 +523,7 @@ const BULK_EMAIL_FINGERPRINTS = Object.freeze([
   'x-ses-',        // Amazon SES custom header prefix
   'sendgrid.net',  // SendGrid relay fingerprint
   'mcsv.net',      // Mailchimp sending infrastructure
-  'iterable.com'   // Iterable marketing platform — CDN/tracking links appear in body
+  'iterable.com'   // Iterable marketing platform — appears in CDN/tracking URLs in body HTML (not headers)
 ]);
 
 /**

@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Gmail Spam Detector — Pattern-based spam deletion for Gmail</title>
+  <meta name="description" content="A Google Apps Script that automatically deletes the clickbait newsletters and investment scams Gmail's filters miss. Pattern-based. No machine learning. Runs every 15 minutes in your own Google account.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f9f8f4;
+      --bg-card:  #efede7;
+      --bg-inset: #e8e6df;
+      --text:     #131314;
+      --body:     #4a4843;
+      --muted:    #7a7770;
+      --accent:   #d97757;
+      --border:   #dedad2;
+      --green:    #1d7a45;
+      --mono: "SF Mono", ui-monospace, Menlo, monospace;
+      --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      font-size: 15px;
+      line-height: 1.6;
+      color: var(--body);
+      background: var(--bg);
+    }
+
+    /* ── Nav ──────────────────────────────────────────────────────────── */
+    nav {
+      height: 52px;
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: rgba(249,248,244,0.9);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-inner {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 clamp(16px, 4vw, 48px);
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .nav-brand {
+      font-weight: 700;
+      font-size: 14px;
+      color: var(--text);
+      text-decoration: none;
+      letter-spacing: -0.2px;
+      margin-right: 4px;
+    }
+
+    nav a {
+      font-size: 14px;
+      color: var(--muted);
+      text-decoration: none;
+      transition: color 0.12s;
+    }
+
+    nav a:hover { color: var(--text); }
+    .nav-right   { margin-left: auto; }
+
+    /* ── Layout ───────────────────────────────────────────────────────── */
+    .wrap {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 0 clamp(16px, 4vw, 48px);
+    }
+
+    section {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    section.hero {
+      border-top: none;
+      padding: 52px 0 40px;
+    }
+
+    /* ── Hero ─────────────────────────────────────────────────────────── */
+    h1 {
+      font-size: clamp(36px, 6vw, 54px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.03;
+      color: var(--text);
+      margin-bottom: 14px;
+    }
+
+    .tagline {
+      font-size: clamp(16px, 2.2vw, 19px);
+      color: var(--muted);
+      line-height: 1.45;
+      margin-bottom: 28px;
+    }
+
+    /* ── Trust chips ──────────────────────────────────────────────────── */
+    .trust-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .trust-chip {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+      background: #e6f2eb;
+      padding: 4px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.1px;
+    }
+
+    /* ── Hero cards ───────────────────────────────────────────────────── */
+    .hero-install {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+    }
+
+    .hero-install-card {
+      background: var(--bg-card);
+      padding: 16px 18px 14px;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .hero-install-card:first-child { border-radius: 8px 0 0 8px; }
+    .hero-install-card:last-child  { border-radius: 0 8px 8px 0; }
+
+    .hero-card-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .install-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #000;
+      border-radius: 8px;
+      padding: 12px 18px;
+      max-width: 100%;
+    }
+
+    .install-pill .prompt {
+      color: #4a4a4a;
+      font-family: var(--mono);
+      font-size: 13px;
+      user-select: none;
+      flex-shrink: 0;
+    }
+
+    .install-pill code {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: #22c55e;
+      background: none;
+      padding: 0;
+      border: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .hero-download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--accent);
+      text-decoration: none;
+      margin-bottom: 6px;
+    }
+
+    .hero-download-link:hover { opacity: 0.8; }
+
+    .hero-card-desc {
+      font-size: 12.5px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
+    /* ── Section headings ─────────────────────────────────────────────── */
+    h2 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      color: var(--text);
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      margin-top: 20px;
+      margin-bottom: 8px;
+    }
+
+    p { margin-bottom: 10px; }
+    p:last-child { margin-bottom: 0; }
+
+    /* ── Code blocks ──────────────────────────────────────────────────── */
+    pre {
+      background: #000;
+      border-radius: 7px;
+      padding: 14px 18px;
+      overflow-x: auto;
+      margin: 10px 0;
+      min-width: 0;
+    }
+
+    pre code {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: #22c55e;
+      line-height: 1.65;
+      background: none;
+      padding: 0;
+      border: none;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      background: var(--bg-card);
+      color: var(--text);
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    /* ── Steps ────────────────────────────────────────────────────────── */
+    .steps {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2px;
+      margin: 12px 0;
+    }
+
+    .step {
+      background: var(--bg-card);
+      padding: 20px 20px 18px;
+      border-radius: 0;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .step .code-wrap { margin-top: auto; }
+    .steps .step:first-child { border-radius: 8px 8px 0 0; }
+    .steps .step:last-child  { border-radius: 0 0 8px 8px; }
+
+    .step-num {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 8px;
+    }
+
+    .step-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .step p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .step pre { margin-bottom: 0; }
+
+    /* ── Install options ──────────────────────────────────────────────── */
+    .install-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2px;
+      margin: 12px 0 0;
+    }
+
+    .install-opt {
+      background: var(--bg-card);
+      padding: 16px 18px 14px;
+      min-width: 0;
+    }
+
+    .install-opt:first-child { border-radius: 8px 8px 0 0; }
+    .install-opt:last-child  { border-radius: 0 0 8px 8px; }
+
+    .install-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .install-opt pre { margin: 0; }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--accent);
+      color: #fff;
+      padding: 1px 6px;
+      border-radius: 20px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .opt-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    .note {
+      font-size: 12.5px;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    /* ── Terminal ─────────────────────────────────────────────────────── */
+    .terminal {
+      border-radius: 9px;
+      overflow: hidden;
+      margin: 14px 0;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.2);
+    }
+
+    .tbar {
+      background: #1a1a1a;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tbar-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: #555;
+      margin-left: 8px;
+    }
+
+    .dot { width: 10px; height: 10px; border-radius: 50%; }
+    .dr  { background: #ff5f57; }
+    .dy  { background: #ffbd2e; }
+    .dg  { background: #28c840; }
+
+    .term-body {
+      background: #000;
+      padding: 18px 20px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.65;
+    }
+
+    .term-scan  { color: #3f3f3f; margin-bottom: 10px; }
+    .term-rows  { padding-left: 2px; }
+
+    .term-row {
+      display: grid;
+      grid-template-columns: 22px 1fr;
+      align-items: baseline;
+      line-height: 1.7;
+    }
+
+    .term-detail {
+      padding-left: 22px;
+      color: #6b6b6b;
+      font-size: 12px;
+      line-height: 1.55;
+      margin-bottom: 8px;
+    }
+
+    .term-detail .t-rule { color: #f59e0b; }
+    .term-detail .t-del  { color: #ef4444; }
+
+    .term-divider { color: #3f3f3f; margin: 10px 0; }
+    .term-summary { color: #e5e5e5; font-weight: 600; margin-bottom: 4px; }
+    .term-cta     { color: #3f3f3f; }
+
+    .t-pass  { color: #22c55e; }
+    .t-crit  { color: #ef4444; }
+    .t-warn  { color: #f59e0b; }
+    .t-info  { color: #38bdf8; }
+    .t-dim   { color: #3f3f3f; }
+    .t-bold  { color: #e5e5e5; font-weight: 600; }
+    .t-muted { color: #6b6b6b; }
+
+    /* ── Copy button ───────────────────────────────────────────────────── */
+    .install-pill .pill-copy {
+      background: none;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #4a4a4a;
+      padding: 0;
+      margin-left: 4px;
+      flex-shrink: 0;
+      transition: color 0.15s;
+    }
+    .install-pill .pill-copy:hover { color: #888; }
+    .install-pill .pill-copy.ok    { color: #22c55e; }
+    .install-pill .pill-copy svg   { width: 14px; height: 14px; }
+
+    .code-wrap { position: relative; }
+
+    .copy-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 26px;
+      height: 26px;
+      background: #1c1c1c;
+      border: 1px solid #333;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.15s, background 0.1s;
+      padding: 0;
+      color: #666;
+    }
+
+    .code-wrap:hover .copy-btn { opacity: 1; }
+    .copy-btn:hover { background: #2a2a2a; border-color: #444; color: #999; }
+    .copy-btn.ok    { color: #22c55e; opacity: 1; }
+    .copy-btn svg   { width: 13px; height: 13px; }
+
+    /* ── Table ────────────────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      margin: 10px 0;
+    }
+
+    th {
+      text-align: left;
+      font-size: 10.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: var(--muted);
+      padding: 6px 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+    td:first-child   { white-space: nowrap; width: 1%; }
+    td + td          { color: var(--muted); }
+    .rule-badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      background: var(--bg-inset);
+      color: var(--muted);
+      padding: 1px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.3px;
+      font-family: var(--mono);
+    }
+
+    /* ── Cards ────────────────────────────────────────────────────────── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2px;
+      margin: 12px 0;
+    }
+
+    .card {
+      background: var(--bg-card);
+      padding: 16px 18px;
+      min-width: 0;
+      border-radius: 0;
+    }
+
+    .grid-2 .card:first-child { border-radius: 8px 8px 0 0; }
+    .grid-2 .card:last-child  { border-radius: 0 0 8px 8px; }
+
+    .grid-2col { grid-template-columns: 1fr 1fr; }
+    .grid-2col .card:first-child       { border-radius: 8px 0 0 0; }
+    .grid-2col .card:nth-child(2)      { border-radius: 0 8px 0 0; }
+    .grid-2col .card:nth-last-child(2) { border-radius: 0 0 0 8px; }
+    .grid-2col .card:last-child        { border-radius: 0 0 8px 0; }
+
+    .card-icon  { font-size: 18px; margin-bottom: 6px; display: block; }
+    .card-title { font-size: 13.5px; font-weight: 700; color: var(--text); margin-bottom: 3px; }
+    .card-body  { font-size: 12.5px; color: var(--muted); line-height: 1.5; }
+
+    /* ── Safety list ──────────────────────────────────────────────────── */
+    .safety-list {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin: 10px 0;
+    }
+
+    .safety-list li {
+      font-size: 13.5px;
+      color: var(--body);
+      padding-left: 16px;
+      position: relative;
+    }
+
+    .safety-list li::before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: var(--green);
+      font-weight: 700;
+    }
+
+    /* ── Footer ───────────────────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .footer-inner {
+      max-width: 780px;
+      margin: 0 auto;
+      padding: 22px clamp(16px, 4vw, 48px);
+      text-align: center;
+    }
+
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--body); }
+
+    /* ── Responsive ───────────────────────────────────────────────────── */
+    @media (max-width: 560px) {
+      nav .hn { display: none; }
+      .hero-install, .grid-2col { grid-template-columns: 1fr; }
+      .hero-install-card:first-child { border-radius: 8px 8px 0 0; }
+      .hero-install-card:last-child  { border-radius: 0 0 8px 8px; }
+      .grid-2col .card:first-child       { border-radius: 8px 8px 0 0; }
+      .grid-2col .card:nth-child(2)      { border-radius: 0; }
+      .grid-2col .card:nth-last-child(2) { border-radius: 0; }
+      .grid-2col .card:last-child        { border-radius: 0 0 8px 8px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-inner">
+    <a class="nav-brand" href="#top">Gmail Spam Detector</a>
+    <a class="hn" href="#how-it-works">How it works</a>
+    <a class="hn" href="#rules">Rules</a>
+    <a class="hn" href="#signals">Signals</a>
+    <a class="hn" href="#patterns">Patterns</a>
+    <a class="hn" href="#setup">Setup</a>
+    <a class="nav-right hn" href="https://github.com/gfreedman/gmail-spam-detector" style="display:inline-flex;align-items:center;gap:5px;">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+      GitHub
+    </a>
+  </div>
+</nav>
+
+<!-- ── Hero ────────────────────────────────────────────────────────────── -->
+<section class="hero" id="top">
+  <div class="wrap">
+    <h1>Gmail Spam<br>Detector</h1>
+    <p class="tagline">Gmail's filter is a Bayesian classifier trained on billions of emails. It's exceptional at catching messages that look like spam. The polished investment newsletters and fear-mongering "health alerts" don't look like spam. This catches them instead — by targeting the behaviors spammers can't change.</p>
+    <div class="trust-chips">
+      <span class="trust-chip">100% detection on 51-email test corpus</span>
+      <span class="trust-chip">0% false positives on 17 ham emails</span>
+      <span class="trust-chip">Runs in your Google account</span>
+      <span class="trust-chip">Open source · MIT license</span>
+    </div>
+    <div class="hero-install">
+      <div class="hero-install-card">
+        <div class="hero-card-label">Clone &amp; deploy</div>
+        <div class="install-pill">
+          <span class="prompt">$</span>
+          <code>git clone github.com/gfreedman/gmail-spam-detector</code>
+          <button class="pill-copy" aria-label="Copy clone command"></button>
+        </div>
+      </div>
+      <div class="hero-install-card">
+        <div class="hero-card-label">Or paste manually</div>
+        <a class="hero-download-link" href="https://script.google.com" target="_blank" rel="noopener">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 1h5v5M6 10L15 1M8 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V8"/></svg>
+          Open script.google.com ↗
+        </a>
+        <p class="hero-card-desc">Paste SpamDetector.gs, run <code>setup()</code>, add a 15-minute time trigger. No server. No subscription.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ────────────────────────────────────────────────────── -->
+<section id="how-it-works">
+  <div class="wrap">
+    <h2>How it works</h2>
+    <p>A time-driven Apps Script trigger fires every 15 minutes. Each run searches your entire inbox — Primary, Updates, Promotions, Social, and Forums tabs — for email that hasn't been checked yet. Each message is analyzed independently. Nothing changes until the verdict is in.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">Step 1</div>
+        <div class="step-title">Search</div>
+        <p>Finds all inbox email from the last 24 hours without a <code>SpamChecked</code> label. Covers every Gmail tab in one query.</p>
+        <pre><code>{in:inbox category:updates category:promotions category:social category:forums} newer_than:1d -label:SpamChecked</code></pre>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 2</div>
+        <div class="step-title">Analyze</div>
+        <p>Each message passes through 8 independent signal detectors — bulk infrastructure check, domain blacklist, clickbait patterns, Unicode obfuscation, fear language, marketing sender format, and more. Signals feed 6 rules evaluated in priority order. First match wins.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 3</div>
+        <div class="step-title">Delete</div>
+        <p>Spam is reported to Gmail via the API — this trains Gmail's own filters — then immediately deleted by message ID using <code>Gmail.Users.Messages.batchDelete</code>. A safety-net sweep runs at the end of every cycle to catch anything that reached the spam folder through other paths.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 4 &nbsp;·&nbsp; automatic</div>
+        <div class="step-title">Re-check</div>
+        <p>At the end of every run, <code>recheckRecentSpamChecked()</code> re-evaluates inbox email from the past 2 days that was previously cleared. If a pattern fix was just deployed and an email now scores as spam, it's caught and deleted within 15 minutes — no manual action required.</p>
+      </div>
+    </div>
+
+    <h2 style="margin-top:32px">What a run looks like</h2>
+    <p>Apps Script execution logs stream results in real time. Spam is caught, identified by rule, and deleted in the same run.</p>
+    <div class="terminal">
+      <div class="tbar">
+        <div class="dot dr"></div>
+        <div class="dot dy"></div>
+        <div class="dot dg"></div>
+        <span class="tbar-title">Apps Script — Execution log</span>
+      </div>
+      <div class="term-body">
+        <div class="term-scan"><span class="t-dim">[15:00:01]</span> Search query: {in:inbox category:updates ...} newer_than:1d -label:SpamChecked</div>
+        <div class="term-scan"><span class="t-dim">[15:00:01]</span> Found 7 threads to process</div>
+        <div class="term-rows">
+          <div class="term-row"><span class="t-pass">✅</span><span class="t-muted">SpamChecked &nbsp;·&nbsp; Your FedEx shipment is on its way</span></div>
+          <div class="term-row"><span class="t-pass">✅</span><span class="t-muted">SpamChecked &nbsp;·&nbsp; Monthly statement ready — May 2026</span></div>
+          <div class="term-row"><span class="t-crit">🔴</span><span class="t-bold">SPAM DETECTED: Bulk email + blacklisted sender</span></div>
+          <div class="term-detail">Subject &nbsp;"America Was Ripped Off for 50 Years – Now It's Payback Time"<br>From &nbsp;&nbsp;&nbsp;news@daily.economicrulebook.com<br><span class="t-rule">Rule 1 &nbsp;·&nbsp; bulk=true &nbsp;·&nbsp; blacklisted=economicrulebook.com &nbsp;·&nbsp; clickbait=2</span><br><span class="t-del">→ Deleted &nbsp;19e6106e0502eb66</span></div>
+          <div class="term-row"><span class="t-crit">🔴</span><span class="t-bold">SPAM DETECTED: Bulk email + clickbait (3 patterns)</span></div>
+          <div class="term-detail">Subject &nbsp;"The #1 Danger In Your Diet — Doctors Are SHOCKED"<br>From &nbsp;&nbsp;&nbsp;news@budgetingjournals.com<br><span class="t-rule">Rule 2 &nbsp;·&nbsp; bulk=true &nbsp;·&nbsp; clickbait=3 &nbsp;·&nbsp; fear=true</span><br><span class="t-del">→ Deleted &nbsp;19e5c41f2a3d98b1</span></div>
+          <div class="term-row"><span class="t-pass">✅</span><span class="t-muted">SpamChecked &nbsp;·&nbsp; Re: City Taxes &amp; Scotia</span></div>
+          <div class="term-row"><span class="t-crit">🔴</span><span class="t-bold">SPAM DETECTED: Service impersonation phishing</span></div>
+          <div class="term-detail">Subject &nbsp;"Document shared with you"<br>From &nbsp;&nbsp;&nbsp;no-reply@mail-drive-notify.com<br><span class="t-rule">Rule 6 &nbsp;·&nbsp; cloud service subject from non-Google sender</span><br><span class="t-del">→ Deleted &nbsp;19e5d08c4f1b72a3</span></div>
+          <div class="term-row"><span class="t-pass">✅</span><span class="t-muted">SpamChecked &nbsp;·&nbsp; Your prescription is ready for pickup</span></div>
+        </div>
+        <div class="term-divider">  ──────────────────────────────────────────────────</div>
+        <div class="term-summary">  Processed 7 &nbsp;·&nbsp; <span class="t-crit">Spam 3</span> &nbsp;·&nbsp; <span class="t-pass">Ham 4</span> &nbsp;·&nbsp; Errors 0 &nbsp;·&nbsp; 0.8s</div>
+        <div class="term-cta">  Safety-net sweep: +0 from spam folder</div>
+      </div>
+    </div>
+    <p class="note">Runs entirely within your Google account. No data leaves Google infrastructure.</p>
+  </div>
+</section>
+
+<!-- ── Rules ───────────────────────────────────────────────────────────── -->
+<section id="rules">
+  <div class="wrap">
+    <h2>Rules</h2>
+    <p>Six rules, evaluated in priority order. The first rule that matches wins — no further rules are checked. Rules 1–3 all require bulk email infrastructure as a prerequisite, which eliminates virtually all false positives from personal senders.</p>
+    <table>
+      <thead>
+        <tr><th>Rule</th><th>Condition</th><th>Rationale</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="rule-badge">Rule 1</span></td>
+          <td><strong>Bulk email + blacklisted sender domain</strong></td>
+          <td>Known spam mill domains combined with bulk infrastructure. Zero false-positive risk — these domains have no legitimate use.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 2</span></td>
+          <td><strong>Bulk email + 2+ clickbait patterns</strong></td>
+          <td>Legitimate bulk senders (GitHub, Stripe, your bank) almost never use multiple clickbait tactics simultaneously. Two independent pattern hits is a strong signal.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 3</span></td>
+          <td><strong>Bulk email + 2+ distinct spam behaviors</strong></td>
+          <td>Counts any clickbait, fear-mongering, marketing sender format, or suspicious From display name as a "behavior." Two unrelated spam indicators firing together is statistically anomalous.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 4</span></td>
+          <td><strong>3+ clickbait patterns (no bulk email required)</strong></td>
+          <td>Three clickbait pattern hits is so anomalous that even direct-send messages are almost certainly spam. Catches campaigns that avoid SES/SendGrid/Mailchimp.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 5</span></td>
+          <td><strong>Empty subject + attachment</strong></td>
+          <td>Legitimate email virtually never combines a blank subject with an attachment. This is the fingerprint of payload-delivery scams hiding phishing links inside Excel or PDF files.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 6</span></td>
+          <td><strong>Cloud service subject from non-service sender</strong></td>
+          <td>Phishing campaigns impersonating Google Docs or OneDrive are delivered via compromised accounts — not bulk infrastructure. The subject template alone is definitive: a real cloud service always sends from its own domain.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── Signals ─────────────────────────────────────────────────────────── -->
+<section id="signals">
+  <div class="wrap">
+    <h2>Signals</h2>
+    <p>Eight independent signals feed the rules. Each signal answers a specific factual question about the email — bulk infrastructure? domain blacklisted? clickbait count? fear language? — without reference to the others. Verdict logic lives in the rules, not the signals.</p>
+    <div class="grid-2 grid-2col" style="margin-top:12px">
+      <div class="card">
+        <span class="card-icon">📡</span>
+        <div class="card-title">Bulk email service</div>
+        <div class="card-body">Checks raw headers and body for fingerprints of Amazon SES, SendGrid, Mailchimp, and Iterable. Legitimate personal senders never route through these. Required for Rules 1–3.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🚫</span>
+        <div class="card-title">Blacklisted sender</div>
+        <div class="card-body">Substring match against a curated list of known spam mill domains — investorplace, financebuzz, budgetingjournals, economicrulebook, and others. Matched against the extracted email address only, not the display name, to prevent spoofing.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🎣</span>
+        <div class="card-title">Clickbait count</div>
+        <div class="card-body">How many distinct clickbait patterns fired on subject + From combined. Each pattern targets a category of spam tactic — shock language, celebrity name-dropping, financial doom, age-based fear — not specific words, which spammers rotate constantly.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🔡</span>
+        <div class="card-title">Unicode obfuscation</div>
+        <div class="card-body">Detects Cyrillic lookalikes (Еlоn), Greek substitutions (Βanks), fullwidth characters (＄2 Bill), and mathematical bold surrogates (𝗔𝗺𝗮𝘇𝗼𝗻) in both the subject and email body. Legitimate English email never uses these. A single hit is high-confidence.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">💎</span>
+        <div class="card-title">Crypto scam body patterns</div>
+        <div class="card-body">High-confidence terms that almost never appear in legitimate email bodies: "airdrop" and "connect your wallet." Checked against the full body text, not just headers, because crypto scam copy is rarely in the subject line.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">⚠️</span>
+        <div class="card-title">Fear-mongering</div>
+        <div class="card-body">Boolean: does the subject or From field contain fear language? IRS/FBI/government + threat verbs, bank account + seizure language, health + danger verbs, or standalone urgency words like BREAKING, URGENT, WARNING. One match is enough.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">📢</span>
+        <div class="card-title">Marketing sender format</div>
+        <div class="card-body">Detects spammy From field patterns: "Name | Org" pipe separators, "Name at Organization" constructions, business names with investment/profit/insider/alert in them, and subdomain patterns like @F.FinanceInsiderPro.com.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🔍</span>
+        <div class="card-title">Suspicious From display name</div>
+        <div class="card-body">Flags display names longer than 50 characters (keyword stuffing) or containing bullet separators (•). Legitimate senders use plain names. Spam mills stuff headlines into the From field: "Breaking • Banks Closing • Act Now".</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Patterns ────────────────────────────────────────────────────────── -->
+<section id="patterns">
+  <div class="wrap">
+    <h2>Patterns</h2>
+    <p>The clickbait signal counts how many distinct pattern categories fire. Each pattern targets a spam tactic — not a specific phrase. Spammers rotate individual words constantly; what they can't change is the category of manipulation they're using.</p>
+    <div class="grid-2 grid-2col" style="margin-top:12px">
+      <div class="card">
+        <span class="card-icon">😱</span>
+        <div class="card-title">Shock &amp; sensation</div>
+        <div class="card-body">"shocking," "stunning," "bizarre," "mysterious," "leaked," "exposed," "forbidden," "bombshell" — high-arousal adjectives with no informational content.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🏛️</span>
+        <div class="card-title">Celebrity / political</div>
+        <div class="card-body">Named public figures paired with credibility verbs: "Trump warns," "Musk exposes," "RFK reveals." Separately catches endorsement framing: "Trump approved," "Biden backed." Separately catches coin/collectible scams.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">📉</span>
+        <div class="card-title">Financial doom</div>
+        <div class="card-body">Market / money terms combined with crisis words: "dollar dying," "economy collapse," "gold alert," "stock plunge." Also catches "ripped off," "looted," "bilked" — political financial anger framing — and "payback time."</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🤫</span>
+        <div class="card-title">Conspiracy / suppression</div>
+        <div class="card-body">"What they don't want you to know," "watch before this gets buried," "before they remove it," "read before it's censored." False urgency implying authority is hiding the content.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">👴</span>
+        <div class="card-title">Demographic targeting</div>
+        <div class="card-body">Age-based fear: "seniors at risk," "if you're over 60," "born before 1960." Year-based urgency: "2025 warning," "2026 crisis." These targeting markers almost never appear in legitimate email subjects.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">💊</span>
+        <div class="card-title">Health anxiety</div>
+        <div class="card-body">"fatigue," "blood sugar," "cholesterol," "brain fog," "belly fat," "inflammation," "joint pain" — health condition anxiety triggers common in supplement and alternative medicine spam.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">💰</span>
+        <div class="card-title">Financial hype</div>
+        <div class="card-body">Pre-IPO solicitations, "$5 per share" / "$0.72/share" stock price notation, penny stocks, income opportunity lures ("passive income," "side income"), and "0% APR" / balance transfer pitches.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🪙</span>
+        <div class="card-title">Collectible scams</div>
+        <div class="card-body">"limited edition," "rare coin," "gold-plated," "silver-plated," "commemorative," "collector's edition" — often combined with political figures. The coin is never the point; the email list harvest is.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🔣</span>
+        <div class="card-title">Unicode obfuscation</div>
+        <div class="card-body">Cyrillic, Greek, fullwidth, and mathematical alphanumeric characters used as visual lookalikes for ASCII letters. Caught in both subject/From (clickbait signal) and email body (Signal 2c) separately.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">📅</span>
+        <div class="card-title">Date-format stuffing</div>
+        <div class="card-body">Newsletter spam often embeds dates in subjects to appear timely: "• January 29 •" (bullet), "| February 23" (pipe), "[March 09]" (bracket), "- Mar 11, 2026" (dash). All four variants are covered.</div>
+      </div>
+    </div>
+    <h3>Bulk email fingerprints</h3>
+    <pre><code>amazonses.com   x-ses-   sendgrid.net   mcsv.net   iterable.com</code></pre>
+    <p class="note">Fingerprints are substring-matched against the full raw email content including headers and body. Iterable's CDN appears in image URLs embedded in HTML — it doesn't need to be in headers to be detected.</p>
+  </div>
+</section>
+
+<!-- ── Setup ───────────────────────────────────────────────────────────── -->
+<section id="setup">
+  <div class="wrap">
+    <h2>Setup</h2>
+    <p>Runs entirely inside Google Apps Script. No server, no external dependencies, no OAuth flow to maintain. Your email stays in your Google account.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">Step 1</div>
+        <div class="step-title">Clone the repo</div>
+        <p>You'll deploy using <a href="https://github.com/google/clasp" target="_blank" rel="noopener">clasp</a>, Google's CLI for Apps Script. Install it with npm.</p>
+        <pre><code>git clone https://github.com/gfreedman/gmail-spam-detector
+cd gmail-spam-detector
+npm install -g @google/clasp
+clasp login</code></pre>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 2</div>
+        <div class="step-title">Create your Apps Script project</div>
+        <p>Creates a new script in your Google account and links it locally.</p>
+        <pre><code>clasp create --type standalone --title "Gmail Spam Detector"
+clasp push</code></pre>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 3</div>
+        <div class="step-title">Run setup()</div>
+        <p>Open the script in your browser, select the <code>setup</code> function, and click Run. This creates the <code>SpamChecked</code> label in Gmail and initializes domain lists in Script Properties. Required once.</p>
+        <pre><code>clasp open   # opens script.google.com
+# Select setup() → Run</code></pre>
+      </div>
+      <div class="step">
+        <div class="step-num">Step 4</div>
+        <div class="step-title">Set the time trigger</div>
+        <p>In the Apps Script editor: Triggers → Add Trigger → processInbox → Time-driven → Minutes timer → Every 15 minutes. The trigger fires automatically from here on. No cron, no server.</p>
+      </div>
+    </div>
+    <h3>Manual paste (no clasp)</h3>
+    <div class="install-grid">
+      <div class="install-opt">
+        <div class="install-label">script.google.com <span class="badge">simpler</span></div>
+        <p class="opt-note" style="margin:0 0 8px">Create a new project, delete the placeholder function, paste the full contents of <code>SpamDetector.gs</code> from GitHub, then follow steps 3–4 above.</p>
+        <a href="https://github.com/gfreedman/gmail-spam-detector/blob/main/SpamDetector.gs" target="_blank" rel="noopener" style="font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;">View SpamDetector.gs on GitHub ↗</a>
+      </div>
+    </div>
+    <p class="note">Required Gmail scopes: <code>gmail.modify</code>, <code>gmail.labels</code>, <code>mail.google.com</code>, <code>drive</code>, <code>spreadsheets</code>. Google prompts for authorization on first run.</p>
+  </div>
+</section>
+
+<!-- ── Safety ──────────────────────────────────────────────────────────── -->
+<section id="safety">
+  <div class="wrap">
+    <h2>Safety</h2>
+    <p>The script permanently deletes email, which is irreversible. These safeguards are why false positives on the 17-email ham corpus are zero — and why they should stay there.</p>
+    <ul class="safety-list">
+      <li>Every email is labeled <code>SpamChecked</code> before any action — prevents reprocessing the same message on the next run</li>
+      <li>Spam is reported to Gmail via <code>GmailApp</code> before deletion — trains Gmail's own Bayesian filter with your feedback</li>
+      <li>Rules 1–3 require bulk email infrastructure as a prerequisite — personal senders are structurally excluded from most rules</li>
+      <li>Domain whitelist bypasses detection entirely for known-good bulk senders (Substack, LinkedIn, your bank)</li>
+      <li>Per-message try/catch — one email that throws an error doesn't abort the run or affect other messages</li>
+      <li>50 emails per run cap — prevents the Apps Script 6-minute execution timeout under heavy backlog</li>
+      <li>5 MB size cap — emails over 5 MB are skipped rather than processing potentially problematic large payloads</li>
+      <li>LockService guard — concurrent trigger invocations skip rather than queue, preventing execution pile-up</li>
+      <li>Input sanitized to 100 KB before pattern matching — prevents ReDoS on adversarially crafted subjects</li>
+      <li>False negative auto-recheck — emails cleared in the last 2 days are re-scored on every run; pattern fixes take effect within 15 minutes of deploy</li>
+      <li>Spam intelligence log — every deletion is written to a Google Sheet and archived as a raw EML in Drive for audit and review</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-inner">
+    Gmail Spam Detector &middot; Google Apps Script &middot; MIT license &middot;
+    <a href="https://github.com/gfreedman/gmail-spam-detector">github.com/gfreedman/gmail-spam-detector</a>
+  </div>
+</footer>
+
+<script>
+  const CLIP_ICON  = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5.5" y="1.5" width="8" height="10" rx="1.5"/><path d="M3.5 4.5h-1a1 1 0 00-1 1v8a1 1 0 001 1h8a1 1 0 001-1v-1"/></svg>`;
+  const CHECK_ICON = `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8l4 4 8-8"/></svg>`;
+
+  // Hero pill copy button
+  const pillBtn = document.querySelector('.install-pill .pill-copy');
+  if (pillBtn) {
+    pillBtn.innerHTML = CLIP_ICON;
+    pillBtn.addEventListener('click', () => {
+      const text = document.querySelector('.install-pill code').innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        pillBtn.classList.add('ok');
+        pillBtn.innerHTML = CHECK_ICON;
+        setTimeout(() => { pillBtn.classList.remove('ok'); pillBtn.innerHTML = CLIP_ICON; }, 1600);
+      });
+    });
+  }
+
+  // Copy buttons on all pre blocks outside the terminal
+  document.querySelectorAll('pre').forEach(pre => {
+    if (pre.closest('.terminal')) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'code-wrap';
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.appendChild(pre);
+
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.setAttribute('aria-label', 'Copy');
+    btn.innerHTML = CLIP_ICON;
+    wrap.appendChild(btn);
+
+    btn.addEventListener('click', () => {
+      const text = (pre.querySelector('code') || pre).innerText;
+      navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('ok');
+        btn.innerHTML = CHECK_ICON;
+        setTimeout(() => { btn.classList.remove('ok'); btn.innerHTML = CLIP_ICON; }, 1600);
+      });
+    });
+  });
+</script>
+</body>
+</html>

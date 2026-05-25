@@ -1,5 +1,7 @@
 # Gmail Spam Detector - Pattern-Based Detection
 
+**[📖 Documentation](https://gfreedman.github.io/gmail-spam-detector/)** &nbsp;·&nbsp; Google Apps Script &nbsp;·&nbsp; MIT license
+
 A Google Apps Script that catches spam Gmail misses using behavioral pattern detection instead of keyword matching or domain blacklists.
 
 ## 🎯 The Problem

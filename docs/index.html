@@ -978,12 +978,12 @@ clasp push</code></pre>
 <section id="dataset">
   <div class="wrap">
     <h2>Building a Training Dataset</h2>
-    <p>Pattern-based detection is precise and auditable, but hand-written rules hit a ceiling. The spam intelligence log isn't just an audit trail — it's a labeled training corpus that grows automatically with every run.</p>
+    <p>Pattern-based detection is precise and auditable, but hand-written rules hit a ceiling. The spam intelligence log isn't just an audit trail — it's a labeled training corpus that grows automatically with every run, targeting 1,000 examples as the threshold for training a lightweight classifier.</p>
 
     <div class="dataset-stats">
-      <div class="stat-chip">51 confirmed spam</div>
+      <div class="stat-chip">250+ confirmed spam (and growing)</div>
       <div class="stat-chip">17 curated ham</div>
-      <div class="stat-chip">growing with every run</div>
+      <div class="stat-chip">goal: 1,000 labeled examples</div>
     </div>
 
     <h3>The signal object is already a feature vector</h3>
@@ -1000,7 +1000,7 @@ clasp push</code></pre>
     <p>Spam the script misses and you manually flag via the <code>SpamMissed</code> label is archived under <code>Spam Intelligence/False Negatives/</code> with <code>Log Type = FALSE_NEGATIVE</code>. These are the hard examples — the ones that fooled the current rules — and they're the most valuable training signal for a future classifier.</p>
 
     <h3>Path to ML</h3>
-    <p>At roughly 1,000 labeled examples, the corpus is large enough to train a lightweight classifier (logistic regression or gradient boosting on the 8-signal vector). The rule-based system would continue as a high-precision first pass; the classifier handles edge cases that require subtle combinations the rules don't cover. The intelligence log is already structured for that handoff.</p>
+    <p>At 1,000 labeled examples — roughly where the corpus is headed — it's large enough to train a lightweight classifier (logistic regression or gradient boosting on the 8-signal vector). The rule-based system stays as a high-precision first pass; the classifier handles edge cases that require subtle signal combinations the rules don't cover. The intelligence log is already structured for that handoff.</p>
   </div>
 </section>
 

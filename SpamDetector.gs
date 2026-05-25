@@ -35,7 +35,11 @@
  *            framing ("payback time", "now it's time"). Blacklist
  *            economicrulebook.com. Together these fire Rule 2 (bulk + 2
  *            clickbait) and Rule 1 (bulk + blacklist) on "America Was Ripped
- *            Off for 50 Years – Now It's Payback Time" class emails.
+ *            Off for 50 Years – Now It's Payback Time" class emails. Also add
+ *            BODY_UNICODE_PATTERNS — Cyrillic/Greek/fullwidth/math-alphanumeric
+ *            check against the email body (Signal 2c). Previously these Unicode
+ *            obfuscation patterns only fired on subject+from; spammers evade
+ *            that by embedding obfuscated text in HTML body anchors.
  *   v6.38.1: Fix logging for Rule 6. getRuleFromSignals() and buildSignalsCsv()
  *            were not updated when Rule 6 was added — phishing emails logged
  *            Rule=NONE, empty signals, and Log Type=SPAM_DETECTED. Now logs
@@ -467,6 +471,22 @@ const CLICKBAIT_PATTERNS = Object.freeze([
 const BODY_CRYPTO_PATTERNS = Object.freeze([
   /\bairdrop\b/i,                   // Crypto token airdrop
   /\bconnect\s+(your\s+)?wallet\b/i // "Connect your wallet" — wallet drainer
+]);
+
+/**
+ * Unicode obfuscation patterns checked against the email body.
+ * The same patterns appear in CLICKBAIT_PATTERNS for subject+from coverage.
+ * Separate body check is needed because spammers hide obfuscated text inside
+ * HTML (e.g. "Сⅼіϲkhеrе" in a body anchor tag) while keeping the subject clean
+ * to avoid naive keyword filters. One match → +1 clickbaitCount (break after
+ * first hit — all four detect the same evasion technique, not independent signals).
+ * @const {Array<RegExp>}
+ */
+const BODY_UNICODE_PATTERNS = Object.freeze([
+  /[Ѐ-ӿ]/, // Cyrillic lookalikes: "Еlоn" with Cyrillic Е, о
+  /[Ͱ-Ͽ]/, // Greek lookalikes: "Βanks" with Greek Β
+  /[＀-￯]/, // Fullwidth chars: "＄2 Bill" — never legit in English
+  /\uD835/           // Mathematical alphanumeric surrogate (𝗔𝗺𝗮𝘇𝗼𝗻)
 ]);
 
 /**
@@ -1153,6 +1173,21 @@ function collectSignals(message)
     if (BODY_CRYPTO_PATTERNS[i].test(body))
     {
       signals.clickbaitCount++;
+    }
+  }
+
+  // ── Signal 2c: Unicode obfuscation in body ──────────────────────────────
+  // Spammers hide obfuscated "click here" text inside HTML while keeping the
+  // subject clean (e.g. body anchor contains "Сⅼіϲkhеrе" in Cyrillic).
+  // Subject+from already checked in Signal 2 — this catches body-only evasion.
+  // Break after first match: all four patterns detect the same technique, so
+  // counting them independently would over-inflate clickbaitCount.
+  for (let i = 0; i < BODY_UNICODE_PATTERNS.length; i++)
+  {
+    if (BODY_UNICODE_PATTERNS[i].test(body))
+    {
+      signals.clickbaitCount++;
+      break;
     }
   }
 

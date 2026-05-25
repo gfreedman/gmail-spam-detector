@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.38.1
+ * @version 6.39.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -28,6 +28,14 @@
  *   Rule 6: Cloud service notification subject from non-service sender → phishing
  *
  * Changelog (see git log for full history):
+ *   v6.39.0: Catch political-financial scam miss (economicrulebook.com). Add
+ *            iterable.com to BULK_EMAIL_FINGERPRINTS (Iterable marketing
+ *            platform). Add two clickbait patterns: political-looting narrative
+ *            ("ripped off", "looted", "robbed", "bilked") and payback/revenge
+ *            framing ("payback time", "now it's time"). Blacklist
+ *            economicrulebook.com. Together these fire Rule 2 (bulk + 2
+ *            clickbait) and Rule 1 (bulk + blacklist) on "America Was Ripped
+ *            Off for 50 Years – Now It's Payback Time" class emails.
  *   v6.38.1: Fix logging for Rule 6. getRuleFromSignals() and buildSignalsCsv()
  *            were not updated when Rule 6 was added — phishing emails logged
  *            Rule=NONE, empty signals, and Log Type=SPAM_DETECTED. Now logs
@@ -193,7 +201,8 @@ const DEFAULT_DOMAINS = Object.freeze({
     'frontiercapitalreport.com',
     'morningstockadviser',
     '1stamericanpath.com',
-    'finrisex.com'
+    'finrisex.com',
+    'economicrulebook.com'
   ])
 });
 
@@ -439,7 +448,15 @@ const CLICKBAIT_PATTERNS = Object.freeze([
 
   // Income opportunity lures: "second income", "passive income", "extra income"
   // Classic financial spam framing — promises of easy additional money
-  /\b(second|extra|side|passive|additional|supplemental)\s+income\b/i
+  /\b(second|extra|side|passive|additional|supplemental)\s+income\b/i,
+
+  // Political looting narrative: "America was ripped off", "looted for decades"
+  // Combines populist outrage framing with financial pitches (tariff rebate checks, etc.)
+  /\b(ripped off|looted|robbed|bilked)\b/i,
+
+  // Payback / revenge framing: "payback time", "now it's time", "get back what's yours"
+  // Paired with looting narrative above — the two always co-occur in this spam class
+  /\bpayback time\b|\bnow (it'?s|its) (time|payback|your turn)\b/i
 ]);
 
 /**
@@ -484,7 +501,8 @@ const BULK_EMAIL_FINGERPRINTS = Object.freeze([
   'amazonses.com', // Amazon Simple Email Service — used by many bulk senders
   'x-ses-',        // Amazon SES custom header prefix
   'sendgrid.net',  // SendGrid relay fingerprint
-  'mcsv.net'       // Mailchimp sending infrastructure
+  'mcsv.net',      // Mailchimp sending infrastructure
+  'iterable.com'   // Iterable marketing platform — CDN/tracking links appear in body
 ]);
 
 /**

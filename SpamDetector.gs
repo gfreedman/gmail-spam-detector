@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.39.0
+ * @version 6.40.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 15-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -28,6 +28,19 @@
  *   Rule 6: Cloud service notification subject from non-service sender → phishing
  *
  * Changelog (see git log for full history):
+ *   v6.40.0: Performance overhaul for 1-minute trigger intervals. Five changes:
+ *            (1) Fast-path exit — processInbox() returns after a single
+ *            GmailApp.search() when no threads are found; no label lookup,
+ *            no body fetches, no maintenance. (2) Periodic maintenance —
+ *            checkFalseNegatives(), recheckRecentSpamChecked(), and
+ *            destroySpam() run at most every 15 min via a Script Properties
+ *            timestamp instead of every invocation. (3) getMessagesForThreads()
+ *            batching — N thread.getMessages() calls collapsed to 1 batched
+ *            API call in processInbox() and recheckRecentSpamChecked().
+ *            (4) Whitelist-first in collectSignals() — sender whitelist checked
+ *            immediately after getFrom(), skipping getRawContent() for known-
+ *            good senders. (5) Domain list caching — getWhitelist()/getBlacklist()
+ *            called once per execution via _cachedWhitelist/_cachedBlacklist.
  *   v6.39.0: Catch political-financial scam miss (economicrulebook.com). Add
  *            iterable.com to BULK_EMAIL_FINGERPRINTS (Iterable marketing
  *            platform). Add two clickbait patterns: political-looting narrative
@@ -599,11 +612,6 @@ function processInbox()
     return;
   }
 
-  const startTime = Date.now();
-  let spamCount = 0;
-  let processedCount = 0;
-  let errorCount = 0;
-
   try
   {
     // Validate config before doing any work. If something is misconfigured we
@@ -611,61 +619,64 @@ function processInbox()
     // ("fail fast" — crash early with a useful message instead of limping along).
     validateConfig();
 
-    // Get or create the "SpamChecked" label used to track processed emails
-    const label = getOrCreateLabel(CONFIG.processedLabel);
+    // Single search call — the only API call on the fast path when inbox is clean.
+    const threads = GmailApp.search(buildSearchQuery(), 0, CONFIG.maxEmailsPerRun);
 
-    // Build Gmail search query: inbox emails from the last N days without the label
-    const searchQuery = buildSearchQuery();
-    logInfo('Search query: ' + searchQuery);
-
-    // Fetch up to maxEmailsPerRun threads matching the query
-    const threads = GmailApp.search(searchQuery, 0, CONFIG.maxEmailsPerRun);
-    logInfo('Found ' + threads.length + ' threads to process');
-
-    // Process each thread independently — per-thread try/catch ensures one
-    // bad email doesn't abort the entire batch
-    for (let i = 0; i < threads.length; i++)
+    if (threads.length > 0)
     {
-      try
+      logInfo('Found ' + threads.length + ' threads to process');
+      const startTime = Date.now();
+      let spamCount    = 0;
+      let processedCount = 0;
+      let errorCount   = 0;
+
+      // Deferred label lookup — skipped entirely on empty-inbox runs.
+      const label = getOrCreateLabel(CONFIG.processedLabel);
+
+      // Batch-fetch all thread messages in one API call instead of N
+      // separate thread.getMessages() calls — the dominant cost when
+      // processing multiple threads per run.
+      const allMessages = GmailApp.getMessagesForThreads(threads);
+
+      for (let i = 0; i < threads.length; i++)
       {
-        const thread = threads[i];
-        const result = processThread(thread);
-
-        spamCount += result.spamCount;
-        processedCount += result.processedCount;
-
-        // Label thread as processed so it won't be re-scanned next run.
-        // Skip if the thread was spam — it's been permanently deleted and
-        // addLabel() on a deleted thread throws "Not found".
-        if (result.spamCount === 0)
+        try
         {
-          thread.addLabel(label);
+          const thread = threads[i];
+          const result = processThread(thread, allMessages[i]);
+
+          spamCount      += result.spamCount;
+          processedCount += result.processedCount;
+
+          // Skip label on deleted threads — addLabel() throws "Not found"
+          // on a thread that was permanently deleted by markAsSpam().
+          if (result.spamCount === 0)
+          {
+            thread.addLabel(label);
+          }
+        }
+        catch (threadError)
+        {
+          errorCount++;
+          logError('Error processing thread: ' + threadError.toString());
         }
       }
-      catch (threadError)
-      {
-        errorCount++;
-        logError('Error processing thread: ' + threadError.toString());
-        // Continue to next thread — don't let one failure stop the batch
-      }
+
+      const duration = Date.now() - startTime;
+      logInfo('Completed in ' + duration + 'ms: Processed ' + processedCount +
+              ' emails, marked ' + spamCount + ' as spam, ' + errorCount + ' errors');
     }
 
-    const duration = Date.now() - startTime;
-    logInfo('Completed in ' + duration + 'ms: Processed ' + processedCount +
-            ' emails, marked ' + spamCount + ' as spam, ' + errorCount + ' errors');
-
-    // 1. Log emails the user manually labeled SpamMissed.
-    // 2. Re-evaluate SpamChecked inbox emails from the last 2 days — catches
-    //    false negatives automatically after a pattern-fix deploy, with no
-    //    manual labeling required.
-    // 3. Flush all accumulated log entries to Drive + Sheets.
-    checkFalseNegatives();
-    recheckRecentSpamChecked();
+    // Flush log entries from email processing (no-op when nothing was detected).
     flushSpamLog();
 
-    // Safety-net pass: clean pre-existing spam + any messages where
-    // the immediate delete in markAsSpam() failed
-    destroySpam();
+    // Maintenance runs at most every 15 minutes regardless of per-minute
+    // email activity — avoids burning quota on housekeeping every invocation.
+    // May queue additional log entries (false negatives, rechecked spam).
+    runPeriodicMaintenance();
+
+    // Second flush picks up any entries queued by maintenance.
+    flushSpamLog();
   }
   catch (error)
   {
@@ -909,13 +920,14 @@ function destroySpam()
  * @param {GmailThread} thread - The Gmail thread to process.
  * @return {Object} Object with {spamCount, processedCount} statistics.
  */
-function processThread(thread)
+function processThread(thread, messages)
 {
   let spamCount = 0;
   let processedCount = 0;
   let threadMarkedAsSpam = false;
 
-  const messages = thread.getMessages();
+  // messages is pre-fetched by processInbox() via GmailApp.getMessagesForThreads()
+  // — collapses N individual thread.getMessages() HTTP calls into one batch call.
 
   // Process all messages in the thread
   for (let i = 0; i < messages.length; i++)
@@ -1060,28 +1072,19 @@ function isBulkEmail(rawContent)
  */
 function collectSignals(message)
 {
-  // ── Extract email fields ────────────────────────────────────────────────
-  const subject = sanitizeInput(message.getSubject());
-  // Fall back to HTML-stripped body if plain body is empty (HTML-only emails).
-  // Without this fallback, BODY_CRYPTO_PATTERNS would silently never fire on
-  // messages that have no text/plain part.
-  const plainBody = message.getPlainBody();
-  const body = sanitizeInput(plainBody || stripHtmlTags(message.getBody()));
-  // Normalize RFC 2822 quoted display names: "Name" <email> → Name <email>
-  // See RFC2822_QUOTED_NAME constant for regex anatomy.
+  // ── Whitelist check first — before any expensive field fetch ────────────
+  // getFrom() is cheap (metadata from cached search results). getRawContent()
+  // is an expensive separate HTTP download of the full RFC 822 message.
+  // Checking the whitelist immediately means whitelisted senders (LinkedIn,
+  // GitHub, Stripe, etc.) never trigger a raw message download.
+  // IMPORTANT: match against the extracted email address only, not the full
+  // From string — prevents display-name spoofing such as:
+  //   "LinkedIn News <spammer@spam.com>" bypassing the whitelist check.
   const from = sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2');
-  const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
-
-  // ── Whitelist check (early exit) ────────────────────────────────────────
-  // Known legitimate senders skip all detection — prevents false positives
-  // on services like LinkedIn, Substack, etc. that use bulk infrastructure.
-  // IMPORTANT: match against the email address only, not the full From string.
-  // Matching the full string would allow display-name spoofing:
-  //   "LinkedIn News <spammer@spam.com>" would incorrectly bypass detection
-  //   if "linkedin" appeared in the display name.
-  const whitelist = getWhitelist();
   const fromLower = from.toLowerCase();
   const senderAddress = extractEmailAddress(from);
+
+  const whitelist = getCachedWhitelist();
   for (let i = 0; i < whitelist.length; i++)
   {
     if (senderAddress.includes(whitelist[i]))
@@ -1090,6 +1093,15 @@ function collectSignals(message)
       return null; // null = whitelisted, skip all detection
     }
   }
+
+  // ── Extract remaining fields (only reached for non-whitelisted senders) ─
+  const subject = sanitizeInput(message.getSubject());
+  // Fall back to HTML-stripped body if plain body is empty (HTML-only emails).
+  // Without this fallback, BODY_CRYPTO_PATTERNS would silently never fire on
+  // messages that have no text/plain part.
+  const plainBody = message.getPlainBody();
+  const body = sanitizeInput(plainBody || stripHtmlTags(message.getBody()));
+  const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
 
   // ── Initialize signal accumulators ───────────────────────────────────────
   // Each detection phase below populates one signal. makeVerdict() combines
@@ -1123,7 +1135,7 @@ function collectSignals(message)
   // One match is enough — these domains have no legitimate use.
   // Match against the extracted email address only (not the display name) for
   // the same reason as the whitelist check above — prevents spoofing both ways.
-  const blacklist = getBlacklist();
+  const blacklist = getCachedBlacklist();
   for (let i = 0; i < blacklist.length; i++)
   {
     if (senderAddress.includes(blacklist[i]))
@@ -1797,6 +1809,28 @@ function getBlacklist()
 }
 
 /**
+ * Cached wrapper for getWhitelist() — reads Script Properties once per execution.
+ * Domain lists don't change mid-run; caching avoids redundant JSON.parse +
+ * array-merge work when processing many emails per invocation.
+ * @return {Array<string>}
+ */
+function getCachedWhitelist()
+{
+  if (_cachedWhitelist === null) _cachedWhitelist = getWhitelist();
+  return _cachedWhitelist;
+}
+
+/**
+ * Cached wrapper for getBlacklist() — reads Script Properties once per execution.
+ * @return {Array<string>}
+ */
+function getCachedBlacklist()
+{
+  if (_cachedBlacklist === null) _cachedBlacklist = getBlacklist();
+  return _cachedBlacklist;
+}
+
+/**
  * Add a domain to the whitelist (emails from this domain bypass detection).
  *
  * Duplicate-safe: silently skips if the domain is already in the list.
@@ -2027,6 +2061,16 @@ const SPAM_MISSED_LABEL = 'SpamMissed';
 let _pendingLogEntries = [];
 
 /**
+ * Per-execution caches for domain lists. Populated on first access via
+ * getCachedWhitelist() / getCachedBlacklist(); never mutated mid-run.
+ * Apps Script re-initializes all module-level vars on each trigger invocation,
+ * so no manual reset is needed between runs.
+ * @type {Array<string>|null}
+ */
+let _cachedWhitelist = null;
+let _cachedBlacklist = null;
+
+/**
  * One-time setup for spam intelligence logging.
  *
  * Creates:
@@ -2120,6 +2164,32 @@ function setupLogging()
 }
 
 /**
+ * Run housekeeping tasks at most once every 15 minutes.
+ *
+ * At 1-minute trigger intervals, most invocations find no new emails.
+ * Running checkFalseNegatives(), recheckRecentSpamChecked(), and destroySpam()
+ * on every invocation would burn ~4 API calls/min (5,760/day) on work that
+ * only needs 15-minute granularity. This guard reduces that to 96 calls/day —
+ * the same rate as the old 15-minute trigger.
+ *
+ * Uses Script Properties to persist the last-run timestamp across executions.
+ */
+function runPeriodicMaintenance()
+{
+  const MAINTENANCE_INTERVAL_MS = 15 * 60 * 1000;
+  const props  = PropertiesService.getScriptProperties();
+  const lastTs = parseInt(props.getProperty('LAST_MAINTENANCE_TS') || '0', 10);
+
+  if (Date.now() - lastTs < MAINTENANCE_INTERVAL_MS) return;
+
+  logInfo('Running periodic maintenance');
+  checkFalseNegatives();
+  recheckRecentSpamChecked();
+  destroySpam();
+  props.setProperty('LAST_MAINTENANCE_TS', String(Date.now()));
+}
+
+/**
  * Scan for emails labeled "SpamMissed" by the user, log them, then delete them.
  *
  * The user labels an escaped spam email "SpamMissed" in Gmail. On the next run,
@@ -2204,14 +2274,18 @@ function recheckRecentSpamChecked()
 
     logDebug('Rechecking ' + threads.length + ' recent SpamChecked inbox email(s)');
 
+    // Batch-fetch messages for all recheck threads in one API call.
+    const allMessages = GmailApp.getMessagesForThreads(threads);
     let recaughtCount = 0;
 
     for (let i = 0; i < threads.length; i++)
     {
       try
       {
-        const thread  = threads[i];
-        const message = thread.getMessages()[0];
+        const thread   = threads[i];
+        const messages = allMessages[i];
+        if (!messages || messages.length === 0) continue;
+        const message  = messages[0];
 
         const verdict = analyzeMessage(message);
         if (!verdict.isSpam) continue;

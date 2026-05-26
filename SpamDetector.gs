@@ -917,17 +917,24 @@ function destroySpam()
  * Per-message error isolation ensures one unparseable message doesn't
  * prevent processing of other messages in the same thread.
  *
- * @param {GmailThread} thread - The Gmail thread to process.
- * @return {Object} Object with {spamCount, processedCount} statistics.
+ * @param {GmailThread}        thread   - The Gmail thread to process.
+ * @param {Array<GmailMessage>} messages - Messages pre-fetched by the caller via
+ *   GmailApp.getMessagesForThreads() — collapses N individual thread.getMessages()
+ *   HTTP calls into one batched API call at the processInbox() level.
+ * @return {{spamCount: number, processedCount: number}} Detection statistics.
  */
 function processThread(thread, messages)
 {
+  // Defensive guard: getMessagesForThreads() should always return an array, but
+  // an empty or missing result means there is nothing to process for this thread.
+  if (!messages || messages.length === 0)
+  {
+    return { spamCount: 0, processedCount: 0 };
+  }
+
   let spamCount = 0;
   let processedCount = 0;
   let threadMarkedAsSpam = false;
-
-  // messages is pre-fetched by processInbox() via GmailApp.getMessagesForThreads()
-  // — collapses N individual thread.getMessages() HTTP calls into one batch call.
 
   // Process all messages in the thread
   for (let i = 0; i < messages.length; i++)
@@ -1081,7 +1088,6 @@ function collectSignals(message)
   // From string — prevents display-name spoofing such as:
   //   "LinkedIn News <spammer@spam.com>" bypassing the whitelist check.
   const from = sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2');
-  const fromLower = from.toLowerCase();
   const senderAddress = extractEmailAddress(from);
 
   const whitelist = getCachedWhitelist();
@@ -1684,7 +1690,7 @@ function setup()
 
     logInfo('Setup complete! Now:');
     logInfo('  1. Run setupLogging() to enable spam intelligence logging (Drive + Sheets).');
-    logInfo('  2. Set up a time-based trigger: Triggers > Add Trigger > processInbox > Time-driven > Every 15 minutes');
+    logInfo('  2. Set up a time-based trigger: Triggers > Add Trigger > processInbox > Time-driven > Every 1 minute');
   }
   catch (error)
   {
@@ -2211,12 +2217,17 @@ function checkFalseNegatives()
 
     const label = GmailApp.getUserLabelByName(SPAM_MISSED_LABEL);
 
+    // Batch-fetch messages for all false-negative threads in one API call.
+    const allMessages = GmailApp.getMessagesForThreads(threads);
+
     for (let i = 0; i < threads.length; i++)
     {
       try
       {
-        const thread  = threads[i];
-        const message = thread.getMessages()[0];
+        const thread    = threads[i];
+        const messages  = allMessages[i];
+        if (!messages || messages.length === 0) continue;
+        const message   = messages[0];
 
         let signals = null;
         try { signals = collectSignals(message); }
@@ -2252,14 +2263,15 @@ function checkFalseNegatives()
  * fix deployed) are permanently excluded from the normal scan. They sit in the
  * inbox until the user notices and manually labels them SpamMissed.
  *
- * This function closes that gap automatically. On every trigger run it re-checks
- * inbox emails carrying SpamChecked from the last RECHECK_DAYS days. If any now
- * score as spam under the updated patterns, they are logged as FALSE_NEGATIVE and
- * permanently deleted — identical treatment to a manually labeled SpamMissed email.
+ * This function closes that gap automatically. It runs every 15 minutes via
+ * runPeriodicMaintenance(), re-checking inbox emails carrying SpamChecked from the
+ * last RECHECK_DAYS days. Any that now score as spam under updated patterns are
+ * logged as FALSE_NEGATIVE and permanently deleted — identical treatment to a
+ * manually labeled SpamMissed email.
  *
- * Performance: capped at RECHECK_LIMIT emails per run. analyzeMessage() averages
- * ~2ms per email in GAS, so 20 emails adds ~40ms — negligible vs. the 6-min budget.
- * getRawContent() is called once per email (needed for bulk-email detection).
+ * Performance: capped at RECHECK_LIMIT emails per run. Messages are batch-fetched
+ * via getMessagesForThreads() (one API call for all threads). analyzeMessage()
+ * averages ~2ms per email in GAS, so 20 emails adds ~40ms — negligible vs. budget.
  */
 function recheckRecentSpamChecked()
 {

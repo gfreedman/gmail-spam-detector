@@ -2,7 +2,7 @@
  * Gmail Spam Detector - Google Apps Script
  * @version 6.40.0
  *
- * Automated spam detection and destruction for Gmail. Runs on a 15-minute
+ * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
  * applying a multi-signal pattern detection engine.
  *
@@ -590,12 +590,12 @@ const CLOUD_SERVICE_DOMAINS = Object.freeze([
 /**
  * Main entry point — scan inbox and process unprocessed emails.
  *
- * Should be configured as a time-driven trigger running every 15 minutes.
+ * Should be configured as a time-driven trigger running every 1 minute.
  * Processes up to CONFIG.maxEmailsPerRun emails per invocation, with
  * per-thread error isolation so one bad email doesn't abort the entire run.
  *
- * After processing, calls destroySpam() as a safety net to clean any
- * pre-existing spam or messages where immediate deletion failed.
+ * Housekeeping (destroySpam, recheckRecentSpamChecked, checkFalseNegatives)
+ * runs via runPeriodicMaintenance() on a 15-minute cadence, not every invocation.
  *
  * @throws {Error} Re-throws critical errors (e.g., auth failures) so trigger
  *                 failures are visible in Apps Script dashboard.
@@ -1669,7 +1669,7 @@ function logError(message)
  * initialize Script Properties with default domain lists.
  *
  * After running, set up a time-driven trigger:
- *   Triggers > Add Trigger > processInbox > Time-driven > Every 15 minutes
+ *   Triggers > Add Trigger > processInbox > Time-driven > Every 1 minute
  *
  * @throws {Error} If configuration validation or label creation fails.
  */

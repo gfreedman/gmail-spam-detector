@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gmail Spam Detector — Pattern-based spam deletion for Gmail</title>
-  <meta name="description" content="A Google Apps Script that automatically deletes the clickbait newsletters and investment scams Gmail's filters miss. Pattern-based detection, running every 15 minutes in your own Google account — and building a labeled training corpus for future ML.">
+  <meta name="description" content="A Google Apps Script that automatically deletes the clickbait newsletters and investment scams Gmail's filters miss. Pattern-based detection, running every minute in your own Google account — and building a labeled training corpus for future ML.">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -725,7 +725,7 @@
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 1h5v5M6 10L15 1M8 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V8"/></svg>
           Open script.google.com ↗
         </a>
-        <p class="hero-card-desc">Paste SpamDetector.gs, run <code>setup()</code>, add a 15-minute time trigger. No server. No subscription.</p>
+        <p class="hero-card-desc">Paste SpamDetector.gs, run <code>setup()</code>, add a 1-minute time trigger. No server. No subscription.</p>
       </div>
     </div>
   </div>
@@ -735,7 +735,7 @@
 <section id="how-it-works">
   <div class="wrap">
     <h2>How it works</h2>
-    <p>A time-driven Apps Script trigger fires every 15 minutes. Each run searches your entire inbox — Primary, Updates, Promotions, Social, and Forums tabs — for email that hasn't been checked yet. Each message is analyzed independently. Nothing changes until the verdict is in.</p>
+    <p>A time-driven Apps Script trigger fires every minute. Each run searches your entire inbox — Primary, Updates, Promotions, Social, and Forums tabs — for email that hasn't been checked yet. Each message is analyzed independently. Nothing changes until the verdict is in.</p>
     <div class="steps">
       <div class="step">
         <div class="step-num">Step 1</div>
@@ -983,7 +983,7 @@ clasp push</code></pre>
       <div class="step">
         <div class="step-num">Step 4</div>
         <div class="step-title">Set the time trigger</div>
-        <p>In the Apps Script editor: Triggers → Add Trigger → processInbox → Time-driven → Minutes timer → Every 15 minutes. The trigger fires automatically from here on. No cron, no server.</p>
+        <p>In the Apps Script editor: Triggers → Add Trigger → processInbox → Time-driven → Minutes timer → Every 1 minute. The trigger fires automatically from here on. No cron, no server.</p>
       </div>
     </div>
     <h3>Manual paste (no clasp)</h3>

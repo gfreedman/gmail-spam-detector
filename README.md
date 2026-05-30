@@ -35,8 +35,8 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 ## 📊 Results
 
-- ✅ **100% detection** on 51/51 spam + 1/1 scam (.eml files)
-- ✅ **0% false positives** on 17/17 legitimate emails
+- ✅ **100% detection** on 51/51 spam + 2/2 scam (.eml files)
+- ✅ **0% false positives** on 19/19 legitimate emails
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Clean, maintainable code** (~120 lines of detection logic)
 
@@ -272,8 +272,8 @@ addToWhitelist('domain.com');
 ├── tests/
 │   ├── test_spam_detector.py    # Python test suite
 │   ├── spam_examples/           # Real spam .eml files (51)
-│   ├── scam_examples/           # Scam .eml files — attachment-based (1)
-│   └── ham_examples/            # Legitimate .eml files (17)
+│   ├── scam_examples/           # Scam .eml files (2)
+│   └── ham_examples/            # Legitimate .eml files (19)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

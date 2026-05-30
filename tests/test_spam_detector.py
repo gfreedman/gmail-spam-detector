@@ -326,6 +326,7 @@ def _load_gs_constants(gs_path):
     return {
         'CLICKBAIT_PATTERNS':           _load_regex_array(source, 'CLICKBAIT_PATTERNS'),
         'BODY_CRYPTO_PATTERNS':         _load_regex_array(source, 'BODY_CRYPTO_PATTERNS'),
+        'BODY_FEAR_PATTERNS':           _load_regex_array(source, 'BODY_FEAR_PATTERNS'),
         'FEAR_PATTERNS':                _load_regex_array(source, 'FEAR_PATTERNS'),
         'MARKETING_PATTERNS':           _load_regex_array(source, 'MARKETING_PATTERNS'),
         'BULK_EMAIL_FINGERPRINTS':      _load_string_array(source, 'BULK_EMAIL_FINGERPRINTS'),
@@ -354,6 +355,7 @@ except Exception as _e:
 
 CLICKBAIT_PATTERNS              = _gs['CLICKBAIT_PATTERNS']
 BODY_CRYPTO_PATTERNS            = _gs['BODY_CRYPTO_PATTERNS']
+BODY_FEAR_PATTERNS              = _gs['BODY_FEAR_PATTERNS']
 FEAR_PATTERNS                   = _gs['FEAR_PATTERNS']
 MARKETING_PATTERNS              = _gs['MARKETING_PATTERNS']
 BULK_EMAIL_FINGERPRINTS         = _gs['BULK_EMAIL_FINGERPRINTS']
@@ -595,6 +597,14 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         if pattern.search(body):
             signals['clickbait_count'] += 1
             signals['matched_patterns'].append(f'body_crypto[{i}]')
+
+    # ── Signal: Body fear patterns ─────────────────────────────────────────
+    # Phishing-specific conditional-fear phrases in body ("could be compromised").
+    # Each match increments clickbait_count (same pool as BODY_CRYPTO).
+    for i, pattern in enumerate(BODY_FEAR_PATTERNS):
+        if pattern.search(body):
+            signals['clickbait_count'] += 1
+            signals['matched_patterns'].append(f'body_fear[{i}]')
 
     # ── Signal: Fear-mongering (boolean, first match wins) ─────────────────
     # Only need to know if fear is present, not how many patterns match

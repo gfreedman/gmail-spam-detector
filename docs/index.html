@@ -705,8 +705,8 @@
     <h1>Gmail Spam<br>Detector</h1>
     <p class="tagline">Gmail's filter is a Bayesian classifier trained on billions of emails. It's exceptional at catching messages that look like spam. The polished investment newsletters and fear-mongering "health alerts" don't look like spam. This catches them instead — by targeting the behaviors spammers can't change.</p>
     <div class="trust-chips">
-      <span class="trust-chip">100% detection on 51-email test corpus</span>
-      <span class="trust-chip">0% false positives on 17 ham emails</span>
+      <span class="trust-chip">100% detection on 53-email test corpus</span>
+      <span class="trust-chip">0% false positives on 19 ham emails</span>
       <span class="trust-chip">Runs in your Google account</span>
       <span class="trust-chip">Open source · MIT license</span>
     </div>
@@ -867,7 +867,7 @@
       <div class="card">
         <span class="card-icon">💎</span>
         <div class="card-title">Crypto scam body patterns</div>
-        <div class="card-body">High-confidence terms that almost never appear in legitimate email bodies: "airdrop" and "connect your wallet." Checked against the full body text, not just headers, because crypto scam copy is rarely in the subject line.</div>
+        <div class="card-body">High-confidence terms that almost never appear in legitimate email bodies: "airdrop," "connect your wallet," "hardware wallet," and conditional-fear phrases like "your access could be compromised." Checked against the full body, not just headers, because phishing copy is rarely in the subject line.</div>
       </div>
       <div class="card">
         <span class="card-icon">⚠️</span>
@@ -1039,7 +1039,7 @@ clasp push</code></pre>
     <p>That 8-dimensional vector is the input a classifier needs. The rule-based system generates the label. High-precision rules produce high-precision training labels — the thing that matters most when training on a small corpus.</p>
 
     <h3>Spam and ham stay separate</h3>
-    <p>Detected spam is archived under <code>Spam Intelligence/Detected/</code> and logged as spam in the Sheet. The 17 ham examples in <code>tests/ham_examples/</code> are a fixed hold-out set — never mixed into training — used only to validate that pattern changes don't create false positives. That separation maps directly to the train/test split you'd use in supervised learning.</p>
+    <p>Detected spam is archived under <code>Spam Intelligence/Detected/</code> and logged as spam in the Sheet. The 19 ham examples in <code>tests/ham_examples/</code> are a fixed hold-out set — never mixed into training — used only to validate that pattern changes don't create false positives. That separation maps directly to the train/test split you'd use in supervised learning.</p>
 
     <h3>False negatives are labeled too</h3>
     <p>Spam the script misses and you manually flag via the <code>SpamMissed</code> label is archived under <code>Spam Intelligence/False Negatives/</code> with <code>Log Type = FALSE_NEGATIVE</code>. These are the hard examples — the ones that fooled the current rules — and they're the most valuable training signal for a future classifier.</p>

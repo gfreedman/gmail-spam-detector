@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.40.0
+ * @version 6.41.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -28,6 +28,21 @@
  *   Rule 6: Cloud service notification subject from non-service sender → phishing
  *
  * Changelog (see git log for full history):
+ *   v6.41.0: Catch hardware-wallet phishing missed via legit SurveyMonkey
+ *            sending infra ("🔐 System Configuration Notice" template).
+ *            Three additions: (1) 🔐 added to clickbait emoji cluster — phishing
+ *            "security notice" decoration that legit 2FA/security mail (Google,
+ *            Apple, GitHub) does not lead with. (2) Two new BODY_CRYPTO_PATTERNS:
+ *            \bhardware wallet\b and a tight wallet/firmware "manual update"
+ *            phrase (deliberately excludes "device" to avoid FP on legit Apple/
+ *            IT iOS-update mail). (3) New BODY_FEAR_PATTERNS array (Signal 2b2)
+ *            for phishing-specific conditional-fear body phrases — "your access
+ *            could be compromised". Legit security alerts use definitive past
+ *            tense ("was compromised"); conditional future ("could be") is the
+ *            phishing tell. Each match increments clickbaitCount. Together fire
+ *            Rule 4 (3+ clickbait) regardless of whether SurveyMonkey infra is
+ *            bulk-detected. Added ham FP guards: Apple iOS update notice +
+ *            Google 2FA setup (subject decorated with 🔐).
  *   v6.40.0: Performance overhaul for 1-minute trigger intervals. Five changes:
  *            (1) Fast-path exit — processInbox() returns after a single
  *            GmailApp.search() when no threads are found; no label lookup,
@@ -394,7 +409,7 @@ const CLICKBAIT_PATTERNS = Object.freeze([
 
   /【.*】/,           // Japanese-style brackets (spammer formatting tactic)
   /\[.{3,}[?!]\]/,    // Square brackets with punctuation: [Like This?]
-  /💼|📸|⏯️|🚨|⚠️|📰|💰|⚡/,  // Sensationalist emoji cluster
+  /💼|📸|⏯️|🚨|⚠️|📰|💰|⚡|🔐/,  // Sensationalist emoji cluster (🔐 = phishing "security notice" decoration)
   /\?\?\?|!!!/,       // Triple punctuation (urgency tactic)
   /\u2026|\.{3,}/,    // Ellipsis dramatic pause (Unicode … or ASCII ...)
   /\bWATCH\b.*\?$/i,  // "WATCH ...?" clickbait structure
@@ -482,8 +497,28 @@ const CLICKBAIT_PATTERNS = Object.freeze([
  * @const {Array<RegExp>}
  */
 const BODY_CRYPTO_PATTERNS = Object.freeze([
-  /\bairdrop\b/i,                   // Crypto token airdrop
-  /\bconnect\s+(your\s+)?wallet\b/i // "Connect your wallet" — wallet drainer
+  /\bairdrop\b/i,                    // Crypto token airdrop
+  /\bconnect\s+(your\s+)?wallet\b/i, // "Connect your wallet" — wallet drainer
+  /\bhardware\s+wallet\b/i,          // Hardware wallet phishing lure (Ledger/Trezor drainer)
+  // Wallet/firmware "manual update" lure. "device" deliberately excluded —
+  // legit Apple/Google/IT mail uses "update your device" routinely. Gating
+  // on wallet/firmware/Ledger/Trezor keeps this crypto-scoped.
+  /\b(?:manually\s+)?update\s+(?:your\s+)?(?:hardware\s+)?(?:wallet|firmware|ledger|trezor)\b/i
+]);
+
+/**
+ * Body-only fear patterns — phishing-specific phrases that read as fear in
+ * email body copy. Separate from FEAR_PATTERNS (which checks subject + from)
+ * because legitimate transactional senders write fear-adjacent phrases in the
+ * subject all the time ("Security alert", "Action required") but the
+ * conditional-future framing "X could be compromised if Y" is a phishing
+ * fingerprint — legit security alerts say "X was compromised" (definitive,
+ * past tense), not "X could be compromised" (conditional, pressure tactic).
+ * Each match increments clickbaitCount (same semantics as BODY_CRYPTO_PATTERNS).
+ * @const {Array<RegExp>}
+ */
+const BODY_FEAR_PATTERNS = Object.freeze([
+  /\b(?:access|account|wallet|funds|assets|identity|device)\s+(?:could|may|might)\s+be\s+compromised\b/i
 ]);
 
 /**
@@ -1190,6 +1225,19 @@ function collectSignals(message)
   for (let i = 0; i < BODY_CRYPTO_PATTERNS.length; i++)
   {
     if (BODY_CRYPTO_PATTERNS[i].test(body))
+    {
+      signals.clickbaitCount++;
+    }
+  }
+
+  // ── Signal 2b2: Body fear patterns ──────────────────────────────────────
+  // Phishing-specific fear phrases like "your access could be compromised".
+  // FEAR_PATTERNS only check subject+from, missing scams that keep the subject
+  // bland (e.g. "System Configuration Notice") and put fear in the body.
+  // Each match increments clickbaitCount (same as BODY_CRYPTO_PATTERNS).
+  for (let i = 0; i < BODY_FEAR_PATTERNS.length; i++)
+  {
+    if (BODY_FEAR_PATTERNS[i].test(body))
     {
       signals.clickbaitCount++;
     }

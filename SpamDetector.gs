@@ -19,7 +19,7 @@
  *   2. markAsSpam()   — report to Gmail (trains filters) + immediately delete by ID
  *   3. destroySpam()  — safety-net sweep of spam folder for stragglers
  *
- * Decision logic (5 rules, evaluated in priority order — first match wins):
+ * Decision logic (6 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
  *   Rule 2: Bulk email + 2+ clickbait patterns → spam
  *   Rule 3: Bulk email + 2+ distinct spam behaviors → spam
@@ -35,7 +35,7 @@
  *            Apple, GitHub) does not lead with. (2) Two new BODY_CRYPTO_PATTERNS:
  *            \bhardware wallet\b and a tight wallet/firmware "manual update"
  *            phrase (deliberately excludes "device" to avoid FP on legit Apple/
- *            IT iOS-update mail). (3) New BODY_FEAR_PATTERNS array (Signal 2b2)
+ *            IT iOS-update mail). (3) New BODY_FEAR_PATTERNS array (Signal 2c)
  *            for phishing-specific conditional-fear body phrases — "your access
  *            could be compromised". Legit security alerts use definitive past
  *            tense ("was compromised"); conditional future ("could be") is the
@@ -65,7 +65,7 @@
  *            clickbait) and Rule 1 (bulk + blacklist) on "America Was Ripped
  *            Off for 50 Years – Now It's Payback Time" class emails. Also add
  *            BODY_UNICODE_PATTERNS — Cyrillic/Greek/fullwidth/math-alphanumeric
- *            check against the email body (Signal 2c). Previously these Unicode
+ *            check against the email body (Signal 2d). Previously these Unicode
  *            obfuscation patterns only fired on subject+from; spammers evade
  *            that by embedding obfuscated text in HTML body anchors.
  *   v6.38.1: Fix logging for Rule 6. getRuleFromSignals() and buildSignalsCsv()
@@ -1230,7 +1230,7 @@ function collectSignals(message)
     }
   }
 
-  // ── Signal 2b2: Body fear patterns ──────────────────────────────────────
+  // ── Signal 2c: Body fear patterns ───────────────────────────────────────
   // Phishing-specific fear phrases like "your access could be compromised".
   // FEAR_PATTERNS only check subject+from, missing scams that keep the subject
   // bland (e.g. "System Configuration Notice") and put fear in the body.
@@ -1243,7 +1243,7 @@ function collectSignals(message)
     }
   }
 
-  // ── Signal 2c: Unicode obfuscation in body ──────────────────────────────
+  // ── Signal 2d: Unicode obfuscation in body ──────────────────────────────
   // Spammers hide obfuscated "click here" text inside HTML while keeping the
   // subject clean (e.g. body anchor contains "Сⅼіϲkhеrе" in Cyrillic).
   // Subject+from already checked in Signal 2 — this catches body-only evasion.

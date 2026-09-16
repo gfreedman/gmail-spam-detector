@@ -164,7 +164,7 @@ console.log('\n=== Rule 7 (brand-mismatched CTA) must quarantine, never destroy 
   const msg = phishMessage('mPHISH');
   const thread = fakeThread([msg]);
   const destroyed = ctx.disposeDetectedMessage(msg, thread,
-    ctx.collectSignals(msg));
+    ctx.collectSignals(msg), true);
 
   const deletes = ctx.calls.filter(c => c.op === 'batchDelete');
   const spamAdds = ctx.calls.filter(c => c.op === 'modify' && c.add.indexOf('SPAM') !== -1);
@@ -189,7 +189,8 @@ console.log('\n=== Rules 1-6 must still permanently delete ===');
   const thread = fakeThread([msg]);
   const signals = ctx.collectSignals(msg);
   const rule = ctx.getRuleFromSignals(signals).rule;
-  const destroyed = ctx.disposeDetectedMessage(msg, thread, signals);
+  // archived=true simulates archiveRawEml() having stored the raw message.
+  const destroyed = ctx.disposeDetectedMessage(msg, thread, signals, true);
 
   const deletes = ctx.calls.filter(c => c.op === 'batchDelete');
   check('identified as a destructive rule (got ' + rule + ')',
@@ -198,6 +199,38 @@ console.log('\n=== Rules 1-6 must still permanently delete ===');
   check('deletes exactly one message id',
         deletes.length === 1 && deletes[0].ids.length === 1 && deletes[0].ids[0] === 'mSPAM');
   check('reports the thread as destroyed', destroyed === true);
+}
+
+console.log('\n=== No Drive archive means NO permanent delete ===');
+{
+  // The invariant that did not exist before v6.47.0. Four comments in
+  // SpamDetector.gs asserted "archived before deleting" while the Drive write
+  // actually happened AFTER the batchDelete, so an interruption in between lost
+  // the only copy. A destructive rule with no archive must now downgrade to a
+  // hold, not delete.
+  const ctx = makeCtx();
+  const msg = blacklistMessage('mNOARCH');
+  const thread = fakeThread([msg]);
+  const signals = ctx.collectSignals(msg);
+  check('rule is destructive (got ' + ctx.getRuleFromSignals(signals).rule + ')',
+        ctx.getRuleFromSignals(signals).rule === 'Rule 1');
+
+  const destroyed = ctx.disposeDetectedMessage(msg, thread, signals, false);
+  check('unarchived destructive verdict issues NO batchDelete',
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0,
+        JSON.stringify(ctx.calls));
+  check('unarchived destructive verdict reports NOT destroyed', destroyed === false);
+  check('thread is flagged SuspectedSpam for review',
+        thread.__labels.indexOf('SuspectedSpam') !== -1, JSON.stringify(thread.__labels));
+  check('it is NOT mislabelled as Phishing (a spam rule fired, not Rule 7)',
+        thread.__labels.indexOf('Phishing') === -1);
+
+  // omitted argument must behave the same as false — fail safe on a bad call
+  const ctx2 = makeCtx();
+  const msg2 = blacklistMessage('mUNDEF');
+  ctx2.disposeDetectedMessage(msg2, fakeThread([msg2]), ctx2.collectSignals(msg2));
+  check('omitting the archived argument also refuses to delete',
+        ctx2.calls.filter(c => c.op === 'batchDelete').length === 0);
 }
 
 console.log('\n=== Unidentified disposition must fail SAFE (quarantine, not delete) ===');

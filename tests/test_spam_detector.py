@@ -693,9 +693,11 @@ def _has_brand_mismatched_cta(html, sender_address):
             continue
 
         norm_text = re.sub(r'[^a-z0-9]+', '', text.lower())
-        # Bound measured on the NORMALIZED text: raw length was evadable with
-        # zero-width padding (Python \s does match U+200B, JS does not) and by
-        # ordinary verbosity — a natural 67-char label slipped through.
+        # Bound measured on the NORMALIZED text. Raw length was evadable two
+        # ways: padding with U+200B (category Cf, which neither Python nor JS
+        # \s matches, so it survived whitespace collapsing and inflated the
+        # raw count) and plain verbosity — a natural 67-char label slipped
+        # through. Counting only alphanumerics defeats both.
         if len(norm_text) > 80:
             continue
 

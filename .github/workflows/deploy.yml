@@ -30,8 +30,11 @@ on:
       - 'SpamDetector.gs'            # Main source code
       - 'appsscript.json'            # Apps Script manifest (scopes, runtime)
       - 'tests/**'                   # Test suite and .eml examples
+      - 'scripts/**'                 # patch_version.js runs IN the deploy job
+      - '.claspignore'               # Controls which files clasp uploads
       - '.github/workflows/deploy.yml'  # This workflow (so pipeline changes trigger a run)
       - 'README.md'                  # README stats are validated by CI
+      - 'docs/**'                    # docs/index.html is the published Pages site
 
 # Prevent concurrent deploys — if a new push arrives while deploying,
 # cancel the in-progress run (the newer code supersedes it anyway)
@@ -96,6 +99,11 @@ jobs:
       # version patch fails the deploy AFTER tests pass, so it is tested here.
       - name: Run version-patch tests
         run: node tests/test_patch_version.js
+
+      # Repo consistency checks (version markers, README stats, doc freshness).
+      # Previously unwired, so it silently rotted until a review ran it by hand.
+      - name: Validate repo consistency
+        run: python scripts/validate.py
 
       # Validate that README.md test result counts (e.g., "31/31", "11/11")
       # match the actual number of .eml files in the test directories.

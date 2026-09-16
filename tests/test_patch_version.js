@@ -43,6 +43,18 @@ check('output still parses as JS', (() => {
   try { new (require('vm').Script)(out); return true; } catch (e) { return false; }
 })());
 
+console.log('\n=== the two checked-in version markers must agree ===');
+// CI patches both from the commit subject, which masks drift at deploy time but
+// leaves it in the repo — and a commit subject with no version deploys whatever
+// was hand-edited. SCRIPT_VERSION going stale silently disables the
+// new-deploy maintenance trigger, so the two must match in source.
+{
+  const tag = (real.match(/^ \* @version (\S+)$/m) || [])[1];
+  const konst = (real.match(/^const SCRIPT_VERSION = '([^']*)';$/m) || [])[1];
+  check('@version (' + tag + ') agrees with SCRIPT_VERSION (' + konst + ')',
+        !!tag && tag === konst);
+}
+
 console.log('\n=== failure modes must throw, not silently no-op ===');
 const mustThrow = (desc, fn) => {
   try { fn(); check(desc, false, 'did not throw'); }

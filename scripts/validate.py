@@ -5,7 +5,7 @@ Pre-push validation — catches common commit nits before they hit CI.
 Checks:
   1. README spam/ham counts match actual .eml file counts
   2. @version in SpamDetector.gs matches latest changelog entry
-  3. README tag example contains current version
+  3. @version header and the SCRIPT_VERSION constant agree
 
 Run: python3 scripts/validate.py
 Install as git hook: ln -sf ../../scripts/validate.py .git/hooks/pre-push && chmod +x .git/hooks/pre-push
@@ -50,11 +50,32 @@ if header_ver == changelog_ver:
 else:
     fail(f'@version header ({header_vtag}) doesn\'t match latest changelog entry (v{changelog_ver})')
 
-# ── 3. README tag example contains current version ───────────────────────────
-if header_vtag in readme:
-    ok(f'README tag example contains {header_vtag}')
+# ── 3. @version header and SCRIPT_VERSION constant agree ─────────────────────
+#
+# Replaces a check that required the current version to appear in README's
+# CI/CD section. That section shows a deliberately illustrative tag example, so
+# the check failed on every release and told the reader to "update" something
+# never meant to track the version. It rotted unnoticed because nothing ran
+# this script; it is now wired into CI.
+#
+# This check matters instead: CI patches both markers from the commit subject,
+# masking drift at deploy time while leaving it in the repo, and a commit
+# subject with no version deploys whatever was hand-edited. A stale
+# SCRIPT_VERSION silently disables the new-deploy maintenance trigger.
+gs_src       = (ROOT / 'SpamDetector.gs').read_text(encoding='utf-8')
+header_match = re.search(r'^ \* @version (\S+)$', gs_src, re.M)
+const_match  = re.search(r"^const SCRIPT_VERSION = '([^']*)';$", gs_src, re.M)
+
+if not header_match:
+    fail('no " * @version X.Y.Z" line found in SpamDetector.gs')
+elif not const_match:
+    fail('no "const SCRIPT_VERSION = ..." line found in SpamDetector.gs')
+elif header_match.group(1) != const_match.group(1):
+    fail(f'@version ({header_match.group(1)}) disagrees with SCRIPT_VERSION '
+         f'({const_match.group(1)}) — a stale SCRIPT_VERSION silently disables '
+         f'the new-deploy maintenance trigger')
 else:
-    fail(f'README tag example missing {header_vtag} — update the CI/CD section in README')
+    ok(f'@version and SCRIPT_VERSION agree ({header_match.group(1)})')
 
 # ── Result ────────────────────────────────────────────────────────────────────
 print()

@@ -73,13 +73,28 @@ function makeCtx(opts) {
     },
     Gmail: {
       Users: {
+        Labels: {
+          list() { return { labels: [{ id: 'Label_PURGE', name: 'SpamDetectorPurge' },
+                                     { id: 'Label_PHISH', name: 'Phishing' }] }; },
+          create(body) { return { id: 'Label_NEW_' + body.name, name: body.name }; }
+        },
         Messages: {
           modify(body, user, id) {
             calls.push({ op: 'modify', id,
                          add: body.addLabelIds || [], rm: body.removeLabelIds || [] });
           },
           batchDelete(body) { calls.push({ op: 'batchDelete', ids: body.ids.slice() }); },
-          list() { return { messages: (opts.spamFolder || []).map(id => ({ id })) }; }
+          list(user, params) {
+            calls.push({ op: 'list', labelIds: (params.labelIds || []).slice(),
+                         q: params.q || null });
+            // Honour the label intersection the caller asked for: only messages
+            // the harness says carry every requested label come back.
+            const want = params.labelIds || [];
+            const folder = opts.spamFolder || {};
+            const ids = Object.keys(folder).filter(id =>
+              want.every(l => l === 'SPAM' || folder[id].indexOf(l) !== -1));
+            return { messages: ids.map(id => ({ id })) };
+          }
         }
       }
     },
@@ -234,20 +249,69 @@ console.log('\n=== Quarantine is terminal: repeated runs detect it exactly once 
         ctx.calls.filter(c => c.op === 'batchDelete').length === 0);
 }
 
+console.log('\n=== markAsSpam tags its own verdicts before deleting ===');
+{
+  const ctx = makeCtx();
+  const msg = blacklistMessage('mSPAM');
+  ctx.markAsSpam(msg, fakeThread([msg]));
+  const mod = ctx.calls.find(c => c.op === 'modify');
+  check('purge label applied alongside SPAM',
+        !!mod && mod.add.indexOf('Label_PURGE') !== -1 && mod.add.indexOf('SPAM') !== -1,
+        JSON.stringify(mod));
+  check('tag and spam-report happen in ONE modify call',
+        ctx.calls.filter(c => c.op === 'modify').length === 1);
+  check('tag is applied BEFORE the delete',
+        ctx.calls.findIndex(c => c.op === 'modify') <
+        ctx.calls.findIndex(c => c.op === 'batchDelete'));
+}
+
+console.log('\n=== destroySpam() sweeps ONLY what this detector condemned ===');
+{
+  // mOURS carries the purge tag (we judged and archived it); mGMAIL does not
+  // (Gmail's classifier filed it and we never evaluated it).
+  const ctx = makeCtx({ spamFolder: { mOURS: ['Label_PURGE'], mGMAIL: [] } });
+  ctx.destroySpam();
+
+  const listed = ctx.calls.filter(c => c.op === 'list');
+  const deleted = ctx.calls.filter(c => c.op === 'batchDelete')
+                           .reduce((a, c) => a.concat(c.ids), []);
+  check('sweep scoped by label intersection, not a q: filter',
+        listed.length > 0 &&
+        listed[0].labelIds.indexOf('SPAM') !== -1 &&
+        listed[0].labelIds.indexOf('Label_PURGE') !== -1 &&
+        listed[0].q === null,
+        JSON.stringify(listed[0]));
+  check('our own verdict IS deleted', deleted.indexOf('mOURS') !== -1,
+        'deleted=' + JSON.stringify(deleted));
+  check('Gmail-classified spam is NOT deleted', deleted.indexOf('mGMAIL') === -1,
+        'deleted=' + JSON.stringify(deleted));
+}
+
 console.log('\n=== destroySpam() never deletes a message quarantined this run ===');
 {
-  const ctx = makeCtx({ spamFolder: ['mQUAR', 'mOTHER'] });
+  const ctx = makeCtx({ spamFolder: { mQUAR: ['Label_PURGE'], mOTHER: ['Label_PURGE'] } });
   const msg = phishMessage('mQUAR');
-  const thread = fakeThread([msg]);
-  ctx.disposeDetectedMessage(msg, thread, ctx.collectSignals(msg));
+  ctx.disposeDetectedMessage(msg, fakeThread([msg]), ctx.collectSignals(msg));
   ctx.destroySpam();
 
   const deleted = ctx.calls.filter(c => c.op === 'batchDelete')
                            .reduce((a, c) => a.concat(c.ids), []);
   check('quarantined id excluded from the sweep', deleted.indexOf('mQUAR') === -1,
         'deleted=' + JSON.stringify(deleted));
-  check('the sweep still runs for other spam', deleted.indexOf('mOTHER') !== -1,
-        'deleted=' + JSON.stringify(deleted));
+  check('the sweep still runs for other condemned spam',
+        deleted.indexOf('mOTHER') !== -1, 'deleted=' + JSON.stringify(deleted));
+}
+
+console.log('\n=== the sweep refuses to run if it cannot identify our verdicts ===');
+{
+  const ctx = makeCtx({ spamFolder: { mGMAIL: [] } });
+  // Label resolution fails entirely — the safe answer is to sweep nothing
+  // rather than fall back to deleting the whole folder.
+  ctx.Gmail.Users.Labels.list = () => { throw new Error('API down'); };
+  ctx.Gmail.Users.Labels.create = () => { throw new Error('API down'); };
+  ctx.destroySpam();
+  check('no batchDelete when the purge label cannot be resolved',
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0);
 }
 
 console.log('\n' + '='.repeat(70));

@@ -201,6 +201,12 @@ if (emptySubject && hasAttachment) { return SPAM; }
 // (no bulk gate: delivered via compromised legitimate accounts)
 if (serviceImpersonation) { return SPAM; }
 
+// Cleanup boundary: destroySpam() sweeps ONLY messages this detector
+// condemned (tagged by markAsSpam() before it deletes). Mail Gmail's own
+// classifier filed is left alone and purged by Gmail at 30 days, so Gmail's
+// false positives stay recoverable. purgeAllSpamNow() empties the folder
+// manually if you want it cleared sooner.
+
 // RULE 7: CTA names a document brand the destination does not control → phishing
 // (no bulk gate, same reasoning; trackers and aligned hosts already exempted)
 // NOTE: Rule 7 QUARANTINES — archived + labelled "Phishing", never moved to
@@ -257,7 +263,7 @@ removeFromWhitelist('example.com');
 
 ### Check for False Positives
 
-Check the `Phishing` label for quarantined mail, and the Drive archive (Spam Intelligence/Detected) to recover anything deleted:
+Check the `Phishing` label for quarantined phishing, your Spam folder for anything Gmail misfiled (the detector no longer empties it), and the Drive archive (Spam Intelligence/Detected) to recover anything the detector deleted:
 1. Look for emails with "SpamChecked" label
 2. If legitimate, add sender to whitelist
 3. Move back to Inbox

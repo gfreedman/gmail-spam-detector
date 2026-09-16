@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.45.4
+ * @version 6.46.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -32,6 +32,36 @@
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.46.0: Scope the spam sweep to this detector's own verdicts. destroySpam()
+ *            deleted the ENTIRE Spam folder every few minutes — including mail
+ *            Gmail's classifier filed, which this script never evaluated. That
+ *            path calls neither accumulateLogEntry() nor the Drive archiver, so
+ *            a Gmail false positive was destroyed permanently, unlogged and
+ *            unrecoverable, within minutes. The docstring described clearing
+ *            "pre-existing spam" as a feature; it was the largest irreversible
+ *            data-loss path in the system by volume, and v6.44.0 shrank the
+ *            window from 15 to 5 minutes without recognising that.
+ *            markAsSpam() now tags each message with CONFIG.purgeLabel in the
+ *            same modify() call that reports it as spam, before attempting the
+ *            delete, and destroySpam() lists the label INTERSECTION
+ *            ['SPAM', purgeLabel]. Deliberately an intersection rather than a
+ *            q: filter: a q: reads the eventually-consistent search index, and
+ *            an index-lagged query is what destroyed a quarantined message on
+ *            2026-09-16. If the tag is index-lagged the message is simply not
+ *            swept this cycle — a delayed delete, not a premature one. If the
+ *            label cannot be resolved at all the sweep runs on NOTHING rather
+ *            than falling back to emptying the folder.
+ *            Gmail purges its own Spam at 30 days, so the folder still gets
+ *            cleared; the difference is that the user can now reach into it.
+ *            New purgeAllSpamNow() keeps the empty-the-folder capability as a
+ *            deliberate manual action rather than a background sweep.
+ *            New getLabelId() resolves a label name to the REST API id
+ *            (GmailApp label objects do not expose it), cached per execution.
+ *            tests/test_disposition.js grew to 25 assertions: the tag is
+ *            applied before the delete and in one call, our verdict IS swept,
+ *            Gmail-classified spam is NOT, the scope is a label intersection
+ *            with no q: filter, and the sweep refuses to run if the label
+ *            cannot be resolved.
  *   v6.45.3: Stop clasp uploading Node test scripts. clasp treats ANY .js
  *            under rootDir as Apps Script source, and .claspignore's bare
  *            "*.js" matches only top-level files, so adding
@@ -367,7 +397,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.45.4';
+const SCRIPT_VERSION = '6.46.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -378,6 +408,13 @@ const CONFIG = Object.freeze({
 
   /** Gmail label applied to processed emails to prevent reprocessing */
   processedLabel: 'SpamChecked',
+
+  /** Label applied by markAsSpam() before it deletes, so destroySpam() can
+   *  sweep ONLY mail this detector condemned. Without it the sweep deleted the
+   *  whole Spam folder, including mail GMAIL classified that this script never
+   *  evaluated — permanently, with no Drive archive and no log row. Gmail's own
+   *  false positives are now left alone; Gmail auto-purges Spam at 30 days. */
+  purgeLabel: 'SpamDetectorPurge',
 
   /** Label applied to quarantined phishing (Rule 7). The message is archived
    *  out of the inbox and labelled, never deleted and never moved to Spam, so
@@ -1209,12 +1246,18 @@ function cleanseInbox()
 
 
 /**
- * Safety-net cleanup of the entire spam folder.
+ * Safety-net cleanup of spam THIS DETECTOR condemned.
  *
  * Primary deletion happens in markAsSpam() by known message ID. This function
- * handles two edge cases:
- *   1. Pre-existing spam that was in the folder before this script ran
- *   2. Messages where the immediate delete in markAsSpam() failed
+ * exists for one edge case:
+ *   - Messages where the immediate delete in markAsSpam() failed
+ *
+ * Scoped by the CONFIG.purgeLabel tag that markAsSpam() applies before it
+ * deletes. It deliberately does NOT clear pre-existing or Gmail-classified
+ * spam any more: doing so permanently destroyed mail this script never
+ * evaluated, unarchived and unlogged, within minutes of Gmail misfiling it.
+ * Gmail purges its own Spam at 30 days; run purgeAllSpamNow() manually if you
+ * want the folder emptied sooner.
  *
  * Uses batch deletion in pages of 100 with rate limiting between batches.
  * Caps at MAX_ITERATIONS (10 batches = ~1000 messages) to prevent runaway
@@ -1226,6 +1269,17 @@ function destroySpam()
   if (typeof Gmail === 'undefined' || !Gmail.Users || !Gmail.Users.Messages)
   {
     logInfo('Gmail API not available for spam destruction');
+    return;
+  }
+
+  // Resolve the purge label first. Without it the sweep has no way to tell our
+  // verdicts from Gmail's, and the safe answer is to sweep NOTHING rather than
+  // fall back to deleting the whole folder.
+  const purgeLabelId = getLabelId(CONFIG.purgeLabel);
+  if (!purgeLabelId)
+  {
+    logError('Cannot resolve the purge label — skipping the spam sweep rather ' +
+             'than risk deleting mail this detector never judged');
     return;
   }
 
@@ -1261,9 +1315,20 @@ function destroySpam()
       // Residual protection: a quarantined message never enters Spam, so it
       // should not appear here at all. This exclusion covers the one way it
       // could — the user later reporting it as spam themselves.
+      // Label INTERSECTION, not a q: string. labelIds are ANDed, so this
+      // matches only messages carrying BOTH SPAM and our purge tag — i.e. mail
+      // this detector condemned and already archived to Drive. Mail Gmail
+      // classified never carries the tag and is left for Gmail's own 30-day
+      // purge, so a Gmail false positive stays recoverable.
+      //
+      // A q: filter is deliberately avoided: it reads the search index, and an
+      // index-lagged '-label:Phishing' query is what permanently deleted a
+      // quarantined message on 2026-09-16. If the purge tag is itself
+      // index-lagged the message simply is not swept this cycle and is picked up
+      // on the next one — the failure mode is a delayed delete, not a premature
+      // one.
       response = Gmail.Users.Messages.list('me', {
-        labelIds: ['SPAM'],
-        q: '-label:' + CONFIG.phishingLabel,
+        labelIds: ['SPAM', purgeLabelId],
         maxResults: BATCH_SIZE
       });
     }
@@ -2098,6 +2163,51 @@ function quarantineAsPhishing(message, thread)
   }
 }
 
+/**
+ * Resolve a Gmail label name to its REST API label id, creating it if absent.
+ *
+ * Gmail.Users.Messages.modify() takes label IDs, not names, and GmailApp's
+ * label objects do not expose the id — so a lookup is unavoidable. Cached per
+ * execution because Labels.list() is a full round trip and markAsSpam() runs
+ * once per detected message.
+ *
+ * @param {string} name - User label name.
+ * @return {string|null} The label id, or null if it could not be resolved.
+ */
+function getLabelId(name)
+{
+  if (_labelIdCache[name]) return _labelIdCache[name];
+
+  try
+  {
+    const res = Gmail.Users.Labels.list('me');
+    const labels = (res && res.labels) || [];
+    for (let i = 0; i < labels.length; i++)
+    {
+      if (labels[i].name === name)
+      {
+        _labelIdCache[name] = labels[i].id;
+        return labels[i].id;
+      }
+    }
+
+    const created = Gmail.Users.Labels.create(
+      { name: name, labelListVisibility: 'labelShow', messageListVisibility: 'show' }, 'me');
+    if (created && created.id)
+    {
+      logInfo('Created label: ' + name);
+      _labelIdCache[name] = created.id;
+      return created.id;
+    }
+  }
+  catch (e)
+  {
+    logError('Could not resolve label id for "' + name + '": ' + e.toString());
+  }
+
+  return null;
+}
+
 function markAsSpam(message, thread)
 {
   const subject = sanitizeForLog(message.getSubject());
@@ -2109,9 +2219,21 @@ function markAsSpam(message, thread)
     // Prefer Gmail Advanced Service (REST API) for precise control
     if (typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Messages)
     {
-      // Step 1: Report as spam — trains Gmail's spam filters for future emails
+      // Step 1: Report as spam — trains Gmail's spam filters for future emails —
+      // and tag it as ours in the same call, so destroySpam() can tell mail this
+      // detector condemned apart from mail Gmail's classifier merely suspected.
+      // Applied BEFORE the delete attempt: if the delete fails, the tag is what
+      // lets the safety-net sweep retry it without touching anything else.
+      const purgeId = getLabelId(CONFIG.purgeLabel);
+      const addLabels = purgeId ? ['SPAM', purgeId] : ['SPAM'];
+      if (!purgeId)
+      {
+        logError('Purge label unavailable — this message will not be retried by ' +
+                 'destroySpam() if the immediate delete fails');
+      }
+
       Gmail.Users.Messages.modify(
-        { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] },
+        { addLabelIds: addLabels, removeLabelIds: ['INBOX'] },
         'me',
         messageId
       );
@@ -3168,6 +3290,9 @@ let _cachedBlacklist = null;
  */
 let _quarantinedMessageIds = [];
 
+/** Per-execution cache of label name -> REST API label id. See getLabelId(). */
+let _labelIdCache = {};
+
 /**
  * One-time setup for spam intelligence logging.
  *
@@ -3778,6 +3903,48 @@ function buildSignalsCsv(signals)
   if (signals.brandMismatchedCta)         parts.push('BRAND_MISMATCH_CTA');
 
   return parts.join(',');
+}
+
+
+/**
+ * Manually empty the ENTIRE spam folder, including mail Gmail classified.
+ *
+ * Not called by any trigger. destroySpam() used to do this automatically every
+ * few minutes, which permanently destroyed Gmail's own false positives with no
+ * archive and no log row. The capability is kept because emptying the folder is
+ * a reasonable thing to want — but as a deliberate, human-invoked action rather
+ * than a background sweep.
+ *
+ * Run from the Apps Script editor. There is no undo: batchDelete bypasses Trash.
+ */
+function purgeAllSpamNow()
+{
+  if (typeof Gmail === 'undefined' || !Gmail.Users || !Gmail.Users.Messages)
+  {
+    logInfo('Gmail API not available');
+    return;
+  }
+
+  let destroyed = 0;
+  for (let i = 0; i < 10; i++)
+  {
+    let res;
+    try { res = Gmail.Users.Messages.list('me', { labelIds: ['SPAM'], maxResults: 100 }); }
+    catch (e) { logError('Failed to list spam: ' + e.toString()); break; }
+
+    if (!res.messages || res.messages.length === 0) break;
+
+    const ids = res.messages.map(function(m) { return m.id; })
+      .filter(function(id) { return _quarantinedMessageIds.indexOf(id) === -1; });
+    if (ids.length === 0) break;
+
+    try { Gmail.Users.Messages.batchDelete({ ids: ids }, 'me'); destroyed += ids.length; }
+    catch (e) { logError('Batch destroy failed: ' + e.toString()); break; }
+
+    Utilities.sleep(500);
+  }
+
+  logInfo('purgeAllSpamNow: permanently deleted ' + destroyed + ' message(s)');
 }
 
 

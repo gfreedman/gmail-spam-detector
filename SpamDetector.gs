@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.48.1
+ * @version 6.48.2
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -32,6 +32,14 @@
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.48.2: Stop buffering raw message content. Completes the v6.47.0 memory
+ *            fix, which was only half done: archiveRawEml() writes the EML to
+ *            Drive synchronously, so nothing reads entry.rawContent again, yet
+ *            it was still stored on every buffered log entry. That held up to
+ *            CONFIG.maxEmailsPerRun full raw messages in memory until the
+ *            flush — 50 x potentially 25MB, because getRawContent() is not
+ *            bounded by CONFIG.maxEmailSizeBytes (that guard reads getBody()).
+ *            The buffer now holds only the small Sheets row.
  *   v6.48.1: Remove the unused script.external_request OAuth scope.
  *            Nothing in this file has ever called UrlFetchApp — verified zero
  *            references — so the one scope that grants outbound network access
@@ -516,7 +524,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.48.1';
+const SCRIPT_VERSION = '6.48.2';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -3970,6 +3978,15 @@ function accumulateLogEntry(message, signals, logType)
     // no archive, no permanent delete.
     const archive = archiveRawEml(message.getId(), rawContent, logType);
 
+    // rawContent is deliberately NOT stored on the buffered entry. Once
+    // archiveRawEml() has written it to Drive nothing reads it again, and
+    // keeping it meant holding up to CONFIG.maxEmailsPerRun full raw messages
+    // in memory until the flush — 50 x up to 25MB, since getRawContent() is
+    // not bounded by CONFIG.maxEmailSizeBytes (that check reads getBody()).
+    // An Apps Script memory kill there used to lose every buffered archive for
+    // messages already deleted; now the archives are already on disk, and the
+    // buffer holds only the small Sheets row.
+
     _pendingLogEntries.push({
       driveUrl:               archive.driveUrl,
       archived:               archive.archived,
@@ -3977,7 +3994,6 @@ function accumulateLogEntry(message, signals, logType)
       logType:                logType,
       messageId:              message.getId(),
       threadId:               message.getThread().getId(),
-      rawContent:             rawContent,
       subject:                message.getSubject() || '',
       fromDisplayName:        fromDisplayName,
       fromAddress:            emailAddress,

@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.43.0
+ * @version 6.44.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -29,9 +29,37 @@
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *   Rule 6: Cloud service notification subject from non-service sender → phishing
  *   Rule 7: CTA link text names a document brand the href does not belong to → phishing
- *           (QUARANTINED, not deleted — see quarantineAsPhishing)
+ *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.44.0: CRITICAL FIX — a quarantined phishing message was permanently
+ *            deleted. On 2026-09-16 Rule 7 correctly caught
+ *            "Capital B | Bitcoin Policy Brief" and quarantined it, logging
+ *            PHISHING_DETECTED with signals BULK,BRAND_MISMATCH_CTA. Within
+ *            the SAME execution, destroySpam() then batch-deleted it.
+ *            Cause: quarantine moved the message to SPAM and relied on
+ *            destroySpam()'s "-label:Phishing" query to spare it. That query
+ *            reads Gmail's SEARCH INDEX, which is eventually consistent. The
+ *            Phishing label had been applied seconds earlier, the index did
+ *            not reflect it yet, and the message was swept. v6.43.0 made this
+ *            certain rather than merely possible by forcing the maintenance
+ *            cycle in the same execution as detection.
+ *            Fix is structural, not a better query: quarantine no longer
+ *            applies the SPAM label at all. It archives (removes INBOX) and
+ *            labels. destroySpam() lists labelIds:['SPAM'], so a message that
+ *            never carries that label cannot be swept regardless of index
+ *            state — the race is gone by construction rather than narrowed.
+ *            Cost: Gmail's classifier no longer learns from Rule 7 hits. That
+ *            is the right trade — Rule 7 is the one rule with an irreducible
+ *            false-positive class, and not destroying mail outranks filter
+ *            training. Rules 1-6 still report to SPAM and still delete.
+ *            Added _quarantinedThisRun as a safety interlock so any future
+ *            change that reintroduces a SPAM move cannot silently recreate
+ *            the race. Also reduced the maintenance interval from 15 to 5
+ *            minutes (quota math in runPeriodicMaintenance).
+ *            The deleted message was recoverable: v6.32.0 archives the raw
+ *            EML to Drive BEFORE deletion, which is the only reason this was
+ *            a recoverable incident rather than permanent data loss.
  *   v6.43.0: Restore prompt post-deploy recatch. v6.36.0 promised that a fix
  *            deploy cleans up after itself unattended, and before v6.40.0 it
  *            did: recheckRecentSpamChecked() ran on every 1-minute invocation,
@@ -264,7 +292,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.43.0';
+const SCRIPT_VERSION = '6.44.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -1112,6 +1140,15 @@ function destroySpam()
     return;
   }
 
+  // Safety interlock: never sweep in the same execution as a quarantine.
+  // Deferring costs one maintenance cycle; getting it wrong permanently
+  // destroys mail the user chose to keep. See _quarantinedThisRun.
+  if (_quarantinedThisRun)
+  {
+    logInfo('Skipping spam destruction — a message was quarantined this run, deferring sweep to the next cycle');
+    return;
+  }
+
   // Ensure the phishing label exists before referencing it in the query below.
   // A Gmail search naming a label that has never been created is not
   // guaranteed to be treated as a harmless no-op, and if it errored here the
@@ -1843,6 +1880,13 @@ function quarantineAsPhishing(message, thread)
   const subject = sanitizeForLog(message.getSubject());
   let labelled = false;
 
+  // Defence in depth. Quarantining no longer touches the SPAM label, so
+  // destroySpam() cannot see the message — but if a future change ever
+  // reintroduces a SPAM move, this flag stops the sweeper from running in the
+  // same execution and re-creating the delete race that destroyed a
+  // quarantined message on 2026-09-16.
+  _quarantinedThisRun = true;
+
   // Step 1: label the thread while it is still in place.
   try
   {
@@ -1861,7 +1905,26 @@ function quarantineAsPhishing(message, thread)
     logError('Could not apply phishing label: ' + labelError.toString());
   }
 
-  // Step 2: report as spam and archive out of the inbox. No batchDelete.
+  // Step 2: archive out of the inbox. Deliberately does NOT add the SPAM
+  // label, and never calls batchDelete.
+  //
+  // Earlier versions moved the message to SPAM so Gmail's filters would learn
+  // from it, and relied on destroySpam()'s "-label:Phishing" query to spare
+  // it. That query reads Gmail's SEARCH INDEX, which is eventually consistent:
+  // on 2026-09-16 a Rule 7 quarantine was labelled and moved to SPAM, and
+  // destroySpam() ran seconds later in the same execution before the index
+  // reflected the new label, so the message was permanently deleted despite
+  // the whole point of Rule 7 being that it must stay recoverable.
+  //
+  // Any scheme that keeps quarantined mail in SPAM and filters it out by
+  // query has that race. Keeping it out of SPAM entirely removes the race by
+  // construction: destroySpam() lists labelIds:['SPAM'], so a message that
+  // was never given that label cannot be swept no matter what the index says.
+  //
+  // The cost is that Gmail's spam classifier no longer learns from Rule 7
+  // hits. That is the right trade: Rule 7 is the one rule with an irreducible
+  // false-positive class, and not destroying the user's mail outranks filter
+  // training. Rules 1-6 still report to SPAM and still delete.
   try
   {
     const messageId = message.getId();
@@ -1869,17 +1932,17 @@ function quarantineAsPhishing(message, thread)
     if (typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Messages)
     {
       Gmail.Users.Messages.modify(
-        { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] },
+        { removeLabelIds: ['INBOX'] },
         'me',
         messageId
       );
     }
     else
     {
-      thread.moveToSpam();
+      thread.moveToArchive();
     }
 
-    logInfo('PHISHING QUARANTINED (not deleted): ' + subject);
+    logInfo('PHISHING QUARANTINED (archived + labelled, not deleted): ' + subject);
     return true;
   }
   catch (error)
@@ -1888,8 +1951,10 @@ function quarantineAsPhishing(message, thread)
 
     try
     {
-      thread.moveToSpam();
-      logInfo('PHISHING QUARANTINED (fallback): ' + subject);
+      // moveToArchive(), NOT moveToSpam() — same reasoning as above. The
+      // fallback must not put the message somewhere destroySpam() sweeps.
+      thread.moveToArchive();
+      logInfo('PHISHING QUARANTINED (fallback: archived): ' + subject);
       return true;
     }
     catch (fallbackError)
@@ -2898,6 +2963,21 @@ let _cachedWhitelist = null;
 let _cachedBlacklist = null;
 
 /**
+ * True once a message has been quarantined in this execution.
+ *
+ * Read by destroySpam() as a safety interlock. Quarantining no longer applies
+ * the SPAM label, so the sweeper cannot reach a quarantined message — but on
+ * 2026-09-16 it did exactly that, because quarantine put the message in SPAM
+ * and relied on a search-index-dependent query to spare it. This flag means a
+ * future change that reintroduces a SPAM move cannot silently recreate that
+ * delete race in the same execution.
+ *
+ * Module-level state resets on every Apps Script invocation, which is the
+ * scope we want: one execution.
+ */
+let _quarantinedThisRun = false;
+
+/**
  * One-time setup for spam intelligence logging.
  *
  * Creates:
@@ -3003,7 +3083,22 @@ function setupLogging()
  */
 function runPeriodicMaintenance()
 {
-  const MAINTENANCE_INTERVAL_MS = 15 * 60 * 1000;
+  // 5 minutes, down from 15. Chosen against Gmail's read quota rather than by
+  // feel: recheckRecentSpamChecked() runs analyzeMessage() on up to 20 recent
+  // inbox threads, and each non-whitelisted message costs a getRawContent()
+  // fetch. At ~7 inbox threads that is ~7 reads per cycle:
+  //     every 1 min -> ~10 000 reads/day  (about half the consumer daily quota)
+  //     every 5 min ->  ~2 000 reads/day  (comfortable)
+  // Running it every invocation would spend most of the daily quota
+  // re-examining mail that has not changed, and quota exhaustion stops
+  // detection altogether — the opposite of catching spam fast.
+  //
+  // Speed where it actually matters does not depend on this number:
+  //   - NEW mail is scanned by processInbox()'s main loop every 1 minute.
+  //   - A fix deploy re-checks recent mail IMMEDIATELY via the
+  //     SCRIPT_VERSION change check below, not on this timer.
+  // This interval only governs routine re-checks between deploys.
+  const MAINTENANCE_INTERVAL_MS = 5 * 60 * 1000;
   const props  = PropertiesService.getScriptProperties();
   const lastTs = parseInt(props.getProperty('LAST_MAINTENANCE_TS') || '0', 10);
 

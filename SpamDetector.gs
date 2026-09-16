@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.48.0
+ * @version 6.48.1
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -32,6 +32,21 @@
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.48.1: Remove the unused script.external_request OAuth scope.
+ *            Nothing in this file has ever called UrlFetchApp — verified zero
+ *            references — so the one scope that grants outbound network access
+ *            was pure downside. Without it, code running in this project can
+ *            read and delete mail but cannot send it anywhere: destruction is
+ *            possible, exfiltration is not.
+ *            NOTE: narrowing a manifest does NOT prompt for re-consent, because
+ *            the script is asking for a subset of what was already granted. The
+ *            previously granted token stays broader until the user revokes
+ *            access at myaccount.google.com and re-approves. Until then this
+ *            change is declarative only.
+ *            gmail.modify and gmail.labels are deliberately left in place: both
+ *            are strict subsets of mail.google.com, which is required because
+ *            gmail.modify cannot permanently delete. Removing them would change
+ *            nothing but the consent screen wording, at some risk.
  *   v6.48.0: recheckRecentSpamChecked() holds for review instead of deleting.
  *            This path re-judges mail the user has ALREADY READ AND KEPT, and
  *            it is forced to run within a minute of every deploy. Until now it
@@ -501,7 +516,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.48.0';
+const SCRIPT_VERSION = '6.48.1';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */

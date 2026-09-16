@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.41.0
+ * @version 6.42.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -13,21 +13,72 @@
  *   - Marketing sender format
  *   - Blacklisted sender domains (known spam mills)
  *   - Suspicious From-field anomalies (headline-like display names)
+ *   - Link-graph anomalies (CTA text naming a brand the destination lacks)
  *
  * Execution flow:
  *   1. processInbox() — scan inbox, analyze each email, flag spam
  *   2. markAsSpam()   — report to Gmail (trains filters) + immediately delete by ID
+ *      quarantineAsPhishing() — Rule 7 only: report + label, NO delete
  *   3. destroySpam()  — safety-net sweep of spam folder for stragglers
  *
- * Decision logic (6 rules, evaluated in priority order — first match wins):
+ * Decision logic (7 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
  *   Rule 2: Bulk email + 2+ clickbait patterns → spam
  *   Rule 3: Bulk email + 2+ distinct spam behaviors → spam
  *   Rule 4: 3+ clickbait patterns (no bulk email required) → spam
  *   Rule 5: Empty subject + attachment → payload delivery scam
  *   Rule 6: Cloud service notification subject from non-service sender → phishing
+ *   Rule 7: CTA link text names a document brand the href does not belong to → phishing
+ *           (QUARANTINED, not deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.42.0: Catch brand-mismatched CTA phishing — the first signal that reads
+ *            the LINK GRAPH instead of sender-side vocabulary.
+ *            Missed email: "Capital B | Bitcoin Policy Brief" from
+ *            info@cptlbnews.press (a cousin of the real cptlb.com), sent via
+ *            Resend over Amazon SES. It scored ZERO on all eight existing
+ *            signals except bulk — no clickbait, no fear, no Unicode
+ *            obfuscation, valid SPF+DKIM for its own domain, a real corporate
+ *            footer with a real Euronext ticker, and hedged modal prose
+ *            throughout ("a reported 7-10% withholding provision ... could
+ *            apply"). Not a threshold miss; a total signal vacuum. The only
+ *            evidence in the message was its links: a button reading
+ *            "VIEW IN DOCUSIGN" pointing at cptlbpolicy.com.
+ *            Added: (1) Signal 7 / Rule 7 — hasBrandMismatchedCta() fires when
+ *            anchor text names a BRAND_CTA_DOMAINS key, carries a CTA verb and
+ *            is <=60 chars (a button label, not prose), while the href host
+ *            belongs to neither that brand, a known link wrapper, nor the
+ *            sender. Not gated on bulk — this class also arrives via
+ *            compromised accounts, the same reasoning Rule 6 accepted.
+ *            (2) LINK_WRAPPER_DOMAINS + TRACKER_LABELS — the signal ABSTAINS
+ *            on click-trackers and CNAMEd trackers. A wrapped destination is
+ *            unverifiable, not malicious. This abstention is load-bearing:
+ *            ablation shows that without it, a legitimate SendGrid-tracked
+ *            invoice with a "View in DocuSign" button false-positives.
+ *            (3) extractUrlHost() / hostMatchesDomain() — host parsing that
+ *            resists the docusign.net.evil.com suffix bug, the notdocusign.net
+ *            prefix bug, and the docusign.net@evil.com userinfo trick.
+ *            (4) decodeHtmlEntities() and nested-tag stripping, so
+ *            "D&#111;cu&shy;Sign" and "<span>Docu</span><span>Sign</span>"
+ *            still match. Entity decoding is load-bearing, not cosmetic.
+ *            SECURITY FIX (unrelated to the miss, found while reviewing the
+ *            same function): whitelist and blacklist matching used substring
+ *            comparison, so "mail@linkedin.com.secure-login.top" and
+ *            "a@notlinkedin.com" were WHITELISTED and skipped all detection.
+ *            Now addressMatchesDomain() — exact or dot-suffix.
+ *            Rule 7 QUARANTINES rather than deletes: reported to Gmail as spam
+ *            and labelled "Phishing", but no batchDelete, so it stays
+ *            recoverable. destroySpam()'s sweep excludes that label — without
+ *            that exclusion the quarantine would be silently destroyed within
+ *            one 15-minute maintenance cycle. Routing lives in
+ *            disposeDetectedMessage() so processThread() and
+ *            recheckRecentSpamChecked() cannot drift; checkFalseNegatives()
+ *            deliberately still deletes, because a manual "SpamMissed" label
+ *            is an explicit human instruction.
+ *            Also: truncate before stripHtmlTags() rather than after (was
+ *            running two regex passes over up to 5MB); add serviceImpersonation
+ *            and brandMismatchedCta to debugWhyFlagged(), which has under-
+ *            reported since v6.38.0; log Rule 7 as PHISHING_DETECTED.
  *   v6.41.0: Catch hardware-wallet phishing missed via legit SurveyMonkey
  *            sending infra ("🔐 System Configuration Notice" template).
  *            Three additions: (1) 🔐 added to clickbait emoji cluster — phishing
@@ -189,6 +240,12 @@ const CONFIG = Object.freeze({
   /** Gmail label applied to processed emails to prevent reprocessing */
   processedLabel: 'SpamChecked',
 
+  /** Label applied to quarantined phishing (Rule 7). Reported as spam and
+   *  archived out of the inbox, but NOT permanently deleted — it stays
+   *  recoverable until Gmail's own 30-day spam purge. destroySpam() is
+   *  explicitly told to skip this label; see the query there. */
+  phishingLabel: 'Phishing',
+
   /** Enable verbose debug logging (set true for troubleshooting) */
   debug: false,
 
@@ -261,6 +318,22 @@ const LIMITS = Object.freeze({
    *  (e.g. a subject of "OK\n[ERROR] Deleted everything" would print two log lines). */
   maxLogChars: 100,
 
+  /** Max HTML characters scanned for anchors by extractAnchors(). Real marketing
+   *  HTML is well under 100 000; 262 144 is generous headroom while still capping
+   *  worst-case scan cost on a hostile 5 MB body.
+   *  NOTE: write these as bare integers, never `256 * 1024` — the Python test
+   *  harness parses LIMITS with /(\w+)\s*:\s*(\d+)/ and would load "256". */
+  maxHtmlScanChars: 262144,
+
+  /** Max anchors examined per message. Calls-to-action appear early; a document
+   *  with 300+ links is a directory dump, not a lure. Bounds the exec() loop. */
+  maxAnchorsScanned: 300,
+
+  /** Max characters of inner text read per anchor before giving up on </a>.
+   *  Without this an unclosed <a> would scan to end-of-document, and N unclosed
+   *  anchors would cost O(N x doclen). */
+  maxAnchorTextChars: 2048,
+
   /** Upper bounds used by validateConfig() to catch misconfiguration.
    *  For example, setting maxEmailsPerRun to 10 000 would hit Apps Script's
    *  6-minute timeout and crash every run. These constants prevent that.
@@ -318,6 +391,26 @@ const RFC2822_QUOTED_NAME = /^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/;
 //   Estimated worst-case runtime: 100KB × ~50 patterns × ~1μs/KB ≈ 5ms/email.
 //   This is well within the Apps Script 6-minute per-trigger budget even at
 //   the maximum 50-email-per-run limit.
+//
+// The anchor scan (extractAnchors, used by Signal 7) is a SEPARATE cost class
+// that this analysis does not cover, because it does not live in these pattern
+// arrays and runs against HTML rather than a sanitizeInput()-truncated field.
+// It is bounded independently and deliberately:
+//
+//   It does NOT use a paired-tag regex. /<a[^>]*>([\s\S]*?)<\/a>/g is
+//   polynomial in (anchor count × document length): an <a> with no closing
+//   </a> — which mail clients tolerate, so attackers can emit them freely —
+//   makes the engine scan to end-of-document before failing. 900 unclosed
+//   anchors in a 4MB body is ~3e9 character steps, tens of seconds. Instead
+//   the open tag is matched with a bounded regex and the close is found with
+//   String.indexOf(), a native linear scan with no backtracking.
+//
+//   Every quantifier in the anchor and href patterns is explicitly bounded
+//   ({0,2000}), so a malformed tag missing its '>' cannot walk the document.
+//
+//   Three LIMITS cap the work: maxHtmlScanChars (256KB scanned),
+//   maxAnchorsScanned (300 anchors), maxAnchorTextChars (2KB per anchor).
+//   Measured: 900 unclosed anchors in 5ms; a 500KB body in under 1ms.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -617,6 +710,108 @@ const CLOUD_SERVICE_DOMAINS = Object.freeze([
   'atlassian.net'
 ]);
 
+/**
+ * E-signature / document-workflow brands whose name inside a call-to-action
+ * link implies a specific set of legitimate destination hosts.
+ *
+ * Used by Signal 7 (brand-mismatched CTA): a button reading "VIEW IN DOCUSIGN"
+ * whose href points somewhere that is not DocuSign is a credential-harvest
+ * lure. The brand name is in the button because it converts — it borrows trust
+ * the sender has not earned.
+ *
+ * KEYS must be lowercase [a-z0-9] with no spaces or punctuation. Anchor link
+ * text is normalized with /[^a-z0-9]+/g before matching, so "Adobe Sign"
+ * is keyed as 'adobesign'. A key containing a space or capital could never
+ * match anything. Enforced by a parser self-test in the Python harness.
+ *
+ * VALUES are bare registrable hostnames, compared with hostMatchesDomain()
+ * (exact or dot-suffix) — never substring, which would accept both
+ * "notdocusign.net" and "docusign.net.evil.com".
+ *
+ * Deliberately NOT included: a bare 'box' key (would match "inbox",
+ * "box office"), or any brand whose name is a common English word.
+ *
+ * CONSTRAINT: this object body must contain no { or } characters. The Python
+ * harness extracts it with a naive brace counter that does not skip strings
+ * or comments, so a brace anywhere inside would truncate the parse.
+ *
+ * @const {Object<string, Array<string>>}
+ */
+const BRAND_CTA_DOMAINS = Object.freeze({
+  docusign:    Object.freeze(['docusign.net', 'docusign.com', 'docusign.eu', 'docusign.co.uk']),
+  adobesign:   Object.freeze(['adobesign.com', 'echosign.com', 'adobe.com', 'acrobat.com']),
+  echosign:    Object.freeze(['adobesign.com', 'echosign.com', 'adobe.com', 'acrobat.com']),
+  hellosign:   Object.freeze(['hellosign.com', 'dropboxsign.com', 'dropbox.com']),
+  dropboxsign: Object.freeze(['dropboxsign.com', 'hellosign.com', 'dropbox.com']),
+  pandadoc:    Object.freeze(['pandadoc.com', 'pandadoc.net']),
+  signnow:     Object.freeze(['signnow.com']),
+  smartsheet:  Object.freeze(['smartsheet.com']),
+  egnyte:      Object.freeze(['egnyte.com']),
+  sharepoint:  Object.freeze(['sharepoint.com', 'microsoft.com', 'office.com', 'office365.com', 'microsoftonline.com']),
+  onedrive:    Object.freeze(['onedrive.com', 'onedrive.live.com', 'live.com', 'microsoft.com', 'sharepoint.com']),
+  googledrive: Object.freeze(['google.com', 'googleusercontent.com']),
+  googledocs:  Object.freeze(['google.com', 'googleusercontent.com'])
+});
+
+/**
+ * Click-tracking, link-wrapping and security-rewrite hosts.
+ *
+ * A brand CTA pointing at one of these is UNVERIFIABLE, not malicious — the
+ * real destination is hidden behind the redirector. Signal 7 therefore
+ * ABSTAINS on these rather than firing. This abstention is load-bearing:
+ * without it, a legitimate invoice whose "View in DocuSign" button is wrapped
+ * by SendGrid click-tracking is a false positive (proven by ablation against
+ * tests/ham_examples/Invoice ready to sign via click tracker.eml).
+ *
+ * Fail open, not closed: an unknown destination is not evidence of phishing.
+ *
+ * @const {Array<string>}
+ */
+const LINK_WRAPPER_DOMAINS = Object.freeze([
+  // Email service providers' click tracking
+  'sendgrid.net', 'awstrack.me', 'amazonses.com', 'list-manage.com',
+  'mailchimp.com', 'mcusercontent.com', 'hubspotlinks.com', 'hs-sites.com',
+  'mktoresp.com', 'mktomail.com', 'marketo.com', 'pardot.com', 'go.pardot.com',
+  'exacttarget.com', 'exct.net', 'klclick.com', 'klclick1.com',
+  'klaviyomail.com', 'sendinblue.com', 'brevo.com', 'brevosend.com',
+  'mailgun.org', 'mandrillapp.com', 'sparkpostmail.com', 'postmarkapp.com',
+  'resend.com', 'resend.dev', 'iterable.com', 'salesforce.com',
+  // Security / gateway link rewriters (appear on inbound mail the user wants)
+  'urldefense.com', 'urldefense.proofpoint.com',
+  'safelinks.protection.outlook.com', 'mimecast.com', 'mimecastprotect.com',
+  'linkprotect.cudasvc.com', 'barracudanetworks.com', 'clicktime.symantec.com',
+  // Generic shorteners
+  'bit.ly', 't.co', 'lnkd.in', 'hubs.ly', 'ow.ly', 'buff.ly', 'tinyurl.com',
+  'rebrand.ly', 'goo.gl'
+]);
+
+/**
+ * Leftmost-label heuristic for customer-CNAMEd tracker hosts.
+ *
+ * Senders commonly CNAME their own subdomain onto an ESP's click tracker, so
+ * the wrapper appears as "click.acme.com" or "links.acme.com" rather than a
+ * host in LINK_WRAPPER_DOMAINS. Treated the same way: abstain, do not fire.
+ *
+ * @const {Array<string>}
+ */
+const TRACKER_LABELS = Object.freeze([
+  'click', 'clicks', 'ct', 'trk', 'track', 'tracking', 'link', 'links',
+  'lnk', 'url', 'go', 'redirect', 'r', 'e', 'em', 't'
+]);
+
+/**
+ * Verbs that make an anchor a call to action rather than prose.
+ *
+ * Signal 7 requires one of these alongside the brand name. Without it, the
+ * footer sentence "About DocuSign — sign documents electronically" in a
+ * GENUINE DocuSign email matches the brand and fires a false positive, as does
+ * any news article mentioning the company. A lure needs a button the victim
+ * clicks; prose does not.
+ *
+ * @const {RegExp}
+ */
+const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;
+
 
 // =============================================================================
 // Core Processing Pipeline
@@ -881,6 +1076,20 @@ function destroySpam()
     return;
   }
 
+  // Ensure the phishing label exists before referencing it in the query below.
+  // A Gmail search naming a label that has never been created is not
+  // guaranteed to be treated as a harmless no-op, and if it errored here the
+  // spam-folder sweep would stop running entirely. Creating it up front makes
+  // the query valid on a fresh install where no phishing has been caught yet.
+  try
+  {
+    getOrCreateLabel(CONFIG.phishingLabel);
+  }
+  catch (labelError)
+  {
+    logError('Could not ensure phishing label exists: ' + labelError.toString());
+  }
+
   let destroyed = 0;
   let iterations = 0;
   const BATCH_SIZE     = 100; // Gmail API max results per page
@@ -896,8 +1105,13 @@ function destroySpam()
     let response;
     try
     {
+      // Exclude quarantined phishing. Rule 7 deliberately does NOT delete —
+      // it reports to spam and labels, leaving the message recoverable. This
+      // sweep would otherwise batch-delete it within one maintenance cycle and
+      // silently defeat the quarantine. Coupled to CONFIG.phishingLabel.
       response = Gmail.Users.Messages.list('me', {
         labelIds: ['SPAM'],
+        q: '-label:' + CONFIG.phishingLabel,
         maxResults: BATCH_SIZE
       });
     }
@@ -994,13 +1208,21 @@ function processThread(thread, messages)
       if (verdict.isSpam && !threadMarkedAsSpam)
       {
         // Accumulate log entry BEFORE deletion — getRawContent() is unavailable after batchDelete
-        const detectionLogType = verdict.signals && verdict.signals.serviceImpersonation
+        // A brand-mismatched CTA is phishing, not bulk spam — log it as such
+        // so phishing rows stay visually distinct in the Sheets log. Missing
+        // this is the log-TYPE half of the v6.38.1 bug.
+        const detectionLogType = verdict.signals &&
+          (verdict.signals.serviceImpersonation || verdict.signals.brandMismatchedCta)
           ? 'PHISHING_DETECTED' : 'SPAM_DETECTED';
         accumulateLogEntry(message, verdict.signals, detectionLogType);
-        markAsSpam(message, thread);
+
+        // Rule 7 (brand-mismatched CTA) quarantines rather than destroys — see
+        // quarantineAsPhishing(). Every other rule deletes permanently.
+        disposeDetectedMessage(message, thread, verdict.signals);
+        logDebug('SPAM DETECTED: ' + sanitizeForLog(message.getSubject()));
+
         spamCount++;
         threadMarkedAsSpam = true;
-        logDebug('SPAM DETECTED: ' + sanitizeForLog(message.getSubject()));
       }
     }
     catch (messageError)
@@ -1128,7 +1350,12 @@ function collectSignals(message)
   const whitelist = getCachedWhitelist();
   for (let i = 0; i < whitelist.length; i++)
   {
-    if (senderAddress.includes(whitelist[i]))
+    // addressMatchesDomain(), NOT includes(). Substring matching here was a
+    // complete detection bypass: "mail@linkedin.com.secure-login.top" contains
+    // "linkedin.com" and so returned null before any signal was collected, as
+    // did "a@notlinkedin.com". Anyone who registered a domain containing a
+    // whitelisted string got a blanket exemption.
+    if (addressMatchesDomain(senderAddress, whitelist[i]))
     {
       logDebug('Whitelisted domain detected: ' + whitelist[i]);
       return null; // null = whitelisted, skip all detection
@@ -1141,7 +1368,18 @@ function collectSignals(message)
   // Without this fallback, BODY_CRYPTO_PATTERNS would silently never fire on
   // messages that have no text/plain part.
   const plainBody = message.getPlainBody();
-  const body = sanitizeInput(plainBody || stripHtmlTags(message.getBody()));
+
+  // getBody() returns the decoded, charset-normalized HTML. It is NOT an extra
+  // API round trip: shouldProcessMessage() already calls it on every message
+  // for the size check, so the GmailMessage has it cached. Only
+  // getRawContent() costs a separate fetch (format=raw vs format=full).
+  const html = sanitizeInput(message.getBody());
+
+  // Truncate BEFORE stripping, not after. Previously sanitizeInput() wrapped
+  // the *result* of stripHtmlTags(), so the two regex passes ran across up to
+  // 5 MB (the shouldProcessMessage ceiling) and allocated two 5 MB
+  // intermediates on every HTML-only message.
+  const body = sanitizeInput(plainBody) || stripHtmlTags(html);
   const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
 
   // ── Initialize signal accumulators ───────────────────────────────────────
@@ -1155,7 +1393,8 @@ function collectSignals(message)
     marketingFormat: false,           // From field uses marketing formatting
     suspiciousFromName: false,        // Display name is headline-like
     emptySubjectWithAttachment: false, // Empty subject + has attachment (payload scam)
-    serviceImpersonation: false        // Cloud service subject from non-service sender (phishing)
+    serviceImpersonation: false,       // Cloud service subject from non-service sender (phishing)
+    brandMismatchedCta: false          // CTA names a document brand, links elsewhere (phishing)
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -1179,7 +1418,8 @@ function collectSignals(message)
   const blacklist = getCachedBlacklist();
   for (let i = 0; i < blacklist.length; i++)
   {
-    if (senderAddress.includes(blacklist[i]))
+    // Strict domain matching, same reasoning as the whitelist above.
+    if (addressMatchesDomain(senderAddress, blacklist[i]))
     {
       signals.blacklistedSender = true;
       logDebug('Blacklisted sender detected: ' + blacklist[i]);
@@ -1326,11 +1566,34 @@ function collectSignals(message)
     }
   }
 
+  // ── Signal 7: Brand-mismatched call-to-action ───────────────────────────
+  // A button reading "VIEW IN DOCUSIGN" whose href is not DocuSign borrows
+  // trust the sender has not earned. This is the only signal that inspects the
+  // LINK GRAPH rather than sender-side vocabulary, which is why it reaches a
+  // class of phishing that carries no clickbait, no urgency, no Unicode
+  // obfuscation and a valid DKIM signature for its own domain.
+  //
+  // Wrapped in its own try/catch, exactly as Signal 5 is. analyzeMessage()'s
+  // catch-all returns {isSpam:false, signals:null}, so an uncaught throw from
+  // the anchor scan would discard EVERY other signal on the message and
+  // silently mark it not-spam. Degrade one signal, never the whole verdict.
+  try
+  {
+    if (hasBrandMismatchedCta(html, senderAddress))
+    {
+      signals.brandMismatchedCta = true;
+    }
+  }
+  catch (ctaError)
+  {
+    logError('Brand-CTA scan failed — signal skipped: ' + ctaError.toString());
+  }
+
   return signals;
 }
 
 /**
- * Apply the 6-rule decision cascade to a collected signals object.
+ * Apply the 7-rule decision cascade to a collected signals object.
  *
  * Rules are evaluated in priority order. The first rule that fires wins —
  * later rules are not evaluated. Returns immediately on the first match.
@@ -1405,6 +1668,19 @@ function makeVerdict(signals)
     return true;
   }
 
+  // Rule 7: Brand-mismatched CTA phishing (no bulk email required)
+  // Rationale: a call-to-action naming DocuSign/Adobe Sign/SharePoint that
+  // resolves to a host the brand does not control has no legitimate form. The
+  // signal already abstains on click-trackers, link-wrappers and
+  // sender-aligned hosts, so what reaches here is an unexplained brand
+  // mismatch. Deliberately NOT gated on bulk email: this class also arrives
+  // via compromised legitimate accounts, the same reasoning Rule 6 accepted.
+  if (signals.brandMismatchedCta)
+  {
+    logInfo('SPAM DETECTED: Brand-mismatched CTA phishing (link text names a document brand the destination does not control)');
+    return true;
+  }
+
   // No rule triggered — email is not spam
   logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
            ', blacklist=' + signals.blacklistedSender +
@@ -1413,7 +1689,8 @@ function makeVerdict(signals)
            ', marketing=' + signals.marketingFormat +
            ', suspiciousFrom=' + signals.suspiciousFromName +
            ', emptySubjectAttachment=' + signals.emptySubjectWithAttachment +
-           ', serviceImpersonation=' + signals.serviceImpersonation);
+           ', serviceImpersonation=' + signals.serviceImpersonation +
+           ', brandMismatchedCta=' + signals.brandMismatchedCta);
   return false;
 }
 
@@ -1465,6 +1742,129 @@ function analyzeMessage(message)
  * @param {GmailMessage} message - The spam message to report and delete.
  * @param {GmailThread} thread  - The thread containing the message (for fallback).
  */
+/**
+ * Dispose of a message that has been judged spam, choosing destroy vs
+ * quarantine based on which rule fired.
+ *
+ * Single point of routing so the two automatic detection paths — processThread()
+ * and recheckRecentSpamChecked() — cannot drift apart. Rule identity comes from
+ * getRuleFromSignals(), which mirrors makeVerdict()'s cascade, so this stays in
+ * step with the verdict logic by construction.
+ *
+ * NOT used by checkFalseNegatives(): that path runs when the user has manually
+ * applied the "SpamMissed" label, which is an explicit human instruction to
+ * destroy the message. Overriding it with a quarantine would ignore the user.
+ *
+ * @param {GmailMessage} message - The message to dispose of.
+ * @param {GmailThread}  thread  - Its thread.
+ * @param {Object|null}  signals - Signal object from collectSignals().
+ */
+function disposeDetectedMessage(message, thread, signals)
+{
+  if (getRuleFromSignals(signals).rule === 'Rule 7')
+  {
+    quarantineAsPhishing(message, thread);
+  }
+  else
+  {
+    markAsSpam(message, thread);
+  }
+}
+
+/**
+ * Quarantine a phishing message instead of destroying it (Rule 7).
+ *
+ * Reports the message to Gmail as spam — which still trains the filters and
+ * removes it from the inbox — and applies CONFIG.phishingLabel, but performs
+ * NO batchDelete. The message remains readable in the Spam folder until
+ * Gmail's own 30-day purge.
+ *
+ * Why Rule 7 does not delete, when Rules 1-6 do:
+ *   Rule 7 has one residual false-positive class that cannot be driven to zero
+ *   offline — a third-party CRM sending from its own domain with a brand CTA
+ *   pointing at a customer-owned host that is neither a known tracker nor
+ *   sender-aligned. Every other rule keys on sender reputation or content the
+ *   sender chose; this one keys on a link relationship that legitimate senders
+ *   can reproduce by accident. Permanent, unrecoverable deletion is the wrong
+ *   default for a signal with an irreducible FP class.
+ *
+ * CRITICAL INTERACTION: destroySpam() sweeps the Spam folder and batch-deletes
+ * everything it finds, which would destroy this message within one maintenance
+ * cycle and defeat the quarantine entirely. Its listing query therefore
+ * excludes CONFIG.phishingLabel. If you change this label name, change it
+ * there too — they are coupled.
+ *
+ * The label is applied BEFORE the spam move: adding a user label to a thread
+ * already in Spam is less reliable than labelling it in place first.
+ *
+ * @param {GmailMessage} message - The message to quarantine.
+ * @param {GmailThread}  thread  - Its thread, used for labelling and fallback.
+ * @return {boolean} true if the message was quarantined (label applied or
+ *                   spam-reported), false if both attempts failed.
+ */
+function quarantineAsPhishing(message, thread)
+{
+  const subject = sanitizeForLog(message.getSubject());
+  let labelled = false;
+
+  // Step 1: label the thread while it is still in place.
+  try
+  {
+    const label = getOrCreateLabel(CONFIG.phishingLabel);
+    if (label)
+    {
+      thread.addLabel(label);
+      labelled = true;
+    }
+  }
+  catch (labelError)
+  {
+    // Non-fatal: the spam move below is the more important half. Without the
+    // label, destroySpam() will eventually reap the message — degraded, but
+    // not worse than the pre-quarantine behaviour.
+    logError('Could not apply phishing label: ' + labelError.toString());
+  }
+
+  // Step 2: report as spam and archive out of the inbox. No batchDelete.
+  try
+  {
+    const messageId = message.getId();
+
+    if (typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Messages)
+    {
+      Gmail.Users.Messages.modify(
+        { addLabelIds: ['SPAM'], removeLabelIds: ['INBOX'] },
+        'me',
+        messageId
+      );
+    }
+    else
+    {
+      thread.moveToSpam();
+    }
+
+    logInfo('PHISHING QUARANTINED (not deleted): ' + subject);
+    return true;
+  }
+  catch (error)
+  {
+    logError('Error quarantining phishing message: ' + error.toString());
+
+    try
+    {
+      thread.moveToSpam();
+      logInfo('PHISHING QUARANTINED (fallback): ' + subject);
+      return true;
+    }
+    catch (fallbackError)
+    {
+      logError('Quarantine fallback also failed: ' + fallbackError.toString());
+      // Labelled but not moved still leaves the user a visible marker.
+      return labelled;
+    }
+  }
+}
+
 function markAsSpam(message, thread)
 {
   const subject = sanitizeForLog(message.getSubject());
@@ -1629,6 +2029,343 @@ function sanitizeInput(input)
 function stripHtmlTags(html)
 {
   return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Decode the HTML entities a mail client honours inside link text and hrefs.
+ *
+ * This is NOT cosmetic — a plain substring search for a brand name is defeated
+ * by one entity. "D&#111;cuSign" and "Docu&shy;Sign" both render as "DocuSign"
+ * in every mail client while matching no literal search.
+ *
+ * Numeric forms are decoded FIRST and &amp; LAST. Browsers do not double-decode,
+ * so neither may we: decoding &amp; first would turn "&amp;#47;" into "/"
+ * and hand an attacker a free layer of indirection.
+ *
+ * @param {string} str - Raw text possibly containing HTML entities.
+ * @return {string} Decoded text ('' for falsy input).
+ */
+function decodeHtmlEntities(str)
+{
+  if (!str) return '';
+
+  return String(str)
+    .replace(/&#x([0-9a-f]{1,6});/gi, function(_, hex) {
+      const cp = parseInt(hex, 16);
+      // Guard String.fromCodePoint against RangeError on out-of-range values
+      // (e.g. "&#x110000;"). An uncaught throw here would propagate to
+      // analyzeMessage()'s catch-all and silently mark the message not-spam.
+      return (cp > 0 && cp <= 0x10FFFF) ? String.fromCodePoint(cp) : '';
+    })
+    .replace(/&#(\d{1,7});/g, function(_, dec) {
+      const cp = parseInt(dec, 10);
+      return (cp > 0 && cp <= 0x10FFFF) ? String.fromCodePoint(cp) : '';
+    })
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&shy;/gi,  '')
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;/gi, "'")
+    .replace(/&lt;/gi,   '<')
+    .replace(/&gt;/gi,   '>')
+    .replace(/&amp;/gi,  '&');
+}
+
+/**
+ * Extract the lowercase host from a URL taken from an href attribute.
+ *
+ * Hand-rolled because the Apps Script V8 runtime is not a browser: it exposes
+ * no WHATWG URL class (nor URLSearchParams or fetch). Each normalization step
+ * below exists because of a specific bypass a mail client would honour:
+ *
+ *   TAB/CR/LF       browsers DELETE these anywhere in a URL, so
+ *                   "https://ev<TAB>il.com" navigates to evil.com. Not
+ *                   stripping them means we parse a different host than the
+ *                   victim's client does.
+ *   backslash       browsers normalize \ to / in the authority, so
+ *                   "https:\\evil.com" navigates to evil.com.
+ *   scheme          only http/https carry a host we can judge. mailto:, tel:,
+ *                   javascript:, cid: and data: return '' (abstain).
+ *   missing slashes for special schemes "https:evil.com" is valid.
+ *   userinfo        "https://docusign.net@evil.com/" has host evil.com. Split
+ *                   on the LAST '@' — that is what browsers do, and browser
+ *                   behaviour is what the victim experiences.
+ *   port            "docusign.net:8443" -> docusign.net. IPv6 literals are
+ *                   bracketed, so the colon scan must follow the ']'.
+ *   trailing dot    "docusign.net." and "docusign.net" are the same host.
+ *   IDN/punycode    xn--* is already ASCII and compared verbatim; never
+ *                   decoded. A raw homoglyph host matches no allowlist entry,
+ *                   which reads as a mismatch — the outcome we want.
+ *
+ * @param {string} href - href value, with HTML entities ALREADY decoded.
+ * @return {string} Lowercase host without userinfo, port or trailing dot;
+ *                  '' when the URL has no http(s) authority.
+ */
+function extractUrlHost(href)
+{
+  if (!href) return '';
+
+  let s = String(href).replace(/[\t\r\n]/g, '').trim();
+  if (!s) return '';
+  s = s.replace(/\\/g, '/');
+
+  let authority;
+  const scheme = s.match(/^([a-z][a-z0-9+.\-]*):\/*/i);
+  if (scheme)
+  {
+    const name = scheme[1].toLowerCase();
+    if (name !== 'http' && name !== 'https') return '';
+    authority = s.substring(scheme[0].length);
+  }
+  else if (s.substring(0, 2) === '//')
+  {
+    authority = s.substring(2); // scheme-relative: //host/path
+  }
+  else
+  {
+    return ''; // relative path, #fragment, or no authority at all
+  }
+
+  const end = authority.search(/[\/?#]/);
+  if (end !== -1) authority = authority.substring(0, end);
+
+  const at = authority.lastIndexOf('@');
+  if (at !== -1) authority = authority.substring(at + 1);
+
+  if (authority.charAt(0) === '[') // IPv6 literal
+  {
+    const close = authority.indexOf(']');
+    if (close !== -1) authority = authority.substring(0, close + 1);
+  }
+  else
+  {
+    const colon = authority.indexOf(':');
+    if (colon !== -1) authority = authority.substring(0, colon);
+  }
+
+  return authority.toLowerCase().replace(/\.+$/, '');
+}
+
+/**
+ * True if `host` is exactly `domain` or a subdomain of it.
+ *
+ * Exact-or-dot-suffix is the only correct comparison:
+ *   includes(domain)  accepts "notdocusign.net" AND "docusign.net.evil.com"
+ *   endsWith(domain)  accepts "notdocusign.net"
+ *   this              accepts "docusign.net" and "eu.docusign.net" only
+ *
+ * @param {string} host   - Lowercase host from extractUrlHost().
+ * @param {string} domain - Lowercase registrable domain.
+ * @return {boolean}
+ */
+function hostMatchesDomain(host, domain)
+{
+  if (!host || !domain) return false;
+  return host === domain || host.endsWith('.' + domain);
+}
+
+/**
+ * True if an email address belongs to `domain` or a subdomain of it.
+ *
+ * Replaces the substring `senderAddress.includes(domain)` idiom, which was a
+ * whitelist bypass: "mail@linkedin.com.secure-login.top" contains
+ * "linkedin.com" and so skipped ALL detection, as did "a@notlinkedin.com".
+ *
+ * @param {string} address - Lowercase email address (local@host).
+ * @param {string} domain  - Lowercase domain from the whitelist or blacklist.
+ * @return {boolean}
+ */
+function addressMatchesDomain(address, domain)
+{
+  if (!address || !domain) return false;
+
+  const at = address.lastIndexOf('@');
+  const host = (at === -1 ? address : address.substring(at + 1))
+    .toLowerCase().replace(/\.+$/, '');
+
+  // Some list entries are deliberately not domains (e.g. 'dragonfly',
+  // 'customerservice@stan'). Those keep substring semantics against the full
+  // address — they were added as fuzzy matches and narrowing them silently
+  // would change behaviour. Entries that look like domains get strict matching.
+  if (domain.indexOf('.') === -1 || domain.indexOf('@') !== -1)
+  {
+    return address.indexOf(domain) !== -1;
+  }
+
+  return hostMatchesDomain(host, domain);
+}
+
+/**
+ * True if a host is a click-tracker, link-wrapper or security rewriter.
+ *
+ * Two mechanisms, both needed: an explicit list of ESP/gateway domains, and a
+ * leftmost-label heuristic for customer-CNAMEd trackers ("click.acme.com").
+ *
+ * @param {string} host - Lowercase host from extractUrlHost().
+ * @return {boolean}
+ */
+function isLinkWrapperHost(host)
+{
+  if (!host) return false;
+
+  for (let i = 0; i < LINK_WRAPPER_DOMAINS.length; i++)
+  {
+    if (hostMatchesDomain(host, LINK_WRAPPER_DOMAINS[i])) return true;
+  }
+
+  const firstLabel = host.split('.')[0];
+  return TRACKER_LABELS.indexOf(firstLabel) !== -1;
+}
+
+/**
+ * Extract href/text pairs from HTML anchors.
+ *
+ * Deliberately NOT a paired-tag regex. A pattern like
+ *   /<a[^>]*>([\s\S]*?)<\/a>/g
+ * is polynomial in (anchor count x document length) on attacker-controlled
+ * input: every <a> with no closing </a> makes the engine scan to
+ * end-of-document before failing, so 800 unclosed anchors in a 4 MB body costs
+ * ~3e9 character steps — tens of seconds inside a 6-minute total budget. Mail
+ * clients tolerate unclosed anchors, so this is trivially reachable.
+ *
+ * Instead: one BOUNDED regex for the open tag, then String.indexOf() for the
+ * close. indexOf is a native linear scan with no backtracking, and the window
+ * it searches is capped by LIMITS.maxAnchorTextChars. Every quantifier below
+ * is explicitly bounded, so a malformed tag cannot walk the document.
+ *
+ * @param {string} html - Decoded HTML body from message.getBody().
+ * @return {Array<Object>} At most LIMITS.maxAnchorsScanned objects with
+ *                         `href` and `text` string properties.
+ */
+function extractAnchors(html)
+{
+  const out = [];
+  if (!html) return out;
+
+  const scan = html.length > LIMITS.maxHtmlScanChars
+    ? html.substring(0, LIMITS.maxHtmlScanChars)
+    : html;
+
+  // Constructed FRESH on every call, NOT hoisted to module level. A /g RegExp
+  // is a stateful object: lastIndex survives between calls, so a shared
+  // instance driven by exec() would resume at the previous message's offset
+  // and silently skip anchors. Recompiling costs microseconds.
+  const openTag  = /<a\s[^>]{0,2000}>/gi;
+  const hrefAttr = /\shref\s*=\s*(?:"([^"]{0,2000})"|'([^']{0,2000})'|([^\s"'>]{0,2000}))/i;
+
+  let m;
+  while (out.length < LIMITS.maxAnchorsScanned && (m = openTag.exec(scan)) !== null)
+  {
+    // Zero-length-match guard against an infinite loop. This pattern cannot
+    // match empty, but the idiom is free and the failure mode is a hung run.
+    if (m.index === openTag.lastIndex) { openTag.lastIndex++; continue; }
+
+    const h = m[0].match(hrefAttr);
+    if (!h) continue;
+
+    const href = h[1] !== undefined ? h[1] : (h[2] !== undefined ? h[2] : h[3]);
+    if (!href) continue;
+
+    const textStart = openTag.lastIndex;
+    const closeIdx  = scan.indexOf('</a', textStart);
+    const cap       = Math.min(textStart + LIMITS.maxAnchorTextChars, scan.length);
+    const textEnd   = (closeIdx === -1 || closeIdx > cap) ? cap : closeIdx;
+
+    // Strip nested markup so <span>Docu</span><span>Sign</span> collapses to
+    // "DocuSign" — attackers split brand names across elements. Then decode
+    // entities. Both steps are required before any brand comparison.
+    const inner = scan.substring(textStart, textEnd).replace(/<[^>]{0,2000}>/g, '');
+    const text  = decodeHtmlEntities(inner).replace(/\s+/g, ' ').trim();
+
+    out.push({ href: decodeHtmlEntities(href), text: text });
+  }
+
+  return out;
+}
+
+/**
+ * Detect a call-to-action link that borrows a document brand's name while
+ * pointing somewhere that brand does not control.
+ *
+ * All four conditions must hold for an anchor to fire:
+ *   1. normalized link text contains a BRAND_CTA_DOMAINS key, carries a
+ *      CTA verb, and is <= 60 chars (a button label, not prose)
+ *   2. href resolves to an http(s) host
+ *   3. that host matches none of the brand's legitimate domains
+ *   4. that host is not a link wrapper, and is not aligned with the sender's
+ *      own domain
+ *
+ * Condition 4's wrapper exemption is what keeps legitimate ESP-tracked mail
+ * out; condition 1's verb and length requirements are what keep a genuine
+ * DocuSign email's "About DocuSign" footer prose out.
+ *
+ * @param {string} html          - Decoded HTML body.
+ * @param {string} senderAddress - Lowercase sender email address.
+ * @return {boolean} true if a brand-mismatched CTA is present.
+ */
+function hasBrandMismatchedCta(html, senderAddress)
+{
+  if (!html) return false;
+
+  // Cheap necessary-condition gate: no anchors, no brand CTA. This is the only
+  // safe document-level shortcut available.
+  //
+  // A tempting stronger gate — indexOf(brandKey) over the whole HTML before
+  // walking anchors — is WRONG, and silently so. Link text is normalized
+  // per-anchor (tags stripped, entities decoded, punctuation removed) precisely
+  // because attackers write "D&#111;cu&shy;Sign" or
+  // "<span>Docu</span><span>Sign</span>". Neither contains the literal
+  // "docusign", so a raw-HTML brand gate rejects exactly the evasions the
+  // normalization exists to catch. The gate would have to normalize the whole
+  // document to be correct, which costs as much as the bounded anchor walk it
+  // was meant to avoid. So: no brand pre-gate. The walk is bounded by
+  // LIMITS (256 KB scanned, 300 anchors, 2 KB text each) and measures ~1 ms.
+  if (html.indexOf('<a') === -1) return false;
+
+  const brands     = Object.keys(BRAND_CTA_DOMAINS);
+  const senderAt   = senderAddress ? senderAddress.lastIndexOf('@') : -1;
+  const senderHost = senderAt === -1 ? '' : senderAddress.substring(senderAt + 1);
+
+  const anchors = extractAnchors(html);
+  for (let a = 0; a < anchors.length; a++)
+  {
+    const text = anchors[a].text;
+    if (!text || text.length > 60) continue;
+    if (!CTA_VERB_PATTERN.test(text)) continue;
+
+    // Normalize away spacing and punctuation so "Docu Sign", "Docu-Sign" and
+    // "DOCUSIGN->" all collapse onto the bare key form.
+    const normText = text.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+    for (let b = 0; b < brands.length; b++)
+    {
+      const brand = brands[b];
+      if (normText.indexOf(brand) === -1) continue;
+
+      const host = extractUrlHost(anchors[a].href);
+      if (!host) break;                       // mailto:/relative — abstain
+
+      const legit = BRAND_CTA_DOMAINS[brand];
+      let isLegit = false;
+      for (let d = 0; d < legit.length; d++)
+      {
+        if (hostMatchesDomain(host, legit[d])) { isLegit = true; break; }
+      }
+      if (isLegit) break;                     // genuine brand destination
+
+      if (isLinkWrapperHost(host)) break;     // wrapped — destination unknown
+
+      // Aligned with the sender's own domain: a company linking its own
+      // infrastructure is not impersonating anyone.
+      if (senderHost && (hostMatchesDomain(host, senderHost) ||
+                         hostMatchesDomain(senderHost, host))) break;
+
+      logDebug('Brand-mismatched CTA: text=' + sanitizeForLog(text) +
+               ' brand=' + brand + ' host=' + sanitizeForLog(host));
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -2287,6 +3024,10 @@ function checkFalseNegatives()
         // Remove label before markAsSpam() — deleted threads can't have labels removed
         if (label) thread.removeLabel(label);
 
+        // Deliberately markAsSpam(), NOT disposeDetectedMessage(): reaching
+        // this code means the user manually applied the "SpamMissed" label,
+        // which is an explicit instruction to destroy. Quarantining here would
+        // override a human decision.
         markAsSpam(message, thread);
 
         logInfo('FALSE NEGATIVE LOGGED AND DESTROYED: ' + sanitizeForLog(message.getSubject()));
@@ -2354,7 +3095,10 @@ function recheckRecentSpamChecked()
 
         // Accumulate log entry BEFORE deletion — getRawContent() unavailable after batchDelete
         accumulateLogEntry(message, verdict.signals, 'FALSE_NEGATIVE');
-        markAsSpam(message, thread);
+        // Same destroy-vs-quarantine routing as processThread(). An
+        // auto-recaught Rule 7 hit must not be permanently deleted just
+        // because it was found on the recheck pass rather than the first one.
+        disposeDetectedMessage(message, thread, verdict.signals);
         recaughtCount++;
       }
       catch (threadError)
@@ -2628,6 +3372,14 @@ function getRuleFromSignals(signals)
     return { rule: 'Rule 6', description: 'Service impersonation phishing (cloud service subject from non-service sender)' };
   }
 
+  // Must stay in the SAME position as in makeVerdict(). Rule order is the
+  // contract — a branch in the wrong slot reports the wrong rule for any
+  // message that trips two signals.
+  if (signals.brandMismatchedCta)
+  {
+    return { rule: 'Rule 7', description: 'Brand-mismatched CTA phishing (link text names a document brand the destination does not control)' };
+  }
+
   return { rule: 'NONE', description: 'No rule triggered' };
 }
 
@@ -2651,6 +3403,7 @@ function buildSignalsCsv(signals)
   if (signals.suspiciousFromName)         parts.push('SUSPICIOUS_FROM');
   if (signals.emptySubjectWithAttachment) parts.push('EMPTY_SUBJECT_ATTACHMENT');
   if (signals.serviceImpersonation)       parts.push('SERVICE_IMPERSONATION');
+  if (signals.brandMismatchedCta)         parts.push('BRAND_MISMATCH_CTA');
 
   return parts.join(',');
 }
@@ -2709,6 +3462,11 @@ function debugWhyFlagged(searchTerm)
       logInfo('  marketing=' + signals.marketingFormat);
       logInfo('  suspiciousFrom=' + signals.suspiciousFromName);
       logInfo('  emptySubjectAttachment=' + signals.emptySubjectWithAttachment);
+      // serviceImpersonation was missing since v6.38.0 — a Rule 6 phishing
+      // verdict printed "SPAM" with every listed signal false, in the one tool
+      // whose entire job is explaining why something was flagged.
+      logInfo('  serviceImpersonation=' + signals.serviceImpersonation);
+      logInfo('  brandMismatchedCta=' + signals.brandMismatchedCta);
       logInfo('');
       logInfo('Verdict: ' + (makeVerdict(signals) ? 'SPAM' : 'not spam'));
     }

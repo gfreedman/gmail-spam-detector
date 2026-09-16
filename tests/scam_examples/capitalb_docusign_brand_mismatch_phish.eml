@@ -1,0 +1,158 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:b387:b0:1fc:3e10:ebdd with SMTP id dt7csp2060961rdb;
+        Wed, 16 Sep 2026 08:25:46 -0700 (PDT)
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@cptlbnews.press header.s=resend header.b=S+U0i7ET;
+       dkim=pass header.i=@amazonses.com header.s=224i4yxa5dv7c2xz3womw6peuasteono header.b=Bw5gFT61;
+       spf=pass (google.com: domain of 010001a0aad2dd41-9fed911c-e521-494d-be7c-878d85874f33-000000@rsend.cptlbnews.press designates 54.240.9.116 as permitted sender) smtp.mailfrom=010001a0aad2dd41-9fed911c-e521-494d-be7c-878d85874f33-000000@rsend.cptlbnews.press
+Return-Path: <010001a0aad2dd41-9fed911c-e521-494d-be7c-878d85874f33-000000@rsend.cptlbnews.press>
+Received: from a9-116.smtp-out.amazonses.com (a9-116.smtp-out.amazonses.com. [54.240.9.116])
+        by mx.google.com with ESMTPS id af79cd13be357-93b81d21714si217636885a.221.2026.09.16.08.25.41
+        for <mrattackfrog@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 16 Sep 2026 08:25:41 -0700 (PDT)
+Received-SPF: pass (google.com: domain of 010001a0aad2dd41-9fed911c-e521-494d-be7c-878d85874f33-000000@rsend.cptlbnews.press designates 54.240.9.116 as permitted sender) client-ip=54.240.9.116;
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple; s=resend;
+	d=cptlbnews.press; t=1789572341;
+	h=From:To:Subject:MIME-Version:Content-Type:List-Unsubscribe:List-Unsubscribe-Post:Message-ID:Date;
+	bh=Ar2hD9QyIAl/RcIQGDVZE5AATzksZdtyUh7U69aqDNg=;
+	b=S+U0i7ETjTkhzOj5EkAtKIzQ4Kt9ZaUxFVJkrljVpr8D4dRioIg9sI42+AxSllTS
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=224i4yxa5dv7c2xz3womw6peuasteono; d=amazonses.com; t=1789572341;
+	h=From:To:Subject:MIME-Version:Content-Type:List-Unsubscribe:List-Unsubscribe-Post:Message-ID:Date:Feedback-ID;
+	bh=Ar2hD9QyIAl/RcIQGDVZE5AATzksZdtyUh7U69aqDNg=;
+	b=Bw5gFT61yh/RPY79u2UeqAjwCp1cwgCzwbg6AyHCSc9GIxtRrd3fUC5n/ZGBOfJQ
+From: Capital B <info@cptlbnews.press>
+To: mrattackfrog@gmail.com
+Subject: Capital B | Bitcoin Policy Brief: What the Current Discussion
+ Covers
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+	boundary="----=_Part_95049_877690257.1789572341057"
+List-Unsubscribe: <https://unsubscribe.resend.com/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.REDACTED>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Precedence: bulk
+X-Entity-Ref-ID: 15a8f30c-d917-4466-923e-4177ea44cc4c
+Message-ID: <010001a0aad2dd41-9fed911c-e521-494d-be7c-878d85874f33-000000@email.amazonses.com>
+Date: Wed, 16 Sep 2026 15:25:41 +0000
+Feedback-ID: :1.us-east-1.L6krtRbYM5J0aWgpjCcgdvFt7yKmCD2C+g43ArK2Mx4SqzREDACTED=:AmazonSES
+X-SES-Outgoing: 2026.09.16-54.240.9.116
+
+------=_Part_95049_877690257.1789572341057
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+A plain-language overview of the Bitcoin Clarity policy discussion and the
+reported 7-10% withholding provision.
+
+Capital https://cptlb.com/ B https://cptlb.com/
+
+Bitcoin policy brief
+September 2026
+
+A note for Capital B readers
+
+A short guide to the current discussion.
+
+Whether you hold 0.01 BTC or 100 BTC, this summary provides general context.
+
+The topic
+
+The Bitcoin Clarity policy discussion could affect how Bitcoin is held,
+moved, mined, and taxed if related provisions are adopted.
+
+A reported 7-10% withholding provision has been discussed in connection with
+specified Bitcoin activity. The key questions are when it could apply, who
+could have reporting responsibilities, and whether it could later be
+credited, reconciled, or exempted.
+
+Reported range
+
+7-10%
+
+A figure referenced in public discussion; its scope and applicability depend
+on final official guidance.
+
+Three questions for context
+
+Review the short breakdown for context.
+
+01
+
+When could it apply, if adopted?
+
+02
+
+Which participant could have reporting responsibilities?
+
+03
+
+Could it later be credited, reconciled, or exempted?
+
+For additional background, review Capital B's official financial information
+through the link below.
+
+VIEW IN DOCUSIGN-> https://cptlbpolicy.com/
+
+Capital https://cptlb.com/ B https://cptlb.com/
+
+Capital B SA
+TOUR W - 102 Terrasse Boieldieu
+92800 Puteaux, France
+
+Capital B SA (Euronext Growth Paris: ALCPB; US OTCID: CPTLF) is a Bitcoin
+Treasury Company with subsidiaries focused on Data Intelligence, AI,
+decentralized technology consulting and development, and corporate treasury.
+This email is for informational purposes only and is not tax, legal, or
+investment advice. The policy discussion is not presented as settled law.
+
+(c) 2026 Capital B SA. All Rights Reserved.
+------=_Part_95049_877690257.1789572341057
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html dir="ltr" lang="en"><head><meta content="width=device-width" name="viewport"/><meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/><meta content="telephone=no,address=no,email=no,date=no,url=no" name="format-detection"/></head><body dir="ltr" lang="en" style="background-color:#f3f4f6;margin:0;padding:0">
+<div style="display:none;font-size:1px;color:#f3f4f6;max-height:0;max-width:0;opacity:0;overflow:hidden"><p style="margin:0;padding:0">A plain-language overview of the Bitcoin Clarity policy discussion and the reported 7&#x2013;10% withholding provision.</p></div>
+<table width="600" border="0" cellPadding="0" cellSpacing="0" role="presentation" class="email-shell" style="width:600px;max-width:600px;background-color:#ffffff;border-radius:16px;overflow:hidden"><tbody>
+<tr><td data-id="__react-email-column" style="height:8px;background-color:#ef6f22;font-size:0;line-height:0"><p style="margin:0;padding:0">&#xA0;</p></td></tr>
+<tr><td class="mobile-pad" data-id="__react-email-column" style="padding:30px 38px 28px 38px;background-color:#101114">
+<p style="margin:0;padding:0"><a href="https://cptlb.com/" rel="noopener noreferrer nofollow" style="color:#ef6f22;text-decoration:underline;font-size:27px;font-weight:800;white-space:nowrap" target="_blank">Capital </a><a href="https://cptlb.com/" rel="noopener noreferrer nofollow" style="color:#ef6f22;text-decoration:underline;font-size:27px;font-weight:800;white-space:nowrap" target="_blank"><span style="color:#ef6f22"><span style="display:inline-block;width:40px;height:40px;margin-left:5px;border:3px solid #ef6f22;border-radius:10px;color:#ef6f22;font-size:25px;line-height:32px;text-align:center;vertical-align:middle">&#x20BF;</span></span></a></p>
+<p style="margin:0;padding:0;color:#ffffff;font-size:11px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase">Bitcoin policy brief<br/><span style="color:#a8a8a8"><span style="color:#a8a8a8;font-weight:500">September 2026</span></span></p>
+</td></tr>
+<tr><td class="mobile-pad" data-id="__react-email-column" style="padding:46px 38px 50px 38px;background-color:#101114;border-top:1px solid #2c2d31">
+<p style="margin:0;padding:0;color:#ef6f22;font-size:12px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase">A note for Capital B readers</p>
+<p style="margin:0;padding:0;color:#ffffff;font-size:42px;font-weight:700;letter-spacing:-1.8px">A short guide to the current discussion.</p>
+<p style="margin:0;padding:0;color:#d6d8dd;font-size:16px;line-height:26px">Whether you hold <strong>0.01 BTC</strong> or <strong>100 BTC</strong>, this summary provides general context.</p>
+</td></tr>
+<tr><td class="mobile-pad" data-id="__react-email-column" style="padding:44px 38px 44px 38px;background-color:#ffffff">
+<p style="margin:0;padding:0;color:#ef6f22;font-size:12px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase">The topic</p>
+<p style="margin:0;padding:0;color:#000000;font-size:28px;font-weight:650;letter-spacing:-0.7px">The Bitcoin Clarity policy discussion could affect how Bitcoin is held, moved, mined, and taxed if related provisions are adopted.</p>
+<p style="margin:0;padding:0;color:#56606d;font-size:16px;line-height:27px">A reported <strong>7&#x2013;10% withholding provision</strong> has been discussed in connection with specified Bitcoin activity. The key questions are when it could apply, who could have reporting responsibilities, and whether it could later be credited, reconciled, or exempted.</p>
+</td></tr>
+<tr><td class="mobile-pad" data-id="__react-email-column" style="padding:38px 38px 42px 38px;background-color:#ef6f22">
+<p style="margin:0;padding:0;color:#000000;font-size:12px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase">Reported range</p>
+<p style="margin:0;padding:0;color:#000000;font-size:72px;font-weight:750;letter-spacing:-4px">7&#x2013;10%</p>
+<p style="margin:0;padding:0;color:#000000;font-size:17px;line-height:27px;font-weight:500">A figure referenced in public discussion; its scope and applicability depend on final official guidance.</p>
+</td></tr>
+<tr><td class="mobile-pad" data-id="__react-email-column" style="padding:44px 38px 12px 38px;background-color:#ffffff">
+<p style="margin:0;padding:0;color:#ef6f22;font-size:12px;font-weight:700;letter-spacing:1.8px;text-transform:uppercase">Three questions for context</p>
+<p style="margin:0;padding:0;color:#000000;font-size:28px;font-weight:650;letter-spacing:-0.7px">Review the short breakdown for context.</p>
+</td></tr>
+<tr><td class="mobile-pad" data-id="__react-email-column" style="padding:0 38px;background-color:#ffffff">
+<table width="100%" border="0" cellPadding="0" cellSpacing="0" role="presentation"><tbody>
+<tr><td data-id="__react-email-column" style="padding:18px 0 20px 0;width:52px;border-top:1px solid #000000;color:#ef6f22;font-size:13px;font-weight:700"><p style="margin:0;padding:0">01</p></td><td data-id="__react-email-column" style="padding:16px 0 20px 0;border-top:1px solid #000000;color:#000000;font-size:17px;font-weight:600"><p style="margin:0;padding:0">When could it apply, if adopted?</p></td></tr>
+<tr><td data-id="__react-email-column" style="padding:18px 0 20px 0;width:52px;border-top:1px solid #dfe1e5;color:#ef6f22;font-size:13px;font-weight:700"><p style="margin:0;padding:0">02</p></td><td data-id="__react-email-column" style="padding:16px 0 20px 0;border-top:1px solid #dfe1e5;color:#000000;font-size:17px;font-weight:600"><p style="margin:0;padding:0">Which participant could have reporting responsibilities?</p></td></tr>
+<tr><td data-id="__react-email-column" style="padding:18px 0 20px 0;width:52px;border-top:1px solid #dfe1e5;border-bottom:1px solid #000000;color:#ef6f22;font-size:13px;font-weight:700"><p style="margin:0;padding:0">03</p></td><td data-id="__react-email-column" style="padding:16px 0 20px 0;border-top:1px solid #dfe1e5;border-bottom:1px solid #000000;color:#000000;font-size:17px;font-weight:600"><p style="margin:0;padding:0">Could it later be credited, reconciled, or exempted?</p></td></tr>
+</tbody></table></td></tr>
+<tr><td class="mobile-pad" data-id="__react-email-column" style="padding:42px 38px 58px 38px;background-color:#ffffff">
+<p style="margin:0;padding:0;padding-bottom:18px;color:#56606d;font-size:14px;line-height:22px">For additional background, review Capital B&#x2019;s official financial information through the link below.</p>
+<table border="0" cellPadding="0" cellSpacing="0" role="presentation"><tbody><tr><td class="button-cell" align="center" data-id="__react-email-column" style="background-color:#ef6f22"><p style="margin:0;padding:0"><a href="https://cptlbpolicy.com/" rel="noopener noreferrer nofollow" style="color:#000000;text-decoration:underline;display:inline-block;padding:13px 18px;font-size:12px;line-height:16px;font-weight:700;letter-spacing:0.25px;text-transform:uppercase" target="_blank">VIEW IN DOCUSIGN&#x2192;</a></p></td></tr></tbody></table>
+</td></tr>
+<tr><td class="mobile-pad" data-id="__react-email-column" style="padding:38px 38px 36px 38px;background-color:#101114;border-top:8px solid #ef6f22">
+<p style="margin:0;padding:0"><a href="https://cptlb.com/" rel="noopener noreferrer nofollow" style="color:#ef6f22;text-decoration:underline;font-size:27px;font-weight:800;white-space:nowrap" target="_blank">Capital </a><a href="https://cptlb.com/" rel="noopener noreferrer nofollow" style="color:#ef6f22;text-decoration:underline;font-size:27px;font-weight:800;white-space:nowrap" target="_blank"><span style="color:#ef6f22"><span style="display:inline-block;width:40px;height:40px;margin-left:5px;border:3px solid #ef6f22;border-radius:10px;color:#ef6f22;font-size:25px;line-height:32px;text-align:center;vertical-align:middle">&#x20BF;</span></span></a></p>
+<p style="margin:0;padding:0;color:#ffffff;font-size:13px;line-height:21px;font-weight:600">Capital B SA<br/>TOUR W &#x2013; 102 Terrasse Boieldieu<br/>92800 Puteaux, France</p>
+<p style="margin:0;padding:0;color:#9298a3;font-size:11px;line-height:18px">Capital B SA (Euronext Growth Paris: ALCPB; US OTCID: CPTLF) is a Bitcoin Treasury Company with subsidiaries focused on Data Intelligence, AI, decentralized technology consulting and development, and corporate treasury. This email is for informational purposes only and is not tax, legal, or investment advice. The policy discussion is not presented as settled law.</p>
+<p style="margin:0;padding:0;color:#7c838e;font-size:10px;line-height:16px">&#xA9;<!-- --> 2026 Capital B SA. All Rights Reserved.</p>
+</td></tr>
+</tbody></table></body></html>
+------=_Part_95049_877690257.1789572341057--

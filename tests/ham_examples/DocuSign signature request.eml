@@ -1,0 +1,87 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:b387:b0:1fc:3e10:ebdd with SMTP id dt7csp2060444rdb;
+        Tue, 15 Sep 2026 11:02:18 -0700 (PDT)
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@docusign.net header.s=dkim1 header.b=Kq1mZ8Tp;
+       spf=pass (google.com: domain of bounce@docusign.net designates 162.248.186.24 as permitted sender) smtp.mailfrom=bounce@docusign.net;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=docusign.net
+Return-Path: <bounce@docusign.net>
+Received: from mail.docusign.net (mail.docusign.net. [162.248.186.24])
+        by mx.google.com with ESMTPS id af79cd13be357-93b81d21001si217630012a.118.2026.09.15.11.02.18
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 15 Sep 2026 11:02:18 -0700 (PDT)
+From: DocuSign NA3 System <dse_NA3@docusign.net>
+To: geoff.c.freedman@gmail.com
+Subject: Complete with DocuSign: Kelowna Property Management Agreement 2026
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+	boundary="----=_Part_2211_118842991.1789495338221"
+Message-ID: <e9f0c1a2-4b77-4c19-9d31-6f2a8b5e0d44@docusign.net>
+Date: Tue, 15 Sep 2026 18:02:18 +0000
+
+------=_Part_2211_118842991.1789495338221
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+Kelowna Property Management sent you a document to review and sign.
+
+REVIEW DOCUMENT
+https://na3.docusign.net/Signing/EmailStart.aspx?a=6b1d9f4e-2c88-41a7-9f10-5d3e7c2b8a91
+
+Kelowna Property Management
+accounts@kelownapropertymgmt.ca
+
+Please review the attached Property Management Agreement for the 2026-2027
+term and sign at your convenience. Let us know if you have any questions
+about the renewal terms before signing.
+
+Thank You,
+Kelowna Property Management
+
+Do Not Share This Email
+This email contains a secure link to DocuSign. Please do not share this
+email, link, or access code with others.
+
+Alternate Signing Method
+Visit DocuSign.com, click 'Access Documents', and enter the security code:
+6B1D9F4E2C8841A7
+
+About DocuSign
+Sign documents electronically in just minutes. It's safe, secure, and legally
+binding. Whether you're in an office, at home, on-the-go -- or even across
+the globe -- DocuSign provides a professional trusted solution for Digital
+Transaction Management.
+
+Questions about the Document?
+If you need to modify the document or have questions about the details in the
+document, please reach out to the sender by emailing them directly.
+
+Stop receiving this email
+Report this email or read about DocuSign Signing.
+
+Powered by DocuSign
+https://www.docusign.com/
+
+------=_Part_2211_118842991.1789495338221
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><meta name="viewport" content="width=device-width"/><title>DocuSign</title></head><body style="margin:0;padding:0;background-color:#f4f4f4">
+<table width="600" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:600px;max-width:600px;background-color:#ffffff"><tbody>
+<tr><td style="padding:24px 40px 12px 40px;border-bottom:1px solid #e1e1e1"><img src="https://docucdn-a.akamaihd.net/olive/images/2.51.0/global-assets/ds-logo-default.png" alt="DocuSign" width="150" height="34" style="display:block;border:0"/></td></tr>
+<tr><td style="padding:28px 40px 8px 40px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#333333"><p style="margin:0;padding:0">Kelowna Property Management sent you a document to review and sign.</p></td></tr>
+<tr><td align="center" style="padding:26px 40px 30px 40px">
+<table border="0" cellpadding="0" cellspacing="0" role="presentation"><tbody><tr><td align="center" style="background-color:#ffc820;border-radius:4px"><p style="margin:0;padding:0"><a href="https://na3.docusign.net/Signing/EmailStart.aspx?a=6b1d9f4e-2c88-41a7-9f10-5d3e7c2b8a91" target="_blank" style="display:inline-block;padding:14px 46px;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;color:#333333;text-decoration:none">REVIEW DOCUMENT</a></p></td></tr></tbody></table>
+</td></tr>
+<tr><td style="padding:0 40px 24px 40px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#333333"><p style="margin:0;padding:0"><strong>Kelowna Property Management</strong><br/>accounts@kelownapropertymgmt.ca</p><p style="margin:12px 0 0 0;padding:0">Please review the attached Property Management Agreement for the 2026-2027 term and sign at your convenience. Let us know if you have any questions about the renewal terms before signing.</p><p style="margin:12px 0 0 0;padding:0">Thank You,<br/>Kelowna Property Management</p></td></tr>
+<tr><td style="padding:18px 40px;background-color:#f8f8f8;border-top:1px solid #e1e1e1;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#666666">
+<p style="margin:0;padding:0"><strong>Do Not Share This Email</strong><br/>This email contains a secure link to DocuSign. Please do not share this email, link, or access code with others.</p>
+<p style="margin:12px 0 0 0;padding:0"><strong>Alternate Signing Method</strong><br/>Visit <a href="https://www.docusign.com/" target="_blank" style="color:#1e6fba;text-decoration:underline">DocuSign.com</a>, click 'Access Documents', and enter the security code: 6B1D9F4E2C8841A7</p>
+<p style="margin:12px 0 0 0;padding:0"><strong>About DocuSign</strong><br/>Sign documents electronically in just minutes. It's safe, secure, and legally binding. Whether you're in an office, at home, on-the-go &#8212; or even across the globe &#8212; DocuSign provides a professional trusted solution for Digital Transaction Management.</p>
+<p style="margin:12px 0 0 0;padding:0"><strong>Questions about the Document?</strong><br/>If you need to modify the document or have questions about the details in the document, please reach out to the sender by emailing them directly.</p>
+<p style="margin:12px 0 0 0;padding:0"><a href="https://na3.docusign.net/Member/EmailOptOut.aspx?e=6b1d9f4e&amp;r=2c88" target="_blank" style="color:#1e6fba;text-decoration:underline">Stop receiving this email</a> | <a href="https://support.docusign.com/" target="_blank" style="color:#1e6fba;text-decoration:underline">Report this email</a></p>
+<p style="margin:14px 0 0 0;padding:0">Powered by <a href="https://www.docusign.com/" target="_blank" style="color:#1e6fba;text-decoration:underline">DocuSign</a></p>
+</td></tr>
+</tbody></table></body></html>
+------=_Part_2211_118842991.1789495338221--

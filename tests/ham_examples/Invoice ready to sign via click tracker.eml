@@ -1,0 +1,87 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:b387:b0:1fc:3e10:ebdd with SMTP id dt7csp2059112rdb;
+        Mon, 14 Sep 2026 09:41:07 -0700 (PDT)
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@interiorheritagemillwork.ca header.s=s1 header.b=Lp7vR2Qa;
+       dkim=pass header.i=@sendgrid.net header.s=smtpapi header.b=Xn4bK9Ue;
+       spf=pass (google.com: domain of bounces+8821194-a1b2-geoff.c.freedman=gmail.com@em8821.interiorheritagemillwork.ca designates 149.72.154.232 as permitted sender) smtp.mailfrom=bounces+8821194-a1b2-geoff.c.freedman=gmail.com@em8821.interiorheritagemillwork.ca;
+       dmarc=pass (p=NONE sp=NONE dis=NONE) header.from=interiorheritagemillwork.ca
+Return-Path: <bounces+8821194-a1b2-geoff.c.freedman=gmail.com@em8821.interiorheritagemillwork.ca>
+Received: from o1.ptr8821.interiorheritagemillwork.ca (o1.ptr8821.interiorheritagemillwork.ca. [149.72.154.232])
+        by mx.google.com with ESMTPS id af79cd13be357-93b80fa2210si214402215a.402.2026.09.14.09.41.07
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Mon, 14 Sep 2026 09:41:07 -0700 (PDT)
+Received: by filterdrecv-c8f4d7b9c-8kx2n with SMTP id filterdrecv-c8f4d7b9c-8kx2n-1-6906D3A2-19
+        2026-09-14 16:41:06.882117551 +0000 UTC m=+1884233.402918471
+Received: from MTgyMTE5NA (unknown) by geopod-ismtpd-6 (SG) with HTTP id 7Kq1mZ8TpS2vX9dLwCbAhg
+        Mon, 14 Sep 2026 16:41:06.610 +0000 (UTC)
+From: Interior Heritage Millwork <billing@interiorheritagemillwork.ca>
+To: geoff.c.freedman@gmail.com
+Subject: Invoice INV-40218 is ready for your signature
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+	boundary="----=_Part_7781_552019338.1789404066610"
+List-Unsubscribe: <https://u8821194.ct.sendgrid.net/wf/unsubscribe?upn=Kq1mZ8TpS2vX9dLwCbAhg>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Precedence: bulk
+Message-ID: <7Kq1mZ8TpS2vX9dLwCbAhg@geopod-ismtpd-6>
+Date: Mon, 14 Sep 2026 16:41:06 +0000
+X-SG-EID: u001.Kq1mZ8TpS2vX9dLwCbAhg3rT5yU7iO9pA2sD4fG6hJ8k
+X-Feedback-ID: 8821194:SG
+
+------=_Part_7781_552019338.1789404066610
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+Hi Geoff,
+
+Your invoice for the kitchen cabinetry installation is ready. The signed copy
+is required before we can schedule the final site visit.
+
+Invoice number: INV-40218
+Amount: $4,318.75 CAD
+Terms: Net 30
+
+View in DocuSign:
+https://u8821194.ct.sendgrid.net/ls/click?upn=Kq1mZ8TpS2vX9dLwCbAhg-3D-3D&r=na3.docusign.net
+
+If you would rather receive a PDF copy by email instead, just reply and we
+will send one over.
+
+Thanks,
+Dana Whitfield
+Interior Heritage Millwork
+250-555-0148
+billing@interiorheritagemillwork.ca
+
+You are receiving this because you are a billing contact on this project.
+Unsubscribe: https://u8821194.ct.sendgrid.net/wf/unsubscribe?upn=Kq1mZ8TpS2vX9dLwCbAhg
+
+------=_Part_7781_552019338.1789404066610
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/><meta name="viewport" content="width=device-width"/></head><body style="margin:0;padding:0;background-color:#f6f6f4">
+<table width="600" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:600px;max-width:600px;background-color:#ffffff"><tbody>
+<tr><td style="padding:26px 36px 10px 36px;font-family:Georgia,serif;font-size:19px;color:#3d3a34"><p style="margin:0;padding:0">Interior Heritage Millwork</p></td></tr>
+<tr><td style="padding:10px 36px 6px 36px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#333333">
+<p style="margin:0;padding:0">Hi Geoff,</p>
+<p style="margin:12px 0 0 0;padding:0">Your invoice for the kitchen cabinetry installation is ready. The signed copy is required before we can schedule the final site visit.</p>
+</td></tr>
+<tr><td style="padding:16px 36px 4px 36px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:24px;color:#333333">
+<p style="margin:0;padding:0">Invoice number: <strong>INV-40218</strong><br/>Amount: <strong>$4,318.75 CAD</strong><br/>Terms: Net 30</p>
+</td></tr>
+<tr><td align="left" style="padding:24px 36px 28px 36px">
+<table border="0" cellpadding="0" cellspacing="0" role="presentation"><tbody><tr><td align="center" style="background-color:#3d6b4a;border-radius:3px"><p style="margin:0;padding:0"><a href="https://u8821194.ct.sendgrid.net/ls/click?upn=Kq1mZ8TpS2vX9dLwCbAhg-3D-3D&amp;r=na3.docusign.net" target="_blank" style="display:inline-block;padding:13px 32px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none">View in DocuSign</a></p></td></tr></tbody></table>
+</td></tr>
+<tr><td style="padding:0 36px 22px 36px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#555555">
+<p style="margin:0;padding:0">If you would rather receive a PDF copy by email instead, just reply and we will send one over.</p>
+<p style="margin:14px 0 0 0;padding:0">Thanks,<br/>Dana Whitfield<br/>Interior Heritage Millwork<br/>250-555-0148<br/><a href="mailto:billing@interiorheritagemillwork.ca" style="color:#3d6b4a;text-decoration:underline">billing@interiorheritagemillwork.ca</a></p>
+</td></tr>
+<tr><td style="padding:16px 36px 24px 36px;background-color:#f6f6f4;border-top:1px solid #e3e1dc;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;color:#8a857c">
+<p style="margin:0;padding:0">You are receiving this because you are a billing contact on this project.</p>
+<p style="margin:8px 0 0 0;padding:0"><a href="https://u8821194.ct.sendgrid.net/wf/unsubscribe?upn=Kq1mZ8TpS2vX9dLwCbAhg" target="_blank" style="color:#8a857c;text-decoration:underline">Unsubscribe</a></p>
+</td></tr>
+</tbody></table></body></html>
+------=_Part_7781_552019338.1789404066610--

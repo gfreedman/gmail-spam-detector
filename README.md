@@ -35,8 +35,8 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 ## 📊 Results
 
-- ✅ **100% detection** on 51/51 spam + 2/2 scam (.eml files)
-- ✅ **0% false positives** on 19/19 legitimate emails
+- ✅ **100% detection** on 51/51 spam + 3/3 scam (.eml files)
+- ✅ **0% false positives** on 21/21 legitimate emails
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Clean, maintainable code** (~120 lines of detection logic)
 
@@ -157,6 +157,25 @@ Bank Account, Government Hiding, Blood Thinner
 - Display names with bullet separators (e.g. "Finance • Daily Tips")
 - Excessively long display names (> 50 characters)
 
+**7. Service Impersonation (Technical Signal)**
+- A cloud document-sharing subject ("Document shared with you") from a sender
+  that is not the service's own domain
+- Real services only ever notify from their own infrastructure
+
+**8. Brand-Mismatched CTA (Link-Graph Signal)**
+- A call-to-action whose text names a document brand (DocuSign, Adobe Sign,
+  SharePoint, OneDrive…) while its `href` points somewhere that brand does not
+  control
+- The only signal that inspects links rather than sender-side wording, which is
+  how it reaches phishing with clean prose and valid DKIM
+- **Abstains** when the destination is a click-tracker, a CNAMEd tracker
+  (`click.`, `links.`, `go.`) or the sender's own domain — a wrapped link is
+  *unverifiable*, not malicious
+- Requires a CTA verb and a label ≤ 60 chars, so a genuine DocuSign email's
+  "About DocuSign" footer prose cannot trigger it
+- **Quarantines rather than deletes** — reported as spam and labelled
+  `Phishing`, but recoverable. `destroySpam()` skips that label
+
 ### Decision Rules
 
 **Conservative approach - requires multiple signals:**
@@ -177,6 +196,17 @@ if (clickbaitCount >= 3) { return SPAM; }
 
 // RULE 5: Empty subject + attachment → payload delivery scam
 if (emptySubject && hasAttachment) { return SPAM; }
+
+// RULE 6: Cloud service subject from a non-service sender → phishing
+// (no bulk gate: delivered via compromised legitimate accounts)
+if (serviceImpersonation) { return SPAM; }
+
+// RULE 7: CTA names a document brand the destination does not control → phishing
+// (no bulk gate, same reasoning; trackers and aligned hosts already exempted)
+// NOTE: Rule 7 QUARANTINES — reported as spam + labelled "Phishing", but not
+// permanently deleted, because it is the one rule with an irreducible
+// false-positive class. Rules 1-6 delete permanently.
+if (brandMismatchedCta) { return SPAM; }
 
 return NOT_SPAM;
 ```
@@ -272,8 +302,8 @@ addToWhitelist('domain.com');
 ├── tests/
 │   ├── test_spam_detector.py    # Python test suite
 │   ├── spam_examples/           # Real spam .eml files (51)
-│   ├── scam_examples/           # Scam .eml files (2)
-│   └── ham_examples/            # Legitimate .eml files (19)
+│   ├── scam_examples/           # Scam .eml files (3)
+│   └── ham_examples/            # Legitimate .eml files (21)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

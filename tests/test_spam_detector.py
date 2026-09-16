@@ -27,6 +27,7 @@ import email
 from email import policy
 from email.header import decode_header
 from pathlib import Path
+from typing import NamedTuple
 
 
 # =============================================================================
@@ -276,10 +277,117 @@ def _load_regex_array(source, const_name):
     return patterns
 
 
+def _strip_js_comments(text):
+    """
+    Remove // and /* */ comments from JS source, leaving string literals intact.
+
+    Required before extracting quoted strings with a regex. An apostrophe in a
+    prose comment — "// Email service providers' click tracking" — otherwise
+    desynchronizes quote pairing and silently corrupts every entry that
+    follows. That is not hypothetical: it shipped, and the symptom was a
+    46-element LINK_WRAPPER_DOMAINS containing ', ' and ' click tracking\\n  '
+    instead of domains, which made the brand-CTA signal false-positive on
+    legitimate SendGrid-tracked mail. The element count looked plausible, so no
+    cross-check caught it.
+    """
+    out = []
+    i, n = 0, len(text)
+    quote = None
+    while i < n:
+        ch = text[i]
+        if quote:
+            out.append(ch)
+            if ch == '\\' and i + 1 < n:      # escaped char inside string
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+            i += 1
+        elif ch in ('"', "'"):
+            quote = ch
+            out.append(ch)
+            i += 1
+        elif ch == '/' and i + 1 < n and text[i + 1] == '/':
+            while i < n and text[i] != '\n':
+                i += 1
+        elif ch == '/' and i + 1 < n and text[i + 1] == '*':
+            end = text.find('*/', i + 2)
+            i = n if end == -1 else end + 2
+        else:
+            out.append(ch)
+            i += 1
+    return ''.join(out)
+
+
 def _load_string_array(source, const_name):
     """Extract a JS Object.freeze([...]) string array as a Python list."""
     content = _extract_bracket_content(source, f'const {const_name} = Object.freeze([')
-    return re.findall(r"""['"]([^'"]+)['"]""", content)
+    return _extract_quoted_strings(content, const_name)
+
+
+def _extract_quoted_strings(content, const_name):
+    """
+    Pull quoted string literals out of a JS array body, comments removed first.
+
+    Validates that no entry contains whitespace. Every string array in
+    SpamDetector.gs holds domains, header fingerprints or hostname labels —
+    none of which contain spaces or newlines. A whitespace-bearing entry means
+    quote pairing has desynchronized, so fail loudly here rather than let a
+    corrupted allowlist silently change detection behaviour.
+    """
+    values = re.findall(r"""['"]([^'"]+)['"]""", _strip_js_comments(content))
+    bad = [v for v in values if re.search(r'\s', v)]
+    if bad:
+        raise ValueError(
+            f'{const_name}: {len(bad)} entries contain whitespace '
+            f'(e.g. {bad[0]!r}) — quote pairing desynchronized, '
+            f'likely an apostrophe or quote inside a comment'
+        )
+    return values
+
+
+def _load_object_of_string_arrays(source, const_name):
+    """
+    Extract `const NAME = Object.freeze({ key: Object.freeze([...]), ... })`
+    as {key: [strings]}.
+
+    This is the shape DEFAULT_DOMAINS and BRAND_CTA_DOMAINS both use, so one
+    loader serves both. Keys are discovered from the object body rather than
+    hardcoded, so adding a brand in SpamDetector.gs needs no parser change.
+
+    Each key's array is extracted with _extract_bracket_content, whose state
+    machine correctly skips regex character classes and string literals when
+    tracking bracket depth.
+
+    CONSTRAINT: the object body must contain no { or } characters.
+    _extract_brace_content is a naive brace counter that does not skip strings,
+    comments or regex literals, so a brace anywhere inside truncates the parse.
+    Keep these objects strings-only.
+    """
+    body = _extract_brace_content(source, f'const {const_name} = Object.freeze({{')
+
+    # Match on the real text rather than reconstructing a marker as
+    # f'{key}: Object.freeze(['. Reconstruction assumes exactly one space and
+    # breaks the moment someone aligns the values in a column — a brittleness
+    # that fails at import time with a confusing "marker not found".
+    result = {}
+    for m in re.finditer(r'(\w+)\s*:\s*Object\.freeze\(\[', body):
+        key = m.group(1)
+        content = _extract_bracket_content(body, m.group(0))
+        result[key] = _extract_quoted_strings(content, f'{const_name}.{key}')
+
+    # Cross-check, same spirit as _load_regex_array's line count validation:
+    # one parsed key per nested Object.freeze([ in the body. A mismatch means
+    # the key regex skipped one — fail loudly as a PARSER bug rather than
+    # silently under-loading detection data.
+    expected = body.count('Object.freeze([')
+    if len(result) != expected:
+        raise ValueError(
+            f'{const_name}: found {expected} nested Object.freeze([ blocks but '
+            f'parsed {len(result)} keys — parser may have skipped one'
+        )
+    return result
 
 
 def _load_single_regex(source, const_name):
@@ -318,26 +426,25 @@ def _load_gs_constants(gs_path):
         for m in re.finditer(r'(\w+)\s*:\s*(\d+)', limits_content)
     }
 
-    # DEFAULT_DOMAINS: two named inner arrays inside the outer object.
-    # The state machine in _extract_bracket_content handles the nested structure.
-    legit_content      = _extract_bracket_content(source, 'legitimate: Object.freeze([')
-    suspicious_content = _extract_bracket_content(source, 'suspicious: Object.freeze([')
-
     return {
         'CLICKBAIT_PATTERNS':           _load_regex_array(source, 'CLICKBAIT_PATTERNS'),
         'BODY_CRYPTO_PATTERNS':         _load_regex_array(source, 'BODY_CRYPTO_PATTERNS'),
         'BODY_FEAR_PATTERNS':           _load_regex_array(source, 'BODY_FEAR_PATTERNS'),
+        'BODY_UNICODE_PATTERNS':        _load_regex_array(source, 'BODY_UNICODE_PATTERNS'),
         'FEAR_PATTERNS':                _load_regex_array(source, 'FEAR_PATTERNS'),
         'MARKETING_PATTERNS':           _load_regex_array(source, 'MARKETING_PATTERNS'),
         'BULK_EMAIL_FINGERPRINTS':      _load_string_array(source, 'BULK_EMAIL_FINGERPRINTS'),
         'IMPERSONATION_SUBJECT_PATTERNS': _load_regex_array(source, 'IMPERSONATION_SUBJECT_PATTERNS'),
         'CLOUD_SERVICE_DOMAINS':        _load_string_array(source, 'CLOUD_SERVICE_DOMAINS'),
+        'LINK_WRAPPER_DOMAINS':         _load_string_array(source, 'LINK_WRAPPER_DOMAINS'),
+        'TRACKER_LABELS':               _load_string_array(source, 'TRACKER_LABELS'),
+        'CTA_VERB_PATTERN':             _load_single_regex(source, 'CTA_VERB_PATTERN'),
         'RFC2822_QUOTED_NAME':          _load_single_regex(source, 'RFC2822_QUOTED_NAME'),
         'LIMITS':                       limits,
-        'DEFAULT_DOMAINS': {
-            'legitimate': re.findall(r"""['"]([^'"]+)['"]""", legit_content),
-            'suspicious':  re.findall(r"""['"]([^'"]+)['"]""", suspicious_content),
-        },
+        # Both parsed by the same generic loader — keys are discovered from the
+        # source, not hardcoded, so new brands/domain groups need no edit here.
+        'DEFAULT_DOMAINS':              _load_object_of_string_arrays(source, 'DEFAULT_DOMAINS'),
+        'BRAND_CTA_DOMAINS':            _load_object_of_string_arrays(source, 'BRAND_CTA_DOMAINS'),
     }
 
 
@@ -356,17 +463,25 @@ except Exception as _e:
 CLICKBAIT_PATTERNS              = _gs['CLICKBAIT_PATTERNS']
 BODY_CRYPTO_PATTERNS            = _gs['BODY_CRYPTO_PATTERNS']
 BODY_FEAR_PATTERNS              = _gs['BODY_FEAR_PATTERNS']
+BODY_UNICODE_PATTERNS           = _gs['BODY_UNICODE_PATTERNS']
 FEAR_PATTERNS                   = _gs['FEAR_PATTERNS']
 MARKETING_PATTERNS              = _gs['MARKETING_PATTERNS']
 BULK_EMAIL_FINGERPRINTS         = _gs['BULK_EMAIL_FINGERPRINTS']
 IMPERSONATION_SUBJECT_PATTERNS  = _gs['IMPERSONATION_SUBJECT_PATTERNS']
 CLOUD_SERVICE_DOMAINS           = _gs['CLOUD_SERVICE_DOMAINS']
+BRAND_CTA_DOMAINS               = _gs['BRAND_CTA_DOMAINS']
+LINK_WRAPPER_DOMAINS            = _gs['LINK_WRAPPER_DOMAINS']
+TRACKER_LABELS                  = _gs['TRACKER_LABELS']
+CTA_VERB_PATTERN                = _gs['CTA_VERB_PATTERN']
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
 MAX_DISPLAY_NAME_LENGTH         = _gs['LIMITS']['maxDisplayNameLength']
 MAX_INPUT_CHARS                 = _gs['LIMITS']['maxInputChars']
 MAX_LOG_CHARS                   = _gs['LIMITS']['maxLogChars']
+MAX_HTML_SCAN_CHARS             = _gs['LIMITS']['maxHtmlScanChars']
+MAX_ANCHORS_SCANNED             = _gs['LIMITS']['maxAnchorsScanned']
+MAX_ANCHOR_TEXT_CHARS           = _gs['LIMITS']['maxAnchorTextChars']
 
 
 # =============================================================================
@@ -398,6 +513,179 @@ GMAIL_API_METHODS = {
 # Helper Functions
 # =============================================================================
 
+# =============================================================================
+# Link-Graph Helpers — mirrors of the SpamDetector.gs implementations
+#
+# These four functions must behave identically to decodeHtmlEntities(),
+# extractUrlHost(), hostMatchesDomain() and extractAnchors() in SpamDetector.gs.
+# They cannot be loaded from source (they are code, not data), so parity is
+# maintained by the shared test tables in run_edge_case_tests(). If you change
+# one side, change the other and extend those tables.
+# =============================================================================
+
+_ENTITY_HEX = re.compile(r'&#x([0-9a-f]{1,6});', re.I)
+_ENTITY_DEC = re.compile(r'&#(\d{1,7});')
+_TAG_RE     = re.compile(r'<[^>]{0,2000}>')
+_OPEN_TAG   = re.compile(r'<a\s[^>]{0,2000}>', re.I)
+_HREF_ATTR  = re.compile(
+    r'''\shref\s*=\s*(?:"([^"]{0,2000})"|'([^']{0,2000})'|([^\s"'>]{0,2000}))''', re.I)
+_SCHEME_RE  = re.compile(r'^([a-z][a-z0-9+.\-]*):/*', re.I)
+
+
+def _decode_entity(match, base):
+    """Shared body for hex/decimal entity substitution, with a range guard."""
+    try:
+        cp = int(match.group(1), base)
+    except ValueError:
+        return ''
+    return chr(cp) if 0 < cp <= 0x10FFFF else ''
+
+
+def _decode_html_entities(text):
+    """Mirror of decodeHtmlEntities(). Numeric first, &amp; last (no double-decode)."""
+    if not text:
+        return ''
+    s = _ENTITY_HEX.sub(lambda m: _decode_entity(m, 16), str(text))
+    s = _ENTITY_DEC.sub(lambda m: _decode_entity(m, 10), s)
+    for ent, rep in (('&nbsp;', ' '), ('&shy;', ''), ('&quot;', '"'),
+                     ('&apos;', "'"), ('&lt;', '<'), ('&gt;', '>'), ('&amp;', '&')):
+        s = re.sub(ent, rep, s, flags=re.I)
+    return s
+
+
+def _extract_url_host(href):
+    """Mirror of extractUrlHost(). See that function for why each step exists."""
+    if not href:
+        return ''
+    s = re.sub(r'[\t\r\n]', '', str(href)).strip()
+    if not s:
+        return ''
+    s = s.replace('\\', '/')
+
+    scheme = _SCHEME_RE.match(s)
+    if scheme:
+        if scheme.group(1).lower() not in ('http', 'https'):
+            return ''
+        authority = s[len(scheme.group(0)):]
+    elif s[:2] == '//':
+        authority = s[2:]
+    else:
+        return ''
+
+    end = re.search(r'[/?#]', authority)
+    if end:
+        authority = authority[:end.start()]
+
+    at = authority.rfind('@')          # LAST '@' — browser semantics
+    if at != -1:
+        authority = authority[at + 1:]
+
+    if authority[:1] == '[':           # IPv6 literal
+        close = authority.find(']')
+        if close != -1:
+            authority = authority[:close + 1]
+    else:
+        colon = authority.find(':')
+        if colon != -1:
+            authority = authority[:colon]
+
+    return authority.lower().rstrip('.')
+
+
+def _host_matches_domain(host, domain):
+    """Mirror of hostMatchesDomain(). Exact or dot-suffix — never substring."""
+    if not host or not domain:
+        return False
+    return host == domain or host.endswith('.' + domain)
+
+
+def _address_matches_domain(address, domain):
+    """Mirror of addressMatchesDomain(). Strict for domains, substring for
+    the handful of deliberately-fuzzy non-domain list entries."""
+    if not address or not domain:
+        return False
+    at = address.rfind('@')
+    host = (address if at == -1 else address[at + 1:]).lower().rstrip('.')
+    if '.' not in domain or '@' in domain:
+        return domain in address
+    return _host_matches_domain(host, domain)
+
+
+def _is_link_wrapper_host(host):
+    """Mirror of isLinkWrapperHost(). Explicit list plus leftmost-label heuristic."""
+    if not host:
+        return False
+    if any(_host_matches_domain(host, d) for d in LINK_WRAPPER_DOMAINS):
+        return True
+    return host.split('.')[0] in TRACKER_LABELS
+
+
+def _extract_anchors(html):
+    """Mirror of extractAnchors(). Bounded open-tag regex + find() for the close."""
+    out = []
+    if not html:
+        return out
+
+    scan = html[:MAX_HTML_SCAN_CHARS] if len(html) > MAX_HTML_SCAN_CHARS else html
+
+    for m in _OPEN_TAG.finditer(scan):
+        if len(out) >= MAX_ANCHORS_SCANNED:
+            break
+        h = _HREF_ATTR.search(m.group(0))
+        if not h:
+            continue
+        href = h.group(1) if h.group(1) is not None else (
+            h.group(2) if h.group(2) is not None else h.group(3))
+        if not href:
+            continue
+
+        text_start = m.end()
+        close_idx = scan.find('</a', text_start)
+        cap = min(text_start + MAX_ANCHOR_TEXT_CHARS, len(scan))
+        text_end = cap if (close_idx == -1 or close_idx > cap) else close_idx
+
+        inner = _TAG_RE.sub('', scan[text_start:text_end])
+        text = re.sub(r'\s+', ' ', _decode_html_entities(inner)).strip()
+        out.append({'href': _decode_html_entities(href), 'text': text})
+
+    return out
+
+
+def _has_brand_mismatched_cta(html, sender_address):
+    """Mirror of hasBrandMismatchedCta(). See that function for the four conditions."""
+    if not html or '<a' not in html:
+        return False
+
+    at = sender_address.rfind('@') if sender_address else -1
+    sender_host = '' if at == -1 else sender_address[at + 1:]
+
+    for anchor in _extract_anchors(html):
+        text = anchor['text']
+        if not text or len(text) > 60:
+            continue
+        if not CTA_VERB_PATTERN.search(text):
+            continue
+
+        norm_text = re.sub(r'[^a-z0-9]+', '', text.lower())
+
+        for brand, legit in BRAND_CTA_DOMAINS.items():
+            if brand not in norm_text:
+                continue
+            host = _extract_url_host(anchor['href'])
+            if not host:
+                break
+            if any(_host_matches_domain(host, d) for d in legit):
+                break
+            if _is_link_wrapper_host(host):
+                break
+            if sender_host and (_host_matches_domain(host, sender_host) or
+                                _host_matches_domain(sender_host, host)):
+                break
+            return True
+
+    return False
+
+
 def decode_email_header(header_value):
     """
     Decode an email header value per RFC 2047.
@@ -427,6 +715,24 @@ def decode_email_header(header_value):
     return result
 
 
+class ParsedEmail(NamedTuple):
+    """
+    Fields extracted from an .eml, mirroring what collectSignals() reads.
+
+    A NamedTuple rather than a bare tuple: this shape has grown three times
+    (body, has_attachment, html) and each growth silently broke every unpack
+    site with an arity error at runtime. Named access means the next field is
+    free. Field order matches analyze_email()'s positional parameters so
+    analyze_email(*parsed) stays valid, but prefer named access at call sites.
+    """
+    subject: str
+    from_field: str
+    has_bulk_service: bool
+    body: str
+    has_attachment: bool
+    html: str
+
+
 def parse_eml(filepath):
     """
     Parse an .eml file and extract the fields needed for spam analysis.
@@ -439,12 +745,8 @@ def parse_eml(filepath):
         filepath: Path to the .eml file.
 
     Returns:
-        Tuple of (subject, from_field, has_bulk_service, body, has_attachment) where:
-            - subject: Decoded subject line
-            - from_field: Decoded From header (display name + address)
-            - has_bulk_service: True if Amazon SES or SendGrid signatures found
-            - body: Plain-text body for body-only pattern checks
-            - has_attachment: True if the message has one or more attachments
+        A ParsedEmail. `html` is the raw, UNSTRIPPED HTML part — required by
+        the brand-CTA signal, which needs anchor hrefs paired with link text.
     """
     # Parse structured email for decoded headers (Subject, From, etc.)
     try:
@@ -489,24 +791,40 @@ def parse_eml(filepath):
         body = re.sub(r'<[^>]+>', ' ', msg.get_content())
         body = re.sub(r'\s+', ' ', body).strip()
 
-    # HTML fallback for multipart messages with no text/plain part
-    if not body and msg.is_multipart():
+    # Raw HTML part, retained UNSTRIPPED — mirrors message.getBody() in GS.
+    #
+    # Collected in its own independent pass, NOT bolted onto the `if not body`
+    # fallback below. A multipart/alternative message with a text/plain part
+    # never reaches that fallback, so hanging `html` off it would silently
+    # yield '' for most real email — including the brand-CTA phish fixture,
+    # leaving the new signal dead in the harness while live in production.
+    #
+    # Parity note: GAS getBody() on a plain-text-only message returns the
+    # HTML-escaped plain text, whereas this returns ''. Inert for an anchor
+    # scan (plain text has no <a href>), but don't "fix" it without checking.
+    html = ''
+    if msg.is_multipart():
         for part in msg.walk():
             if part.get_content_type() == 'text/html' and not part.get_content_disposition():
-                raw_html = part.get_content()
-                body = re.sub(r'<[^>]+>', ' ', raw_html)
-                body = re.sub(r'\s+', ' ', body).strip()
+                html = part.get_content()
                 break
+    elif msg.get_content_type() == 'text/html':
+        html = msg.get_content()
 
-    return subject, from_field, has_amazon_ses, body, has_attachment
+    # HTML fallback for multipart messages with no text/plain part
+    if not body and html:
+        body = re.sub(r'<[^>]+>', ' ', html)
+        body = re.sub(r'\s+', ' ', body).strip()
+
+    return ParsedEmail(subject, from_field, has_amazon_ses, body, has_attachment, html)
 
 
-def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=False):
+def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=False, html=''):
     """
     Run the detection logic against a single email's fields.
 
     Mirrors the analyzeMessage() function in SpamDetector.gs. Collects signals
-    from multiple pattern categories, then applies the 5-rule decision logic.
+    from multiple pattern categories, then applies the 7-rule decision logic.
 
     All patterns and constants used here are loaded from SpamDetector.gs at
     import time — any change to the source is automatically reflected.
@@ -519,7 +837,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         5. Check for fear-mongering language
         6. Check for marketing sender format
         7. Check for empty subject + attachment (payload delivery scam)
-        8. Apply 5-rule decision logic (rules evaluated in priority order)
+        8. Apply 7-rule decision logic (rules evaluated in priority order)
 
     Args:
         subject:        Decoded email subject line.
@@ -527,6 +845,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         has_amazon_ses: Whether bulk email service signatures were found.
         body:           Plain-text body for body-only pattern checks.
         has_attachment: Whether the message has one or more attachments.
+        html:           Raw HTML body, for the link-graph (brand-CTA) signal.
 
     Returns:
         Tuple of (signals, is_spam, rule) where:
@@ -539,13 +858,17 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # display-name spoofing: "LinkedIn News <spammer@spam.com>" must NOT bypass.
     email_match = re.search(r'<([^>]+)>', from_field)
     sender_address = (email_match.group(1) if email_match else from_field).lower()
+    # Strict domain matching — NOT `domain in sender_address`. Substring
+    # matching here was a full detection bypass: "mail@linkedin.com.secure-
+    # login.top" and "a@notlinkedin.com" both contain "linkedin.com".
     for domain in WHITELISTED_DOMAINS:
-        if domain in sender_address:
+        if _address_matches_domain(sender_address, domain):
             return {'bulk_email': has_amazon_ses, 'blacklisted_sender': False,
                     'clickbait_count': 0, 'fear_mongering': False,
                     'marketing_format': False, 'suspicious_from_name': False,
                     'empty_subject_with_attachment': False,
                     'service_impersonation': False,
+                    'brand_mismatched_cta': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -558,6 +881,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'suspicious_from_name': False,
         'empty_subject_with_attachment': False,
         'service_impersonation': False,
+        'brand_mismatched_cta': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -569,7 +893,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Substring match against known spam mill domains (one match is enough).
     # Use sender_address (email only, not display name) — mirrors SpamDetector.gs.
     for domain in BLACKLISTED_DOMAINS:
-        if domain in sender_address:
+        if _address_matches_domain(sender_address, domain):
             signals['blacklisted_sender'] = True
             signals['matched_patterns'].append(f'blacklist:{domain}')
             break
@@ -605,6 +929,24 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         if pattern.search(body):
             signals['clickbait_count'] += 1
             signals['matched_patterns'].append(f'body_fear[{i}]')
+
+    # ── Signal: Unicode obfuscation in body ────────────────────────────────
+    # Cyrillic/Greek/fullwidth/math-alphanumeric characters hidden in body
+    # anchors while the subject stays clean. Break after the first match: all
+    # patterns detect the same technique, so counting them independently would
+    # over-inflate clickbait_count. Mirrors Signal 2d in SpamDetector.gs.
+    #
+    # This block was MISSING from the harness entirely (added with the v6.42.0
+    # brand-CTA work). BODY_UNICODE_PATTERNS shipped in v6.39.0 and was applied
+    # in production but never loaded here, so clickbait_count could read one
+    # lower in Python than in GAS — ham could pass CI while production
+    # false-positived, and vice versa. The single-source-of-truth property was
+    # silently broken for three releases.
+    for i, pattern in enumerate(BODY_UNICODE_PATTERNS):
+        if pattern.search(body):
+            signals['clickbait_count'] += 1
+            signals['matched_patterns'].append(f'body_unicode[{i}]')
+            break
 
     # ── Signal: Fear-mongering (boolean, first match wins) ─────────────────
     # Only need to know if fear is present, not how many patterns match
@@ -642,7 +984,16 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             signals['service_impersonation'] = True
             signals['matched_patterns'].append('service_impersonation')
 
-    # ── Decision Logic (6 rules, evaluated in priority order) ──────────────
+    # ── Signal: Brand-mismatched CTA phishing ──────────────────────────────
+    # A button naming DocuSign/Adobe Sign/SharePoint whose href the brand does
+    # not control. The only signal that reads the LINK GRAPH rather than
+    # sender-side vocabulary — which is how it reaches phishing that carries no
+    # clickbait, no urgency and a valid DKIM signature for its own domain.
+    if _has_brand_mismatched_cta(html, sender_address):
+        signals['brand_mismatched_cta'] = True
+        signals['matched_patterns'].append('brand_mismatched_cta')
+
+    # ── Decision Logic (7 rules, evaluated in priority order) ──────────────
     #
     # The rules cascade from most-specific (Rule 1) to broadest (Rule 5).
     # Only one rule can fire per email. This matches SpamDetector.gs exactly.
@@ -701,6 +1052,15 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         elif signals['service_impersonation']:
             is_spam = True
             rule = 'RULE 6: Service impersonation phishing'
+
+        # Rule 7: Brand-mismatched CTA phishing (no bulk email required)
+        #   Rationale: a CTA naming a document brand that resolves to a host
+        #   the brand does not control has no legitimate form. Click-trackers,
+        #   link-wrappers and sender-aligned hosts are already exempted inside
+        #   the signal, so what reaches here is an unexplained mismatch.
+        elif signals['brand_mismatched_cta']:
+            is_spam = True
+            rule = 'RULE 7: Brand-mismatched CTA phishing'
 
     return signals, is_spam, rule
 
@@ -775,6 +1135,75 @@ def run_parser_tests():
         failures.append('  missing marker should raise ValueError')
     except ValueError:
         pass  # Expected
+
+    # ── _strip_js_comments ─────────────────────────────────────────────────
+    # An apostrophe in a prose comment must not affect quoted-string
+    # extraction. This is the exact shape that silently corrupted
+    # LINK_WRAPPER_DOMAINS into 46 punctuation fragments.
+    src_apos = ("  // Email service providers' click tracking\n"
+                "  'sendgrid.net', 'awstrack.me'\n")
+    got_apos = _extract_quoted_strings(src_apos, 'TEST')
+    if got_apos != ['sendgrid.net', 'awstrack.me']:
+        failures.append(f"  apostrophe in comment corrupted extraction: {got_apos!r}")
+
+    # A // sequence INSIDE a string literal must survive comment stripping.
+    if _strip_js_comments("""x = 'https://a.com'; // note""").strip() != "x = 'https://a.com';":
+        failures.append('  // inside a string literal was stripped as a comment')
+
+    # Block comments too.
+    if _extract_quoted_strings("/* don't */ 'a.com'", 'TEST') != ['a.com']:
+        failures.append('  block comment with apostrophe corrupted extraction')
+
+    # Whitespace-bearing entries must raise rather than load silently.
+    try:
+        _extract_quoted_strings("' bad entry '", 'TEST')
+        failures.append('  whitespace-bearing entry should raise ValueError')
+    except ValueError:
+        pass  # Expected
+
+    # ── _load_object_of_string_arrays ──────────────────────────────────────
+    src3 = ("const MAP = Object.freeze({\n"
+            "  docusign:    Object.freeze(['docusign.net', 'docusign.com']),\n"
+            "  adobesign: Object.freeze(['adobesign.com'])\n"
+            "});")
+    got3 = _load_object_of_string_arrays(src3, 'MAP')
+    if sorted(got3) != ['adobesign', 'docusign']:
+        failures.append(f'  object-of-arrays keys: {sorted(got3)!r}')
+    if got3.get('docusign') != ['docusign.net', 'docusign.com']:
+        failures.append(f'  object-of-arrays values: {got3.get("docusign")!r}')
+
+    # DEFAULT_DOMAINS must round-trip identically through the generic loader —
+    # the guard that replacing its two hardcoded markers changed nothing.
+    _dd = _load_object_of_string_arrays(_GS_PATH.read_text(encoding='utf-8'),
+                                        'DEFAULT_DOMAINS')
+    if _dd.get('legitimate') != WHITELISTED_DOMAINS:
+        failures.append('  DEFAULT_DOMAINS.legitimate differs via generic loader')
+    if _dd.get('suspicious') != BLACKLISTED_DOMAINS:
+        failures.append('  DEFAULT_DOMAINS.suspicious differs via generic loader')
+
+    # ── BRAND_CTA_DOMAINS shape contract ───────────────────────────────────
+    # Anchor text is normalized to [a-z0-9] before matching, so a key holding a
+    # space or capital could never match anything. Enforce mechanically rather
+    # than trusting a comment.
+    if not BRAND_CTA_DOMAINS:
+        failures.append('  BRAND_CTA_DOMAINS is empty')
+    bad_keys = [k for k in BRAND_CTA_DOMAINS if not re.fullmatch(r'[a-z0-9]+', k)]
+    if bad_keys:
+        failures.append(f'  brand keys must be [a-z0-9]+ only: {bad_keys!r}')
+    bad_doms = [d for ds in BRAND_CTA_DOMAINS.values() for d in ds
+                if not re.fullmatch(r'[a-z0-9-]+(\.[a-z0-9-]+)+', d)]
+    if bad_doms:
+        failures.append(f'  brand domains must be bare hostnames: {bad_doms!r}')
+
+    # Wrapper domains and tracker labels must be bare too — a scheme or path
+    # here would silently never match a host from extractUrlHost().
+    bad_wrap = [d for d in LINK_WRAPPER_DOMAINS
+                if not re.fullmatch(r'[a-z0-9-]+(\.[a-z0-9-]+)+', d)]
+    if bad_wrap:
+        failures.append(f'  LINK_WRAPPER_DOMAINS must be bare hostnames: {bad_wrap!r}')
+    bad_lab = [l for l in TRACKER_LABELS if not re.fullmatch(r'[a-z0-9-]+', l)]
+    if bad_lab:
+        failures.append(f'  TRACKER_LABELS must be single labels: {bad_lab!r}')
 
     if failures:
         print('❌ PARSER SELF-TESTS FAILED:')
@@ -872,8 +1301,9 @@ def run_spam_tests(spam_dir, label='Spam'):
 
     for filepath in files:
         # Parse email and run detection pipeline
-        subject, from_field, has_amazon_ses, body, has_attachment = parse_eml(filepath)
-        signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses, body, has_attachment)
+        parsed = parse_eml(filepath)
+        subject, from_field = parsed.subject, parsed.from_field
+        signals, is_spam, rule = analyze_email(*parsed)
 
         if is_spam:
             # Expected: spam correctly detected
@@ -951,8 +1381,9 @@ def run_ham_tests(ham_dir):
 
     for filepath in ham_files:
         # Parse email and run detection pipeline
-        subject, from_field, has_amazon_ses, body, has_attachment = parse_eml(filepath)
-        signals, is_spam, rule = analyze_email(subject, from_field, has_amazon_ses, body, has_attachment)
+        parsed = parse_eml(filepath)
+        subject, from_field = parsed.subject, parsed.from_field
+        signals, is_spam, rule = analyze_email(*parsed)
 
         if not is_spam:
             # Expected: legitimate email correctly allowed through
@@ -1018,9 +1449,9 @@ def run_performance_tests(all_emails):
     timings_ms = []
 
     for _ in range(RUNS):
-        for subject, from_field, has_ses, body, has_att in all_emails:
+        for parsed in all_emails:
             t0 = time.perf_counter()
-            analyze_email(subject, from_field, has_ses, body, has_att)
+            analyze_email(*parsed)
             timings_ms.append((time.perf_counter() - t0) * 1000)
 
     timings_ms.sort()
@@ -1171,6 +1602,149 @@ def run_edge_case_tests():
     check('Google Docs subject from google.com → not spam',
           not is_spam,
           'real Google notifications must not be false-positived')
+
+    # ── URL host extraction: the bypass table ──────────────────────────────
+    # Security-critical parsing. Each row is a real technique for making a
+    # host look like one thing to a filter and another to a mail client. Keep
+    # in sync with the identical table in the Node test for SpamDetector.gs.
+    for href, expected in [
+        ('https://cptlbpolicy.com/',       'cptlbpolicy.com'),
+        # userinfo: browsers resolve this to evil.com, so we must too
+        ('https://docusign.net@evil.com/', 'evil.com'),
+        ('https://a@b@evil.com/',          'evil.com'),
+        # suffix bug: must NOT be treated as docusign.net
+        ('https://docusign.net.evil.com/', 'docusign.net.evil.com'),
+        ('https://EU.DocuSign.NET:443/x',  'eu.docusign.net'),
+        ('https://docusign.net./',         'docusign.net'),
+        ('//docusign.net/x',               'docusign.net'),
+        ('https:evil.com',                 'evil.com'),
+        ('https:\\\\evil.com',             'evil.com'),
+        ('https://ev\til.com',             'evil.com'),
+        ('mailto:x@docusign.net',          ''),
+        ('javascript:alert(1)',            ''),
+        ('#anchor',                        ''),
+        ('/relative/path',                 ''),
+        ('',                               ''),
+        ('https://[2001:db8::1]:8443/x',   '[2001:db8::1]'),
+    ]:
+        got = _extract_url_host(href)
+        check(f'extractUrlHost({href!r}) → {expected!r}', got == expected,
+              f'got {got!r}')
+
+    for host, dom, want in [
+        ('docusign.net',          'docusign.net', True),
+        ('eu.docusign.net',       'docusign.net', True),
+        ('notdocusign.net',       'docusign.net', False),   # prefix bug
+        ('docusign.net.evil.com', 'docusign.net', False),   # suffix bug
+        ('evil.com',              'docusign.net', False),
+    ]:
+        check(f'hostMatchesDomain({host!r}, {dom!r}) is {want}',
+              _host_matches_domain(host, dom) == want)
+
+    # ── Whitelist bypass regression ────────────────────────────────────────
+    # Substring matching here was a total detection bypass.
+    for addr, want in [
+        ('mail@linkedin.com.secure-login.top', False),
+        ('a@notlinkedin.com',                  False),
+        ('news@linkedin.com',                  True),
+        ('news@e.linkedin.com',                True),
+    ]:
+        check(f'addressMatchesDomain({addr!r}, linkedin.com) is {want}',
+              _address_matches_domain(addr, 'linkedin.com') == want,
+              'substring matching here bypasses ALL detection')
+
+    signals, is_spam, _ = analyze_email(
+        'URGENT: account TERMINATED - act NOW!!!',
+        'Breaking News <mail@linkedin.com.secure-login.top>', True,
+        'wallet drainer airdrop claim your bitcoin now')
+    check('lookalike whitelist domain no longer bypasses detection',
+          'whitelisted' not in signals['matched_patterns'] and is_spam,
+          'a domain merely CONTAINING a whitelisted string must not be trusted')
+
+    # ── Brand-mismatched CTA ───────────────────────────────────────────────
+    signals, _, rule = analyze_email(
+        'Capital B | Bitcoin Policy Brief', 'Capital B <info@cptlbnews.press>', True,
+        html='<a href="https://cptlbpolicy.com/">VIEW IN DOCUSIGN&#x2192;</a>')
+    check('brand-mismatched CTA → Rule 7 phishing',
+          signals['brand_mismatched_cta'] and rule.startswith('RULE 7'))
+
+    signals, _, _ = analyze_email(
+        'Complete with DocuSign', 'DocuSign <dse@docusign.net>', False,
+        html='<a href="https://eu.docusign.net/Signing?a=1"><span>VIEW IN '
+             '<span>DOCUSIGN</span></span></a>')
+    check('genuine docusign.net CTA does not fire',
+          not signals['brand_mismatched_cta'],
+          'real DocuSign mail must never be flagged')
+
+    signals, _, _ = analyze_email(
+        'Invoice ready', 'Vendor <billing@vendor.ca>', True,
+        html='<a href="https://u88.ct.sendgrid.net/ls/click?upn=x">View in DocuSign</a>')
+    check('ESP-wrapped brand CTA abstains',
+          not signals['brand_mismatched_cta'],
+          'a click-tracker hides the destination — unverifiable, not malicious')
+
+    signals, _, _ = analyze_email(
+        'Sign please', 'Acme <a@acme.com>', False,
+        html='<a href="https://click.acme.com/x">Review in DocuSign</a>')
+    check('CNAMEd tracker label abstains', not signals['brand_mismatched_cta'])
+
+    signals, _, _ = analyze_email(
+        'About us', 'X <a@b.com>', False,
+        html='<a href="https://evil.com/">About DocuSign</a>')
+    check('brand in prose without a CTA verb does not fire',
+          not signals['brand_mismatched_cta'],
+          'a genuine DocuSign footer says "About DocuSign"')
+
+    signals, _, _ = analyze_email(
+        'x', 'X <a@b.com>', False,
+        html='<a href="https://evil.com/">Open D&#111;cu&shy;Sign</a>')
+    check('entity-obfuscated brand name still detected',
+          signals['brand_mismatched_cta'],
+          'entity decoding is load-bearing, not cosmetic')
+
+    signals, _, _ = analyze_email(
+        'x', 'X <a@b.com>', False,
+        html='<a href="https://evil.com/">View <span>Docu</span><span>Sign</span></a>')
+    check('brand split across nested elements still detected',
+          signals['brand_mismatched_cta'])
+
+    signals, _, _ = analyze_email(
+        'x', 'Acme <a@acme.com>', False,
+        html='<a href="https://sign.acme.com/x">View in DocuSign</a>')
+    check('sender-aligned host abstains', not signals['brand_mismatched_cta'],
+          'a company linking its own infrastructure impersonates no one')
+
+    signals, _, _ = analyze_email(
+        'x', 'X <a@b.com>', False,
+        html='<a href="https://docusign.net@evil.com/">Review in DocuSign</a>')
+    check('userinfo-disguised host still detected',
+          signals['brand_mismatched_cta'])
+
+    # ── Anchor scan bounds (ReDoS) ─────────────────────────────────────────
+    # An unclosed <a> is tolerated by mail clients, so a paired-tag regex
+    # scanning to end-of-document per anchor is attacker-reachable and
+    # polynomial. These assert the bound holds.
+    pathological = '<a href="https://evil.com/">DOCUSIGN' * 900
+    t0 = time.perf_counter()
+    signals, _, _ = analyze_email('hi', 'x@y.com', False, html=pathological)
+    elapsed = time.perf_counter() - t0
+    check('900 unclosed anchors complete in < 250ms', elapsed < 0.25,
+          f'took {elapsed * 1000:.0f}ms — anchor scan may be unbounded')
+    check('anchor count is bounded by LIMITS',
+          len(_extract_anchors(pathological)) <= MAX_ANCHORS_SCANNED)
+
+    huge = 'x' * 500000 + '<a href="https://evil.com/">View in DocuSign</a>'
+    t0 = time.perf_counter()
+    analyze_email('hi', 'x@y.com', False, html=huge)
+    elapsed = time.perf_counter() - t0
+    check('500KB body completes in < 250ms', elapsed < 0.25,
+          f'took {elapsed * 1000:.0f}ms')
+
+    check('entity decoding does not double-decode',
+          _decode_html_entities('&amp;#47;') == '&#47;',
+          'double-decoding hands the attacker a free layer of indirection')
+    check('out-of-range codepoint does not raise',
+          _decode_html_entities('a&#1114112;b') == 'ab')
 
     print()
     print(f'Edge case results: {passed} passed, {failed} failed')

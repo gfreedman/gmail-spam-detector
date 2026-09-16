@@ -1,8 +1,22 @@
 # Spam Intelligence Logging Plan
 
-**Status:** Approved for implementation  
-**Release scope:** Logging only — EML archive + Google Sheets log  
-**Last updated:** 2026-05-03
+**Status:** ✅ **Shipped in v6.32.0.** This is the original design record, kept
+because the 19-column schema and the false-negative workflow are still accurate
+and still the reference. It is *not* a plan for future work — everything in
+"Phase 1" below has been live since May 2026.
+
+**Release scope:** Logging only — EML archive + Google Sheets log
+**Design written:** 2026-05-03 · **Facts refreshed:** 2026-09-16 (v6.47.0)
+
+> **Changes since this was written.** The schema is unchanged, but disposition
+> is not. Three things to know when reading the sections below:
+> - **Log Type** now also carries `PHISHING_DETECTED` (Rules 6 and 7).
+> - **Rule Triggered** now spans `Rule 1`–`Rule 7`.
+> - **Disposition is no longer unconditional deletion.** Rule 7 quarantines
+>   (archived + `Phishing` label, never deleted), and the raw EML is written to
+>   Drive *before* any permanent delete — a message that cannot be archived is
+>   held for review instead. See the "What Happens To Detected Mail" section of
+>   the README for the current behaviour.
 
 ---
 
@@ -120,7 +134,7 @@ One tab: **Raw Log** (append-only, one row per event).
 | Col | Field | Type | Source | Notes |
 |-----|-------|------|--------|-------|
 | A | Detected At | ISO 8601 | `new Date().toISOString()` | When the script processed it |
-| B | Log Type | Enum | Script | `SPAM_DETECTED` or `FALSE_NEGATIVE` |
+| B | Log Type | Enum | Script | `SPAM_DETECTED`, `PHISHING_DETECTED` (Rules 6–7), or `FALSE_NEGATIVE` |
 | C | Gmail Message ID | String | `message.getId()` | Unique key |
 | D | Gmail Thread ID | String | `thread.getId()` | |
 | E | EML Drive URL | URL | DriveApp response | Direct link to `.eml` file |
@@ -129,7 +143,7 @@ One tab: **Raw Log** (append-only, one row per event).
 | H | From Address | String | Parsed from `message.getFrom()` | |
 | I | Sending Domain | String | Extracted from From address | e.g. `1stamericanpath.com` |
 | J | Reply-To Address | String | `message.getReplyTo()` | Mismatch with From = fraud signal |
-| K | Rule Triggered | String | `makeVerdict()` | `Rule 1`–`Rule 5`, or `NONE` for false negatives |
+| K | Rule Triggered | String | `getRuleFromSignals()` | `Rule 1`–`Rule 7`, or `NONE` for false negatives |
 | L | Rule Description | String | Detection log string | e.g. `Bulk email + blacklisted sender` |
 | M | Clickbait Count | Integer | `signals.clickbaitCount` | `0` for false negatives |
 | N | Signals Detected | String (CSV) | `signals` object | e.g. `BULK,BLACKLISTED,FEAR` |
@@ -202,7 +216,7 @@ When the updated script runs for the first time after deploy, Apps Script will d
 
 1. Deploy via CI (`clasp push`) as normal
 2. Open the Apps Script editor (script.google.com)
-3. Click **Run → checkSpam** (or any function)
+3. Click **Run → setupLogging** (or any function) to trigger the consent prompt
 4. A browser dialog appears: *"This app wants to access your Google Account"*
 5. Review the two new permissions (Drive files, Sheets) and click **Allow**
 6. Authorization is saved — no further prompts on subsequent runs
@@ -235,7 +249,7 @@ Both are read on every script run via `PropertiesService.getScriptProperties()`.
 
 ## 8. Implementation
 
-### Phase 1 — Complete Logging (This Release)
+### Phase 1 — Complete Logging (shipped, v6.32.0)
 
 | Task | Description |
 |------|-------------|

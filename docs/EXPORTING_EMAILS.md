@@ -234,50 +234,6 @@ if __name__ == '__main__':
 
 ---
 
-## Recommended Approach
-
-**For this project, I recommend:**
-
-### Step 1: Use Gmail Web Interface (Quick)
-- Download 10 spam emails and 10 ham emails manually
-- Save to `spam_examples_real/` and `ham_examples_real/`
-- Good enough for initial testing
-
-### Step 2: Test with Real Emails
-- Update `test_spam_detector.py` to parse .eml files instead of PDFs
-- Re-run analysis to see true detection rates
-
-### Step 3: Iterate
-- Add more emails as needed
-- Update whitelist/blacklist based on REAL results (not PDF artifacts)
-
----
-
-## Parsing .eml Files in Python
-
-Update `test_spam_detector.py` to use Python's email library:
-
-```python
-import email
-from email import policy
-
-def extract_email_from_eml(eml_path):
-    """Extract email data from .eml file"""
-    with open(eml_path, 'rb') as f:
-        msg = email.message_from_binary_file(f, policy=policy.default)
-
-    return EmailData(
-        filename=Path(eml_path).name,
-        subject=msg.get('subject', ''),
-        sender=msg.get('from', ''),
-        date=msg.get('date', ''),
-        body_text=msg.get_body(preferencelist=('plain',)).get_content() if msg.get_body(preferencelist=('plain',)) else '',
-        body_html=msg.get_body(preferencelist=('html',)).get_content() if msg.get_body(preferencelist=('html',)) else ''
-    )
-```
-
----
-
 ## Summary
 
 | Method | Effort | Bulk Export | Best For |
@@ -287,16 +243,29 @@ def extract_email_from_eml(eml_path):
 | Gmail API (Python) | High | Yes | Automation, large datasets |
 | Thunderbird | Low | No | Quick exports |
 
-**Recommended**: Start with Gmail Web UI (Method 1) to get 10-20 real emails, then test. This will immediately show if your spam detector works on real emails vs PDFs.
+**Recommended:** Method 1 (Gmail Web UI) for a handful of emails; Google Takeout
+once you want a hundred or more.
 
 ---
 
-## Next Steps
+## Adding an exported email to the test corpus
 
-1. **Export 10 spam + 10 ham emails** using Gmail Web UI
-2. **Create new directories**: `spam_examples_real/` and `ham_examples_real/`
-3. **Update test script** to parse .eml files
-4. **Re-run tests** to see true detection rate
-5. **Update whitelist/blacklist** based on real results
+The suite already parses `.eml` directly — there is nothing to convert.
 
-This will give you a **clean, artifact-free dataset** for proper testing!
+1. Drop the file into the right directory:
+   - `tests/spam_examples/` — spam that should be caught
+   - `tests/scam_examples/` — phishing/scams that should be caught
+   - `tests/ham_examples/` — legitimate mail that must **not** be caught
+2. Run the suite: `python3 tests/test_spam_detector.py`
+3. Update the counts in `README.md`. CI greps for them and fails if they drift
+   (`scripts/validate.py` checks the same thing locally).
+
+A ham example that the detector already passes is still worth adding — it locks
+in that behaviour so a future pattern can't quietly break it. That is exactly
+how the "Sign Now" false positive and the click-tracker false positive were
+caught.
+
+> **Historical note.** Earlier revisions of this document described migrating
+> the test suite from PDF exports to `.eml`, including a `parse_eml`/`EmailData`
+> snippet. That migration completed long ago; `tests/test_spam_detector.py` has
+> parsed `.eml` natively since v6.x, and the PDF path no longer exists.

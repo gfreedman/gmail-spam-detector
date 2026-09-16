@@ -24,12 +24,18 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 4. **Marketing sender format** ("Name | Organization")
 5. **Blacklisted sender domains** (known spam mills)
 6. **From-name anomalies** (bullet separators, excessive length)
+7. **Unicode obfuscation** (Cyrillic/Greek/fullwidth lookalikes)
+8. **Service impersonation** (a cloud-share subject from a non-service sender)
+9. **Link-graph anomalies** (a CTA naming a brand its destination doesn't own)
 
-**Detection Logic:**
+**Detection Logic — 7 rules, first match wins:**
 - Bulk email + blacklisted sender = SPAM
 - Bulk email + 2+ clickbait patterns = SPAM
 - Bulk email + 2+ spam behaviors = SPAM
 - Extreme clickbait (3+ patterns) = SPAM
+- Empty subject + attachment = SPAM
+- Cloud-service subject from a non-service sender = PHISHING
+- CTA names a document brand its destination doesn't control = PHISHING (quarantined, not deleted)
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
 
@@ -38,7 +44,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - ✅ **100% detection** on 51/51 spam + 4/4 scam (.eml files)
 - ✅ **0% false positives** on 22/22 legitimate emails
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
-- ✅ **Clean, maintainable code** (~120 lines of detection logic)
+- ✅ **Signal collection and verdict logic kept separate** (`collectSignals()` gathers facts, `makeVerdict()` judges)
 
 ## 🚀 Quick Start
 
@@ -81,7 +87,7 @@ Run once from the Apps Script editor to create the Drive folder, Sheets log, and
 1. Select `setupLogging` from the function dropdown
 2. Click **Run**
 3. Authorize the new Drive and Sheets permissions when prompted
-4. Check the execution log - should see "Logging setup complete!"
+4. Check the execution log - should see "Setup complete!"
 
 This creates a **Spam Intelligence** folder in My Drive containing a flat EML archive and a Google Sheets log. Every spam detection is automatically recorded going forward.
 
@@ -89,14 +95,29 @@ This creates a **Spam Intelligence** folder in My Drive containing a flat EML ar
 
 The script now runs every minute, automatically detecting spam, reporting it to Gmail, and permanently deleting it.
 
-## 🔥 The Vaporizer
+## 🔥 What Happens To Detected Mail
 
-Detected spam doesn't just go to your Spam folder - it gets **permanently deleted**:
+Disposition depends on which rule fired, and the difference matters.
 
-1. **Report as spam** - Trains Gmail's filters
-2. **Delete forever** - Removes from your account entirely
+**Rules 1–6 — permanently deleted:**
+1. **Archive first** — the raw message is written to Drive (`Spam Intelligence/Detected/`) *before* anything is destroyed. A message that can't be archived is held for review instead of deleted.
+2. **Report as spam** — trains Gmail's own filters
+3. **Delete forever** — `batchDelete` bypasses Trash, so the Drive copy is the only copy
 
-No more spam cluttering your Spam folder. Gone. Vaporized.
+**Rule 7 — quarantined, never deleted:**
+Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely. Rule 7 reads the link graph rather than sender reputation, and a legitimate sender can reproduce that pattern by accident, so permanent deletion is the wrong default.
+
+**Your Spam folder is left alone.** The safety-net sweep only retries deletes that this detector itself initiated. Mail *Gmail's* classifier filed stays put for you to review, and Gmail purges it at 30 days.
+
+### Labels you'll see
+
+| Label | Meaning | Action needed |
+|---|---|---|
+| `SpamChecked` | Evaluated; don't re-process | None — bookkeeping |
+| `Phishing` | Rule 7 quarantine, archived not deleted | Review occasionally |
+| `SuspectedSpam` | Flagged but **not** deleted — either cleanse mode, or a message too large to evaluate, or one that couldn't be archived | Review; this is the "we weren't sure" pile |
+| `SpamDetectorPurge` | Internal marker so the sweep only touches our own verdicts | None — machinery |
+| `SpamMissed` | **You** apply this to spam that got through; it's logged and deleted on the next run | Apply it manually |
 
 *Requires Gmail API to be enabled (see Quick Start step 4).*
 
@@ -171,8 +192,9 @@ Bank Account, Government Hiding, Blood Thinner
 - **Abstains** when the destination is a click-tracker, a CNAMEd tracker
   (`click.`, `links.`, `go.`) or the sender's own domain — a wrapped link is
   *unverifiable*, not malicious
-- Requires a CTA verb and a label ≤ 60 chars, so a genuine DocuSign email's
-  "About DocuSign" footer prose cannot trigger it
+- Requires a CTA verb and a normalized label ≤ 80 chars, so a genuine DocuSign
+  email's "About DocuSign" footer prose cannot trigger it. Measured on the
+  alphanumeric-only form, so padding with zero-width characters can't evade it
 - **Quarantines rather than deletes** — archived out of the inbox and labelled
   `Phishing`, never moved to Spam and never deleted, so it stays in All Mail
 
@@ -299,14 +321,21 @@ addToWhitelist('domain.com');
 ```
 /
 ├── SpamDetector.gs              # Main script (auto-deployed)
-├── appsscript.json              # Apps Script manifest
+├── appsscript.json              # Apps Script manifest (scopes, runtime)
+├── .claspignore                 # Controls which files clasp uploads
 ├── README.md
 ├── LICENSE
 ├── docs/
-│   ├── EXPORTING_EMAILS.md      # How to export .eml files from Gmail
-│   └── SPAM_LOGGING_PLAN.md     # Spam intelligence logging — design & schema
+│   ├── index.html               # Published GitHub Pages site
+│   └── EXPORTING_EMAILS.md      # How to export .eml files from Gmail
+├── scripts/
+│   ├── patch_version.js         # Stamps @version + SCRIPT_VERSION at deploy
+│   └── validate.py              # Repo consistency checks (runs in CI)
 ├── tests/
-│   ├── test_spam_detector.py    # Python test suite
+│   ├── test_spam_detector.py    # Detection corpus + edge cases (Python)
+│   ├── test_disposition.js      # Quarantine-vs-delete routing (Node)
+│   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
+│   ├── test_patch_version.js    # Version patch + claspignore (Node)
 │   ├── spam_examples/           # Real spam .eml files (51)
 │   ├── scam_examples/           # Scam .eml files (4)
 │   └── ham_examples/            # Legitimate .eml files (22)
@@ -381,7 +410,13 @@ Found a spam pattern we're missing? Open an issue with:
 This repo has CI/CD that auto-deploys to Google Apps Script on every push to `main`.
 
 **Pipeline: test → deploy → validate → tag**
-1. **Test** — Lints `SpamDetector.gs` syntax (Node `vm.Script`) and runs spam/ham detection tests (Python)
+1. **Test** — six gates, all of which must pass:
+   - JS syntax lint (Node `vm.Script`)
+   - `tests/test_spam_detector.py` — spam/scam/ham corpus + edge cases
+   - `tests/test_disposition.js` — quarantine-vs-delete routing, the only coverage of the code that irreversibly deletes mail
+   - `tests/test_link_graph.js` — URL host parsing and Signal 7, against the shipped JS
+   - `tests/test_patch_version.js` — the deploy-time version patch and `.claspignore` coverage
+   - `scripts/validate.py` — version-marker agreement and README stat freshness
 2. **Deploy** — Runs `clasp push` to Apps Script (only if tests pass). Writes failure summary on error.
 3. **Validate** — Reads the deployed script back via the Apps Script REST API and confirms the expected `@version` tag is live. Warns but does not block on API errors.
 4. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.18.0`, etc.)

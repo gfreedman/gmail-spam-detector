@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.47.0
+ * @version 6.47.1
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -32,6 +32,28 @@
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.47.1: Documentation accuracy pass. No behaviour change.
+ *            docs/index.html is the published GitHub Pages site and was stale on
+ *            nearly everything: six rules instead of seven (so it stated that
+ *            every detection is permanently deleted), a reportSpam() function
+ *            that does not exist, a feature vector in which not one field name
+ *            was real, three different wrong ham counts, a claim that Gmail's
+ *            Spam folder never auto-clears used to justify behaviour since
+ *            removed, an assertion that GitHub/Stripe/PayPal/banks ship
+ *            whitelisted when they do not, and a description of the folder-wide
+ *            sweep as a safety feature. All corrected, Rule 7 and the
+ *            quarantine documented, and the real nine-field signal object
+ *            published for the ML dataset section.
+ *            README: signal list said 6 in one place and 8 in another against 9
+ *            in code; rule list said 4 against 7; "~120 lines of detection
+ *            logic" was off by 3x; the Vaporizer section still promised
+ *            everything is deleted. Added a labels table — five labels appear
+ *            in the sidebar and the docs named two.
+ *            docs/SPAM_LOGGING_PLAN.md marked as shipped rather than
+ *            "approved for implementation", with the schema enum and rule range
+ *            corrected. docs/EXPORTING_EMAILS.md lost the completed
+ *            PDF-to-.eml migration instructions and gained a section on
+ *            actually adding a fixture to the corpus.
  *   v6.47.0: Security hardening after an external review declined sign-off.
  *            Six findings, all verified by running the shipped code.
  *            (1) ARCHIVE-BEFORE-DELETE WAS NOT REAL. Four comments asserted it;
@@ -456,7 +478,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.47.0';
+const SCRIPT_VERSION = '6.47.1';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */

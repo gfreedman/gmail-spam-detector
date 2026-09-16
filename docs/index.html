@@ -705,8 +705,8 @@
     <h1>Gmail Spam<br>Detector</h1>
     <p class="tagline">Gmail's filter is a Bayesian classifier trained on billions of emails. It's exceptional at catching messages that look like spam. The polished investment newsletters and fear-mongering "health alerts" don't look like spam. This catches them instead — by targeting the behaviors spammers can't change.</p>
     <div class="trust-chips">
-      <span class="trust-chip">100% detection on 53-email test corpus</span>
-      <span class="trust-chip">0% false positives on 19 ham emails</span>
+      <span class="trust-chip">100% detection on 55-email spam/scam corpus</span>
+      <span class="trust-chip">0% false positives on 22 ham emails</span>
       <span class="trust-chip">Runs in your Google account</span>
       <span class="trust-chip">Open source · MIT license</span>
     </div>
@@ -746,17 +746,17 @@
       <div class="step">
         <div class="step-num">Step 2</div>
         <div class="step-title">Analyze</div>
-        <p>Each message passes through 8 independent signal detectors — bulk infrastructure check, domain blacklist, clickbait patterns, Unicode obfuscation, fear language, marketing sender format, and more. Signals feed 6 rules evaluated in priority order. First match wins.</p>
+        <p>Each message passes through 9 independent signal detectors — bulk infrastructure check, domain blacklist, clickbait patterns, Unicode obfuscation, fear language, marketing sender format, service impersonation, and link-graph analysis. Signals feed 7 rules evaluated in priority order. First match wins.</p>
       </div>
       <div class="step">
         <div class="step-num">Step 3</div>
         <div class="step-title">Delete</div>
-        <p>Spam is reported to Gmail via the API — this trains Gmail's own filters — then immediately deleted by message ID using <code>Gmail.Users.Messages.batchDelete</code>. A safety-net sweep runs at the end of every cycle to catch anything that reached the spam folder through other paths.</p>
+        <p>Rules 1&ndash;6 report the message to Gmail &mdash; which trains Gmail's own filters &mdash; then permanently delete it by message ID using <code>Gmail.Users.Messages.batchDelete</code>, but only after the raw message has been archived to Drive. <strong>Rule 7 is different: it quarantines rather than deletes</strong>, archiving the message out of the inbox under a <code>Phishing</code> label, because it is the one rule with a false-positive class that cannot be driven to zero offline. A safety-net sweep retries deletes that failed, scoped to messages this detector itself condemned &mdash; mail Gmail's own classifier filed is left alone for you to review, and Gmail purges it at 30 days.</p>
       </div>
       <div class="step">
         <div class="step-num">Step 4 &nbsp;·&nbsp; automatic</div>
         <div class="step-title">Re-check</div>
-        <p>At the end of every run, <code>recheckRecentSpamChecked()</code> re-evaluates inbox email from the past 2 days that was previously cleared. If a pattern fix was just deployed and an email now scores as spam, it's caught and deleted within 15 minutes — no manual action required.</p>
+        <p><code>recheckRecentSpamChecked()</code> re-evaluates inbox email from the past 2 days that was previously cleared. It is triggered by a <em>version change</em> rather than a timer, so a newly deployed pattern fix re-examines recent mail on the very next run &mdash; about a minute &mdash; with a 30-minute floor in between deploys. Its trigger is a pattern change, not the clock: between deploys it would only recompute the same answer.</p>
       </div>
     </div>
 
@@ -797,7 +797,7 @@
 <section id="rules">
   <div class="wrap">
     <h2>Rules</h2>
-    <p>Six rules, evaluated in priority order. The first rule that matches wins — no further rules are checked. Rules 1–3 all require bulk email infrastructure as a prerequisite, which eliminates virtually all false positives from personal senders.</p>
+    <p>Seven rules, evaluated in priority order. The first rule that matches wins &mdash; no further rules are checked. Rules 1&ndash;3 all require bulk email infrastructure as a prerequisite, which eliminates virtually all false positives from personal senders. Rules 6 and 7 deliberately do <em>not</em>, because the phishing they target arrives through compromised legitimate accounts rather than bulk infrastructure.</p>
     <table>
       <thead>
         <tr><th>Rule</th><th>Condition</th><th>Rationale</th></tr>
@@ -833,6 +833,11 @@
           <td><strong>Cloud service subject from non-service sender</strong></td>
           <td>Phishing campaigns impersonating Google Docs or OneDrive are delivered via compromised accounts — not bulk infrastructure. The subject template alone is definitive: a real cloud service always sends from its own domain.</td>
         </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 7</span></td>
+          <td><strong>Call-to-action names a document brand the destination does not control</strong></td>
+          <td>A button reading &ldquo;VIEW IN DOCUSIGN&rdquo; whose link goes somewhere DocuSign does not own borrows trust the sender has not earned. This is the only rule that reads the <em>link graph</em> rather than sender-side wording, which is how it catches phishing with clean prose, no urgency and a valid DKIM signature. It abstains when the destination is a click-tracker or the sender's own domain &mdash; a wrapped link is unverifiable, not malicious. <strong>Quarantines rather than deletes.</strong></td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -842,7 +847,7 @@
 <section id="signals">
   <div class="wrap">
     <h2>Signals</h2>
-    <p>Eight independent signals feed the rules. Each signal answers a specific factual question about the email — bulk infrastructure? domain blacklisted? clickbait count? fear language? — without reference to the others. Verdict logic lives in the rules, not the signals.</p>
+    <p>Nine independent signals feed the rules. Each signal answers a specific factual question about the email — bulk infrastructure? domain blacklisted? clickbait count? fear language? — without reference to the others. Verdict logic lives in the rules, not the signals.</p>
     <div class="grid-2 grid-2col" style="margin-top:12px">
       <div class="card">
         <span class="card-icon">📡</span>
@@ -868,6 +873,11 @@
         <span class="card-icon">💎</span>
         <div class="card-title">Crypto scam body patterns</div>
         <div class="card-body">High-confidence terms that almost never appear in legitimate email bodies: "airdrop," "connect your wallet," "hardware wallet," and conditional-fear phrases like "your access could be compromised." Checked against the full body, not just headers, because phishing copy is rarely in the subject line.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🔗</span>
+        <div class="card-title">Brand-mismatched CTA (link graph)</div>
+        <div class="card-body">The only signal that inspects <em>links</em> rather than wording. Fires when an anchor's text names a document brand &mdash; DocuSign, Adobe Sign, SharePoint, OneDrive &mdash; while its <code>href</code> points somewhere that brand does not control. Deliberately abstains when the destination is a known click-tracker, a sender-owned tracking subdomain, or the sender's own domain: a wrapped link is <em>unverifiable</em>, not malicious. Requires a call-to-action verb and a short label, so a genuine DocuSign email's &ldquo;About DocuSign&rdquo; footer prose cannot trigger it.</div>
       </div>
       <div class="card">
         <span class="card-icon">⚠️</span>
@@ -937,7 +947,7 @@
       <div class="card">
         <span class="card-icon">🔣</span>
         <div class="card-title">Unicode obfuscation</div>
-        <div class="card-body">Cyrillic, Greek, fullwidth, and mathematical alphanumeric characters used as visual lookalikes for ASCII letters. Caught in both subject/From (clickbait signal) and email body (Signal 2c) separately.</div>
+        <div class="card-body">Cyrillic, Greek, fullwidth, and mathematical alphanumeric characters used as visual lookalikes for ASCII letters. Caught in both subject/From (clickbait signal) and email body (Signal 2d) separately.</div>
       </div>
       <div class="card">
         <span class="card-icon">📅</span>
@@ -1002,7 +1012,7 @@ clasp push</code></pre>
 <section id="safety">
   <div class="wrap">
     <h2>Safety</h2>
-    <p>The script permanently deletes email, which is irreversible. These safeguards are why false positives on the 17-email ham corpus are zero — and why they should stay there.</p>
+    <p>The script permanently deletes email, which is irreversible. These safeguards are why false positives on the 22-email ham corpus are zero &mdash; and why they should stay there.</p>
     <ul class="safety-list">
       <li>Every email is labeled <code>SpamChecked</code> before any action — prevents reprocessing the same message on the next run</li>
       <li>Spam is reported to Gmail via <code>GmailApp</code> before deletion — trains Gmail's own Bayesian filter with your feedback</li>
@@ -1013,7 +1023,10 @@ clasp push</code></pre>
       <li>5 MB size cap — emails over 5 MB are skipped rather than processing potentially problematic large payloads</li>
       <li>LockService guard — concurrent trigger invocations skip rather than queue, preventing execution pile-up</li>
       <li>Input sanitized to 100 KB before pattern matching — prevents ReDoS on adversarially crafted subjects</li>
-      <li>False negative auto-recheck — emails cleared in the last 2 days are re-scored on every run; pattern fixes take effect within 15 minutes of deploy</li>
+      <li>Archive before delete &mdash; the raw message is written to Drive <em>before</em> any permanent deletion, and a message that could not be archived is held for review instead of deleted</li>
+      <li>Rule 7 quarantines instead of deleting &mdash; the one rule with an irreducible false-positive class never destroys mail</li>
+      <li>The spam-folder sweep is scoped to this detector's own verdicts &mdash; mail Gmail classified is never touched</li>
+      <li>False negative auto-recheck &mdash; emails cleared in the last 2 days are re-scored when a new version deploys, so a pattern fix takes effect on the next run</li>
       <li>Spam intelligence log — every deletion is written to a Google Sheet and archived as a raw EML in Drive for audit and review</li>
     </ul>
   </div>
@@ -1027,19 +1040,26 @@ clasp push</code></pre>
 
     <div class="dataset-stats">
       <div class="stat-chip">250+ confirmed spam (and growing)</div>
-      <div class="stat-chip">17 hand-curated ham (test set)</div>
+      <div class="stat-chip">22 hand-curated ham (test set)</div>
       <div class="stat-chip">goal: 1,000 labeled examples</div>
     </div>
 
     <h3>The signal object is already a feature vector</h3>
     <p>Every detection event logs 8 independent signals alongside the verdict:</p>
-<pre><code>{ isBulkEmail, clickbaitCount, hasFearLanguage,
-  hasMarketingFormat, hasBlacklistedSender,
-  hasFromAnomaly, hasBodyUnicode, hasBodyCrypto }</code></pre>
-    <p>That 8-dimensional vector is the input a classifier needs. The rule-based system generates the label. High-precision rules produce high-precision training labels — the thing that matters most when training on a small corpus.</p>
+<pre><code>{ bulkEmailService,           // bool
+  blacklistedSender,          // bool
+  clickbaitCount,             // int  (subject + from + body patterns)
+  fearMongering,              // bool
+  marketingFormat,            // bool
+  suspiciousFromName,         // bool
+  emptySubjectWithAttachment, // bool
+  serviceImpersonation,       // bool
+  brandMismatchedCta }        // bool (link-graph signal)</code></pre>
+    <p>That 9-dimensional vector is the input a classifier needs, and it is written verbatim into the <code>Signals Detected</code> column of the log sheet on every detection. The rule-based system generates the label. High-precision rules produce high-precision training labels &mdash; the thing that matters most when training on a small corpus.</p>
+    <p>The most valuable rows are the ones where <code>clickbaitCount</code> is <strong>0</strong>. Those are the emails the vocabulary-based signals could not separate at all, caught only by the link graph &mdash; exactly the class a learned model would need to generalise on.</p>
 
     <h3>Spam and ham stay separate</h3>
-    <p>Detected spam is archived under <code>Spam Intelligence/Detected/</code> and logged as spam in the Sheet. The 19 ham examples in <code>tests/ham_examples/</code> are a fixed hold-out set — never mixed into training — used only to validate that pattern changes don't create false positives. That separation maps directly to the train/test split you'd use in supervised learning.</p>
+    <p>Detected spam is archived under <code>Spam Intelligence/Detected/</code> and logged as spam in the Sheet. The 22 ham examples in <code>tests/ham_examples/</code> are a fixed hold-out set — never mixed into training — used only to validate that pattern changes don't create false positives. That separation maps directly to the train/test split you'd use in supervised learning.</p>
 
     <h3>False negatives are labeled too</h3>
     <p>Spam the script misses and you manually flag via the <code>SpamMissed</code> label is archived under <code>Spam Intelligence/False Negatives/</code> with <code>Log Type = FALSE_NEGATIVE</code>. These are the hard examples — the ones that fooled the current rules — and they're the most valuable training signal for a future classifier.</p>
@@ -1057,12 +1077,15 @@ clasp push</code></pre>
 
       <div class="faq-item">
         <p class="faq-q">My bank, newsletter, or GitHub sends bulk email — will it get deleted?</p>
-        <p class="faq-a">No, if you whitelist it first. Run <code>addToWhitelist('yourdomain.com')</code> once in the Apps Script editor and that domain bypasses all detection rules permanently. Common high-volume senders — Substack, LinkedIn, GitHub, Stripe, PayPal, your bank's notification domain — are already in <code>DEFAULT_DOMAINS.legitimate</code> and are excluded by default without any configuration.</p>
+        <p class="faq-a">No, if you whitelist it first. Run <code>addToWhitelist('yourdomain.com')</code> once in the Apps Script editor and that domain bypasses all detection rules permanently. A few high-volume senders &mdash; Substack, LinkedIn, Meetup among them &mdash; ship in <code>DEFAULT_DOMAINS.legitimate</code>. <strong>Most services you care about are not on that list</strong>, including GitHub, Stripe, PayPal and bank notification domains: they are simply unlikely to trip the rules, which is not the same as being exempt. If a sender matters to you, whitelist it explicitly rather than assuming it is covered.</p>
       </div>
 
       <div class="faq-item">
         <p class="faq-q">Why permanently delete instead of just moving to spam?</p>
-        <p class="faq-a">Two things happen in sequence. First, <code>reportSpam()</code> is called — this signals Gmail's Bayesian classifier the same way clicking "Report spam" in the UI does, training it across your account. Then the message is permanently deleted via the Gmail API. The reason for deletion rather than a folder move: Gmail's Spam folder doesn't auto-clear, particularly on Workspace accounts. Emails you've already positively identified as spam shouldn't consume storage, surface in search results, or require a second manual deletion.</p>
+        <p class="faq-a">It depends which rule fired, and the distinction matters.</p>
+        <p class="faq-a">For Rules 1&ndash;6, three things happen in sequence. The raw message is archived to Drive; then <code>Gmail.Users.Messages.modify</code> adds the <code>SPAM</code> label, which signals Gmail's classifier the same way clicking &ldquo;Report spam&rdquo; does; then it is permanently deleted via <code>batchDelete</code>. The archive comes first deliberately &mdash; a message that cannot be archived is held for review rather than deleted, so there is always a copy of anything destroyed.</p>
+        <p class="faq-a">For Rule 7 the message is <em>not</em> deleted at all. It is archived out of the inbox and labelled <code>Phishing</code>, and stays in All Mail indefinitely. Rule 7 reads the link graph rather than sender reputation, and a legitimate sender can reproduce that pattern by accident, so permanent deletion is the wrong default there.</p>
+        <p class="faq-a">Why delete rather than just move to Spam? Gmail does purge Spam after 30 days, so a folder move is not permanent either &mdash; but mail you have positively identified should not spend a month consuming storage and surfacing in search results. Note that <code>batchDelete</code> bypasses Trash, which is why the Drive archive exists.</p>
       </div>
 
       <div class="faq-item">

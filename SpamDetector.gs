@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.45.3
+ * @version 6.45.4
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -37,7 +37,9 @@
  *            "*.js" matches only top-level files, so adding
  *            scripts/patch_version.js broke the deploy with "ParseError:
  *            Unexpected token ILLEGAL ... file: scripts/patch_version.gs".
- *            Added scripts/** and **/*.js. tests/test_patch_version.js now
+ *            Added a scripts directory glob and a recursive .js glob (the
+ *            latter cannot be written literally here — it would close this
+ *            comment block). tests/test_patch_version.js now
  *            walks the repo for .js files and asserts each is excluded, so a
  *            future Node helper cannot break the deploy the same way.
  *   v6.45.2: Guard version extraction in the deploy workflow. grep -oP prints
@@ -365,7 +367,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.45.3';
+const SCRIPT_VERSION = '6.45.4';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */

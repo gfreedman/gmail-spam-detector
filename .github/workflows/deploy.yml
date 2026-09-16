@@ -92,6 +92,11 @@ jobs:
       - name: Run link-graph tests
         run: node tests/test_link_graph.js
 
+      # Covers scripts/patch_version.js, which the deploy job runs. A broken
+      # version patch fails the deploy AFTER tests pass, so it is tested here.
+      - name: Run version-patch tests
+        run: node tests/test_patch_version.js
+
       # Validate that README.md test result counts (e.g., "31/31", "11/11")
       # match the actual number of .eml files in the test directories.
       # This prevents the README from going stale when examples are added.
@@ -175,33 +180,20 @@ jobs:
       # (e.g. "v6.22.0: ..." → @version 6.22.0). This runs only in CI so the
       # deployed script always shows the correct version without requiring a
       # manual source-file edit on every commit.
-      - name: Patch @version in SpamDetector.gs
+      # Patch both version markers via a tested script rather than inline sed.
+      # The previous sed had to survive YAML block-scalar, shell double-quote
+      # and sed-expression quoting simultaneously; the anchored form parsed on
+      # BSD sed locally and died on GNU sed in CI with "unterminated `s'
+      # command" — after the test job had already gone green. scripts/
+      # patch_version.js is covered by tests/test_patch_version.js in the test
+      # job, so this class of failure is caught before deploy.
+      - name: Patch version in SpamDetector.gs
         run: |
           VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
           if [ -n "$VERSION" ]; then
-            VER_NUM="${VERSION#v}"
-            # Anchored to the header tag's exact form. The previous pattern
-            # (s/@version .*/.../) matched ANY line containing the tag, so a
-            # changelog line reading "Fix @version tag, rule numbering..." was
-            # rewritten to " *            @version X.Y.Z" in every deployed
-            # copy. Only a comment, so nothing broke, but the deployed source
-            # silently diverged from the repo on each release.
-            sed -i "s|^ \* @version .*| * @version ${VER_NUM}|" SpamDetector.gs
-            grep -q "^ \* @version ${VER_NUM}$" SpamDetector.gs \
-              || { echo "::error::@version patch failed — sed found no match in SpamDetector.gs"; exit 1; }
-            echo "Patched @version to ${VER_NUM}"
-            # Also patch the runtime-readable constant. runPeriodicMaintenance()
-            # compares SCRIPT_VERSION against the last version seen in Script
-            # Properties and forces an immediate maintenance cycle when it
-            # changes, so a fix deploy re-checks recent mail within ~1 minute
-            # instead of waiting out the 15-minute gate. If this constant went
-            # stale, that detection would silently never fire.
-            sed -i "s/^const SCRIPT_VERSION = '.*';/const SCRIPT_VERSION = '${VER_NUM}';/" SpamDetector.gs
-            grep -q "^const SCRIPT_VERSION = '${VER_NUM}';" SpamDetector.gs \
-              || { echo "::error::SCRIPT_VERSION patch failed — sed found no match in SpamDetector.gs"; exit 1; }
-            echo "Patched SCRIPT_VERSION to ${VER_NUM}"
+            node scripts/patch_version.js "${VERSION#v}"
           else
-            echo "No version in commit message — @version left unchanged"
+            echo "No version in commit message — version markers left unchanged"
           fi
 
       # Push source files to Google Apps Script (--force overwrites remote)

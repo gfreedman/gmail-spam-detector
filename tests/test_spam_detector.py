@@ -600,24 +600,50 @@ def _host_matches_domain(host, domain):
 
 
 def _address_matches_domain(address, domain):
-    """Mirror of addressMatchesDomain(). Strict for domains, substring for
-    the handful of deliberately-fuzzy non-domain list entries."""
+    """Mirror of addressMatchesDomain().
+
+    Substring entries are tested against the HOST only — never the full
+    address. The local part is attacker-chosen, so matching it made
+    'dragonfly' whitelist dragonfly@attacker.tld and 'financebuzz' blacklist
+    (hence permanently delete) financebuzz@realcompany.com.
+    """
     if not address or not domain:
         return False
     at = address.rfind('@')
     host = (address if at == -1 else address[at + 1:]).lower().rstrip('.')
     if '.' not in domain or '@' in domain:
-        return domain in address
+        if '@' in domain:
+            # localpart@hostprefix entries must start the address AND end on a
+            # domain-label boundary, or 'customerservice@stan' also whitelists
+            # 'customerservice@stanley-evil.com'.
+            if not address.startswith(domain):
+                return False
+            nxt = address[len(domain):len(domain) + 1]
+            return nxt == '' or nxt == '.'
+        return domain in host
     return _host_matches_domain(host, domain)
 
 
-def _is_link_wrapper_host(host):
-    """Mirror of isLinkWrapperHost(). Explicit list plus leftmost-label heuristic."""
+def _is_link_wrapper_host(host, sender_host=''):
+    """Mirror of isLinkWrapperHost().
+
+    The leftmost-label heuristic is honoured ONLY when the host sits under the
+    sender's own domain. Applied globally it was a one-CNAME bypass: a lure at
+    r.evil.com or click.evil.com made Signal 7 abstain regardless of who owned
+    the parent domain.
+    """
     if not host:
         return False
     if any(_host_matches_domain(host, d) for d in LINK_WRAPPER_DOMAINS):
         return True
-    return host.split('.')[0] in TRACKER_LABELS
+    if not sender_host:
+        return False
+    first = host.split('.')[0]
+    if first not in TRACKER_LABELS:
+        return False
+    parent = host[len(first) + 1:]
+    return bool(parent) and (_host_matches_domain(parent, sender_host) or
+                             _host_matches_domain(sender_host, parent))
 
 
 def _extract_anchors(html):
@@ -661,12 +687,17 @@ def _has_brand_mismatched_cta(html, sender_address):
 
     for anchor in _extract_anchors(html):
         text = anchor['text']
-        if not text or len(text) > 60:
+        if not text:
             continue
         if not CTA_VERB_PATTERN.search(text):
             continue
 
         norm_text = re.sub(r'[^a-z0-9]+', '', text.lower())
+        # Bound measured on the NORMALIZED text: raw length was evadable with
+        # zero-width padding (Python \s does match U+200B, JS does not) and by
+        # ordinary verbosity — a natural 67-char label slipped through.
+        if len(norm_text) > 80:
+            continue
 
         for brand, legit in BRAND_CTA_DOMAINS.items():
             if brand not in norm_text:
@@ -676,7 +707,7 @@ def _has_brand_mismatched_cta(html, sender_address):
                 break
             if any(_host_matches_domain(host, d) for d in legit):
                 break
-            if _is_link_wrapper_host(host):
+            if _is_link_wrapper_host(host, sender_host):
                 break
             if sender_host and (_host_matches_domain(host, sender_host) or
                                 _host_matches_domain(sender_host, host)):
@@ -1739,6 +1770,59 @@ def run_edge_case_tests():
     elapsed = time.perf_counter() - t0
     check('500KB body completes in < 250ms', elapsed < 0.25,
           f'took {elapsed * 1000:.0f}ms')
+
+    # ── Parity cases with tests/test_link_graph.js ─────────────────────────
+    # These mirror rows in the JS suite. The Python helpers are a hand-written
+    # mirror of the .gs implementations, so a fix applied to one side and not
+    # the other is the expected failure mode — it happened once already, and a
+    # new scam fixture caught it. Keep both tables in step.
+    for addr, dom, want in [
+        ('dragonfly@attacker.tld',           'dragonfly',            False),
+        ('a@dragonfly-evil.ru',              'dragonfly',            True),
+        ('financebuzz@realcompany.com',      'financebuzz',          False),
+        ('x@news.financebuzz.com',           'financebuzz',          True),
+        ('customerservice@stanley-evil.com', 'customerservice@stan', False),
+        ('customerservice@stan.com',         'customerservice@stan', True),
+    ]:
+        check(f'addressMatchesDomain({addr!r}, {dom!r}) is {want}',
+              _address_matches_domain(addr, dom) == want,
+              'the local part is attacker-chosen — substring entries must test the host')
+
+    for label in ('r', 'go', 'click', 't', 'e', 'em', 'link', 'url'):
+        signals, _, _ = analyze_email(
+            'x', 'Capital B <info@cptlbnews.press>', True,
+            html=f'<a href="https://{label}.cptlbpolicy.com/">VIEW IN DOCUSIGN</a>')
+        check(f'tracker label on attacker domain fires: {label}.cptlbpolicy.com',
+              signals['brand_mismatched_cta'],
+              'one CNAME must not defeat Signal 7')
+
+    signals, _, _ = analyze_email(
+        'x', 'Acme <billing@acme.com>', True,
+        html='<a href="https://click.acme.com/x">View in DocuSign</a>')
+    check('sender-owned CNAMEd tracker still abstains',
+          not signals['brand_mismatched_cta'])
+
+    signals, _, _ = analyze_email(
+        'x', 'Ironclad <n@ironclad.com>', False,
+        html='<a href="https://app.ironcladapp.com/x">Sign Now</a>')
+    check('"Sign Now" does not fire (signnow key removed)',
+          not signals['brand_mismatched_cta'],
+          'normalisation collapses "Sign Now" to "signnow"')
+
+    signals, _, _ = analyze_email(
+        'x', 'X <a@b.com>', False,
+        html='<a href="https://evil.com/">Please review and open your secure '
+             'DocuSign document envelope today</a>')
+    check('67-char natural CTA label fires', signals['brand_mismatched_cta'],
+          'the length bound must be measured on normalised text')
+
+    signals, _, _ = analyze_email(
+        'x', 'News <e@news.com>', False,
+        html='<a href="https://news.example.com/">This newsletter discusses how '
+             'DocuSign and other electronic signature vendors approach compliance '
+             'review across regulated industries today</a>')
+    check('long prose mentioning the brand still abstains',
+          not signals['brand_mismatched_cta'])
 
     check('entity decoding does not double-decode',
           _decode_html_entities('&amp;#47;') == '&#47;',

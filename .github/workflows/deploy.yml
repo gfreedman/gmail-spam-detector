@@ -74,6 +74,24 @@ jobs:
       - name: Run spam detection tests
         run: python tests/test_spam_detector.py
 
+      # Disposition tests — the only automated coverage of the code that
+      # IRREVERSIBLY deletes mail. Loads SpamDetector.gs into a Node vm with
+      # GmailApp/Gmail/PropertiesService stubbed and asserts on the recorded
+      # call log: Rule 7 must never issue batchDelete or add the SPAM label,
+      # Rules 1-6 must still delete exactly one id, and a quarantine must be
+      # terminal across repeated runs. The Python harness cannot reach this
+      # code (no Apps Script runtime), which is why two consecutive releases
+      # shipped disposition bugs with a green suite.
+      - name: Run disposition tests
+        run: node tests/test_disposition.js
+
+      # Link-graph tests — URL host parsing, domain matching and Signal 7,
+      # asserted against the shipped JavaScript rather than the Python mirror
+      # of those helpers (which can drift). Every row is a real bypass or
+      # false positive found in review.
+      - name: Run link-graph tests
+        run: node tests/test_link_graph.js
+
       # Validate that README.md test result counts (e.g., "31/31", "11/11")
       # match the actual number of .eml files in the test directories.
       # This prevents the README from going stale when examples are added.

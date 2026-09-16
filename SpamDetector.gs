@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.44.0
+ * @version 6.45.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -32,6 +32,57 @@
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.45.0: Hardening pass on v6.42.0-v6.44.0 after external review. Six
+ *            defects, four of them verified by running the live code:
+ *            (1) Quarantine was not terminal. processInbox() skipped the
+ *            SpamChecked label whenever spamCount > 0, an invariant that meant
+ *            "thread was deleted" until Rule 7 started leaving threads alive.
+ *            A quarantined thread still holding INBOX (a reply-chain lure
+ *            leaves a sibling there, or the user un-archives it) was
+ *            re-detected every minute: ~1440 PHISHING_DETECTED rows and Drive
+ *            EMLs per day, corrupting the detection log that exists to train a
+ *            model. processThread() now reports `destroyed` explicitly,
+ *            quarantine applies processedLabel, and both search queries
+ *            exclude phishingLabel.
+ *            (2) addressMatchesDomain()'s substring fallback matched the LOCAL
+ *            PART, which is attacker-chosen: dragonfly@attacker.tld was
+ *            WHITELISTED (a free bypass of the whole detector, from a list
+ *            published in this repo) and financebuzz@realcompany.com was
+ *            BLACKLISTED, i.e. Rule 1, i.e. permanently deleted. Nine
+ *            blacklist entries have no dot, so the delete path was broadly
+ *            exposed. Fallback now tests the host only, and '@' entries must
+ *            end on a domain-label boundary.
+ *            (3) 'signnow' removed from BRAND_CTA_DOMAINS. Anchor text is
+ *            normalized by stripping non-alphanumerics, so the ordinary button
+ *            label "Sign Now" collapsed to "signnow" and fired Rule 7 on
+ *            legitimate Ironclad and BambooHR buttons.
+ *            (4) TRACKER_LABELS was a one-CNAME bypass: r.evil.com or
+ *            click.evil.com made Signal 7 abstain regardless of who owned the
+ *            parent domain. The original Capital B lure would have escaped for
+ *            the cost of one DNS record. The label heuristic now requires the
+ *            parent to be sender-aligned, which is the only shape it actually
+ *            models; third-party ESP trackers still match by domain.
+ *            (5) The 60-char CTA cap measured raw text, so zero-width padding
+ *            (JS \s does not match U+200B) and plain verbosity both evaded it
+ *            — a natural 67-char label was invisible. Now measured on the
+ *            normalized alphanumeric text at 80.
+ *            (6) hasBrandMismatchedCta() received the sanitizeInput()-truncated
+ *            body, capping HTML at 100 000 chars. That made
+ *            LIMITS.maxHtmlScanChars dead config and hid any CTA past 100KB,
+ *            which real marketing HTML with inlined CSS routinely exceeds. It
+ *            now gets the untruncated body; extractAnchors() is independently
+ *            bounded, which was the point of those limits.
+ *            Also: disposeDetectedMessage() allowlists the destructive branch
+ *            instead of defaulting to it, so an unidentifiable verdict
+ *            quarantines rather than deletes; _quarantinedThisRun (which
+ *            disabled the entire spam sweep for a whole execution) replaced by
+ *            per-id exclusion; recheckRecentSpamChecked() gated on version
+ *            change plus a 30-minute floor rather than the 5-minute timer,
+ *            since its trigger is a pattern change, not the clock.
+ *            New tests/test_disposition.js — 18 assertions, wired into CI —
+ *            is the first automated coverage of the code that irreversibly
+ *            deletes mail, and regression-tests both the 2026-09-16 incident
+ *            and the re-quarantine loop.
  *   v6.44.0: CRITICAL FIX — a quarantined phishing message was permanently
  *            deleted. On 2026-09-16 Rule 7 correctly caught
  *            "Capital B | Bitcoin Policy Brief" and quarantined it, logging
@@ -286,13 +337,12 @@
  * in Script Properties to detect that a new deploy has landed.
  *
  * Patched automatically by the deploy workflow from the commit message, in a
- * separate sed from the header tag. Do NOT write the string "at-version" (in
- * its literal @ form) on this line — the header-tag sed matches any line
- * containing it and would overwrite this declaration with a comment.
+ * separate sed from the header tag. (The header-tag sed is anchored to
+ * "^ * @version " as of v6.43.0, so it cannot reach this line.)
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.44.0';
+const SCRIPT_VERSION = '6.45.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -304,10 +354,10 @@ const CONFIG = Object.freeze({
   /** Gmail label applied to processed emails to prevent reprocessing */
   processedLabel: 'SpamChecked',
 
-  /** Label applied to quarantined phishing (Rule 7). Reported as spam and
-   *  archived out of the inbox, but NOT permanently deleted — it stays
-   *  recoverable until Gmail's own 30-day spam purge. destroySpam() is
-   *  explicitly told to skip this label; see the query there. */
+  /** Label applied to quarantined phishing (Rule 7). The message is archived
+   *  out of the inbox and labelled, never deleted and never moved to Spam, so
+   *  it stays in All Mail indefinitely — not subject to Gmail's 30-day spam
+   *  purge. Also excluded by buildSearchQuery() so it is not re-detected. */
   phishingLabel: 'Phishing',
 
   /** Enable verbose debug logging (set true for troubleshooting) */
@@ -458,7 +508,7 @@ const RFC2822_QUOTED_NAME = /^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/;
 //
 // The anchor scan (extractAnchors, used by Signal 7) is a SEPARATE cost class
 // that this analysis does not cover, because it does not live in these pattern
-// arrays and runs against HTML rather than a sanitizeInput()-truncated field.
+// arrays and runs against the untruncated HTML body.
 // It is bounded independently and deliberately:
 //
 //   It does NOT use a paired-tag regex. /<a[^>]*>([\s\S]*?)<\/a>/g is
@@ -472,7 +522,8 @@ const RFC2822_QUOTED_NAME = /^"((?:[^"\\]|\\.)*)"(\s*<[^>]*>)$/;
 //   Every quantifier in the anchor and href patterns is explicitly bounded
 //   ({0,2000}), so a malformed tag missing its '>' cannot walk the document.
 //
-//   Three LIMITS cap the work: maxHtmlScanChars (256KB scanned),
+//   Three LIMITS cap the work: maxHtmlScanChars (256KB scanned — this is the
+//   real bound now that the untruncated body is passed in),
 //   maxAnchorsScanned (300 anchors), maxAnchorTextChars (2KB per anchor).
 //   Measured: 900 unclosed anchors in 5ms; a 500KB body in under 1ms.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -808,7 +859,13 @@ const BRAND_CTA_DOMAINS = Object.freeze({
   hellosign:   Object.freeze(['hellosign.com', 'dropboxsign.com', 'dropbox.com']),
   dropboxsign: Object.freeze(['dropboxsign.com', 'hellosign.com', 'dropbox.com']),
   pandadoc:    Object.freeze(['pandadoc.com', 'pandadoc.net']),
-  signnow:     Object.freeze(['signnow.com']),
+  // 'signnow' deliberately REMOVED. Anchor text is normalized by stripping
+  // non-alphanumerics, so the ordinary button label "Sign Now" collapses to
+  // "signnow" and matched this key. That fired Rule 7 on legitimate
+  // e-signature and HR buttons ("Sign Now" -> app.ironcladapp.com,
+  // "Please review and sign now" -> acme.bamboohr.com). Per the key contract
+  // above, brands whose name is a common English phrase cannot be matched this
+  // way. Same reasoning already excludes a bare 'box' key.
   smartsheet:  Object.freeze(['smartsheet.com']),
   egnyte:      Object.freeze(['egnyte.com']),
   sharepoint:  Object.freeze(['sharepoint.com', 'microsoft.com', 'office.com', 'office365.com', 'microsoftonline.com']),
@@ -889,7 +946,7 @@ const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proc
  * per-thread error isolation so one bad email doesn't abort the entire run.
  *
  * Housekeeping (destroySpam, recheckRecentSpamChecked, checkFalseNegatives)
- * runs via runPeriodicMaintenance() on a 15-minute cadence, not every invocation.
+ * runs via runPeriodicMaintenance() on a 5-minute cadence, not every invocation.
  *
  * @throws {Error} Re-throws critical errors (e.g., auth failures) so trigger
  *                 failures are visible in Apps Script dashboard.
@@ -942,9 +999,16 @@ function processInbox()
           spamCount      += result.spamCount;
           processedCount += result.processedCount;
 
-          // Skip label on deleted threads — addLabel() throws "Not found"
-          // on a thread that was permanently deleted by markAsSpam().
-          if (result.spamCount === 0)
+          // Gate on DESTRUCTION, not on spamCount. addLabel() throws
+          // "Not found" on a thread markAsSpam() permanently deleted, which is
+          // why this skip exists — but a Rule 7 quarantine also sets
+          // spamCount > 0 while leaving the thread alive. Skipping the label
+          // there left the thread unprocessed, so it was re-detected on every
+          // subsequent 1-minute run: an unbounded re-quarantine loop that
+          // appended a PHISHING_DETECTED row and a Drive EML every minute
+          // (~1440/day) and, via _quarantinedMessageIds, suppressed the spam
+          // sweep indefinitely.
+          if (!result.destroyed)
           {
             thread.addLabel(label);
           }
@@ -964,7 +1028,7 @@ function processInbox()
     // Flush log entries from email processing (no-op when nothing was detected).
     flushSpamLog();
 
-    // Maintenance runs at most every 15 minutes regardless of per-minute
+    // Maintenance runs at most every 5 minutes regardless of per-minute
     // email activity — avoids burning quota on housekeeping every invocation.
     // May queue additional log entries (false negatives, rechecked spam).
     runPeriodicMaintenance();
@@ -1140,15 +1204,6 @@ function destroySpam()
     return;
   }
 
-  // Safety interlock: never sweep in the same execution as a quarantine.
-  // Deferring costs one maintenance cycle; getting it wrong permanently
-  // destroys mail the user chose to keep. See _quarantinedThisRun.
-  if (_quarantinedThisRun)
-  {
-    logInfo('Skipping spam destruction — a message was quarantined this run, deferring sweep to the next cycle');
-    return;
-  }
-
   // Ensure the phishing label exists before referencing it in the query below.
   // A Gmail search naming a label that has never been created is not
   // guaranteed to be treated as a harmless no-op, and if it errored here the
@@ -1178,10 +1233,9 @@ function destroySpam()
     let response;
     try
     {
-      // Exclude quarantined phishing. Rule 7 deliberately does NOT delete —
-      // it reports to spam and labels, leaving the message recoverable. This
-      // sweep would otherwise batch-delete it within one maintenance cycle and
-      // silently defeat the quarantine. Coupled to CONFIG.phishingLabel.
+      // Residual protection: a quarantined message never enters Spam, so it
+      // should not appear here at all. This exclusion covers the one way it
+      // could — the user later reporting it as spam themselves.
       response = Gmail.Users.Messages.list('me', {
         labelIds: ['SPAM'],
         q: '-label:' + CONFIG.phishingLabel,
@@ -1200,8 +1254,19 @@ function destroySpam()
       break;
     }
 
-    // Extract message IDs for batch deletion
-    const ids = response.messages.map(function(m) { return m.id; });
+    // Extract message IDs for batch deletion, minus anything quarantined in
+    // this execution. Quarantine does not apply the SPAM label so these should
+    // never appear here; excluding them by id costs nothing and depends on no
+    // index. See _quarantinedMessageIds.
+    const ids = response.messages
+      .map(function(m) { return m.id; })
+      .filter(function(id) { return _quarantinedMessageIds.indexOf(id) === -1; });
+
+    if (ids.length === 0)
+    {
+      logInfo('Spam page contained only quarantined messages — nothing to destroy');
+      break;
+    }
 
     // Permanently delete the batch (bypasses Trash — messages are gone)
     try
@@ -1257,6 +1322,10 @@ function processThread(thread, messages)
   let spamCount = 0;
   let processedCount = 0;
   let threadMarkedAsSpam = false;
+  // Tracked separately from spamCount. A Rule 7 quarantine increments
+  // spamCount but leaves the thread ALIVE, so callers must not infer
+  // "thread is gone" from spamCount > 0.
+  let threadDestroyed = false;
 
   // Process all messages in the thread
   for (let i = 0; i < messages.length; i++)
@@ -1291,7 +1360,7 @@ function processThread(thread, messages)
 
         // Rule 7 (brand-mismatched CTA) quarantines rather than destroys — see
         // quarantineAsPhishing(). Every other rule deletes permanently.
-        disposeDetectedMessage(message, thread, verdict.signals);
+        threadDestroyed = disposeDetectedMessage(message, thread, verdict.signals);
         logDebug('SPAM DETECTED: ' + sanitizeForLog(message.getSubject()));
 
         spamCount++;
@@ -1305,7 +1374,8 @@ function processThread(thread, messages)
     }
   }
 
-  return { spamCount: spamCount, processedCount: processedCount };
+  return { spamCount: spamCount, processedCount: processedCount,
+           destroyed: threadDestroyed };
 }
 
 /**
@@ -1357,8 +1427,13 @@ function buildSearchQuery()
 
   // Combine: all inbox tabs + not-yet-processed + recent
   // Gmail's {} is OR — catches spam hiding in any category tab
+  // Excluding the phishing label as well as the processed label makes
+  // quarantine idempotent: a quarantined thread that is still in the inbox
+  // (a reply-chain lure leaves a sibling message there, or the user
+  // un-archives it to look) will not be re-detected every minute.
   return '{in:inbox category:updates category:promotions category:social category:forums}' +
-         ' -label:' + CONFIG.processedLabel + ' after:' + dateStr;
+         ' -label:' + CONFIG.processedLabel +
+         ' -label:' + CONFIG.phishingLabel + ' after:' + dateStr;
 }
 
 
@@ -1446,7 +1521,8 @@ function collectSignals(message)
   // API round trip: shouldProcessMessage() already calls it on every message
   // for the size check, so the GmailMessage has it cached. Only
   // getRawContent() costs a separate fetch (format=raw vs format=full).
-  const html = sanitizeInput(message.getBody());
+  const rawHtml = message.getBody();
+  const html = sanitizeInput(rawHtml);
 
   // Truncate BEFORE stripping, not after. Previously sanitizeInput() wrapped
   // the *result* of stripHtmlTags(), so the two regex passes ran across up to
@@ -1652,7 +1728,13 @@ function collectSignals(message)
   // silently mark it not-spam. Degrade one signal, never the whole verdict.
   try
   {
-    if (hasBrandMismatchedCta(html, senderAddress))
+    // rawHtml, not the sanitizeInput()-truncated `html`. sanitizeInput caps at
+    // LIMITS.maxInputChars (100 000), which made LIMITS.maxHtmlScanChars
+    // (262 144) unreachable dead config AND hid any CTA past 100KB - real
+    // marketing HTML with inlined CSS and base64 images routinely exceeds it.
+    // extractAnchors() is independently bounded, which is precisely why it is
+    // safe to hand it the untruncated body. Measured worst case ~9ms.
+    if (hasBrandMismatchedCta(rawHtml, senderAddress))
     {
       signals.brandMismatchedCta = true;
     }
@@ -1834,23 +1916,41 @@ function analyzeMessage(message)
  */
 function disposeDetectedMessage(message, thread, signals)
 {
-  if (getRuleFromSignals(signals).rule === 'Rule 7')
-  {
-    quarantineAsPhishing(message, thread);
-  }
-  else
+  const rule = getRuleFromSignals(signals).rule;
+
+  // Allowlist the destructive branch instead of defaulting to it.
+  //
+  // Previously this deleted for anything that was not exactly 'Rule 7', so an
+  // unidentifiable verdict — getRuleFromSignals() returns 'NONE' for null
+  // signals — chose PERMANENT DELETION. For an irreversible action the default
+  // for an unknown disposition must be the recoverable branch. Unreachable
+  // today (both callers gate on verdict.isSpam), which is exactly when this
+  // kind of default goes unnoticed until it isn't.
+  const DESTRUCTIVE_RULES = ['Rule 1', 'Rule 2', 'Rule 3', 'Rule 4', 'Rule 5', 'Rule 6'];
+
+  if (DESTRUCTIVE_RULES.indexOf(rule) !== -1)
   {
     markAsSpam(message, thread);
+    return true;  // thread destroyed — caller must not touch it again
   }
+
+  if (rule !== 'Rule 7')
+  {
+    logError('Unidentified rule "' + rule + '" for a message judged spam — ' +
+             'quarantining rather than deleting');
+  }
+
+  quarantineAsPhishing(message, thread);
+  return false;   // thread still exists
 }
 
 /**
  * Quarantine a phishing message instead of destroying it (Rule 7).
  *
- * Reports the message to Gmail as spam — which still trains the filters and
- * removes it from the inbox — and applies CONFIG.phishingLabel, but performs
- * NO batchDelete. The message remains readable in the Spam folder until
- * Gmail's own 30-day purge.
+ * Archives the message out of the inbox and applies CONFIG.phishingLabel and
+ * CONFIG.processedLabel. Performs NO batchDelete and never applies the SPAM
+ * label. The message stays in All Mail indefinitely, under the Phishing label —
+ * it is not subject to Gmail's 30-day spam purge, because it is not in Spam.
  *
  * Why Rule 7 does not delete, when Rules 1-6 do:
  *   Rule 7 has one residual false-positive class that cannot be driven to zero
@@ -1861,14 +1961,11 @@ function disposeDetectedMessage(message, thread, signals)
  *   can reproduce by accident. Permanent, unrecoverable deletion is the wrong
  *   default for a signal with an irreducible FP class.
  *
- * CRITICAL INTERACTION: destroySpam() sweeps the Spam folder and batch-deletes
- * everything it finds, which would destroy this message within one maintenance
- * cycle and defeat the quarantine entirely. Its listing query therefore
- * excludes CONFIG.phishingLabel. If you change this label name, change it
- * there too — they are coupled.
- *
- * The label is applied BEFORE the spam move: adding a user label to a thread
- * already in Spam is less reliable than labelling it in place first.
+ * The message deliberately never enters Spam. destroySpam() sweeps that folder
+ * and batch-deletes what it finds; on 2026-09-16 it destroyed a quarantined
+ * message because quarantine put it in Spam and relied on a
+ * search-index-dependent query to spare it. Keeping quarantined mail out of
+ * Spam removes that race by construction rather than narrowing it.
  *
  * @param {GmailMessage} message - The message to quarantine.
  * @param {GmailThread}  thread  - Its thread, used for labelling and fallback.
@@ -1880,14 +1977,20 @@ function quarantineAsPhishing(message, thread)
   const subject = sanitizeForLog(message.getSubject());
   let labelled = false;
 
-  // Defence in depth. Quarantining no longer touches the SPAM label, so
-  // destroySpam() cannot see the message — but if a future change ever
-  // reintroduces a SPAM move, this flag stops the sweeper from running in the
-  // same execution and re-creating the delete race that destroyed a
-  // quarantined message on 2026-09-16.
-  _quarantinedThisRun = true;
+  // Record the specific message id rather than setting a global "skip the
+  // whole sweep" flag. destroySpam() excludes these ids from batchDelete,
+  // so the safety-net sweep keeps working for everything else. The previous
+  // global flag disabled the sweep for the entire execution, which combined
+  // with the re-quarantine loop to disable it indefinitely.
+  try { _quarantinedMessageIds.push(message.getId()); }
+  catch (idError) { logError('Could not record quarantined id: ' + idError.toString()); }
 
   // Step 1: label the thread while it is still in place.
+  //
+  // Both labels matter. phishingLabel is the user-facing marker and the thing
+  // buildSearchQuery() excludes; processedLabel is what stops the thread being
+  // re-analysed. The thread SURVIVES a quarantine, so unlike a deletion it must
+  // be marked processed or every subsequent run re-detects it.
   try
   {
     const label = getOrCreateLabel(CONFIG.phishingLabel);
@@ -1896,12 +1999,16 @@ function quarantineAsPhishing(message, thread)
       thread.addLabel(label);
       labelled = true;
     }
+
+    const processed = getOrCreateLabel(CONFIG.processedLabel);
+    if (processed) thread.addLabel(processed);
   }
   catch (labelError)
   {
-    // Non-fatal: the spam move below is the more important half. Without the
-    // label, destroySpam() will eventually reap the message — degraded, but
-    // not worse than the pre-quarantine behaviour.
+    // Non-fatal, but it does degrade the outcome: the archive below still
+    // removes the message from the inbox, so a label failure leaves it in All
+    // Mail with no marker the user can search for. Logged as an error for that
+    // reason, not merely as a warning.
     logError('Could not apply phishing label: ' + labelError.toString());
   }
 
@@ -2283,13 +2390,34 @@ function addressMatchesDomain(address, domain)
   const host = (at === -1 ? address : address.substring(at + 1))
     .toLowerCase().replace(/\.+$/, '');
 
-  // Some list entries are deliberately not domains (e.g. 'dragonfly',
-  // 'customerservice@stan'). Those keep substring semantics against the full
-  // address — they were added as fuzzy matches and narrowing them silently
-  // would change behaviour. Entries that look like domains get strict matching.
+  // Some list entries are deliberately not registrable domains (e.g.
+  // 'dragonfly', 'financebuzz'). Those keep substring semantics — but ONLY
+  // against the HOST, never the full address.
+  //
+  // Matching the full address let the local part satisfy the check, and the
+  // local part is attacker-chosen:
+  //   dragonfly@attacker.tld          -> whitelisted, all detection skipped
+  //   financebuzz@realcompany.com     -> blacklisted, Rule 1, PERMANENTLY DELETED
+  // The first is a free bypass of the entire detector (and this list is public
+  // in the repo); the second destroys a legitimate email. Nine of the
+  // blacklist entries have no dot, so the delete path was broadly exposed.
   if (domain.indexOf('.') === -1 || domain.indexOf('@') !== -1)
   {
-    return address.indexOf(domain) !== -1;
+    // An entry containing '@' was written to match an address fragment
+    // (e.g. 'customerservice@stan'), so compare it against the whole address;
+    // otherwise restrict the substring test to the host.
+    if (domain.indexOf('@') !== -1)
+    {
+      // Entry written as localpart@hostprefix (e.g. 'customerservice@stan').
+      // Require the match to start the address AND end on a domain-label
+      // boundary. Without the boundary check 'customerservice@stan' also
+      // whitelists 'customerservice@stanley-evil.com' - an attacker need only
+      // register a domain beginning with the prefix.
+      if (address.indexOf(domain) !== 0) return false;
+      const next = address.charAt(domain.length);
+      return next === '' || next === '.';
+    }
+    return host.indexOf(domain) !== -1;
   }
 
   return hostMatchesDomain(host, domain);
@@ -2304,7 +2432,7 @@ function addressMatchesDomain(address, domain)
  * @param {string} host - Lowercase host from extractUrlHost().
  * @return {boolean}
  */
-function isLinkWrapperHost(host)
+function isLinkWrapperHost(host, senderHost)
 {
   if (!host) return false;
 
@@ -2313,8 +2441,27 @@ function isLinkWrapperHost(host)
     if (hostMatchesDomain(host, LINK_WRAPPER_DOMAINS[i])) return true;
   }
 
+  // The leftmost-label heuristic is honoured ONLY when the host sits under the
+  // sender's own domain.
+  //
+  // Applied globally it was a one-DNS-record bypass of Signal 7: the attacker
+  // points the lure at r.evil.com or click.evil.com and the signal abstains,
+  // because 'r' and 'click' are tracker labels. The original Capital B lure
+  // would have escaped entirely for the cost of one CNAME.
+  //
+  // The real pattern this models — a sender CNAMEing their own subdomain onto
+  // an ESP's click tracker — is always on the sender's own registrable domain
+  // (click.acme.com in mail from acme.com). Requiring that alignment keeps the
+  // abstention that matters and closes the bypass. Third-party ESP trackers are
+  // unaffected: they match LINK_WRAPPER_DOMAINS above.
+  if (!senderHost) return false;
+
   const firstLabel = host.split('.')[0];
-  return TRACKER_LABELS.indexOf(firstLabel) !== -1;
+  if (TRACKER_LABELS.indexOf(firstLabel) === -1) return false;
+
+  const parent = host.substring(firstLabel.length + 1);
+  return parent !== '' && (hostMatchesDomain(parent, senderHost) ||
+                           hostMatchesDomain(senderHost, parent));
 }
 
 /**
@@ -2368,6 +2515,9 @@ function extractAnchors(html)
 
     const textStart = openTag.lastIndex;
     const closeIdx  = scan.indexOf('</a', textStart);
+    // indexOf() itself scans to end-of-document; maxAnchorTextChars caps the
+    // substring we keep, not the search. The overall bound is therefore
+    // maxAnchorsScanned x maxHtmlScanChars, measured at ~9ms worst case.
     const cap       = Math.min(textStart + LIMITS.maxAnchorTextChars, scan.length);
     const textEnd   = (closeIdx === -1 || closeIdx > cap) ? cap : closeIdx;
 
@@ -2430,12 +2580,24 @@ function hasBrandMismatchedCta(html, senderAddress)
   for (let a = 0; a < anchors.length; a++)
   {
     const text = anchors[a].text;
-    if (!text || text.length > 60) continue;
+    if (!text) continue;
     if (!CTA_VERB_PATTERN.test(text)) continue;
 
     // Normalize away spacing and punctuation so "Docu Sign", "Docu-Sign" and
     // "DOCUSIGN->" all collapse onto the bare key form.
     const normText = text.toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+    // Length bound measured on the NORMALIZED text, not the raw text.
+    //
+    // Measuring raw length was evadable two ways, one of them accidental:
+    //   - padding with characters JS \s does not match (U+200B zero-width
+    //     space) inflated length past the cap while rendering identically;
+    //   - an ordinary verbose label — "Please review and open your secure
+    //     DocuSign document envelope today" (67 chars) — exceeded it with no
+    //     trickery at all.
+    // Counting only alphanumerics makes padding useless, and 80 leaves room
+    // for genuinely wordy buttons while still excluding prose paragraphs.
+    if (normText.length > 80) continue;
 
     for (let b = 0; b < brands.length; b++)
     {
@@ -2453,7 +2615,7 @@ function hasBrandMismatchedCta(html, senderAddress)
       }
       if (isLegit) break;                     // genuine brand destination
 
-      if (isLinkWrapperHost(host)) break;     // wrapped — destination unknown
+      if (isLinkWrapperHost(host, senderHost)) break; // wrapped — destination unknown
 
       // Aligned with the sender's own domain: a company linking its own
       // infrastructure is not impersonating anyone.
@@ -2963,19 +3125,23 @@ let _cachedWhitelist = null;
 let _cachedBlacklist = null;
 
 /**
- * True once a message has been quarantined in this execution.
+ * Message ids quarantined during this execution.
  *
- * Read by destroySpam() as a safety interlock. Quarantining no longer applies
- * the SPAM label, so the sweeper cannot reach a quarantined message — but on
- * 2026-09-16 it did exactly that, because quarantine put the message in SPAM
- * and relied on a search-index-dependent query to spare it. This flag means a
- * future change that reintroduces a SPAM move cannot silently recreate that
- * delete race in the same execution.
+ * destroySpam() removes these from any batch it is about to delete. Quarantine
+ * no longer applies the SPAM label, so the sweeper should never encounter one —
+ * but on 2026-09-16 it deleted a quarantined message because quarantine put it
+ * in SPAM and relied on a search-index-dependent query to spare it. Excluding
+ * by explicit id depends on no index and no query semantics.
  *
- * Module-level state resets on every Apps Script invocation, which is the
- * scope we want: one execution.
+ * An earlier version of this guard was a single boolean that skipped the ENTIRE
+ * sweep whenever anything had been quarantined. That turned the safety net off
+ * for the whole execution, and combined with the re-quarantine loop it stayed
+ * off indefinitely. Per-id exclusion keeps the sweep working.
+ *
+ * Module-level state resets on every Apps Script invocation — one execution,
+ * which is the scope we want.
  */
-let _quarantinedThisRun = false;
+let _quarantinedMessageIds = [];
 
 /**
  * One-time setup for spam intelligence logging.
@@ -3071,13 +3237,13 @@ function setupLogging()
 }
 
 /**
- * Run housekeeping tasks at most once every 15 minutes.
+ * Run housekeeping tasks at most once every 5 minutes.
  *
  * At 1-minute trigger intervals, most invocations find no new emails.
  * Running checkFalseNegatives(), recheckRecentSpamChecked(), and destroySpam()
  * on every invocation would burn ~4 API calls/min (5,760/day) on work that
- * only needs 15-minute granularity. This guard reduces that to 96 calls/day —
- * the same rate as the old 15-minute trigger.
+ * does not need per-minute granularity. This guard reduces that to 288
+ * calls/day, and gates the expensive recheck separately (see below).
  *
  * Uses Script Properties to persist the last-run timestamp across executions.
  */
@@ -3099,6 +3265,7 @@ function runPeriodicMaintenance()
   //     SCRIPT_VERSION change check below, not on this timer.
   // This interval only governs routine re-checks between deploys.
   const MAINTENANCE_INTERVAL_MS = 5 * 60 * 1000;
+  const RECHECK_INTERVAL_MS     = 30 * 60 * 1000;
   const props  = PropertiesService.getScriptProperties();
   const lastTs = parseInt(props.getProperty('LAST_MAINTENANCE_TS') || '0', 10);
 
@@ -3134,9 +3301,27 @@ function runPeriodicMaintenance()
   }
 
   logInfo('Running periodic maintenance');
+
+  // Cheap, and genuinely time-sensitive: one search each.
   checkFalseNegatives();
-  recheckRecentSpamChecked();
   destroySpam();
+
+  // Expensive, and NOT time-sensitive. recheckRecentSpamChecked() re-evaluates
+  // recent mail against the CURRENT patterns, so between deploys it keeps
+  // computing the same answer at ~2 reads per message. Its real trigger is a
+  // pattern change, which means a deploy.
+  //
+  // Run it when the version changed (immediately after a fix lands, which is
+  // the case that matters), or on a slow timer so that a domain added at
+  // runtime via addToBlacklist() — which changes behaviour without a deploy —
+  // is still picked up within the hour.
+  const lastRecheck = parseInt(props.getProperty('LAST_RECHECK_TS') || '0', 10);
+  if (versionChanged || Date.now() - lastRecheck >= RECHECK_INTERVAL_MS)
+  {
+    recheckRecentSpamChecked();
+    props.setProperty('LAST_RECHECK_TS', String(Date.now()));
+  }
+
   props.setProperty('LAST_MAINTENANCE_TS', String(Date.now()));
 }
 
@@ -3212,7 +3397,7 @@ function checkFalseNegatives()
  * fix deployed) are permanently excluded from the normal scan. They sit in the
  * inbox until the user notices and manually labels them SpamMissed.
  *
- * This function closes that gap automatically. It runs every 15 minutes via
+ * This function closes that gap automatically. It runs on a new deploy via
  * runPeriodicMaintenance(), re-checking inbox emails carrying SpamChecked from the
  * last RECHECK_DAYS days. Any that now score as spam under updated patterns are
  * logged as FALSE_NEGATIVE and permanently deleted — identical treatment to a
@@ -3229,7 +3414,9 @@ function recheckRecentSpamChecked()
 
   try
   {
-    const query   = 'in:inbox label:' + CONFIG.processedLabel + ' newer_than:' + RECHECK_DAYS + 'd';
+    const query   = 'in:inbox label:' + CONFIG.processedLabel +
+                    ' -label:' + CONFIG.phishingLabel +
+                    ' newer_than:' + RECHECK_DAYS + 'd';
     const threads = GmailApp.search(query, 0, RECHECK_LIMIT);
     if (threads.length === 0) return;
 

@@ -1,0 +1,49 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:b387:b0:1fc:3e10:ebdd with SMTP id dt7csp2061882rdb;
+        Wed, 16 Sep 2026 09:14:02 -0700 (PDT)
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@ironclad.com header.s=s1 header.b=Rp4kL8Tz;
+       spf=pass (google.com: domain of notifications@ironclad.com designates 54.240.9.44 as permitted sender) smtp.mailfrom=notifications@ironclad.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=ironclad.com
+Return-Path: <notifications@ironclad.com>
+Received: from mail.ironclad.com (mail.ironclad.com. [54.240.9.44])
+        by mx.google.com with ESMTPS id af79cd13be357-93b81d21888si217640112a.140.2026.09.16.09.14.02
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 16 Sep 2026 09:14:02 -0700 (PDT)
+From: Ironclad <notifications@ironclad.com>
+To: geoff.c.freedman@gmail.com
+Subject: Kelowna Youth Soccer - facility use agreement ready for signature
+MIME-Version: 1.0
+Content-Type: multipart/alternative;
+	boundary="----=_Part_3391_771224881.1789575242119"
+Message-ID: <b71f8c2a-9d04-4e18-a7c3-1f5b2e9d6a40@ironclad.com>
+Date: Wed, 16 Sep 2026 16:14:02 +0000
+
+------=_Part_3391_771224881.1789575242119
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+Hi Geoff,
+
+The facility use agreement for the 2026-2027 season is ready for your
+signature. Two signatures are outstanding, including yours.
+
+Sign Now: https://app.ironcladapp.com/workflows/8f21c/sign
+
+Questions about the terms should go to the facilities coordinator directly.
+
+Ironclad
+notifications@ironclad.com
+
+------=_Part_3391_771224881.1789575242119
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+
+<!DOCTYPE html><html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/></head><body style="margin:0;padding:0;background-color:#f5f6f8">
+<table width="600" border="0" cellpadding="0" cellspacing="0" role="presentation" style="width:600px;max-width:600px;background-color:#ffffff"><tbody>
+<tr><td style="padding:28px 40px 12px 40px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:22px;color:#1f2430"><p style="margin:0;padding:0">Hi Geoff,</p><p style="margin:12px 0 0 0;padding:0">The facility use agreement for the 2026-2027 season is ready for your signature. Two signatures are outstanding, including yours.</p></td></tr>
+<tr><td align="left" style="padding:22px 40px 28px 40px"><table border="0" cellpadding="0" cellspacing="0" role="presentation"><tbody><tr><td align="center" style="background-color:#2b59ff;border-radius:4px"><p style="margin:0;padding:0"><a href="https://app.ironcladapp.com/workflows/8f21c/sign" target="_blank" style="display:inline-block;padding:13px 34px;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;color:#ffffff;text-decoration:none">Sign Now</a></p></td></tr></tbody></table></td></tr>
+<tr><td style="padding:0 40px 26px 40px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#5b6472"><p style="margin:0;padding:0">Questions about the terms should go to the facilities coordinator directly.</p><p style="margin:14px 0 0 0;padding:0">Ironclad<br/><a href="mailto:notifications@ironclad.com" style="color:#2b59ff">notifications@ironclad.com</a></p></td></tr>
+</tbody></table></body></html>
+------=_Part_3391_771224881.1789575242119--

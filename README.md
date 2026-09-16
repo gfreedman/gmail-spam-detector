@@ -35,8 +35,8 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 ## 📊 Results
 
-- ✅ **100% detection** on 51/51 spam + 3/3 scam (.eml files)
-- ✅ **0% false positives** on 21/21 legitimate emails
+- ✅ **100% detection** on 51/51 spam + 4/4 scam (.eml files)
+- ✅ **0% false positives** on 22/22 legitimate emails
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Clean, maintainable code** (~120 lines of detection logic)
 
@@ -173,8 +173,8 @@ Bank Account, Government Hiding, Blood Thinner
   *unverifiable*, not malicious
 - Requires a CTA verb and a label ≤ 60 chars, so a genuine DocuSign email's
   "About DocuSign" footer prose cannot trigger it
-- **Quarantines rather than deletes** — reported as spam and labelled
-  `Phishing`, but recoverable. `destroySpam()` skips that label
+- **Quarantines rather than deletes** — archived out of the inbox and labelled
+  `Phishing`, never moved to Spam and never deleted, so it stays in All Mail
 
 ### Decision Rules
 
@@ -203,8 +203,8 @@ if (serviceImpersonation) { return SPAM; }
 
 // RULE 7: CTA names a document brand the destination does not control → phishing
 // (no bulk gate, same reasoning; trackers and aligned hosts already exempted)
-// NOTE: Rule 7 QUARANTINES — reported as spam + labelled "Phishing", but not
-// permanently deleted, because it is the one rule with an irreducible
+// NOTE: Rule 7 QUARANTINES — archived + labelled "Phishing", never moved to
+// Spam and never deleted, because it is the one rule with an irreducible
 // false-positive class. Rules 1-6 delete permanently.
 if (brandMismatchedCta) { return SPAM; }
 
@@ -257,7 +257,7 @@ removeFromWhitelist('example.com');
 
 ### Check for False Positives
 
-Occasionally check your Spam folder for legitimate emails:
+Check the `Phishing` label for quarantined mail, and the Drive archive (Spam Intelligence/Detected) to recover anything deleted:
 1. Look for emails with "SpamChecked" label
 2. If legitimate, add sender to whitelist
 3. Move back to Inbox
@@ -302,8 +302,8 @@ addToWhitelist('domain.com');
 ├── tests/
 │   ├── test_spam_detector.py    # Python test suite
 │   ├── spam_examples/           # Real spam .eml files (51)
-│   ├── scam_examples/           # Scam .eml files (3)
-│   └── ham_examples/            # Legitimate .eml files (21)
+│   ├── scam_examples/           # Scam .eml files (4)
+│   └── ham_examples/            # Legitimate .eml files (22)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

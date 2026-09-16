@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.42.0
+ * @version 6.43.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -32,6 +32,26 @@
  *           (QUARANTINED, not deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.43.0: Restore prompt post-deploy recatch. v6.36.0 promised that a fix
+ *            deploy cleans up after itself unattended, and before v6.40.0 it
+ *            did: recheckRecentSpamChecked() ran on every 1-minute invocation,
+ *            so a newly-deployed pattern re-caught its target within about a
+ *            minute. v6.40.0 moved maintenance behind a 15-minute gate for
+ *            performance and silently made that up to 15x slower, which is why
+ *            a freshly deployed fix appears to do nothing for a quarter hour.
+ *            runPeriodicMaintenance() now forces one immediate cycle when
+ *            SCRIPT_VERSION differs from the last version recorded in Script
+ *            Properties. Once per deploy, not once per minute, so the v6.40.0
+ *            performance win is kept. LAST_SEEN_VERSION is written BEFORE the
+ *            cycle runs so a throwing maintenance function cannot force a
+ *            fresh cycle every minute and burn Gmail API quota.
+ *            Chosen over a CI step that calls the Apps Script Execution API:
+ *            no manifest executionApi block, no API-executable deployment, no
+ *            extra OAuth scopes, and it also covers deploys made outside CI
+ *            (manual clasp push, or an edit in the Apps Script editor).
+ *            SCRIPT_VERSION is patched by the deploy workflow in its own sed,
+ *            separate from the header tag, and verified by grep so a silent
+ *            patch failure fails the deploy rather than disabling detection.
  *   v6.42.0: Catch brand-mismatched CTA phishing — the first signal that reads
  *            the LINK GRAPH instead of sender-side vocabulary.
  *            Missed email: "Capital B | Bitcoin Policy Brief" from
@@ -230,6 +250,22 @@
  *
  * @const {Object}
  */
+/**
+ * Deployed script version, as a runtime-readable value.
+ *
+ * Mirrors the version tag in the header comment, but must be a real constant
+ * because runPeriodicMaintenance() compares it against the last version seen
+ * in Script Properties to detect that a new deploy has landed.
+ *
+ * Patched automatically by the deploy workflow from the commit message, in a
+ * separate sed from the header tag. Do NOT write the string "at-version" (in
+ * its literal @ form) on this line — the header-tag sed matches any line
+ * containing it and would overwrite this declaration with a comment.
+ *
+ * @const {string}
+ */
+const SCRIPT_VERSION = '6.43.0';
+
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
   maxEmailsPerRun: 50,
@@ -2971,7 +3007,36 @@ function runPeriodicMaintenance()
   const props  = PropertiesService.getScriptProperties();
   const lastTs = parseInt(props.getProperty('LAST_MAINTENANCE_TS') || '0', 10);
 
-  if (Date.now() - lastTs < MAINTENANCE_INTERVAL_MS) return;
+  // Force an immediate cycle when a new version has been deployed.
+  //
+  // A fix deploy exists precisely to catch something the previous code missed,
+  // so making it wait up to 15 minutes to re-evaluate defeats the point.
+  // Before v6.40.0, recheckRecentSpamChecked() ran on EVERY 1-minute
+  // invocation, so a deploy re-caught its target within about a minute.
+  // v6.40.0 moved maintenance behind the 15-minute gate for performance and
+  // silently made post-deploy recatch up to 15x slower — a regression in the
+  // v6.36.0 guarantee that a fix deploy cleans up after itself unattended.
+  //
+  // Comparing SCRIPT_VERSION against the last value seen restores that
+  // guarantee without giving up the performance win: the forced run happens
+  // once per deploy, not once per minute. It also covers deploys made outside
+  // CI (a manual clasp push, or an edit in the Apps Script editor), which a
+  // CI-side "run this function after deploying" step would miss.
+  const seenVersion    = props.getProperty('LAST_SEEN_VERSION');
+  const versionChanged = seenVersion !== SCRIPT_VERSION;
+
+  if (!versionChanged && Date.now() - lastTs < MAINTENANCE_INTERVAL_MS) return;
+
+  if (versionChanged)
+  {
+    logInfo('New version deployed (' + (seenVersion || 'none') + ' -> ' +
+            SCRIPT_VERSION + ') — forcing immediate maintenance cycle');
+    // Recorded BEFORE running the cycle, deliberately. If one of the
+    // maintenance functions throws, the next 1-minute trigger must fall back
+    // to the normal 15-minute gate rather than force a fresh cycle every
+    // minute and burn Gmail API quota.
+    props.setProperty('LAST_SEEN_VERSION', SCRIPT_VERSION);
+  }
 
   logInfo('Running periodic maintenance');
   checkFalseNegatives();

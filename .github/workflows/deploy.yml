@@ -162,10 +162,26 @@ jobs:
           VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
           if [ -n "$VERSION" ]; then
             VER_NUM="${VERSION#v}"
-            sed -i "s/@version .*/@version ${VER_NUM}/" SpamDetector.gs
-            grep -q "@version ${VER_NUM}" SpamDetector.gs \
+            # Anchored to the header tag's exact form. The previous pattern
+            # (s/@version .*/.../) matched ANY line containing the tag, so a
+            # changelog line reading "Fix @version tag, rule numbering..." was
+            # rewritten to " *            @version X.Y.Z" in every deployed
+            # copy. Only a comment, so nothing broke, but the deployed source
+            # silently diverged from the repo on each release.
+            sed -i "s|^ \* @version .*| * @version ${VER_NUM}|" SpamDetector.gs
+            grep -q "^ \* @version ${VER_NUM}$" SpamDetector.gs \
               || { echo "::error::@version patch failed — sed found no match in SpamDetector.gs"; exit 1; }
             echo "Patched @version to ${VER_NUM}"
+            # Also patch the runtime-readable constant. runPeriodicMaintenance()
+            # compares SCRIPT_VERSION against the last version seen in Script
+            # Properties and forces an immediate maintenance cycle when it
+            # changes, so a fix deploy re-checks recent mail within ~1 minute
+            # instead of waiting out the 15-minute gate. If this constant went
+            # stale, that detection would silently never fire.
+            sed -i "s/^const SCRIPT_VERSION = '.*';/const SCRIPT_VERSION = '${VER_NUM}';/" SpamDetector.gs
+            grep -q "^const SCRIPT_VERSION = '${VER_NUM}';" SpamDetector.gs \
+              || { echo "::error::SCRIPT_VERSION patch failed — sed found no match in SpamDetector.gs"; exit 1; }
+            echo "Patched SCRIPT_VERSION to ${VER_NUM}"
           else
             echo "No version in commit message — @version left unchanged"
           fi

@@ -189,7 +189,12 @@ jobs:
       # job, so this class of failure is caught before deploy.
       - name: Patch version in SpamDetector.gs
         run: |
-          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
+          # head -n1: grep -oP prints EVERY match on its own line, so a subject
+          # like "v6.45.1: Fix the deploy step that blocked v6.45.0" yielded a
+          # two-line $VERSION. patch_version.js rejected it loudly; the sed it
+          # replaced would have mangled the file silently. Same guard is applied
+          # at the validate and tag sites below.
+          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' | head -n1 || true)
           if [ -n "$VERSION" ]; then
             node scripts/patch_version.js "${VERSION#v}"
           else
@@ -284,7 +289,7 @@ jobs:
         env:
           SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
         run: |
-          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
+          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' | head -n1 || true)
           if [ -z "$VERSION" ]; then
             echo "No version in commit — skipping API validation"
             exit 0
@@ -361,7 +366,7 @@ jobs:
 
       - name: Auto-tag version commits
         run: |
-          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' || true)
+          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' | head -n1 || true)
           if [ -n "$VERSION" ]; then
             git tag "$VERSION" 2>/dev/null || true
             if git push origin "$VERSION" 2>/dev/null; then

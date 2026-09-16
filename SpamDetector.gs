@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.45.1
+ * @version 6.45.2
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -32,6 +32,13 @@
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.45.2: Guard version extraction in the deploy workflow. grep -oP prints
+ *            every match on its own line, so a commit subject naming two
+ *            versions produced a multi-line $VERSION and broke the deploy.
+ *            patch_version.js rejected it loudly; the sed it replaced would
+ *            have mangled the source silently. head -n1 applied at all three
+ *            extraction sites (patch, validate, tag). Keep commit subjects to
+ *            one version string regardless.
  *   v6.45.1: Fix the deploy step that blocked v6.45.0. The anchored @version
  *            sed added in v6.43.0 had to survive YAML block-scalar, shell
  *            double-quote and sed-expression quoting at once; it parsed on BSD
@@ -350,7 +357,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.45.1';
+const SCRIPT_VERSION = '6.45.2';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */

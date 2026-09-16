@@ -43,6 +43,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 - ✅ **100% detection** on 51/51 spam + 4/4 scam (.eml files)
 - ✅ **0% false positives** on 22/22 legitimate emails
+- ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Signal collection and verdict logic kept separate** (`collectSignals()` gathers facts, `makeVerdict()` judges)
 
@@ -115,7 +116,7 @@ Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely
 |---|---|---|
 | `SpamChecked` | Evaluated; don't re-process | None — bookkeeping |
 | `Phishing` | Rule 7 quarantine, archived not deleted | Review occasionally |
-| `SuspectedSpam` | Flagged but **not** deleted — either cleanse mode, or a message too large to evaluate, or one that couldn't be archived | Review; this is the "we weren't sure" pile |
+| `SuspectedSpam` | Flagged but **not** deleted — cleanse mode, a message too large to evaluate, one that couldn't be archived, or mail a newly deployed pattern re-flagged after you'd already kept it | Review; this is the "we weren't sure" pile |
 | `SpamDetectorPurge` | Internal marker so the sweep only touches our own verdicts | None — machinery |
 | `SpamMissed` | **You** apply this to spam that got through; it's logged and deleted on the next run | Apply it manually |
 

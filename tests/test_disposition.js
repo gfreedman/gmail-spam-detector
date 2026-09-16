@@ -298,6 +298,33 @@ console.log('\n=== markAsSpam tags its own verdicts before deleting ===');
         ctx.calls.findIndex(c => c.op === 'batchDelete'));
 }
 
+console.log('\n=== the recheck path HOLDS, it never deletes ===');
+{
+  // Mail the user already read and kept, which a newly deployed pattern now
+  // scores as spam. Until v6.48.0 this permanently deleted up to 20 such
+  // messages within a minute of every deploy.
+  const ctx = makeCtx();
+  const msg = blacklistMessage('mRECHECK');
+  const thread = fakeThread([msg]);
+
+  const held = ctx.holdForReview(msg, thread, 'recheck after pattern change');
+
+  check('reports success', held === true);
+  check('issues NO batchDelete',
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0,
+        JSON.stringify(ctx.calls));
+  check('never adds the SPAM label',
+        ctx.calls.filter(c => c.op === 'modify' && c.add.indexOf('SPAM') !== -1).length === 0);
+  check('archives out of the inbox',
+        ctx.calls.some(c => c.op === 'modify' && c.rm.indexOf('INBOX') !== -1));
+  check('labels SuspectedSpam for review',
+        thread.__labels.indexOf('SuspectedSpam') !== -1, JSON.stringify(thread.__labels));
+  check('labels SpamChecked so it is not re-held every cycle',
+        thread.__labels.indexOf('SpamChecked') !== -1, JSON.stringify(thread.__labels));
+  check('not mislabelled Phishing (no Rule 7 involved)',
+        thread.__labels.indexOf('Phishing') === -1);
+}
+
 console.log('\n=== destroySpam() sweeps ONLY what this detector condemned ===');
 {
   // mOURS carries the purge tag (we judged and archived it); mGMAIL does not

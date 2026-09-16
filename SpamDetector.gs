@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.47.1
+ * @version 6.48.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -32,6 +32,29 @@
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *
  * Changelog (see git log for full history):
+ *   v6.48.0: recheckRecentSpamChecked() holds for review instead of deleting.
+ *            This path re-judges mail the user has ALREADY READ AND KEPT, and
+ *            it is forced to run within a minute of every deploy. Until now it
+ *            called disposeDetectedMessage(), so a newly deployed pattern
+ *            permanently deleted up to 20 such messages immediately, with
+ *            nothing between a new regex and the loss but a 22-file ham corpus.
+ *            It was the highest-blast-radius consequence of a bad pattern in
+ *            the system and the one most likely to be exercised, because a
+ *            pattern is added precisely when it is new and unproven.
+ *            New holdForReview() archives the message out of the inbox and
+ *            labels it CONFIG.reviewLabel. The inbox still gets cleaned and the
+ *            recheck query (scoped to in:inbox) will not see it again, but
+ *            nothing is destroyed. No SPAM label is applied, so destroySpam()
+ *            can never reach it either.
+ *            The same reasoning that gave Rule 7 a quarantine applies with more
+ *            force here: on the day a pattern changes, every rule has an
+ *            unproven false-positive class. checkFalseNegatives() still
+ *            deletes, and that asymmetry is deliberate — a manual SpamMissed
+ *            label is the user ASKING for destruction, whereas the recheck is
+ *            the script overruling a decision the user already made.
+ *            Also centralised the review label as CONFIG.reviewLabel (it was
+ *            hardcoded in four places) and added seven disposition assertions
+ *            covering the hold path.
  *   v6.47.1: Documentation accuracy pass. No behaviour change.
  *            docs/index.html is the published GitHub Pages site and was stale on
  *            nearly everything: six rules instead of seven (so it stated that
@@ -478,7 +501,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.47.1';
+const SCRIPT_VERSION = '6.48.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -489,6 +512,12 @@ const CONFIG = Object.freeze({
 
   /** Gmail label applied to processed emails to prevent reprocessing */
   processedLabel: 'SpamChecked',
+
+  /** Label for mail held for human review rather than acted on. Applied by
+   *  cleanse mode, by the recheck pass, to messages too large to evaluate, and
+   *  to anything a destructive rule matched but which could not be archived.
+   *  Nothing carrying this label has been deleted. */
+  reviewLabel: 'SuspectedSpam',
 
   /** Label applied by markAsSpam() before it deletes, so destroySpam() can
    *  sweep ONLY mail this detector condemned. Without it the sweep deleted the
@@ -1178,7 +1207,7 @@ function processInbox()
             // indistinguishable from mail that passed all seven rules.
             if (result.unevaluated)
             {
-              try { thread.addLabel(getOrCreateLabel('SuspectedSpam')); }
+              try { thread.addLabel(getOrCreateLabel(CONFIG.reviewLabel)); }
               catch (e) { logError('Could not flag unevaluated thread: ' + e.toString()); }
               logInfo('FLAGGED (too large to evaluate): ' +
                       sanitizeForLog(thread.getFirstMessageSubject()));
@@ -1242,7 +1271,7 @@ function cleanseInbox()
 {
   const BATCH_SIZE   = 50;
   const MAX_BATCHES  = 10; // Safety cap: 10 × 50 = 500 emails max per run
-  const SUSPECT_LABEL = 'SuspectedSpam';
+  const SUSPECT_LABEL = CONFIG.reviewLabel;
 
   let deletedCount  = 0;
   let phishingCount = 0;
@@ -2203,6 +2232,72 @@ function disposeDetectedMessage(message, thread, signals, archived)
 }
 
 /**
+ * Hold a message for human review: archive it out of the inbox, label it, and
+ * never delete it.
+ *
+ * Used for RETROACTIVE re-judgements — mail the user has already seen and
+ * chosen to keep, which a newly deployed pattern now scores as spam. That is a
+ * materially different situation from a first-pass verdict on mail that just
+ * arrived:
+ *
+ *   - The user already exercised judgement on it and kept it.
+ *   - The pattern that now condemns it was deployed minutes ago and its
+ *     false-positive behaviour is evidenced only by a 22-file ham corpus.
+ *   - recheckRecentSpamChecked() is forced to run within a minute of every
+ *     deploy, so a bad pattern reaches this path faster than anywhere else.
+ *
+ * The same reasoning that gave Rule 7 a quarantine applies with more force
+ * here: on the day a pattern changes, EVERY rule has an unproven
+ * false-positive class. So this path stopped permanently deleting in v6.48.0.
+ *
+ * The message leaves the inbox, so the user's inbox still gets cleaned and the
+ * recheck query (which is scoped to in:inbox) will not see it again.
+ *
+ * @param {GmailMessage} message
+ * @param {GmailThread}  thread
+ * @param {string}       reason - Logged, for telling these apart later.
+ * @return {boolean} true if the message was archived and labelled.
+ */
+function holdForReview(message, thread, reason)
+{
+  const subject = sanitizeForLog(message.getSubject());
+  let labelled = false;
+
+  try
+  {
+    const review = getOrCreateLabel(CONFIG.reviewLabel);
+    if (review) { thread.addLabel(review); labelled = true; }
+    const processed = getOrCreateLabel(CONFIG.processedLabel);
+    if (processed) thread.addLabel(processed);
+  }
+  catch (labelError)
+  {
+    logError('Could not label held message: ' + labelError.toString());
+  }
+
+  try
+  {
+    if (typeof Gmail !== 'undefined' && Gmail.Users && Gmail.Users.Messages)
+    {
+      // Archive only — no SPAM label, so destroySpam() can never reach it.
+      Gmail.Users.Messages.modify({ removeLabelIds: ['INBOX'] }, 'me', message.getId());
+    }
+    else
+    {
+      thread.moveToArchive();
+    }
+
+    logInfo('HELD FOR REVIEW (' + reason + '): ' + subject);
+    return true;
+  }
+  catch (error)
+  {
+    logError('Could not archive held message: ' + error.toString());
+    return labelled;
+  }
+}
+
+/**
  * Hold a message that a destructive rule matched but which could not be
  * archived.
  *
@@ -2218,7 +2313,7 @@ function quarantineUnarchived(message, thread)
 {
   try
   {
-    const label = getOrCreateLabel('SuspectedSpam');
+    const label = getOrCreateLabel(CONFIG.reviewLabel);
     if (label) thread.addLabel(label);
     logInfo('HELD FOR REVIEW (unarchivable): ' + sanitizeForLog(message.getSubject()));
   }
@@ -3692,10 +3787,16 @@ function checkFalseNegatives()
  * inbox until the user notices and manually labels them SpamMissed.
  *
  * This function closes that gap automatically. It runs on a new deploy via
- * runPeriodicMaintenance(), re-checking inbox emails carrying SpamChecked from the
- * last RECHECK_DAYS days. Any that now score as spam under updated patterns are
- * logged as FALSE_NEGATIVE and permanently deleted — identical treatment to a
- * manually labeled SpamMissed email.
+ * runPeriodicMaintenance(), re-checking inbox emails carrying SpamChecked from
+ * the last RECHECK_DAYS days. Any that now score as spam under updated patterns
+ * are logged as FALSE_NEGATIVE, archived out of the inbox, and HELD under
+ * CONFIG.reviewLabel.
+ *
+ * This path does NOT delete, and deliberately does not get the same treatment
+ * as a manually labelled SpamMissed email. The difference is consent: a
+ * SpamMissed label is the user asking for destruction, whereas this is the
+ * script overruling a decision the user already made, using a pattern deployed
+ * moments ago. See holdForReview() for the full reasoning.
  *
  * Performance: capped at RECHECK_LIMIT emails per run. Messages are batch-fetched
  * via getMessagesForThreads() (one API call for all threads). analyzeMessage()
@@ -3734,12 +3835,17 @@ function recheckRecentSpamChecked()
 
         logInfo('Auto-recaught false negative: ' + sanitizeForLog(message.getSubject()));
 
-        // Accumulate log entry BEFORE deletion — getRawContent() unavailable after batchDelete
-        const archived = accumulateLogEntry(message, verdict.signals, 'FALSE_NEGATIVE');
-        // Same destroy-vs-quarantine routing as processThread(). An
-        // auto-recaught Rule 7 hit must not be permanently deleted just
-        // because it was found on the recheck pass rather than the first one.
-        disposeDetectedMessage(message, thread, verdict.signals, archived);
+        // Archive the evidence, then HOLD — never delete on this path.
+        //
+        // Until v6.48.0 this called disposeDetectedMessage(), so a newly
+        // deployed pattern permanently deleted up to 20 messages the user had
+        // already read and kept, within a minute of the deploy, with nothing
+        // between the new regex and the loss but a 22-file ham corpus. It was
+        // the highest-blast-radius consequence of a bad pattern in the system
+        // and the one most likely to be exercised, because a pattern is added
+        // precisely when it is new and unproven.
+        accumulateLogEntry(message, verdict.signals, 'FALSE_NEGATIVE');
+        holdForReview(message, thread, 'recheck after pattern change');
         recaughtCount++;
       }
       catch (threadError)
@@ -3750,7 +3856,9 @@ function recheckRecentSpamChecked()
 
     if (recaughtCount > 0)
     {
-      logInfo('Recheck: auto-caught ' + recaughtCount + ' false negative(s) from last ' + RECHECK_DAYS + ' days');
+      logInfo('Recheck: held ' + recaughtCount + ' newly-matching email(s) from the last ' +
+              RECHECK_DAYS + ' days for review under the "' + CONFIG.reviewLabel +
+              '" label — none were deleted');
     }
   }
   catch (error)

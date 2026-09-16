@@ -1,6 +1,14 @@
 # Clasp ignore - only push SpamDetector.gs and appsscript.json
+#
+# NOTE: clasp treats ANY .js under rootDir as Apps Script source and will try
+# to upload it as a .gs file. A bare "*.js" pattern matches only top-level
+# files, so tests/*.js and scripts/*.js need their own entries — adding
+# scripts/patch_version.js broke a deploy with
+# "ParseError: Unexpected token ILLEGAL ... file: scripts/patch_version.gs".
+# Both the directory globs and "**/*.js" are listed deliberately.
 archive/**
 tests/**
+scripts/**
 docs/**
 venv/**
 __pycache__/**
@@ -10,6 +18,7 @@ __pycache__/**
 *.md
 *.py
 *.js
+**/*.js
 *.json
 *.txt
 .DS_Store

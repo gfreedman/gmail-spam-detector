@@ -55,6 +55,42 @@ mustThrow('missing SCRIPT_VERSION throws',
 mustThrow('malformed version throws', () => patchVersion(real, 'v6.45.0'));
 mustThrow('empty version throws', () => patchVersion(real, ''));
 
+console.log('\n=== deploy hygiene: clasp must not pick up Node scripts ===');
+// clasp treats ANY .js under rootDir as Apps Script source and uploads it as
+// .gs. Adding scripts/patch_version.js broke a deploy with
+// "ParseError: Unexpected token ILLEGAL ... file: scripts/patch_version.gs",
+// because .claspignore's bare "*.js" matches only top-level files. This walks
+// the repo for .js files and asserts each one is excluded.
+{
+  const root = path.join(__dirname, '..');
+  const ignore = fs.readFileSync(path.join(root, '.claspignore'), 'utf8')
+    .split('\n').map(l => l.trim())
+    .filter(l => l && !l.startsWith('#') && !l.startsWith('!'));
+
+  const jsFiles = [];
+  (function walk(dir, rel) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      if (['.git', 'node_modules', 'venv', '__pycache__'].indexOf(entry.name) !== -1) continue;
+      const abs = path.join(dir, entry.name);
+      const r = rel ? rel + '/' + entry.name : entry.name;
+      if (entry.isDirectory()) walk(abs, r);
+      else if (entry.name.endsWith('.js')) jsFiles.push(r);
+    }
+  })(root, '');
+
+  const covered = f => ignore.some(pat => {
+    if (pat === '**/*.js') return f.indexOf('/') !== -1;
+    if (pat === '*.js') return f.indexOf('/') === -1;
+    if (pat.endsWith('/**')) return f.startsWith(pat.slice(0, -3) + '/');
+    return pat === f;
+  });
+
+  check('repo contains .js files to check (' + jsFiles.length + ')', jsFiles.length > 0);
+  const uncovered = jsFiles.filter(f => !covered(f));
+  check('every .js file is excluded by .claspignore', uncovered.length === 0,
+        uncovered.join(', '));
+}
+
 console.log('\n' + '='.repeat(70));
 console.log(failures === 0
   ? '✅ PATCH-VERSION TESTS PASSED (' + passed + ' assertions)'

@@ -17,6 +17,25 @@ detail plus the diffs.
 
 ---
 
+## v6.59.2
+
+Remove the scheduled health workflow. It was not asked for.
+
+The request was to run `prod_health.py` in CI on deploy. v6.59.0 delivered that
+as `verify-prod` and also added `.github/workflows/health.yml` on a 30-minute
+cron, on my own initiative — roughly 48 extra CI runs a day, and a second place
+to keep in sync, for a requirement nobody stated.
+
+The reasoning behind it was not wrong: a deploy-time check cannot see a trigger
+that dies at 3am. But that is an argument for proposing the idea, not for
+shipping it unasked. Scope belongs to whoever is asking.
+
+`verify-prod` stays exactly as it is, including the 15-minute poll window sized
+for the observed 10-minute trigger interval. If the standing check is wanted
+later, this entry is the record of what it was and why it existed.
+
+---
+
 ## v6.59.1
 
 **The new CI job failed on its first run, and it was right to.**

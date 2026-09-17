@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred work, as of **v6.50.2** (2026-09-17).
+Deferred work, as of **v6.51.0** (2026-09-17).
 
 Everything here was surfaced by two external reviews — a Google L6 security pass
 and a Palo Alto Networks L6 code/docs pass — plus findings from the day's own
@@ -83,12 +83,23 @@ What held were the things encoded as **executable invariants**, not prose:
 
 ## Settled on 2026-09-16 — do not re-litigate
 
-- **Spam folder disposition.** Resolved twice. v6.46.0 stopped the blanket sweep
-  (it was permanently deleting Gmail's false positives, unarchived and
-  unlogged). v6.50.0 added `reviewGmailSpam()`, which re-judges Gmail's verdicts
-  and deletes *only on agreement*, leaving whitelisted senders and anything we
-  score clean exactly where they are. Nothing is ever moved back to the inbox —
-  deliberate: a wrong whitelist entry would re-deliver real spam.
+- **Spam folder disposition.** Took three attempts; the third is in v6.51.0.
+  v6.46.0 stopped the blanket sweep (it was permanently deleting Gmail's false
+  positives, unarchived). v6.50.0 required our own rules to agree before
+  deleting — which left obvious spam in the folder, because those rules are
+  tuned for inbox-delivered mail and have no reputation data. Inverting to
+  "delete unless whitelisted" was drafted and **blocked in review**: it made a
+  16-entry hand-maintained list the sole guard on a permanent-delete path, and
+  verifiably destroyed bank alerts, 2FA mail and first-contact messages.
+  **The answer was time, not a better verdict.** v6.51.0 age-gates the query
+  (`older_than:CONFIG.gmailSpamGraceDays`, default 7). The folder empties on a
+  rolling basis, Gmail's mistakes keep a visible one-click recovery window, and
+  young mail is never fetched so the grace period is free. Whitelisted senders
+  are never deleted at any age — belt-and-braces, not sole protection.
+  Nothing is ever moved back to the inbox: a wrong whitelist entry would
+  re-deliver real spam.
+  *Lesson: when a destructive decision is uncertain, buy a recovery window
+  rather than a better guess.*
 - **Rule 7 quarantines; Rules 1–6 delete.** Rule 7 has an irreducible
   false-positive class; the others key on sender reputation or content the
   sender chose.

@@ -41,7 +41,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 ## 📊 Results
 
-- ✅ **100% detection** on 51/51 spam + 4/4 scam (.eml files)
+- ✅ **100% detection** on 53/53 spam + 4/4 scam (.eml files)
 - ✅ **0% false positives** on 22/22 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
@@ -108,7 +108,7 @@ Disposition depends on which rule fired, and the difference matters.
 **Rule 7 — quarantined, never deleted:**
 Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely. Rule 7 reads the link graph rather than sender reputation, and a legitimate sender can reproduce that pattern by accident, so permanent deletion is the wrong default.
 
-**Mail Gmail filed as spam gets a second opinion.** `reviewGmailSpam()` runs the seven rules over it and acts only on agreement: if we independently think it's spam, it's archived, logged and deleted; anything else — including every whitelisted sender — is left exactly where it is. Nothing is ever moved back to your inbox. So the folder stays tidy without Gmail's false positives being destroyed.
+**Mail Gmail filed as spam is deleted only after a grace period.** Gmail intercepts that mail before your inbox, so the detector's rules never judged it — and Gmail's own false-positive classes (first contact from a new correspondent, 2FA from a small service, an invoice on a cheap relay) are exactly what no whitelist can enumerate in advance. So `reviewGmailSpam()` lets it age `CONFIG.gmailSpamGraceDays` (default **7**) first, which is your recovery window: the folder is visible, searchable, and one "Not spam" click from undoing Gmail's mistake. After that Gmail's verdict stands and the message is archived, logged and deleted. Whitelisted senders are never deleted at any age, and nothing is ever moved back to your inbox.
 
 ### Labels you'll see
 
@@ -339,7 +339,7 @@ addToWhitelist('domain.com');
 │   ├── test_disposition.js      # Quarantine-vs-delete routing (Node)
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
-│   ├── spam_examples/           # Real spam .eml files (51)
+│   ├── spam_examples/           # Real spam .eml files (53)
 │   ├── scam_examples/           # Scam .eml files (4)
 │   └── ham_examples/            # Legitimate .eml files (22)
 └── .github/workflows/           # CI/CD pipeline

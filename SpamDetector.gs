@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.50.3
+ * @version 6.51.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -20,6 +20,8 @@
  *   2. markAsSpam()   — report to Gmail (trains filters) + immediately delete by ID
  *      quarantineAsPhishing() — Rule 7 only: report + label, NO delete
  *   3. destroySpam()  — safety-net sweep of this detector's own verdicts
+ *   4. reviewGmailSpam() — deletes Gmail-classified spam after a grace period
+ *      (CONFIG.gmailSpamGraceDays); whitelisted senders are never deleted
  *
  * Decision logic (7 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
@@ -70,7 +72,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.50.3';
+const SCRIPT_VERSION = '6.51.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -78,6 +80,23 @@ const CONFIG = Object.freeze({
 
   /** How many days back to scan for unprocessed emails */
   daysToCheck: 1,
+
+  /** Days a GMAIL-classified message sits in Spam before this detector will
+   *  delete it.
+   *
+   *  This is the most safety-relevant number in the file. Gmail intercepts that
+   *  mail before the inbox, so our rules never judged it, and Gmail's own
+   *  false-positive classes — first contact from a new correspondent, 2FA from a
+   *  small service with imperfect DKIM, an invoice on a cheap relay — are
+   *  exactly the mail no whitelist can enumerate in advance. The grace period
+   *  is their recovery window: the folder is visible, searchable, and one
+   *  "Not spam" click from undoing Gmail's mistake.
+   *
+   *  Gmail's own retention is 30 days. Seven still empties the folder on a
+   *  rolling basis while leaving a real window. Lowering it trades that window
+   *  for tidiness; 0 would be the blanket sweep that destroyed mail in the
+   *  first place. */
+  gmailSpamGraceDays: 7,
 
   /** Gmail label applied to processed emails to prevent reprocessing */
   processedLabel: 'SpamChecked',
@@ -146,7 +165,9 @@ const DEFAULT_DOMAINS = Object.freeze({
     'morningstockadviser',
     '1stamericanpath.com',
     'finrisex.com',
-    'economicrulebook.com'
+    'economicrulebook.com',
+    'bondlyst.com',
+    'atlantisinvestors.com'
   ])
 });
 
@@ -1001,39 +1022,26 @@ function cleanseInbox()
  * loops if something goes wrong with the API.
  */
 /**
- * Re-judge mail GMAIL classified as spam, and delete only what this detector
- * independently agrees about.
+ * Re-judge mail GMAIL classified as spam, deleting only after a grace period.
  *
- * Why this exists. v6.46.0 scoped destroySpam() to messages this detector
- * itself condemned, because the blanket sweep was permanently deleting Gmail's
- * own false positives within minutes, unarchived and unlogged. That was the
- * right fix for the data loss, but it left Gmail-classified spam piling up in a
- * folder the user then has to police by hand — trading one bad outcome for a
- * worse experience.
+ * Gmail intercepts this mail before it reaches the inbox, so the detector's own
+ * rules never see it. Left untouched it accumulates into a junk drawer the user
+ * has to police; deleted on Gmail's word alone it destroys Gmail's own false
+ * positives. The resolution is TIME, not a cleverer verdict — see the comment
+ * inside the function for why the two earlier designs were both wrong.
  *
- * The binary was a false one. Instead of "delete everything Gmail flagged" or
- * "touch nothing Gmail flagged", run the seven rules over it and act only on
- * agreement:
+ * Disposition:
+ *   whitelisted sender                  -> keep forever, log it, never touch
+ *   aged past CONFIG.gmailSpamGraceDays  -> archive, log, permanently delete
+ *   younger than the grace period        -> not even fetched (the query excludes it)
  *
- *   we agree it is spam  -> archive to Drive, log it, delete it
- *   anything else        -> leave it exactly where it is
+ * Nothing is ever moved back to the inbox: rescuing a false positive has its
+ * own failure mode (a wrong whitelist entry would re-deliver real spam) and
+ * mail reappearing unasked is its own surprise. The user's recovery path is
+ * Gmail's own "Not spam" button during the grace window.
  *
- * "Anything else" includes whitelisted senders, which is the case that matters
- * most. collectSignals() returns null for a whitelisted sender, analyzeMessage()
- * reports not-spam, and the message is left alone. A LinkedIn notification that
- * Gmail misfiled is therefore never touched by this function — under the old
- * blanket sweep it was destroyed with no trace.
- *
- * Deliberately does NOT move anything back to the inbox. Rescuing a false
- * positive is a separate decision with its own failure mode (a wrong whitelist
- * entry would re-deliver actual spam), and mail re-appearing in the inbox
- * without the user asking is its own surprise.
- *
- * Scoped by Gmail search rather than label intersection because analyzeMessage()
- * needs GmailMessage objects, which the REST list() does not return. The
- * "-label:purgeLabel" term is index-dependent, but the failure mode is benign:
- * a lagging index means a message we already condemned gets re-evaluated and
- * deleted, which is what the sweep would have done anyway.
+ * Every branch either deletes the message or marks the thread reviewed, so no
+ * message is ever re-fetched cycle after cycle. See markReviewed().
  */
 function reviewGmailSpam()
 {
@@ -1041,22 +1049,44 @@ function reviewGmailSpam()
 
   try
   {
-    // Excludes processedLabel as well as purgeLabel. A message we review and
-    // decide to LEAVE gets processedLabel applied below, so it is judged once
-    // rather than re-judged every cycle. Without that this function re-read
-    // every message it had already decided about: 20 threads x 2 Gmail reads x
-    // 288 cycles/day is ~11 500 reads against a ~20 000 daily ceiling, spent
-    // recomputing answers it already had.
-    const query   = 'in:spam -label:' + CONFIG.purgeLabel +
-                    ' -label:' + CONFIG.processedLabel;
+    // AGE-GATED, and that gate is the whole design.
+    //
+    // Two earlier attempts were both wrong. The original blanket sweep deleted
+    // Gmail's own false positives within minutes, unarchived. v6.50.0 then
+    // required our seven rules to independently agree before deleting, which
+    // left obvious spam sitting in the folder — those rules are tuned for mail
+    // that reached the INBOX and have no sender reputation, domain age or
+    // volume data, so they score most Gmail-caught spam clean.
+    //
+    // Deleting on Gmail's word alone with only the whitelist as a guard is also
+    // wrong, and worse: DEFAULT_DOMAINS.legitimate is 16 hand-maintained
+    // strings and structurally cannot enumerate the user's correspondents. A
+    // first contact from a recruiter, a 2FA mail from a small service with
+    // imperfect DKIM, an invoice from a business on a cheap relay — Gmail
+    // misfiles all of these, and none is whitelisted.
+    //
+    // What that approach actually gives up is Gmail's own 30-day recovery
+    // window: a folder the user can open, search and click "Not spam" in. An
+    // EML in Drive named by timestamp and eight hex digits is not a substitute.
+    //
+    // So: let the message AGE first. After gmailSpamGraceDays it has had a
+    // real recovery window and Gmail's verdict stands. Before that it is left
+    // alone and, crucially, never fetched — so the grace period costs nothing
+    // in quota and the folder still drains on a rolling basis.
+    const query = 'in:spam older_than:' + CONFIG.gmailSpamGraceDays + 'd' +
+                  ' -label:' + CONFIG.purgeLabel +
+                  ' -label:' + CONFIG.processedLabel;
+
     const threads = GmailApp.search(query, 0, REVIEW_LIMIT);
     if (threads.length === 0) return;
 
-    logInfo('Reviewing ' + threads.length + ' Gmail-classified spam thread(s)');
+    logInfo('Reviewing ' + threads.length + ' Gmail-classified spam thread(s) ' +
+            'older than ' + CONFIG.gmailSpamGraceDays + ' days');
 
     const allMessages = GmailApp.getMessagesForThreads(threads);
-    let agreed = 0;
-    let left   = 0;
+    let deleted = 0;
+    let kept    = 0;
+    let held    = 0;
 
     for (let i = 0; i < threads.length; i++)
     {
@@ -1067,52 +1097,137 @@ function reviewGmailSpam()
         if (!messages || messages.length === 0) continue;
         const message = messages[0];
 
-        const verdict = analyzeMessage(message);
+        const signals = collectSignals(message);
 
-        // Not spam by our rules — including every whitelisted sender, for which
-        // collectSignals() returns null. Leave the message where it is, but
-        // mark the thread processed so this decision is not recomputed every
-        // cycle. The label is the only change; the message stays in Spam,
-        // unmoved and undeleted.
-        if (!verdict.isSpam)
+        // Whitelisted senders are never deleted, at any age. Belt-and-braces
+        // on top of the age gate rather than the sole protection.
+        if (signals === null)
         {
-          try
-          {
-            const processed = getOrCreateLabel(CONFIG.processedLabel);
-            if (processed) thread.addLabel(processed);
-          }
-          catch (labelError)
-          {
-            // Non-fatal: costs a re-evaluation next cycle, nothing more.
-            logError('Could not mark reviewed spam as processed: ' + labelError.toString());
-          }
-          left++;
+          accumulateLogEntry(message, null, 'GMAIL_SPAM_KEPT_WHITELISTED',
+                             { skipArchive: true });
+          markReviewed(thread);
+          kept++;
+          logInfo('KEPT (whitelisted sender Gmail misfiled): ' +
+                  sanitizeForLog(message.getSubject()));
           continue;
         }
 
-        // Logged with its own type so the training set can tell "we caught this
-        // in the inbox" apart from "Gmail caught it and we concurred" — those
-        // are different detection events even though both are spam.
-        const archived = accumulateLogEntry(message, verdict.signals,
-                                            'GMAIL_SPAM_CONFIRMED');
+        // CONFIRMED means our rules independently agree; DEFERRED means they
+        // did not fire and we are accepting Gmail's judgement on an aged
+        // message. Both delete. Distinguishing them measures our real
+        // agreement rate with Gmail, which is worth knowing.
+        const logType = makeVerdict(signals)
+          ? 'GMAIL_SPAM_CONFIRMED'
+          : 'GMAIL_SPAM_DEFERRED';
 
-        if (disposeDetectedMessage(message, thread, verdict.signals, archived))
+        if (accumulateLogEntry(message, signals, logType) !== true)
         {
-          agreed++;
+          // Archive invariant: no Drive copy, no permanent delete. Mark it
+          // reviewed anyway — otherwise this message is re-fetched every cycle
+          // forever, which is the quota leak v6.50.1 already had to fix once.
+          logError('Cannot archive, so NOT deleting: ' +
+                   sanitizeForLog(message.getSubject()) +
+                   ' — left in Spam. Run setupLogging() if this persists.');
+          markReviewed(thread);
+          held++;
+          continue;
+        }
+
+        // markAsSpam() falls back to thread.moveToSpam() when the Advanced
+        // Gmail Service is unavailable, which does NOT delete. Only count a
+        // deletion when the permanent path was actually taken, or the summary
+        // line lies and the message is re-archived on every later cycle.
+        if (deleteMessagePermanently(message, thread))
+        {
+          deleted++;
+        }
+        else
+        {
+          markReviewed(thread);
+          held++;
         }
       }
       catch (threadError)
       {
+        // The message survives, but mark it so a persistently unreadable
+        // message is not re-fetched every five minutes indefinitely.
         logError('reviewGmailSpam thread error: ' + threadError.toString());
+        try { markReviewed(threads[i]); } catch (e) { /* best effort */ }
       }
     }
 
-    logInfo('Gmail spam review: agreed on ' + agreed + ', left ' + left +
-            ' for you (not spam by our rules)');
+    logInfo('Gmail spam review: deleted ' + deleted + ', kept ' + kept +
+            ' (whitelisted), held ' + held + ' (could not delete safely)');
   }
   catch (error)
   {
     logError('reviewGmailSpam failed: ' + error.toString());
+  }
+}
+
+/**
+ * Mark a thread as reviewed so it is not re-examined every cycle.
+ *
+ * Every non-deleting branch of reviewGmailSpam() must call this. A decision
+ * made and not recorded is recomputed forever: at two Gmail reads per message
+ * and a five-minute cadence that is thousands of wasted reads a day, and quota
+ * exhaustion stops detection entirely. This project has already shipped that
+ * bug twice.
+ *
+ * @param {GmailThread} thread
+ */
+function markReviewed(thread)
+{
+  try
+  {
+    const processed = getOrCreateLabel(CONFIG.processedLabel);
+    if (processed) thread.addLabel(processed);
+  }
+  catch (e)
+  {
+    logError('Could not mark thread reviewed: ' + e.toString());
+  }
+}
+
+/**
+ * Permanently delete one message, reporting whether it actually happened.
+ *
+ * markAsSpam() is deliberately forgiving — it falls back to
+ * thread.moveToSpam() when the Advanced Gmail Service is missing, and swallows
+ * a failed batchDelete so the safety-net sweep can retry. Both are right for
+ * its own callers and wrong for a counter: reviewGmailSpam() needs to know
+ * whether the message is gone, so it can mark the thread and stop re-archiving
+ * a survivor on every cycle.
+ *
+ * @param {GmailMessage} message
+ * @param {GmailThread}  thread
+ * @return {boolean} true only if the permanent delete was issued.
+ */
+function deleteMessagePermanently(message, thread)
+{
+  if (typeof Gmail === 'undefined' || !Gmail.Users || !Gmail.Users.Messages)
+  {
+    logError('Gmail Advanced Service unavailable — cannot permanently delete ' +
+             sanitizeForLog(message.getSubject()));
+    return false;
+  }
+
+  try
+  {
+    const messageId = message.getId();
+    const purgeId   = getLabelId(CONFIG.purgeLabel);
+
+    Gmail.Users.Messages.modify(
+      { addLabelIds: purgeId ? ['SPAM', purgeId] : ['SPAM'] }, 'me', messageId);
+    Gmail.Users.Messages.batchDelete({ ids: [messageId] }, 'me');
+
+    logInfo('GMAIL SPAM DESTROYED: ' + sanitizeForLog(message.getSubject()));
+    return true;
+  }
+  catch (e)
+  {
+    logError('Permanent delete failed: ' + e.toString());
+    return false;
   }
 }
 
@@ -1439,10 +1554,21 @@ function collectSignals(message)
   // IMPORTANT: match against the extracted email address only, not the full
   // From string — prevents display-name spoofing such as:
   //   "LinkedIn News <spammer@spam.com>" bypassing the whitelist check.
-  const from = sanitizeInput(message.getFrom())
+  // Extract the address from the UNTRUNCATED From, then truncate only what
+  // feeds pattern matching.
+  //
+  // Truncating first cut the address off any header with a display name longer
+  // than maxFromChars, so the whitelist check silently missed. Same story as
+  // the comment form above: tolerable when the outcome was "stays in Spam",
+  // unacceptable once a failed whitelist match can mean deletion. The
+  // truncation exists to bound quadratic regex cost on attacker-controlled
+  // text, which the address extraction does not participate in.
+  const fromRaw = sanitizeInput(message.getFrom());
+  const senderAddress = extractEmailAddress(
+    fromRaw.replace(RFC2822_QUOTED_NAME, '$1$2'));
+  const from = fromRaw
     .substring(0, LIMITS.maxFromChars)
     .replace(RFC2822_QUOTED_NAME, '$1$2');
-  const senderAddress = extractEmailAddress(from);
 
   const whitelist = getCachedWhitelist();
   for (let i = 0; i < whitelist.length; i++)
@@ -2869,8 +2995,22 @@ function hasBrandMismatchedCta(html, senderAddress)
  */
 function extractEmailAddress(from)
 {
-  const match = from.match(/<([^>]+)>/);
-  return (match ? match[1] : from).toLowerCase();
+  if (!from) return '';
+
+  // Angle-bracket form first: "Display Name <addr@host>". Most common.
+  const angled = from.match(/<([^>]+)>/);
+  if (angled) return angled[1].trim().toLowerCase();
+
+  // RFC 2822 also permits the comment form: "addr@host (Display Name)".
+  // Returning the whole string here made addressMatchesDomain() derive a host
+  // of "substack.com (substack digest)", which matches no whitelist entry — so
+  // a WHITELISTED sender using this form failed the whitelist check. That was
+  // harmless while the consequence was "stays in the Spam folder"; it becomes
+  // data loss the moment any path deletes on a failed whitelist match.
+  const commented = from.match(/([^\s<>()]+@[^\s<>()]+)/);
+  if (commented) return commented[1].trim().toLowerCase();
+
+  return from.trim().toLowerCase();
 }
 
 /**
@@ -3705,8 +3845,20 @@ function escapeSheetCell(value)
   return /^[=+\-@\t\r]/.test(text) ? "'" + text : text;
 }
 
-function accumulateLogEntry(message, signals, logType)
+function accumulateLogEntry(message, signals, logType, options)
 {
+  // rawContent: supplied by the caller when it already has it, so the message
+  // is not fetched twice. collectSignals() pulls getRawContent() for bulk
+  // detection, and this function pulled it again — two fetches per message on
+  // the delete path, measured.
+  // skipArchive: log the Sheets row but do NOT copy the raw message to Drive.
+  //
+  // Used for messages we are logging but NOT deleting. The Drive EML exists
+  // purely as a recovery copy for mail about to be destroyed; a message that
+  // survives needs no copy, and archiving it would put legitimate mail (a
+  // whitelisted sender Gmail misfiled) into Drive for no benefit. Also skips
+  // the getRawContent() fetch entirely, saving a Gmail read.
+  const skipArchive = !!(options && options.skipArchive);
   try
   {
     const from            = sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2');
@@ -3725,8 +3877,11 @@ function accumulateLogEntry(message, signals, logType)
     catch (e) { /* non-fatal */ }
 
     let rawContent = '';
-    try { rawContent = message.getRawContent(); }
-    catch (e) { logError('getRawContent failed for ' + message.getId() + ': ' + e.toString()); }
+    if (!skipArchive)
+    {
+      try { rawContent = message.getRawContent(); }
+      catch (e) { logError('getRawContent failed for ' + message.getId() + ': ' + e.toString()); }
+    }
 
     // Write the EML to Drive NOW, synchronously, before the caller disposes of
     // the message.
@@ -3742,7 +3897,9 @@ function accumulateLogEntry(message, signals, logType)
     //
     // The returned value is the invariant disposeDetectedMessage() enforces:
     // no archive, no permanent delete.
-    const archive = archiveRawEml(message.getId(), rawContent, logType);
+    const archive = skipArchive
+      ? { archived: false, driveUrl: '' }
+      : archiveRawEml(message.getId(), rawContent, logType);
 
     // rawContent is deliberately NOT stored on the buffered entry. Once
     // archiveRawEml() has written it to Drive nothing reads it again, and

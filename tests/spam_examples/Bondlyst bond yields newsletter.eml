@@ -1,0 +1,36 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7412:b387:b0:1fc:3e10:ebdd with SMTP id dt7csp2065112rdb;
+        Wed, 16 Sep 2026 22:41:08 -0700 (PDT)
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@newsletter.bondlyst.com header.s=s1 header.b=Kp3mR8Vx;
+       dkim=pass header.i=@amazonses.com header.s=224i4yxa5dv7c2xz3womw6peuasteono header.b=Zt9qL2Wm;
+       spf=pass (google.com: domain of 010001a0ab77dd12-3fbe9a44-c521-4b19-8e7c-121d85874f99-000000@bounce.newsletter.bondlyst.com designates 54.240.9.116 as permitted sender) smtp.mailfrom=010001a0ab77dd12-3fbe9a44-c521-4b19-8e7c-121d85874f99-000000@bounce.newsletter.bondlyst.com
+Return-Path: <010001a0ab77dd12-3fbe9a44-c521-4b19-8e7c-121d85874f99-000000@bounce.newsletter.bondlyst.com>
+Received: from a9-116.smtp-out.amazonses.com (a9-116.smtp-out.amazonses.com. [54.240.9.116])
+        by mx.google.com with ESMTPS id af79cd13be357-93b81d33001si218991002a.412.2026.09.16.22.41.08
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 16 Sep 2026 22:41:08 -0700 (PDT)
+From: Bondlyst Daily <get@newsletter.bondlyst.com>
+To: geoff.c.freedman@gmail.com
+Subject: The Treasury Yield Nobody Is Talking About
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 7bit
+List-Unsubscribe: <https://newsletter.bondlyst.com/u/REDACTED>
+Precedence: bulk
+Message-ID: <010001a0ab77dd12-3fbe9a44-c521-4b19-8e7c-121d85874f99-000000@email.amazonses.com>
+Date: Thu, 17 Sep 2026 05:41:08 +0000
+Feedback-ID: :1.us-east-1.REDACTED=:AmazonSES
+X-SES-Outgoing: 2026.09.17-54.240.9.116
+
+There is a corner of the bond market that almost nobody is watching, and the
+yields coming out of it right now are unlike anything in the last decade.
+
+Our analysts have put together a short briefing on where the money is moving
+and what it means for ordinary savers over the next six months.
+
+Read the briefing: https://newsletter.bondlyst.com/r/briefing
+
+Bondlyst Daily
+Unsubscribe: https://newsletter.bondlyst.com/u/REDACTED

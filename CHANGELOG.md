@@ -17,6 +17,71 @@ detail plus the diffs.
 
 ---
 
+## v6.51.0
+
+Fix the Spam-folder regression properly, and fix two whitelist parse holes that
+made the obvious fix dangerous.
+
+**The reported problem was real.** `get@newsletter.bondlyst.com`,
+`crew@your.atlantisinvestors.com` and `raju47326yu@gmail.com` were sitting
+undeleted in the Spam folder. v6.46.0 stopped the blanket sweep (correct — it
+had been permanently deleting Gmail's false positives, unarchived), and v6.50.0
+then required our seven rules to independently agree before deleting. Those
+rules are tuned for mail that reached the INBOX and have no sender reputation,
+domain age or volume data, so they score most Gmail-caught spam clean. All three
+survived. The folder became a junk drawer.
+
+**My first fix was worse and a pre-merge review blocked it.** Inverting the
+default — delete unless whitelisted — makes `DEFAULT_DOMAINS.legitimate`, 16
+hand-maintained strings, the sole guard on a permanent-delete path. It cannot
+enumerate a user's correspondents. Verified against the live code: an ordinary
+bank alert, a 2FA mail from a small service and a message from a human
+correspondent were all deleted. What it really gave up is Gmail's own 30-day
+recovery window — a folder the user can open, search and click "Not spam" in —
+in exchange for an EML in Drive named by timestamp and eight hex digits.
+
+**The fix is time, not a cleverer verdict.** `reviewGmailSpam()` now age-gates
+in the query: `in:spam older_than:CONFIG.gmailSpamGraceDays`. Default 7 days.
+The folder still empties on a rolling basis, Gmail's mistakes keep a real
+recovery window, and young mail is never even fetched — so the grace period
+costs nothing in quota. Whitelisted senders are never deleted at any age, as
+belt-and-braces rather than sole protection.
+
+**Two whitelist parse holes, both verified, both now fixed.** Each was harmless
+while the consequence was "stays in Spam" and would have been data loss the
+moment anything deleted on a failed whitelist match:
+
+- `extractEmailAddress()` only understood `<addr>`, so RFC 2822's comment form
+  `notifications@linkedin.com (LinkedIn)` returned the whole string and derived
+  a host of `linkedin.com (linkedin)` — a **whitelisted sender failing the
+  whitelist check**.
+- From was truncated to `maxFromChars` *before* the address was extracted, so a
+  display name over 500 characters cut the address away entirely. Now the
+  address is taken from the untruncated header and only the pattern-matching
+  copy is truncated.
+
+**Leaks the review also caught, all fixed.** Every non-deleting branch now calls
+`markReviewed()`, so no message is re-fetched cycle after cycle — the failure
+this project has shipped twice. New `deleteMessagePermanently()` reports whether
+the delete actually happened, because `markAsSpam()` deliberately falls back to
+`thread.moveToSpam()` when the Advanced Service is missing, which previously
+incremented the deleted counter while the message survived and was re-archived
+to Drive every five minutes. `REVIEW_LIMIT` stays at 20; the age gate collapses
+per-cycle volume, so the execution-budget concern that justified raising it
+disappears.
+
+Also: `bondlyst.com` and `atlantisinvestors.com` blacklisted, with `.eml`
+fixtures — both now fire **Rule 1** on the inbox path, so the blacklist entries
+are load-bearing rather than decorative. `raju47326yu@gmail.com` cannot be
+blacklisted (`gmail.com`) and relies on the age gate, which is exactly why the
+gate rather than a domain list is the fix.
+
+Disposition assertions 45 -> 64, covering the age gate, all four whitelist
+header forms, and every non-deleting branch marking the thread. Two of them
+caught real bugs in this change: the grace constant was added to `LIMITS` while
+the code read `CONFIG`, producing `older_than:undefinedd`, and an assertion that
+compared the query against the same undefined expression passed anyway.
+
 ## v6.50.3
 
 Actually apply the `docs/BACKLOG.md` update that v6.50.2 claimed to make.

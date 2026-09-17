@@ -158,16 +158,32 @@ function blacklistMessage(id) {
   };
 }
 
-function fakeThread(messages) {
+function fakeThread(messages, sink) {
   const labels = [];
+  const ops = [];
+  // `sink` is optionally makeCtx's `calls`, so label operations and Gmail API
+  // operations land in ONE ordered log. Without it the invariant at
+  // SpamDetector.gs "remove the label before deleting — a deleted thread
+  // cannot be relabelled" is unprovable, because the two op kinds lived in
+  // separate arrays and any findIndex comparison between them was meaningless.
+  const record = o => { ops.push(o); if (sink) sink.push(o); };
   return {
     __messages: messages,
     __labels: labels,
+    __ops: ops,
     getId: () => 't1',
     getFirstMessageSubject: () => messages[0].getSubject(),
     getMessages: () => messages,
-    addLabel(l) { labels.push(l.__label); },
-    removeLabel(l) { const i = labels.indexOf(l.__label); if (i >= 0) labels.splice(i, 1); },
+    // Ops are recorded on the thread itself (__ops), not in makeCtx's `calls`,
+    // which is out of scope here. removeLabel used to record nothing at all,
+    // which made any assertion of the form
+    //   findIndex(removeLabel) < findIndex(batchDelete)
+    // pass vacuously at -1 < 0.
+    addLabel(l) { record({ op: 'addLabel', label: l.__label }); labels.push(l.__label); },
+    removeLabel(l) {
+      record({ op: 'removeLabel', label: l.__label });
+      const i = labels.indexOf(l.__label); if (i >= 0) labels.splice(i, 1);
+    },
     moveToSpam() { labels.push('__MOVED_TO_SPAM__'); },
     moveToArchive() { labels.push('__ARCHIVED__'); }
   };
@@ -513,6 +529,164 @@ console.log('\n=== logging: every reviewed message produces a row ===');
   check('FREEMAIL_RANDOM_LOCAL appears in the signals CSV',
         vm.runInContext("buildSignalsCsv({freeMailRandomLocal:true})", ctx)
           .indexOf('FREEMAIL_RANDOM_LOCAL') !== -1);
+}
+
+console.log('\n=== checkFalseNegatives: SpamMissed cannot destroy whitelisted mail ===');
+{
+  // This path deletes on explicit human instruction, which is sound for one
+  // deliberate click and unsound for a mis-click on a multi-select. Applying
+  // SpamMissed to forty threads is two keystrokes in Gmail.
+  const linked = blacklistMessage('mSM_WL');
+  linked.getFrom = () => 'LinkedIn <jobalerts-noreply@linkedin.com>';
+  linked.getSubject = () => 'Brex is hiring a Director of Product';
+  linked.getRawContent = () => 'Received: from mail.linkedin.com\r\n\r\nhi';
+  linked.getBody = () => '<p>hi</p>';
+  const tLinked = fakeThread([linked]);
+  tLinked.__labels.push('SpamMissed');
+
+  const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  ctx.GmailApp.search = (q) =>
+    (q.indexOf('SpamMissed') !== -1 ? [tLinked] : []);
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+
+  const rows = [];
+  const orig = ctx.accumulateLogEntry;
+  ctx.accumulateLogEntry = function (m, sig, type, opts) {
+    rows.push({ id: m.getId(), type, skipArchive: !!(opts && opts.skipArchive) });
+    return orig(m, sig, type, opts);
+  };
+
+  ctx.checkFalseNegatives();
+
+  check('whitelisted SpamMissed message is NOT deleted',
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0,
+        JSON.stringify(ctx.calls.filter(c => c.op === 'batchDelete')));
+  check('whitelisted message is not moved to SPAM either',
+        !ctx.calls.some(c => c.op === 'modify' && (c.add || []).indexOf('SPAM') !== -1));
+  check('the refusal is logged to the Sheet',
+        rows.some(r => r.type === 'SPAM_MISSED_REFUSED_WHITELISTED'),
+        'rows=' + JSON.stringify(rows));
+  const refusal = rows.find(r => r.type === 'SPAM_MISSED_REFUSED_WHITELISTED');
+  check('refusal is NOT archived to Drive (nothing destroyed)',
+        !!refusal && refusal.skipArchive === true, JSON.stringify(rows));
+  check('SpamMissed is REMOVED so the refusal does not repeat every cycle',
+        tLinked.__ops.some(o => o.op === 'removeLabel' && o.label === 'SpamMissed'),
+        JSON.stringify(tLinked.__ops));
+  check('and the review label is ADDED so the user can see the refusal',
+        tLinked.__labels.indexOf('SuspectedSpam') !== -1,
+        JSON.stringify(tLinked.__labels));
+}
+
+console.log('\n=== checkFalseNegatives: a NON-whitelisted SpamMissed IS deleted ===');
+{
+  // The feature must still work — the user asked for this one to go.
+  const junk = blacklistMessage('mSM_OK');   // team@your.finrisex.com
+  const tJunk = fakeThread([junk]);
+  tJunk.__labels.push('SpamMissed');
+
+  const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  // Shared sink: label ops interleave with Gmail ops in ctx.calls, so the
+  // ordering invariant below is actually provable.
+  const tJunkS = fakeThread([junk], ctx.calls);
+  tJunkS.__labels.push('SpamMissed');
+  ctx.GmailApp.search = (q) => (q.indexOf('SpamMissed') !== -1 ? [tJunkS] : []);
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.checkFalseNegatives();
+
+  const deleted = ctx.calls.filter(c => c.op === 'batchDelete')
+                           .reduce((a, c) => a.concat(c.ids), []);
+  check('non-whitelisted SpamMissed message IS deleted', deleted.indexOf('mSM_OK') !== -1,
+        'deleted=' + JSON.stringify(deleted));
+
+  const rmIdx  = ctx.calls.findIndex(c => c.op === 'removeLabel' && c.label === 'SpamMissed');
+  const delIdx = ctx.calls.findIndex(c => c.op === 'batchDelete');
+  check('SpamMissed label was actually removed', rmIdx !== -1, JSON.stringify(ctx.calls));
+  check('and removed BEFORE the delete (a deleted thread cannot be relabelled)',
+        rmIdx !== -1 && delIdx !== -1 && rmIdx < delIdx,
+        'removeLabel@' + rmIdx + ' batchDelete@' + delIdx);
+}
+
+console.log('\n=== checkFalseNegatives: unarchivable is refused, once, visibly ===');
+{
+  // Previously the label was removed BEFORE the archive check, so this branch
+  // dropped the message silently and the comment promising a retry was false.
+  const junk = blacklistMessage('mSM_NOARCH');
+  const tJunk = fakeThread([junk]);
+  tJunk.__labels.push('SpamMissed');
+
+  const ctx = makeCtx();   // no SPAM_LOG_FOLDER_ID -> archive fails
+  ctx.GmailApp.search = (q) => (q.indexOf('SpamMissed') !== -1 ? [tJunk] : []);
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.checkFalseNegatives();
+
+  check('unarchivable message is NOT deleted',
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0);
+  check('SpamMissed is swapped for the review label, not kept',
+        tJunk.__ops.some(o => o.op === 'removeLabel' && o.label === 'SpamMissed') &&
+        tJunk.__labels.indexOf('SuspectedSpam') !== -1,
+        JSON.stringify(tJunk.__ops) + ' labels=' + JSON.stringify(tJunk.__labels));
+
+  // The reason it must not be kept: accumulateLogEntry() buffers its Sheets row
+  // BEFORE the archive check, so a retained label meant a duplicate row and two
+  // getRawContent() fetches every cycle — measured at 288 rows/day.
+  const before = ctx.calls.filter(c => c.op === 'batchDelete').length;
+  ctx.GmailApp.search = () => [];   // label swapped, so the search no longer matches
+  ctx.checkFalseNegatives();
+  check('a second cycle does no further work', 
+        ctx.calls.filter(c => c.op === 'batchDelete').length === before);
+}
+
+console.log('\n=== checkFalseNegatives: edge cases the review asked for ===');
+{
+  // (a) whitelisted message is NOT messages[0]. markAsSpam()'s no-Advanced-
+  // Service fallback is thread.moveToSpam(), which moves the whole thread, so
+  // a whitelisted sibling must veto the delete.
+  const junk = blacklistMessage('mSIB_JUNK');
+  const wl = blacklistMessage('mSIB_WL');
+  wl.getFrom = () => 'LinkedIn <jobalerts-noreply@linkedin.com>';
+  wl.getRawContent = () => 'Received: from mail.linkedin.com\r\n\r\nhi';
+  wl.getBody = () => '<p>hi</p>';
+  const tSib = fakeThread([junk, wl]);
+  tSib.__labels.push('SpamMissed');
+
+  let ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  ctx.GmailApp.search = (q) => (q.indexOf('SpamMissed') !== -1 ? [tSib] : []);
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.checkFalseNegatives();
+  check('a whitelisted SIBLING vetoes the delete',
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0,
+        JSON.stringify(ctx.calls.filter(c => c.op === 'batchDelete')));
+
+  // (b) getFrom() throws -> isWhitelistedSender fails safe to true -> refused
+  const bad = blacklistMessage('mSM_BADFROM');
+  bad.getFrom = () => { throw new Error('malformed From header'); };
+  const tBad = fakeThread([bad]);
+  tBad.__labels.push('SpamMissed');
+  ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  ctx.GmailApp.search = (q) => (q.indexOf('SpamMissed') !== -1 ? [tBad] : []);
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.checkFalseNegatives();
+  check('an unreadable From is refused, not deleted',
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0,
+        JSON.stringify(ctx.calls.filter(c => c.op === 'batchDelete')));
+
+  // (c) whitelisted AND unarchivable -> the whitelist guard must win, and the
+  // outcome must still be visible rather than silent.
+  const both = blacklistMessage('mSM_BOTH');
+  both.getFrom = () => 'LinkedIn <jobalerts-noreply@linkedin.com>';
+  both.getRawContent = () => 'Received: from mail.linkedin.com\r\n\r\nhi';
+  both.getBody = () => '<p>hi</p>';
+  const tBoth = fakeThread([both]);
+  tBoth.__labels.push('SpamMissed');
+  ctx = makeCtx();   // no SPAM_LOG_FOLDER_ID either
+  ctx.GmailApp.search = (q) => (q.indexOf('SpamMissed') !== -1 ? [tBoth] : []);
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.checkFalseNegatives();
+  check('whitelisted AND unarchivable: not deleted',
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0);
+  check('whitelisted AND unarchivable: outcome still visible',
+        tBoth.__labels.indexOf('SuspectedSpam') !== -1,
+        JSON.stringify(tBoth.__labels));
 }
 
 console.log('\n=== the recheck path HOLDS, it never deletes ===');

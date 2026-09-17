@@ -17,6 +17,64 @@ detail plus the diffs.
 
 ---
 
+## v6.53.0
+
+`checkFalseNegatives()` refuses to delete whitelisted mail, and two bugs found
+while fixing it.
+
+**The hazard.** This path deletes everything carrying the user-applied
+`SpamMissed` label with no whitelist check. That is sound for one deliberate
+click and unsound for a mis-click: labelling forty threads in Gmail is two
+keystrokes, and every one of them was permanently deleted. Found while
+investigating a suspicion that the detector was eating LinkedIn mail — it was
+not, but driving the real code with a stubbed runtime surfaced this. Confirmed
+against `git show HEAD:SpamDetector.gs`: the old code issued
+`batchDelete(["mSM_WL"])` on a whitelisted LinkedIn message and logged it
+`FALSE_NEGATIVE`. Four of the new assertions fail on the previous commit, so
+they are regression tests rather than mirrors of the implementation.
+
+A whitelisted sender is the user's own standing instruction that the mail is
+wanted. Two instructions conflict, so the non-destructive one wins: log it,
+swap the label, say why, touch nothing.
+
+**Checked across the whole thread, not just `messages[0]`.** `markAsSpam()`'s
+fallback when the Advanced Gmail Service is unavailable is
+`thread.moveToSpam()`, which moves every message — so a whitelisted sibling in
+a reply chain would be dragged along. `getFrom()` is free metadata, so scanning
+the thread costs nothing.
+
+**Bug 1, found while reading: the label was removed before the archive check**,
+so the `if (!archived)` branch dropped the message silently and its comment
+promising a retry next run was false — nothing carried the label any more.
+
+**Bug 2, introduced by fixing bug 1 and caught in review: keeping the label
+retried forever.** `accumulateLogEntry()` buffers its Sheets row *before* the
+archive check, so each retry wrote a duplicate row and paid two
+`getRawContent()` fetches. Measured at 288 rows and 576 reads per day for a
+single stuck message, with no convergence.
+
+Both branches now call `swapSpamMissedForReview()`: remove `SpamMissed`, add
+`CONFIG.reviewLabel`, log the reason. Swapping beats both alternatives.
+*Cleared* was invisible — from Gmail the sequence read "apply the label, nothing
+happens, the label vanishes", indistinguishable from a broken feature, and
+`logError` only reaches the execution transcript. *Kept* was the unbounded
+retry. Swapping gives exactly one row, one log line, and an outcome the user can
+see where they made the request. Measured after the fix: 1 row across 5 cycles
+and zero fetches after the first.
+
+Test harness: `fakeThread()` now takes an optional shared sink so label
+operations interleave with Gmail operations in one ordered log. Without it the
+invariant "remove the label before deleting, because a deleted thread cannot be
+relabelled" was unprovable — the two op kinds lived in separate arrays, and an
+earlier assertion comparing them passed vacuously at `-1 < 0`. Also removed a
+duplicated assertion and rewrote one written in the vacuous `every(...)` shape
+that passes when the row is absent.
+
+Disposition assertions 68 -> 84, including the three edge cases review asked
+for: a whitelisted sibling vetoing the delete, an unreadable `From` failing safe
+to refusal, and whitelisted-and-unarchivable where the guard must win and the
+outcome must still be visible.
+
 ## v6.52.0
 
 Catch the spam our rules previously could not, in the Spam folder and in the

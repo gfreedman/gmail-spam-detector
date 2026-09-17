@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.52.0
+ * @version 6.53.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -74,7 +74,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.52.0';
+const SCRIPT_VERSION = '6.53.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -1223,6 +1223,47 @@ function reviewGmailSpam()
   catch (error)
   {
     logError('reviewGmailSpam phase 2 failed: ' + error.toString());
+  }
+}
+
+/**
+ * Refuse a SpamMissed request: swap the label for the review label and say why.
+ *
+ * Swapped rather than cleared, and swapped rather than kept.
+ *
+ * Cleared was invisible. From Gmail the sequence read "apply SpamMissed ->
+ * nothing happens -> the label vanishes", which is indistinguishable from the
+ * feature being broken. logError only reaches the Apps Script execution
+ * transcript, which nobody reads.
+ *
+ * Kept caused an unbounded retry. checkFalseNegatives() finds threads by
+ * `label:SpamMissed`, so leaving it made the refusal repeat every maintenance
+ * cycle — and because the Sheets row is buffered before the archive check, each
+ * repeat wrote a duplicate row and paid two getRawContent() fetches. Measured:
+ * 288 rows and 576 reads per day for a single stuck message.
+ *
+ * Swapping satisfies both: the `label:SpamMissed` search no longer matches, so
+ * there is exactly one row and one log line, and the user sees the outcome
+ * where they made the request. CONFIG.reviewLabel is reused deliberately — it
+ * already means "held, not acted on, nothing here was deleted", and it appears
+ * in no deletion query.
+ *
+ * @param {GmailThread} thread
+ * @param {GmailLabel|null} missedLabel - The SpamMissed label, if resolvable.
+ * @param {string} reason - Logged verbatim at error level.
+ */
+function swapSpamMissedForReview(thread, missedLabel, reason)
+{
+  try
+  {
+    const review = getOrCreateLabel(CONFIG.reviewLabel);
+    if (review) thread.addLabel(review);
+    if (missedLabel) thread.removeLabel(missedLabel);
+    logError(reason + ' Moved to the "' + CONFIG.reviewLabel + '" label.');
+  }
+  catch (e)
+  {
+    logError('Could not swap SpamMissed for the review label: ' + e.toString());
   }
 }
 
@@ -3837,6 +3878,40 @@ function checkFalseNegatives()
         if (!messages || messages.length === 0) continue;
         const message   = messages[0];
 
+        // WHITELIST GUARD, checked before anything destructive.
+        //
+        // This path deletes on an explicit human instruction, and that argument
+        // holds for one deliberate click. It does not hold for a mis-click on a
+        // multi-select: applying SpamMissed to forty threads is two keystrokes
+        // in Gmail, and until now every one of them was permanently deleted
+        // with no whitelist check at all.
+        //
+        // A whitelisted sender is the user's own standing instruction that this
+        // mail is wanted. Two instructions conflict, so the safe resolution is
+        // the non-destructive one: refuse, say why, and let the user resolve it
+        // deliberately — either by deleting in Gmail (one click, recoverable
+        // via Trash) or by removing the domain from the whitelist.
+        // Checked across EVERY message in the thread, not just messages[0].
+        // markAsSpam()'s fallback when the Advanced Gmail Service is missing is
+        // thread.moveToSpam(), which moves the whole thread — so a whitelisted
+        // sibling in a reply chain would be dragged along. getFrom() is free
+        // metadata, so scanning the thread costs nothing.
+        const whitelistedInThread = messages.some(function(m) {
+          return isWhitelistedSender(m);
+        });
+
+        if (whitelistedInThread)
+        {
+          accumulateLogEntry(message, null, 'SPAM_MISSED_REFUSED_WHITELISTED',
+                             { skipArchive: true });
+          swapSpamMissedForReview(thread, label,
+            'REFUSED: SpamMissed on a WHITELISTED sender: ' +
+            sanitizeForLog(message.getSubject()) +
+            '. Remove the domain from the whitelist first, or delete it in Gmail ' +
+            'directly.');
+          continue;
+        }
+
         let signals = null;
         try { signals = collectSignals(message); }
         catch (e) { /* non-fatal — log entry still captured without signals */ }
@@ -3844,24 +3919,34 @@ function checkFalseNegatives()
         // Accumulate BEFORE deletion — getRawContent() is unavailable after batchDelete
         const archived = accumulateLogEntry(message, signals, 'FALSE_NEGATIVE');
 
-        // Remove label before markAsSpam() — deleted threads can't have labels removed
-        if (label) thread.removeLabel(label);
-
-        // Deliberately markAsSpam(), NOT disposeDetectedMessage(): reaching
-        // this code means the user manually applied the "SpamMissed" label,
-        // which is an explicit instruction to destroy. Quarantining here would
-        // override a human decision.
+        // The archive invariant applies here too: an explicit instruction to
+        // delete is not an instruction to delete the only copy.
         //
-        // The archive invariant still applies though — an explicit instruction
-        // to delete is not an instruction to delete the only copy.
+        // Checked BEFORE the label is removed. Previously the label came off
+        // first, so this branch dropped the message silently and the comment
+        // claiming it "will retry next run" was false — nothing carried the
+        // label any more, so nothing ever retried.
         if (!archived)
         {
-          logError('REFUSING to delete SpamMissed message (no Drive archive): ' +
-                   sanitizeForLog(message.getSubject()) + ' — left in place, ' +
-                   'will retry next run. Run setupLogging() if this persists.');
+          // Swapped, not kept. Keeping the label looked like a free retry, but
+          // accumulateLogEntry() above buffers its Sheets row BEFORE this check,
+          // so every retry wrote a duplicate row and paid two getRawContent()
+          // fetches: measured at 288 rows and 576 reads per day per stuck
+          // message, with no convergence. An unreachable Drive is a persistent
+          // configuration fault, not a transient one, so retrying forever is
+          // strictly worse than stopping and saying so.
+          swapSpamMissedForReview(thread, label,
+            'REFUSED: cannot archive, so not deleting: ' +
+            sanitizeForLog(message.getSubject()) +
+            '. Run setupLogging(), then re-apply SpamMissed.');
           continue;
         }
 
+        // Remove label before markAsSpam() — deleted threads can't have labels removed
+        if (label) thread.removeLabel(label);
+
+        // Deliberately markAsSpam(), NOT disposeDetectedMessage(): the user
+        // asked for destruction and this is not a whitelisted sender.
         markAsSpam(message, thread);
 
         logInfo('FALSE NEGATIVE LOGGED AND DESTROYED: ' + sanitizeForLog(message.getSubject()));

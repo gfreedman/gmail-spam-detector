@@ -120,7 +120,7 @@ Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely
 | `Phishing` | Rule 7 quarantine, archived not deleted | Review occasionally |
 | `SuspectedSpam` | Flagged but **not** deleted — cleanse mode, a message too large to evaluate, one that couldn't be archived, or mail a newly deployed pattern re-flagged after you'd already kept it | Review; this is the "we weren't sure" pile |
 | `SpamDetectorPurge` | Internal marker so the sweep only touches our own verdicts | None — machinery |
-| `SpamMissed` | **You** apply this to spam that got through; it's logged and deleted on the next run | Apply it manually |
+| `SpamMissed` | **You** apply this to spam that got through; it's logged and deleted on the next run — **unless the sender is whitelisted or the Drive archive is unreachable**, in which case it's refused and moved to `SuspectedSpam` | Apply it manually |
 
 *Requires Gmail API to be enabled (see Quick Start step 4).*
 

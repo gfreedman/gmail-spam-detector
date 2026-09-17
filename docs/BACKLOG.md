@@ -106,7 +106,11 @@ What held were the things encoded as **executable invariants**, not prose:
 - **The recheck pass holds rather than deletes** (v6.48.0). It overrules a
   decision the user already made, using a pattern deployed minutes earlier.
   `checkFalseNegatives()` still deletes, because a manual `SpamMissed` label is
-  the user *asking* for it.
+  the user *asking* for it — **but since v6.53.0 it refuses when the sender is
+  whitelisted.** One deliberate click justifies deletion; a mis-click on a Gmail
+  multi-select does not, and labelling forty threads is two keystrokes. Two
+  standing instructions conflict there, so the non-destructive one wins and the
+  thread moves to `SuspectedSpam` where the user can see it.
 - **Nothing is deleted without a Drive archive** (v6.47.0). Enforced in
   `disposeDetectedMessage()`, asserted in `test_disposition.js`.
 

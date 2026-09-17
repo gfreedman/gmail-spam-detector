@@ -17,6 +17,40 @@ detail plus the diffs.
 
 ---
 
+## v6.60.2
+
+Document the trigger interval that is actually running: **10 minutes**.
+
+The README, the published site, the source header and the setup instructions all
+said "every 1 minute". Production has been on a 10-minute interval — found by
+reading the health-marker timestamps (21:28:06, 21:38:13, 21:48:06, 21:58:06),
+not from anything in the code, because the trigger is created in the Apps Script
+UI and nothing here could observe it.
+
+Ten minutes is the intended cadence, so the docs move to match reality rather
+than the reverse. Updated: the source header, `processInbox()`'s contract,
+`setup()`'s printed instructions, the README (setup step, "Done!", the
+troubleshooting check and the latency note), and `docs/index.html` (meta
+description, hero, how-it-works, setup).
+
+Two comment blocks carried arithmetic computed for a 1-minute trigger and are
+now corrected rather than deleted, because the numbers are the reason the guards
+exist:
+
+- `runPeriodicMaintenance()` — the read-quota table gains the real row
+  (~1,000 reads/day at 10 minutes, against ~10,000 at one minute). The
+  5-minute maintenance gate now rarely binds; it is kept deliberately, because
+  the interval is a UI setting that can change back without anything in this
+  code noticing.
+- `writeHealthRow()` — an appended row would be ~144/day at this interval
+  rather than 1,440, and the staleness threshold is stated as what it actually
+  is: interval plus health throttle, about 15 minutes.
+
+No behaviour change. The latency note is now honest: spam is removed within one
+trigger interval, not "near real-time".
+
+---
+
 ## v6.60.1
 
 Delete three functions nothing called.

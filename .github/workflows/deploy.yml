@@ -400,8 +400,8 @@ jobs:
         run: |
           # Window arithmetic, learned the hard way: this job first shipped with
           # a 6-minute poll and failed, because the marker was arriving every 10
-          # minutes — the live trigger is on a 10-minute interval, not the
-          # 1-minute one the README documents. The budget must be
+          # minutes — the live trigger is on a 10-minute interval, which the
+          # README now documents. The budget must be
           #   trigger interval (<=10) + margin
           # A version change bypasses the 5-minute health throttle, so the first
           # run on new code writes immediately and the throttle adds nothing

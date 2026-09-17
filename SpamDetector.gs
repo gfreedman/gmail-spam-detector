@@ -1,8 +1,8 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.60.1
+ * @version 6.60.2
  *
- * Automated spam detection and destruction for Gmail. Runs on a 1-minute
+ * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
  * applying a multi-signal pattern detection engine.
  *
@@ -81,7 +81,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.60.1';
+const SCRIPT_VERSION = '6.60.2';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -812,7 +812,7 @@ const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proc
 /**
  * Main entry point — scan inbox and process unprocessed emails.
  *
- * Should be configured as a time-driven trigger running every 1 minute.
+ * Should be configured as a time-driven trigger running every 10 minutes.
  * Processes up to CONFIG.maxEmailsPerRun emails per invocation, with
  * per-thread error isolation so one bad email doesn't abort the entire run.
  *
@@ -886,8 +886,8 @@ function processInbox()
           // why this skip exists — but a Rule 7 quarantine also sets
           // spamCount > 0 while leaving the thread alive. Skipping the label
           // there left the thread unprocessed, so it was re-detected on every
-          // subsequent 1-minute run: an unbounded re-quarantine loop that
-          // appended a PHISHING_DETECTED row and a Drive EML every minute
+          // subsequent run: an unbounded re-quarantine loop that
+          // appended a PHISHING_DETECTED row and a Drive EML every cycle
           // (~1440/day) and, via _quarantinedMessageIds, suppressed the spam
           // sweep indefinitely.
           if (!result.destroyed)
@@ -920,7 +920,7 @@ function processInbox()
     // Flush log entries from email processing (no-op when nothing was detected).
     flushSpamLog();
 
-    // Maintenance runs at most every 5 minutes regardless of per-minute
+    // Maintenance runs at most every 5 minutes regardless of per-run
     // email activity — avoids burning quota on housekeeping every invocation.
     // May queue additional log entries (false negatives, rechecked spam).
     runPeriodicMaintenance();
@@ -1781,7 +1781,7 @@ function buildSearchQuery()
   // Excluding the phishing label as well as the processed label makes
   // quarantine idempotent: a quarantined thread that is still in the inbox
   // (a reply-chain lure leaves a sibling message there, or the user
-  // un-archives it to look) will not be re-detected every minute.
+  // un-archives it to look) will not be re-detected on every run.
   return '{in:inbox category:updates category:promotions category:social category:forums}' +
          ' -label:' + CONFIG.processedLabel +
          ' -label:' + CONFIG.phishingLabel + ' after:' + dateStr;
@@ -3493,7 +3493,7 @@ function logError(message)
   //
   // console.error goes to Cloud Logging under the attached GCP project, where
   // it is queryable and alertable. Errors only — logInfo stays on Logger.log to
-  // keep the per-minute trigger's routine chatter out of Cloud Logging.
+  // keep the trigger's routine chatter out of Cloud Logging.
   try { console.error('[ERROR] ' + message); }
   catch (e) { /* console is absent in some contexts; never break logging */ }
 }
@@ -3537,7 +3537,7 @@ function logRunHeartbeat(stats)
  * initialize Script Properties with default domain lists.
  *
  * After running, set up a time-driven trigger:
- *   Triggers > Add Trigger > processInbox > Time-driven > Every 1 minute
+ *   Triggers > Add Trigger > processInbox > Time-driven > Every 10 minutes
  *
  * @throws {Error} If configuration validation or label creation fails.
  */
@@ -3558,7 +3558,7 @@ function setup()
 
     logInfo('Setup complete! Now:');
     logInfo('  1. Run setupLogging() to enable spam intelligence logging (Drive + Sheets).');
-    logInfo('  2. Set up a time-based trigger: Triggers > Add Trigger > processInbox > Time-driven > Every 1 minute');
+    logInfo('  2. Set up a time-based trigger: Triggers > Add Trigger > processInbox > Time-driven > Every 10 minutes');
   }
   catch (error)
   {
@@ -4020,11 +4020,15 @@ function setupLogging()
 /**
  * Run housekeeping tasks at most once every 5 minutes.
  *
- * At 1-minute trigger intervals, most invocations find no new emails.
- * Running checkFalseNegatives(), recheckRecentSpamChecked(), and destroySpam()
- * on every invocation would burn ~4 API calls/min (5,760/day) on work that
- * does not need per-minute granularity. This guard reduces that to 288
- * calls/day, and gates the expensive recheck separately (see below).
+ * Most invocations find no new emails, so running checkFalseNegatives(),
+ * recheckRecentSpamChecked() and destroySpam() every time would spend quota
+ * re-examining mail that has not changed. This guard bounds that, and gates
+ * the expensive recheck separately (see below).
+ *
+ * The interval was sized when the trigger ran every minute. The live trigger
+ * now runs every 10 minutes, so this guard rarely binds — it is kept because
+ * the trigger interval is a setting in the Apps Script UI, not a property of
+ * this code, and it can change back without anything here noticing.
  *
  * Uses Script Properties to persist the last-run timestamp across executions.
  */
@@ -4034,14 +4038,14 @@ function runPeriodicMaintenance()
   // feel: recheckRecentSpamChecked() runs analyzeMessage() on up to 20 recent
   // inbox threads, and each non-whitelisted message costs a getRawContent()
   // fetch. At ~7 inbox threads that is ~7 reads per cycle:
-  //     every 1 min -> ~10 000 reads/day  (about half the consumer daily quota)
-  //     every 5 min ->  ~2 000 reads/day  (comfortable)
-  // Running it every invocation would spend most of the daily quota
-  // re-examining mail that has not changed, and quota exhaustion stops
-  // detection altogether — the opposite of catching spam fast.
+  //     every  1 min -> ~10 000 reads/day  (about half the consumer daily quota)
+  //     every  5 min ->  ~2 000 reads/day  (comfortable)
+  //     every 10 min ->  ~1 000 reads/day  (the live trigger interval)
+  // Quota exhaustion stops detection altogether — the opposite of catching
+  // spam fast — so the ceiling matters more than the cadence.
   //
   // Speed where it actually matters does not depend on this number:
-  //   - NEW mail is scanned by processInbox()'s main loop every 1 minute.
+  //   - NEW mail is scanned by processInbox()'s main loop on every run.
   //   - A fix deploy re-checks recent mail IMMEDIATELY via the
   //     SCRIPT_VERSION change check below, not on this timer.
   // This interval only governs routine re-checks between deploys.
@@ -4054,8 +4058,8 @@ function runPeriodicMaintenance()
   //
   // A fix deploy exists precisely to catch something the previous code missed,
   // so making it wait up to 15 minutes to re-evaluate defeats the point.
-  // Before v6.40.0, recheckRecentSpamChecked() ran on EVERY 1-minute
-  // invocation, so a deploy re-caught its target within about a minute.
+  // Before v6.40.0, recheckRecentSpamChecked() ran on EVERY invocation, so a
+  // deploy re-caught its target on the very next run.
   // v6.40.0 moved maintenance behind the 15-minute gate for performance and
   // silently made post-deploy recatch up to 15x slower — a regression in the
   // v6.36.0 guarantee that a fix deploy cleans up after itself unattended.
@@ -4075,7 +4079,7 @@ function runPeriodicMaintenance()
     logInfo('New version deployed (' + (seenVersion || 'none') + ' -> ' +
             SCRIPT_VERSION + ') — forcing immediate maintenance cycle');
     // Recorded BEFORE running the cycle, deliberately. If one of the
-    // maintenance functions throws, the next 1-minute trigger must fall back
+    // maintenance functions throws, the next trigger must fall back
     // to the normal maintenance gate rather than force a fresh cycle every
     // minute and burn Gmail API quota.
     props.setProperty('LAST_SEEN_VERSION', SCRIPT_VERSION);
@@ -4544,10 +4548,12 @@ function archiveRawEml(messageId, rawContent, logType)
  * The Sheet, meanwhile, is already configured, already written to, and already
  * readable with credentials that exist. So health goes there.
  *
- * Overwritten rather than appended: this is a gauge, not a log. A 1-minute
- * trigger would add 1,440 rows a day and bury the detection log it shares a
- * spreadsheet with. Staleness is the signal — if LastRunAt is older than a few
- * minutes, the detector is not running.
+ * Overwritten rather than appended: this is a gauge, not a log. At the live
+ * 10-minute trigger interval an appended row would add ~144 rows a day — and
+ * 1,440 if the trigger were ever moved back to a minute — burying the detection
+ * log it shares a spreadsheet with. Staleness is the signal: if LastRunAt is
+ * older than about 15 minutes (interval plus the health throttle), the detector
+ * is not running.
  *
  * Throttled: a quiet run rewrites at most every HEALTH_INTERVAL_MS, so the
  * common case costs no Sheets call at all. Anything eventful (work done, an

@@ -79,7 +79,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
    - Function: `processInbox`
    - Event source: **Time-driven**
    - Type: **Minutes timer**
-   - Interval: **Every 1 minute**
+   - Interval: **Every 10 minutes**
 4. Click **Save**
 
 ### 4. Enable Gmail API (for auto-delete)
@@ -101,7 +101,7 @@ This creates a **Spam Intelligence** folder in My Drive containing a flat EML ar
 
 ### 6. Done!
 
-The script now runs every minute, automatically detecting spam, reporting it to Gmail, and permanently deleting it.
+The script now runs every 10 minutes, automatically detecting spam, reporting it to Gmail, and permanently deleting it.
 
 ## 🔥 What Happens To Detected Mail
 
@@ -311,7 +311,7 @@ debugWhyFlagged('from:linkedin');  // Search term
 Shows whitelist status, bulk email detection, and all signals for the email.
 
 ### Script Not Running
-- Check **Triggers** tab - verify 1-minute trigger exists
+- Check **Triggers** tab - verify the 10-minute `processInbox` trigger exists
 - Check **Executions** tab for errors
 - Manually run `processInbox` to test
 
@@ -398,7 +398,7 @@ See **[docs/EXPORTING_EMAILS.md](docs/EXPORTING_EMAILS.md)** for step-by-step in
 ## 🚧 Limitations
 
 - **Gmail API Quotas**: Limited daily operations
-- **~1-minute delay**: Near real-time (trigger interval)
+- **~10-minute delay**: Spam is removed within one trigger interval, not instantly
 - **Pattern-based**: Won't catch 100% of all spam types
 - **No ML**: Can't learn new patterns automatically
 

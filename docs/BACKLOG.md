@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred work, as of **v6.60.1** (2026-09-17).
+Deferred work, as of **v6.60.2** (2026-09-17).
 
 Everything here was surfaced by two external reviews — a Google L6 security pass
 and a Palo Alto Networks L6 code/docs pass — plus findings from the day's own
@@ -15,7 +15,7 @@ today's conditions, and conditions change.
 
 ## Where to pick up
 
-**Prod state at v6.55.0.** Healthy and unattended. Verified: the 1-minute
+**Prod state at v6.60.2.** Healthy and unattended. Verified: the 10-minute
 trigger runs under the narrowed OAuth grant (v6.48.1 removed
 `script.external_request`); inbox fully processed; no false positives;
 detection log at 591 rows.
@@ -291,7 +291,7 @@ exactly how today's stale comments accumulated.
 
 `cleanseInbox()`, `destroySpam()`, `checkFalseNegatives()`
 and `reviewGmailSpam()` are all callable from the editor with no lock, alongside
-the 1-minute trigger. `cleanseInbox()` is the dangerous combination: 500
+the 10-minute trigger. `cleanseInbox()` is the dangerous combination: 500
 threads, guaranteed to exceed the 6-minute limit. Every destructive entry point
 should take the same script lock.
 

@@ -121,7 +121,47 @@ const late = '<div>' + 'x'.repeat(120000) +
              '</div><a href="https://evil.com/">VIEW IN DOCUSIGN</a>';
 check('CTA beyond 100KB', ctx.hasBrandMismatchedCta(late, 'a@b.com'), true);
 
+console.log('\n=== Signal 7: HTML shapes that used to bypass the scanner ===');
+// Each of these renders and navigates normally in a mail client, and each cost
+// the attacker nothing. The tag scanner is now a quote-aware character walk
+// rather than /<a\\s[^>]*>/, and accessible-name attributes are read
+// alongside visible text.
+check("title='>' swallowing the tag end",
+      ctx.hasBrandMismatchedCta(
+        '<a title=">" href="https://evil.com/">VIEW IN DOCUSIGN</a>', 'a@b.com'), true);
+check('single-quoted attribute containing >',
+      ctx.hasBrandMismatchedCta(
+        "<a title='a>b' href='https://evil.com/'>VIEW IN DOCUSIGN</a>", 'a@b.com'), true);
+check('HTML5 slash attribute separator (<a/href=...)',
+      ctx.hasBrandMismatchedCta(
+        '<a/href="https://evil.com/">VIEW IN DOCUSIGN</a>', 'a@b.com'), true);
+// An image CTA is not an exotic evasion — it is what real phishing already
+// uses, because it renders identically and has no text node to scan.
+check('image-only CTA via img alt',
+      ctx.hasBrandMismatchedCta(
+        '<a href="https://evil.com/"><img alt="View in DocuSign" src="x.png"></a>',
+        'a@b.com'), true);
+check('image CTA via aria-label on the anchor',
+      ctx.hasBrandMismatchedCta(
+        '<a href="https://evil.com/" aria-label="Open in DocuSign"><img src="x.png"></a>',
+        'a@b.com'), true);
+check('image CTA via title on a nested element',
+      ctx.hasBrandMismatchedCta(
+        '<a href="https://evil.com/"><img title="Review in DocuSign" src="x.png"></a>',
+        'a@b.com'), true);
+
 console.log('\n=== Signal 7: abstains on legitimate mail ===');
+check('<abbr> is not an anchor',
+      ctx.hasBrandMismatchedCta(
+        '<abbr href="https://evil.com/">VIEW IN DOCUSIGN</abbr>', 'a@b.com'), false);
+check('genuine DocuSign image button',
+      ctx.hasBrandMismatchedCta(
+        '<a href="https://na3.docusign.net/Signing?a=1"><img alt="Review Document"></a>',
+        'dse@docusign.net'), false);
+check('brand in alt text with a genuine destination',
+      ctx.hasBrandMismatchedCta(
+        '<a href="https://docusign.com/"><img alt="View in DocuSign"></a>',
+        'x@docusign.net'), false);
 check('genuine docusign.net destination',
       cta('VIEW IN DOCUSIGN', 'https://eu.docusign.net/s?a=1', 'dse@docusign.net'), false);
 check('third-party ESP click tracker',
@@ -158,6 +198,16 @@ t0 = Date.now();
 ctx.hasBrandMismatchedCta('x'.repeat(500000) +
   '<a href="https://evil.com/">View in DocuSign</a>', 'a@b.com');
 check('500KB body completes under 250ms', (Date.now() - t0) < 250, true);
+
+console.log('\n=== Bounds on the new tag scanner ===');
+{
+  let t0 = Date.now();
+  ctx.extractAnchors('<a ' + 'z'.repeat(200000) + '>x</a>');
+  check('200KB unterminated tag completes under 250ms', (Date.now() - t0) < 250, true);
+  t0 = Date.now();
+  ctx.extractAnchors('<a title="' + '>'.repeat(100000) + '" href="https://e.com/">x</a>');
+  check('100k quoted > characters complete under 250ms', (Date.now() - t0) < 250, true);
+}
 
 console.log('\n=== Entity decoding ===');
 check('no double-decoding of &amp;#47;', ctx.decodeHtmlEntities('&amp;#47;'), '&#47;');

@@ -4,7 +4,7 @@ Pre-push validation — catches common commit nits before they hit CI.
 
 Checks:
   1. README spam/ham counts match actual .eml file counts
-  2. @version in SpamDetector.gs matches latest changelog entry
+  2. @version matches the newest CHANGELOG.md entry, and entries are newest-first
   3. @version header and the SCRIPT_VERSION constant agree
 
 Run: python3 scripts/validate.py
@@ -35,20 +35,39 @@ if f'{ham_count}/' in readme:
 else:
     fail(f'README ham count stale — found {ham_count} .eml files, README missing "{ham_count}/"')
 
-# ── 2. @version matches latest changelog entry ───────────────────────────────
+# ── 2. @version matches the newest CHANGELOG.md entry ────────────────────────
+#
+# Reads CHANGELOG.md, not the source header. The changelog lived in the header
+# comment until v6.49.0, where it had reached 459 lines and three consecutive
+# entries described three incompatible designs for the same function. Moving it
+# out shrank the header from 494 lines to 41, and this check moved with it.
 gs = (ROOT / 'SpamDetector.gs').read_text()
 
-header_match    = re.search(r'@version\s+([\d.]+)', gs)
-changelog_match = re.search(r'\*\s+v([\d.]+):', gs)
+header_match = re.search(r'^ \* @version\s+([\d.]+)$', gs, re.M)
+header_ver   = header_match.group(1) if header_match else '(not found)'
+header_vtag  = f'v{header_ver}'
 
-header_ver    = header_match.group(1)    if header_match    else '(not found)'
-changelog_ver = changelog_match.group(1) if changelog_match else '(not found)'
-header_vtag   = f'v{header_ver}'  # for README check
-
-if header_ver == changelog_ver:
-    ok(f'@version header matches changelog ({header_vtag})')
+changelog_path = ROOT / 'CHANGELOG.md'
+if not changelog_path.exists():
+    fail('CHANGELOG.md is missing — the release history lives there since v6.49.0')
 else:
-    fail(f'@version header ({header_vtag}) doesn\'t match latest changelog entry (v{changelog_ver})')
+    changelog = changelog_path.read_text()
+    first = re.search(r'^## v([\d.]+)$', changelog, re.M)
+    changelog_ver = first.group(1) if first else '(not found)'
+
+    if header_ver == changelog_ver:
+        ok(f'@version matches the newest CHANGELOG.md entry ({header_vtag})')
+    else:
+        fail(f'@version ({header_vtag}) does not match the newest CHANGELOG.md '
+             f'entry (v{changelog_ver}) — add an entry before releasing')
+
+    # Entries must be newest-first, or "newest" above is meaningless.
+    versions = [tuple(int(x) for x in v.split('.'))
+                for v in re.findall(r'^## v([\d.]+)$', changelog, re.M)]
+    if versions != sorted(versions, reverse=True):
+        fail('CHANGELOG.md entries are not in descending version order')
+    else:
+        ok(f'CHANGELOG.md is newest-first ({len(versions)} entries)')
 
 # ── 3. @version header and SCRIPT_VERSION constant agree ─────────────────────
 #

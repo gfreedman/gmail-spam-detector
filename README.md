@@ -325,6 +325,7 @@ addToWhitelist('domain.com');
 ├── appsscript.json              # Apps Script manifest (scopes, runtime)
 ├── .claspignore                 # Controls which files clasp uploads
 ├── README.md
+├── CHANGELOG.md                 # Release history (was the .gs header comment)
 ├── LICENSE
 ├── docs/
 │   ├── index.html               # Published GitHub Pages site
@@ -343,7 +344,7 @@ addToWhitelist('domain.com');
 └── .github/workflows/           # CI/CD pipeline
 ```
 
-Docs: [Exporting emails](docs/EXPORTING_EMAILS.md) · [Spam logging design](docs/SPAM_LOGGING_PLAN.md)
+Docs: [Changelog](CHANGELOG.md) · [Exporting emails](docs/EXPORTING_EMAILS.md) · [Spam logging design](docs/SPAM_LOGGING_PLAN.md)
 
 ## 🔐 Privacy & Security
 

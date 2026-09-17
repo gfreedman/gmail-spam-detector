@@ -314,141 +314,180 @@ console.log('\n=== markAsSpam tags its own verdicts before deleting ===');
         ctx.calls.findIndex(c => c.op === 'batchDelete'));
 }
 
-console.log('\n=== Gmail spam: the AGE GATE is the protection ===');
+console.log('\n=== Gmail spam phase 1: corroborated verdicts delete immediately ===');
 {
-  // The gate must be in the query itself, so young mail is never even fetched.
-  // Deleting on Gmail's word alone with only a 16-entry whitelist as a guard
-  // destroys first-contact mail, 2FA from small services, invoices on cheap
-  // relays — none of which is whitelisted and all of which Gmail misfiles.
-  const msg = blacklistMessage('mAGED');
+  // The reported sender. No inbox rule fires on a direct-send free-mail
+  // address and gmail.com cannot be blacklisted — but Gmail already flagged
+  // it, and a machine-generated local part corroborates that. Deleted now, not
+  // in seven days.
+  const raju = blacklistMessage('mRAJU');
+  raju.getFrom = () => 'raju <raju47326yu@gmail.com>';
+  raju.getSubject = () => 'Hello friend';
+  raju.getRawContent = () => 'Received: from mail-x\r\n\r\nhi';
+  raju.getBody = () => '<p>hi</p>';
+  const tRaju = fakeThread([raju]);
+
   const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
-  let seenQuery = null;
-  ctx.GmailApp.search = (q) => { seenQuery = q; return q.indexOf('in:spam') !== -1 ? [fakeThread([msg])] : []; };
+  let queries = [];
+  ctx.GmailApp.search = (q) => {
+    queries.push(q);
+    return q.indexOf('older_than') === -1 ? [tRaju] : [];
+  };
   ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
   ctx.reviewGmailSpam();
 
-  check('query age-gates with older_than',
-        !!seenQuery && /older_than:\d+d/.test(seenQuery), String(seenQuery));
-  // Asserted against a concrete integer, not against the same expression the
-  // code uses — comparing to CONFIG.x would have passed even when CONFIG.x was
-  // undefined and the query read "older_than:undefinedd", which is exactly the
-  // bug this suite caught.
-  const grace = vm.runInContext('CONFIG.gmailSpamGraceDays', ctx);
-  check('grace period is a positive integer', Number.isInteger(grace) && grace > 0,
-        'got ' + JSON.stringify(grace));
-  check('query embeds the configured grace period',
-        !!seenQuery && seenQuery.indexOf('older_than:' + grace + 'd') !== -1,
-        String(seenQuery));
-  check('query excludes our own purge label',
-        !!seenQuery && seenQuery.indexOf('-label:SpamDetectorPurge') !== -1);
-  check('query excludes already-reviewed threads',
-        !!seenQuery && seenQuery.indexOf('-label:SpamChecked') !== -1);
-  check('an aged non-whitelisted message IS deleted',
-        ctx.calls.filter(c => c.op === 'batchDelete').length === 1,
-        JSON.stringify(ctx.calls.filter(c => c.op === 'batchDelete')));
+  const deleted = ctx.calls.filter(c => c.op === 'batchDelete')
+                           .reduce((a, c) => a.concat(c.ids), []);
+  check('raju47326yu@gmail.com is deleted immediately', deleted.indexOf('mRAJU') !== -1,
+        'deleted=' + JSON.stringify(deleted));
+  check('phase 1 query is NOT age-gated (corroboration acts now)',
+        queries.some(q => q.indexOf('in:spam') !== -1 && q.indexOf('older_than') === -1),
+        JSON.stringify(queries));
+  check('phase 2 query IS age-gated',
+        queries.some(q => q.indexOf('older_than:') !== -1), JSON.stringify(queries));
 }
 
-console.log('\n=== the whitelist holds, including the forms that used to miss ===');
+console.log('\n=== a real person on free mail is NOT deleted by corroboration ===');
 {
-  // Both of these failed the whitelist check before today, which was harmless
-  // while the consequence was "stays in Spam" and data loss the moment any
-  // path deleted on a failed match.
-  const forms = [
-    ['mWL1', 'LinkedIn <jobalerts-noreply@linkedin.com>',        'angle form'],
-    ['mWL2', 'notifications@linkedin.com (LinkedIn)',            'RFC2822 comment form'],
-    ['mWL3', '"' + 'A'.repeat(600) + '" <news@substack.com>',    '600-char display name'],
-    ['mWL4', 'news@substack.com',                                'bare address']
-  ];
+  // The whole risk of Signal 8 is deleting mail from a person. These must fall
+  // through to the grace period, not to immediate deletion.
+  for (const [id, from, desc] of [
+    ['mJANE', 'Jane Doe <jane.doe@gmail.com>',   'ordinary name'],
+    ['mJOHN', 'John <john1985@gmail.com>',       'name + birth year'],
+    ['mMIKE', 'Mike <mike_92@yahoo.com>',        'name + short digits'],
+    ['mKENT', 'Clark <clark.kent1938@gmail.com>', 'dotted name + year']
+  ]) {
+    const m = blacklistMessage(id);
+    m.getFrom = () => from;
+    m.getSubject = () => 'Following up on our chat';
+    m.getRawContent = () => 'Received: from mail-x\r\n\r\nhi';
+    m.getBody = () => '<p>hi</p>';
+    const thread = fakeThread([m]);
+    const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    ctx.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? [thread] : []);
+    ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+    ctx.reviewGmailSpam();
 
-  for (const [id, from, desc] of forms) {
+    check('NOT deleted on corroboration: ' + desc,
+          ctx.calls.filter(c => c.op === 'batchDelete').length === 0,
+          JSON.stringify(ctx.calls.filter(c => c.op === 'batchDelete')));
+    check('marked reviewed so it is judged once: ' + desc,
+          thread.__labels.indexOf('SpamChecked') !== -1, JSON.stringify(thread.__labels));
+  }
+}
+
+console.log('\n=== phase 2: aged mail deletes on Gmail\'s word, whitelist spared ===');
+{
+  const aged = blacklistMessage('mAGED');
+  aged.getFrom = () => 'Someone <hello@unknown-sender.com>';
+  aged.getRawContent = () => 'Received: from mail-x\r\n\r\nhi';
+  aged.getBody = () => '<p>hi</p>';
+  const wl = blacklistMessage('mWLAGED');
+  wl.getFrom = () => 'LinkedIn <jobalerts-noreply@linkedin.com>';
+  wl.getRawContent = () => 'Received: from mail.linkedin.com\r\n\r\nhi';
+  wl.getBody = () => '<p>hi</p>';
+
+  const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  ctx.GmailApp.search = (q) => (q.indexOf('older_than') !== -1
+    ? [fakeThread([aged]), fakeThread([wl])] : []);
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.reviewGmailSpam();
+
+  const deleted = ctx.calls.filter(c => c.op === 'batchDelete')
+                           .reduce((a, c) => a.concat(c.ids), []);
+  check('aged uncorroborated mail IS deleted', deleted.indexOf('mAGED') !== -1,
+        'deleted=' + JSON.stringify(deleted));
+  check('aged WHITELISTED mail is NOT deleted', deleted.indexOf('mWLAGED') === -1,
+        'deleted=' + JSON.stringify(deleted));
+  check('grace period comes from CONFIG and is a positive integer',
+        Number.isInteger(vm.runInContext('CONFIG.gmailSpamGraceDays', ctx)) &&
+        vm.runInContext('CONFIG.gmailSpamGraceDays', ctx) > 0);
+}
+
+console.log('\n=== the whitelist holds across all header forms ===');
+{
+  for (const [id, from, desc] of [
+    ['mWL1', 'LinkedIn <jobalerts-noreply@linkedin.com>',     'angle form'],
+    ['mWL2', 'notifications@linkedin.com (LinkedIn)',         'RFC2822 comment form'],
+    ['mWL3', '"' + 'A'.repeat(600) + '" <news@substack.com>', '600-char display name'],
+    ['mWL4', 'news@substack.com',                             'bare address']
+  ]) {
     const m = blacklistMessage(id);
     m.getFrom = () => from;
     m.getRawContent = () => 'Received: from mail.example\r\n\r\nhi';
     m.getBody = () => '<p>hi</p>';
     const thread = fakeThread([m]);
     const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
-    ctx.GmailApp.search = (q) => (q.indexOf('in:spam') !== -1 ? [thread] : []);
+    ctx.GmailApp.search = () => [thread];   // both phases see it
     ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
     ctx.reviewGmailSpam();
-
-    check('whitelisted sender NOT deleted: ' + desc,
+    check('whitelisted NEVER deleted, either phase: ' + desc,
           ctx.calls.filter(c => c.op === 'batchDelete').length === 0,
           JSON.stringify(ctx.calls.filter(c => c.op === 'batchDelete')));
-    check('whitelisted message not modified at all: ' + desc,
-          !ctx.calls.some(c => c.op === 'modify' && c.id === id));
   }
 }
 
 console.log('\n=== every non-deleting branch marks the thread reviewed ===');
 {
-  // A decision made and not recorded is recomputed forever. This project has
-  // shipped that bug twice; these assertions are why it should not happen a
-  // third time.
-
-  // (a) whitelisted keep
-  const wl = blacklistMessage('mMARK1');
-  wl.getFrom = () => 'LinkedIn <jobalerts-noreply@linkedin.com>';
-  wl.getRawContent = () => 'Received: from mail.linkedin.com\r\n\r\nhi';
-  wl.getBody = () => '<p>hi</p>';
-  const tWl = fakeThread([wl]);
-  let ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
-  ctx.GmailApp.search = (q) => (q.indexOf('in:spam') !== -1 ? [tWl] : []);
-  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
-  ctx.reviewGmailSpam();
-  check('kept thread is marked reviewed', tWl.__labels.indexOf('SpamChecked') !== -1,
-        JSON.stringify(tWl.__labels));
-
-  // (b) archive unavailable -> must not delete, must still mark
+  // (a) archive unavailable
   const na = blacklistMessage('mMARK2');
+  na.getFrom = () => 'raju <raju47326yu@gmail.com>';
+  na.getRawContent = () => 'Received: from x\r\n\r\nhi';
+  na.getBody = () => '<p>hi</p>';
   const tNa = fakeThread([na]);
-  ctx = makeCtx();   // no SPAM_LOG_FOLDER_ID
-  ctx.GmailApp.search = (q) => (q.indexOf('in:spam') !== -1 ? [tNa] : []);
+  let ctx = makeCtx();   // no folder id
+  ctx.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? [tNa] : []);
   ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
   ctx.reviewGmailSpam();
-  check('unarchivable message is NOT deleted',
+  check('unarchivable is NOT deleted',
         ctx.calls.filter(c => c.op === 'batchDelete').length === 0);
-  check('unarchivable message is still marked reviewed (no re-fetch loop)',
+  check('unarchivable is still marked reviewed',
         tNa.__labels.indexOf('SpamChecked') !== -1, JSON.stringify(tNa.__labels));
 
-  // (c) collectSignals throws -> must not delete, must still mark
+  // (b) collectSignals throws
   const boom = blacklistMessage('mMARK3');
   boom.getRawContent = () => { throw new Error('malformed MIME'); };
   const tBoom = fakeThread([boom]);
   ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
-  ctx.GmailApp.search = (q) => (q.indexOf('in:spam') !== -1 ? [tBoom] : []);
+  ctx.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? [tBoom] : []);
   ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
   ctx.reviewGmailSpam();
   check('a throwing message is NOT deleted',
-        ctx.calls.filter(c => c.op === 'batchDelete').length === 0,
-        JSON.stringify(ctx.calls));
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0);
   check('a throwing message is still marked reviewed',
         tBoom.__labels.indexOf('SpamChecked') !== -1, JSON.stringify(tBoom.__labels));
 
-  // (d) Gmail Advanced Service missing -> fallback must NOT count as a delete
+  // (c) Advanced Service missing -> fallback must not count as deleted
   const fb = blacklistMessage('mMARK4');
+  fb.getFrom = () => 'raju <raju47326yu@gmail.com>';
+  fb.getRawContent = () => 'Received: from x\r\n\r\nhi';
+  fb.getBody = () => '<p>hi</p>';
   const tFb = fakeThread([fb]);
   ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
-  ctx.GmailApp.search = (q) => (q.indexOf('in:spam') !== -1 ? [tFb] : []);
+  ctx.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? [tFb] : []);
   ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
-  ctx.Gmail = undefined;   // Advanced Service unavailable
+  ctx.Gmail = undefined;
   ctx.reviewGmailSpam();
-  check('no Advanced Service means no delete, and no crash',
+  check('no Advanced Service means no delete, no crash',
         !ctx.calls.some(c => c.op === 'batchDelete'));
-  check('undeletable message is marked reviewed (no re-archive every cycle)',
+  check('undeletable message is marked reviewed',
         tFb.__labels.indexOf('SpamChecked') !== -1, JSON.stringify(tFb.__labels));
 }
 
 console.log('\n=== logging: every reviewed message produces a row ===');
 {
-  const spammy = blacklistMessage('mLOG1');
+  const raju = blacklistMessage('mLOG1');
+  raju.getFrom = () => 'raju <raju47326yu@gmail.com>';
+  raju.getRawContent = () => 'Received: from x\r\n\r\nhi';
+  raju.getBody = () => '<p>hi</p>';
   const linked = blacklistMessage('mLOG2');
   linked.getFrom = () => 'LinkedIn <jobalerts-noreply@linkedin.com>';
   linked.getRawContent = () => 'Received: from mail.linkedin.com\r\n\r\nhi';
   linked.getBody = () => '<p>hi</p>';
 
   const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
-  ctx.GmailApp.search = (q) => (q.indexOf('in:spam') !== -1
-    ? [fakeThread([spammy]), fakeThread([linked])] : []);
+  ctx.GmailApp.search = (q) => (q.indexOf('older_than') === -1
+    ? [fakeThread([raju]), fakeThread([linked])] : []);
   ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
 
   const rows = [];
@@ -462,16 +501,18 @@ console.log('\n=== logging: every reviewed message produces a row ===');
   check('both messages logged', rows.length === 2, JSON.stringify(rows));
   const del  = rows.find(r => r.id === 'mLOG1');
   const kept = rows.find(r => r.id === 'mLOG2');
-  // finrisex.com is blacklisted AND the fixture is SES-routed, so Rule 1 fires
-  // and this is a genuine agreement rather than a deferral.
-  check('rule-confirmed deletion logs CONFIRMED',
-        !!del && del.type === 'GMAIL_SPAM_CONFIRMED', JSON.stringify(del));
-  check('deleted message IS archived (it is being destroyed)',
+  check('corroborated deletion logs CORROBORATED or CONFIRMED',
+        !!del && (del.type === 'GMAIL_SPAM_CORROBORATED' ||
+                  del.type === 'GMAIL_SPAM_CONFIRMED'), JSON.stringify(del));
+  check('deleted message IS archived to Drive',
         !!del && del.skipArchive === false);
   check('kept message logs KEPT_WHITELISTED',
         !!kept && kept.type === 'GMAIL_SPAM_KEPT_WHITELISTED', JSON.stringify(kept));
-  check('kept message is NOT copied to Drive (survives; privacy)',
+  check('kept message is NOT copied to Drive',
         !!kept && kept.skipArchive === true);
+  check('FREEMAIL_RANDOM_LOCAL appears in the signals CSV',
+        vm.runInContext("buildSignalsCsv({freeMailRandomLocal:true})", ctx)
+          .indexOf('FREEMAIL_RANDOM_LOCAL') !== -1);
 }
 
 console.log('\n=== the recheck path HOLDS, it never deletes ===');

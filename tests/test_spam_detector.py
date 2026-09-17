@@ -439,6 +439,8 @@ def _load_gs_constants(gs_path):
         'LINK_WRAPPER_DOMAINS':         _load_string_array(source, 'LINK_WRAPPER_DOMAINS'),
         'TRACKER_LABELS':               _load_string_array(source, 'TRACKER_LABELS'),
         'CTA_VERB_PATTERN':             _load_single_regex(source, 'CTA_VERB_PATTERN'),
+        'FREE_MAIL_DOMAINS':            _load_string_array(source, 'FREE_MAIL_DOMAINS'),
+        'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'RFC2822_QUOTED_NAME':          _load_single_regex(source, 'RFC2822_QUOTED_NAME'),
         'LIMITS':                       limits,
         # Both parsed by the same generic loader — keys are discovered from the
@@ -473,6 +475,8 @@ BRAND_CTA_DOMAINS               = _gs['BRAND_CTA_DOMAINS']
 LINK_WRAPPER_DOMAINS            = _gs['LINK_WRAPPER_DOMAINS']
 TRACKER_LABELS                  = _gs['TRACKER_LABELS']
 CTA_VERB_PATTERN                = _gs['CTA_VERB_PATTERN']
+FREE_MAIL_DOMAINS               = _gs['FREE_MAIL_DOMAINS']
+RANDOM_LOCAL_PART_PATTERNS      = _gs['RANDOM_LOCAL_PART_PATTERNS']
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -935,7 +939,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     Run the detection logic against a single email's fields.
 
     Mirrors the analyzeMessage() function in SpamDetector.gs. Collects signals
-    from multiple pattern categories, then applies the 7-rule decision logic.
+    from multiple pattern categories, then applies the 8-rule decision logic.
 
     All patterns and constants used here are loaded from SpamDetector.gs at
     import time — any change to the source is automatically reflected.
@@ -980,6 +984,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'empty_subject_with_attachment': False,
                     'service_impersonation': False,
                     'brand_mismatched_cta': False,
+                    'free_mail_random_local': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -993,6 +998,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'empty_subject_with_attachment': False,
         'service_impersonation': False,
         'brand_mismatched_cta': False,
+        'free_mail_random_local': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1095,6 +1101,19 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             signals['service_impersonation'] = True
             signals['matched_patterns'].append('service_impersonation')
 
+    # ── Signal: Free-mail sender with a machine-generated local part ───────
+    # Never decisive on its own — real people have digits in their addresses.
+    # It exists to CORROBORATE an existing spam verdict in the Spam folder,
+    # where Gmail has already judged the message. Mirrors Signal 8.
+    _at = sender_address.rfind('@')
+    if _at > 0:
+        _local = sender_address[:_at]
+        _host = sender_address[_at + 1:]
+        if any(_host_matches_domain(_host, d) for d in FREE_MAIL_DOMAINS) and \
+           any(p.search(_local) for p in RANDOM_LOCAL_PART_PATTERNS):
+            signals['free_mail_random_local'] = True
+            signals['matched_patterns'].append('free_mail_random_local')
+
     # ── Signal: Brand-mismatched CTA phishing ──────────────────────────────
     # A button naming DocuSign/Adobe Sign/SharePoint whose href the brand does
     # not control. The only signal that reads the LINK GRAPH rather than
@@ -1104,7 +1123,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         signals['brand_mismatched_cta'] = True
         signals['matched_patterns'].append('brand_mismatched_cta')
 
-    # ── Decision Logic (7 rules, evaluated in priority order) ──────────────
+    # ── Decision Logic (8 rules, evaluated in priority order) ──────────────
     #
     # The rules cascade from most-specific (Rule 1) to broadest (Rule 5).
     # Only one rule can fire per email. This matches SpamDetector.gs exactly.
@@ -1172,6 +1191,15 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         elif signals['brand_mismatched_cta']:
             is_spam = True
             rule = 'RULE 7: Brand-mismatched CTA phishing'
+
+        # Rule 8: Free-mail machine-generated sender + 2+ spam behaviors
+        #   Rationale: Rules 1-3 all require bulk infrastructure, so a
+        #   direct-send advance-fee scam from a throwaway free-mail account
+        #   slipped through entirely. freeMailRandomLocal is a narrow gate —
+        #   0 of 22 ham examples — and two further behaviours are required.
+        elif signals['free_mail_random_local'] and behavior_count >= 2:
+            is_spam = True
+            rule = 'RULE 8: Free-mail machine-generated sender + behaviors'
 
     return signals, is_spam, rule
 

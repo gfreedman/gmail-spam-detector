@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.51.0
+ * @version 6.52.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -14,6 +14,7 @@
  *   - Blacklisted sender domains (known spam mills)
  *   - Suspicious From-field anomalies (headline-like display names)
  *   - Link-graph anomalies (CTA text naming a brand the destination lacks)
+ *   - Machine-generated free-mail sender addresses (throwaway accounts)
  *
  * Execution flow:
  *   1. processInbox() — scan inbox, analyze each email, flag spam
@@ -23,7 +24,7 @@
  *   4. reviewGmailSpam() — deletes Gmail-classified spam after a grace period
  *      (CONFIG.gmailSpamGraceDays); whitelisted senders are never deleted
  *
- * Decision logic (7 rules, evaluated in priority order — first match wins):
+ * Decision logic (8 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
  *   Rule 2: Bulk email + 2+ clickbait patterns → spam
  *   Rule 3: Bulk email + 2+ distinct spam behaviors → spam
@@ -32,6 +33,7 @@
  *   Rule 6: Cloud service notification subject from non-service sender → phishing
  *   Rule 7: CTA link text names a document brand the href does not belong to → phishing
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
+ *   Rule 8: Free-mail machine-generated sender + 2+ spam behaviors → spam
  *
  * Changelog: see CHANGELOG.md. It is not reproduced here — it reached 459
  * lines and three consecutive entries described three incompatible designs for
@@ -72,7 +74,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.51.0';
+const SCRIPT_VERSION = '6.52.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -718,6 +720,39 @@ const TRACKER_LABELS = Object.freeze([
  *
  * @const {RegExp}
  */
+/**
+ * Consumer free-mail providers. A sender here has no domain reputation to
+ * stake, which is why spam uses them; it is also where most real people are,
+ * so this is only ever used as one half of a two-part test.
+ * @const {Array<string>}
+ */
+const FREE_MAIL_DOMAINS = Object.freeze([
+  'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'ymail.com',
+  'hotmail.com', 'hotmail.co.uk', 'outlook.com', 'live.com', 'msn.com',
+  'aol.com', 'proton.me', 'protonmail.com', 'icloud.com', 'me.com',
+  'mail.com', 'gmx.com', 'gmx.net', 'zoho.com', 'yandex.com'
+]);
+
+/**
+ * Local parts that look machine-generated rather than chosen by a person.
+ *
+ * Two shapes, both deliberately narrow:
+ *   letters, 3+ digits, THEN MORE LETTERS  -> raju47326yu, amit83920xk
+ *   5+ consecutive digits                  -> pooja1029384, mailer99281
+ *
+ * The trailing-letters requirement is what makes the first safe: "john1985"
+ * and "clark.kent1938" are how humans write a birth year and do NOT match.
+ * Measured against 42 realistic personal and service addresses (jane.doe,
+ * mike_92, tom99, jd1990, no-reply, jobalerts-noreply, dse_NA3...) with zero
+ * matches, and 6/6 on spam-shaped ones.
+ *
+ * @const {Array<RegExp>}
+ */
+const RANDOM_LOCAL_PART_PATTERNS = Object.freeze([
+  /^[a-z]{2,}\d{3,}[a-z]{1,6}$/i,
+  /^[a-z.\-_]*\d{5,}[a-z.\-_]*$/i
+]);
+
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;
 
 
@@ -1047,122 +1082,212 @@ function reviewGmailSpam()
 {
   const REVIEW_LIMIT = 20;
 
+  // ── Phase 1: review unseen Spam, delete anything corroborated ───────────
+  //
+  // Gmail already judged these. That verdict is evidence our inbox rules never
+  // get to lean on, which is why they demand two or more behaviours. Here one
+  // independent signal is enough — and that is what closes the gap that left
+  // raju47326yu@gmail.com sitting in the folder: no inbox rule fires on a
+  // direct-send free-mail address, and gmail.com cannot be blacklisted, but
+  // "machine-generated local part" plus "Gmail flagged it" is a confident call.
+  //
+  // Anything with NO corroborating signal is not deleted here. It is marked
+  // reviewed so it is never re-fetched, and phase 2 removes it once it has had
+  // a recovery window.
   try
   {
-    // AGE-GATED, and that gate is the whole design.
-    //
-    // Two earlier attempts were both wrong. The original blanket sweep deleted
-    // Gmail's own false positives within minutes, unarchived. v6.50.0 then
-    // required our seven rules to independently agree before deleting, which
-    // left obvious spam sitting in the folder — those rules are tuned for mail
-    // that reached the INBOX and have no sender reputation, domain age or
-    // volume data, so they score most Gmail-caught spam clean.
-    //
-    // Deleting on Gmail's word alone with only the whitelist as a guard is also
-    // wrong, and worse: DEFAULT_DOMAINS.legitimate is 16 hand-maintained
-    // strings and structurally cannot enumerate the user's correspondents. A
-    // first contact from a recruiter, a 2FA mail from a small service with
-    // imperfect DKIM, an invoice from a business on a cheap relay — Gmail
-    // misfiles all of these, and none is whitelisted.
-    //
-    // What that approach actually gives up is Gmail's own 30-day recovery
-    // window: a folder the user can open, search and click "Not spam" in. An
-    // EML in Drive named by timestamp and eight hex digits is not a substitute.
-    //
-    // So: let the message AGE first. After gmailSpamGraceDays it has had a
-    // real recovery window and Gmail's verdict stands. Before that it is left
-    // alone and, crucially, never fetched — so the grace period costs nothing
-    // in quota and the folder still drains on a rolling basis.
-    const query = 'in:spam older_than:' + CONFIG.gmailSpamGraceDays + 'd' +
-                  ' -label:' + CONFIG.purgeLabel +
+    const query = 'in:spam -label:' + CONFIG.purgeLabel +
                   ' -label:' + CONFIG.processedLabel;
-
     const threads = GmailApp.search(query, 0, REVIEW_LIMIT);
-    if (threads.length === 0) return;
 
-    logInfo('Reviewing ' + threads.length + ' Gmail-classified spam thread(s) ' +
-            'older than ' + CONFIG.gmailSpamGraceDays + ' days');
-
-    const allMessages = GmailApp.getMessagesForThreads(threads);
-    let deleted = 0;
-    let kept    = 0;
-    let held    = 0;
-
-    for (let i = 0; i < threads.length; i++)
+    if (threads.length > 0)
     {
-      try
+      logInfo('Reviewing ' + threads.length + ' unseen Gmail-classified thread(s)');
+      const allMessages = GmailApp.getMessagesForThreads(threads);
+      let deleted = 0, kept = 0, waiting = 0;
+
+      for (let i = 0; i < threads.length; i++)
       {
-        const thread   = threads[i];
-        const messages = allMessages[i];
-        if (!messages || messages.length === 0) continue;
-        const message = messages[0];
-
-        const signals = collectSignals(message);
-
-        // Whitelisted senders are never deleted, at any age. Belt-and-braces
-        // on top of the age gate rather than the sole protection.
-        if (signals === null)
+        try
         {
-          accumulateLogEntry(message, null, 'GMAIL_SPAM_KEPT_WHITELISTED',
-                             { skipArchive: true });
-          markReviewed(thread);
-          kept++;
-          logInfo('KEPT (whitelisted sender Gmail misfiled): ' +
-                  sanitizeForLog(message.getSubject()));
-          continue;
+          const thread   = threads[i];
+          const messages = allMessages[i];
+          if (!messages || messages.length === 0) continue;
+          const message = messages[0];
+
+          const signals = collectSignals(message);
+
+          // Whitelisted: never deleted, at any age, by any phase.
+          if (signals === null)
+          {
+            accumulateLogEntry(message, null, 'GMAIL_SPAM_KEPT_WHITELISTED',
+                               { skipArchive: true });
+            markReviewed(thread);
+            kept++;
+            logInfo('KEPT (whitelisted sender Gmail misfiled): ' +
+                    sanitizeForLog(message.getSubject()));
+            continue;
+          }
+
+          if (!hasCorroboratingSignal(signals))
+          {
+            // Gmail's word alone. Marked so it is judged once, then left for
+            // phase 2 to remove after CONFIG.gmailSpamGraceDays.
+            markReviewed(thread);
+            waiting++;
+            continue;
+          }
+
+          const logType = makeVerdict(signals)
+            ? 'GMAIL_SPAM_CONFIRMED'
+            : 'GMAIL_SPAM_CORROBORATED';
+
+          if (accumulateLogEntry(message, signals, logType) !== true)
+          {
+            logError('Cannot archive, so NOT deleting: ' +
+                     sanitizeForLog(message.getSubject()));
+            markReviewed(thread);
+            continue;
+          }
+
+          if (deleteMessagePermanently(message, thread)) { deleted++; }
+          else { markReviewed(thread); }
         }
-
-        // CONFIRMED means our rules independently agree; DEFERRED means they
-        // did not fire and we are accepting Gmail's judgement on an aged
-        // message. Both delete. Distinguishing them measures our real
-        // agreement rate with Gmail, which is worth knowing.
-        const logType = makeVerdict(signals)
-          ? 'GMAIL_SPAM_CONFIRMED'
-          : 'GMAIL_SPAM_DEFERRED';
-
-        if (accumulateLogEntry(message, signals, logType) !== true)
+        catch (threadError)
         {
-          // Archive invariant: no Drive copy, no permanent delete. Mark it
-          // reviewed anyway — otherwise this message is re-fetched every cycle
-          // forever, which is the quota leak v6.50.1 already had to fix once.
-          logError('Cannot archive, so NOT deleting: ' +
-                   sanitizeForLog(message.getSubject()) +
-                   ' — left in Spam. Run setupLogging() if this persists.');
-          markReviewed(thread);
-          held++;
-          continue;
-        }
-
-        // markAsSpam() falls back to thread.moveToSpam() when the Advanced
-        // Gmail Service is unavailable, which does NOT delete. Only count a
-        // deletion when the permanent path was actually taken, or the summary
-        // line lies and the message is re-archived on every later cycle.
-        if (deleteMessagePermanently(message, thread))
-        {
-          deleted++;
-        }
-        else
-        {
-          markReviewed(thread);
-          held++;
+          logError('reviewGmailSpam phase 1 error: ' + threadError.toString());
+          try { markReviewed(threads[i]); } catch (e) { /* best effort */ }
         }
       }
-      catch (threadError)
-      {
-        // The message survives, but mark it so a persistently unreadable
-        // message is not re-fetched every five minutes indefinitely.
-        logError('reviewGmailSpam thread error: ' + threadError.toString());
-        try { markReviewed(threads[i]); } catch (e) { /* best effort */ }
-      }
+
+      logInfo('Phase 1: deleted ' + deleted + ' corroborated, kept ' + kept +
+              ' whitelisted, ' + waiting + ' awaiting grace period');
     }
-
-    logInfo('Gmail spam review: deleted ' + deleted + ', kept ' + kept +
-            ' (whitelisted), held ' + held + ' (could not delete safely)');
   }
   catch (error)
   {
-    logError('reviewGmailSpam failed: ' + error.toString());
+    logError('reviewGmailSpam phase 1 failed: ' + error.toString());
   }
+
+  // ── Phase 2: delete aged mail on Gmail's word alone ─────────────────────
+  //
+  // Nothing here corroborated, so the only justification is Gmail's verdict
+  // plus the fact that the message has now had CONFIG.gmailSpamGraceDays in a
+  // folder the user can open, search and click "Not spam" in. That window is
+  // the protection; the whitelist check below is belt-and-braces.
+  //
+  // Uses the cheap getFrom()-only whitelist test, so this pass costs no extra
+  // Gmail read for messages it keeps.
+  try
+  {
+    const agedQuery = 'in:spam older_than:' + CONFIG.gmailSpamGraceDays + 'd' +
+                      ' -label:' + CONFIG.purgeLabel;
+    const aged = GmailApp.search(agedQuery, 0, REVIEW_LIMIT);
+    if (aged.length === 0) return;
+
+    logInfo('Aging out ' + aged.length + ' Gmail-classified thread(s) older than ' +
+            CONFIG.gmailSpamGraceDays + ' days');
+
+    const agedMessages = GmailApp.getMessagesForThreads(aged);
+    let expired = 0, spared = 0;
+
+    for (let i = 0; i < aged.length; i++)
+    {
+      try
+      {
+        const thread   = aged[i];
+        const messages = agedMessages[i];
+        if (!messages || messages.length === 0) continue;
+        const message = messages[0];
+
+        if (isWhitelistedSender(message)) { spared++; continue; }
+
+        if (accumulateLogEntry(message, null, 'GMAIL_SPAM_EXPIRED') !== true)
+        {
+          logError('Cannot archive aged spam, NOT deleting: ' +
+                   sanitizeForLog(message.getSubject()));
+          continue;
+        }
+
+        if (deleteMessagePermanently(message, thread)) { expired++; }
+      }
+      catch (threadError)
+      {
+        logError('reviewGmailSpam phase 2 error: ' + threadError.toString());
+      }
+    }
+
+    logInfo('Phase 2: deleted ' + expired + ' aged, spared ' + spared +
+            ' whitelisted');
+  }
+  catch (error)
+  {
+    logError('reviewGmailSpam phase 2 failed: ' + error.toString());
+  }
+}
+
+/**
+ * Does any independent signal corroborate an existing spam verdict?
+ *
+ * Used ONLY for mail already sitting in the Spam folder, where Gmail has
+ * already judged the message. That verdict is evidence, and our own rules
+ * require two or more behaviours precisely because on inbox mail they have no
+ * prior to lean on. Here they do, so ONE corroborating signal is enough.
+ *
+ * This is the gap that left raju47326yu@gmail.com in the folder: no inbox rule
+ * fires on a direct-send free-mail address, and gmail.com obviously cannot be
+ * blacklisted — but "free-mail sender with a machine-generated local part"
+ * plus "Gmail already flagged it" is a confident call.
+ *
+ * Deliberately excludes bulkEmailService: virtually every newsletter the user
+ * actually wants is bulk-routed, so it corroborates nothing.
+ *
+ * @param {Object|null} signals - From collectSignals(); null means whitelisted.
+ * @return {boolean} true if at least one independent signal fired.
+ */
+function hasCorroboratingSignal(signals)
+{
+  if (!signals) return false;
+
+  return signals.blacklistedSender ||
+         signals.clickbaitCount >= 1 ||
+         signals.fearMongering ||
+         signals.marketingFormat ||
+         signals.suspiciousFromName ||
+         signals.serviceImpersonation ||
+         signals.brandMismatchedCta ||
+         signals.freeMailRandomLocal;
+}
+
+/**
+ * Cheap whitelist test that costs no extra Gmail fetch.
+ *
+ * Only reads getFrom(), which comes with the message metadata, so the aged
+ * deletion pass can protect whitelisted senders without paying for
+ * collectSignals()' getRawContent().
+ *
+ * @param {GmailMessage} message
+ * @return {boolean}
+ */
+function isWhitelistedSender(message)
+{
+  try
+  {
+    const addr = extractEmailAddress(
+      sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2'));
+    const whitelist = getCachedWhitelist();
+    for (let i = 0; i < whitelist.length; i++)
+    {
+      if (addressMatchesDomain(addr, whitelist[i])) return true;
+    }
+  }
+  catch (e)
+  {
+    // Cannot read the sender — treat as whitelisted, i.e. do not delete.
+    logError('Whitelist check failed, refusing to delete: ' + e.toString());
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -1623,7 +1748,8 @@ function collectSignals(message)
     suspiciousFromName: false,        // Display name is headline-like
     emptySubjectWithAttachment: false, // Empty subject + has attachment (payload scam)
     serviceImpersonation: false,       // Cloud service subject from non-service sender (phishing)
-    brandMismatchedCta: false          // CTA names a document brand, links elsewhere (phishing)
+    brandMismatchedCta: false,         // CTA names a document brand, links elsewhere (phishing)
+    freeMailRandomLocal: false         // free-mail sender with a machine-generated local part
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -1795,6 +1921,31 @@ function collectSignals(message)
     }
   }
 
+  // ── Signal 8: Free-mail sender with a machine-generated local part ──────
+  // Deliberately NOT part of any inbox rule on its own — plenty of real people
+  // have digits in their address, and a false positive here would delete mail
+  // from a person. It exists to CORROBORATE an existing spam verdict: in the
+  // Spam folder, where Gmail has already judged the message, one independent
+  // signal is enough. See reviewGmailSpam().
+  const atIdx = senderAddress.lastIndexOf('@');
+  if (atIdx > 0)
+  {
+    const localPart   = senderAddress.substring(0, atIdx);
+    const senderHost  = senderAddress.substring(atIdx + 1);
+    const isFreeMail  = FREE_MAIL_DOMAINS.some(function(d) {
+      return hostMatchesDomain(senderHost, d);
+    });
+
+    if (isFreeMail && RANDOM_LOCAL_PART_PATTERNS.some(function(p) {
+      return p.test(localPart);
+    }))
+    {
+      signals.freeMailRandomLocal = true;
+      logDebug('Free-mail sender with machine-generated local part: ' +
+               sanitizeForLog(senderAddress));
+    }
+  }
+
   // ── Signal 7: Brand-mismatched call-to-action ───────────────────────────
   // A button reading "VIEW IN DOCUSIGN" whose href is not DocuSign borrows
   // trust the sender has not earned. This is the only signal that inspects the
@@ -1916,6 +2067,24 @@ function makeVerdict(signals)
     return true;
   }
 
+  // Rule 8: Free-mail machine-generated sender + 2+ spam behaviors (no bulk)
+  // Rationale: Rules 1-3 all require bulk infrastructure, so a direct-send
+  // 419/advance-fee scam from a throwaway free-mail account slipped through
+  // entirely — it is not bulk-routed, and gmail.com cannot be blacklisted
+  // without distrusting every real person who uses it.
+  //
+  // freeMailRandomLocal is the gate, and it is a narrow one: a consumer
+  // free-mail domain AND a local part no human would choose. It fires on 0 of
+  // the 22 ham examples and cannot fire at all for a sender on their own
+  // domain. Requiring two further independent behaviours on top means a real
+  // person would need a machine-shaped address AND two clickbait/fear hits.
+  if (signals.freeMailRandomLocal && spamBehaviorCount >= 2)
+  {
+    logInfo('SPAM DETECTED: Free-mail machine-generated sender + ' +
+            spamBehaviorCount + ' spam behaviors');
+    return true;
+  }
+
   // No rule triggered — email is not spam
   logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
            ', blacklist=' + signals.blacklistedSender +
@@ -1925,7 +2094,8 @@ function makeVerdict(signals)
            ', suspiciousFrom=' + signals.suspiciousFromName +
            ', emptySubjectAttachment=' + signals.emptySubjectWithAttachment +
            ', serviceImpersonation=' + signals.serviceImpersonation +
-           ', brandMismatchedCta=' + signals.brandMismatchedCta);
+           ', brandMismatchedCta=' + signals.brandMismatchedCta +
+           ', freeMailRandomLocal=' + signals.freeMailRandomLocal);
   return false;
 }
 
@@ -2012,7 +2182,8 @@ function disposeDetectedMessage(message, thread, signals, archived)
   // for an unknown disposition must be the recoverable branch. Unreachable
   // today (both callers gate on verdict.isSpam), which is exactly when this
   // kind of default goes unnoticed until it isn't.
-  const DESTRUCTIVE_RULES = ['Rule 1', 'Rule 2', 'Rule 3', 'Rule 4', 'Rule 5', 'Rule 6'];
+  const DESTRUCTIVE_RULES = ['Rule 1', 'Rule 2', 'Rule 3', 'Rule 4', 'Rule 5',
+                             'Rule 6', 'Rule 8'];
 
   if (DESTRUCTIVE_RULES.indexOf(rule) !== -1)
   {
@@ -4180,6 +4351,11 @@ function getRuleFromSignals(signals)
     return { rule: 'Rule 7', description: 'Brand-mismatched CTA phishing (link text names a document brand the destination does not control)' };
   }
 
+  if (signals.freeMailRandomLocal && spamBehaviorCount >= 2)
+  {
+    return { rule: 'Rule 8', description: 'Free-mail machine-generated sender + ' + spamBehaviorCount + ' spam behaviors' };
+  }
+
   return { rule: 'NONE', description: 'No rule triggered' };
 }
 
@@ -4204,6 +4380,7 @@ function buildSignalsCsv(signals)
   if (signals.emptySubjectWithAttachment) parts.push('EMPTY_SUBJECT_ATTACHMENT');
   if (signals.serviceImpersonation)       parts.push('SERVICE_IMPERSONATION');
   if (signals.brandMismatchedCta)         parts.push('BRAND_MISMATCH_CTA');
+  if (signals.freeMailRandomLocal)        parts.push('FREEMAIL_RANDOM_LOCAL');
 
   return parts.join(',');
 }
@@ -4309,6 +4486,7 @@ function debugWhyFlagged(searchTerm)
       // whose entire job is explaining why something was flagged.
       logInfo('  serviceImpersonation=' + signals.serviceImpersonation);
       logInfo('  brandMismatchedCta=' + signals.brandMismatchedCta);
+      logInfo('  freeMailRandomLocal=' + signals.freeMailRandomLocal);
       logInfo('');
       logInfo('Verdict: ' + (makeVerdict(signals) ? 'SPAM' : 'not spam'));
     }

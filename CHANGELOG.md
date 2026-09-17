@@ -17,6 +17,53 @@ detail plus the diffs.
 
 ---
 
+## v6.52.0
+
+Catch the spam our rules previously could not, in the Spam folder and in the
+inbox.
+
+`raju47326yu@gmail.com` survived because no rule fired on it: not bulk-routed,
+so Rules 1-3 were unreachable, and `gmail.com` obviously cannot be blacklisted.
+Waiting seven days for the age gate was the only disposition available, which is
+not good enough for mail that is plainly spam.
+
+**Signal 8 — free-mail sender with a machine-generated local part.** Two narrow
+shapes: letters then 3+ digits then MORE letters (`raju47326yu`, `amit83920xk`),
+or 5+ consecutive digits (`pooja1029384`). The trailing-letters requirement is
+what makes it safe — `john1985` and `clark.kent1938` are how humans write a
+birth year and do not match. Measured against 42 realistic personal and service
+addresses (`jane.doe`, `mike_92`, `tom99`, `jd1990`, `no-reply`,
+`jobalerts-noreply`, `dse_NA3`) with **zero** matches, and 6/6 on spam-shaped
+ones. Fires on **0 of 22** ham examples, and cannot fire at all for a sender on
+their own domain.
+
+**In the Spam folder, Gmail's verdict is evidence.** Our rules demand two or
+more behaviours precisely because on inbox mail they have no prior to lean on.
+In the Spam folder they do — Gmail already judged the message. So
+`reviewGmailSpam()` is now two phases:
+
+    phase 1  any ONE corroborating signal  -> archive, log, delete NOW
+    phase 2  no signal, aged past grace    -> archive, log, delete
+             whitelisted                   -> kept, logged, never touched
+
+`hasCorroboratingSignal()` deliberately excludes `bulkEmailService`: virtually
+every newsletter the user actually wants is bulk-routed, so it corroborates
+nothing.
+
+**Rule 8 — free-mail machine-generated sender + 2+ spam behaviours, no bulk
+required.** The same message landing in the INBOX was also missed: measured at
+clickbait 1, fear true, Signal 8 true — three independent behaviours and no rule
+that does not require bulk infrastructure. Rule 8 closes that. It deletes rather
+than quarantines: it is spam, not phishing.
+
+Phase 2 uses a new `isWhitelistedSender()` that reads only `getFrom()`, so
+sparing a whitelisted sender costs no extra Gmail fetch.
+
+Disposition assertions 64 -> 68, and the ones that matter are the negative
+cases: `jane.doe@gmail.com`, `john1985@gmail.com`, `mike_92@yahoo.com` and
+`clark.kent1938@gmail.com` must all fall through to the grace period rather than
+being deleted on corroboration. Added an `.eml` fixture for the inbox path.
+
 ## v6.51.0
 
 Fix the Spam-folder regression properly, and fix two whitelist parse holes that

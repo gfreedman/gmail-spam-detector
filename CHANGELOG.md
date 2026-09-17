@@ -17,6 +17,23 @@ detail plus the diffs.
 
 ---
 
+## v6.50.2
+
+Bring `docs/BACKLOG.md` current. It was written at v6.49.0 and did not know
+about `reviewGmailSpam()`, so its list of unlocked destructive entry points was
+incomplete and its Spam-folder reasoning was a release out of date.
+
+Added a **Where to pick up** section — the commands to run, the first concrete
+action and why, the two new behaviours that need observing before more changes
+land, and a note that `BLOG.md` and `tests/SESSION_REPORT.md` are gitignored and
+will not survive a clone.
+
+Added a **Settled — do not re-litigate** section recording the four disposition
+decisions made on 2026-09-16 with their reasoning, so a future reader does not
+reopen them from scratch.
+
+Documentation only.
+
 ## v6.50.1
 
 Close a quota leak introduced one release earlier. `reviewGmailSpam()` left

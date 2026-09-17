@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.58.2
+ * @version 6.58.3
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -81,7 +81,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.58.2';
+const SCRIPT_VERSION = '6.58.3';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -4568,8 +4568,24 @@ function writeHealthRow(stats)
 
     if (!eventful && Date.now() - lastAt < HEALTH_INTERVAL_MS) return;
 
+    // THREW outranks everything: the run did not complete, so its other
+    // counters are partial and must not read as a clean result.
+    const status = stats.runError            ? 'THREW'
+                 : stats.auditFindings > 0   ? 'AUDIT_FINDINGS'
+                 : stats.errors > 0          ? 'ERRORS'
+                 : 'OK';
+
+    // Marker FIRST, and independent of the spreadsheet.
+    //
+    // It used to run after the Sheet write, behind the SPAM_LOG_SHEET_ID guard,
+    // so a missing or broken spreadsheet silently took the machine-readable
+    // health signal down with it. That is exactly backwards: the moment the
+    // Sheet is misconfigured is the moment you most need to be told.
+    updateHealthMarker(props, status);
+    props.setProperty('LAST_HEALTH_WRITE_MS', String(Date.now()));
+
     const sheetId = props.getProperty('SPAM_LOG_SHEET_ID');
-    if (!sheetId) return;   // logging not configured; nothing to write to
+    if (!sheetId) return;   // no spreadsheet configured; the marker still went out
 
     const ss = SpreadsheetApp.openById(sheetId);
     let sheet = ss.getSheetByName('Health');
@@ -4578,13 +4594,6 @@ function writeHealthRow(stats)
       sheet = ss.insertSheet('Health');
       sheet.setFrozenRows(1);
     }
-
-    // THREW outranks everything: the run did not complete, so its other
-    // counters are partial and must not read as a clean result.
-    const status = stats.runError            ? 'THREW'
-                 : stats.auditFindings > 0   ? 'AUDIT_FINDINGS'
-                 : stats.errors > 0          ? 'ERRORS'
-                 : 'OK';
 
     // Header and data written TOGETHER, every time, in one call.
     //
@@ -4600,13 +4609,62 @@ function writeHealthRow(stats)
        stats.processed, stats.spam, stats.errors, stats.auditFindings,
        escapeSheetCell(String(stats.runError || '').substring(0, 500))]
     ]);
-
-    props.setProperty('LAST_HEALTH_WRITE_MS', String(Date.now()));
   }
   catch (e)
   {
     // Never let the health gauge break the run it is reporting on.
     logError('writeHealthRow failed (non-fatal): ' + e.toString());
+  }
+}
+
+/**
+ * Publish health into a Drive file's NAME, so it can be read with no setup.
+ *
+ * The Health tab is the surface a human reads. This is the one a script can
+ * read, and the distinction is not academic — getting an automated checker to
+ * see the Health tab turned out to require credentials nobody has lying around:
+ *
+ *   - Logger.log goes to the Apps Script transcript, which the Apps Script API
+ *     will not serve without the script.processes scope (403).
+ *   - console.* goes to Cloud Logging under the script's attached GCP project.
+ *     This script uses the auto-created default project, and the project named
+ *     in .clasp.json has never received a log entry. Attaching a standard one
+ *     is a manual console procedure with an OAuth consent screen.
+ *   - The Sheets API is not enabled for clasp's own OAuth client, so reading
+ *     the Health tab needs a separately minted token. Asking a human to
+ *     hand-craft an access token before they can ask "is it running?" is not a
+ *     health check.
+ *
+ * Drive metadata, however, IS readable with exactly the credentials
+ * `clasp login` already produces. A file name is metadata. So the status goes
+ * in the name and the checker reads it for free.
+ *
+ * ONE file, renamed in place — the id is kept in Script Properties so this
+ * never accumulates copies. Its content stays empty; only the name matters.
+ */
+function updateHealthMarker(props, status)
+{
+  try
+  {
+    const name = 'SpamDetector_health_' + status + '_v' + SCRIPT_VERSION +
+                 '_' + new Date().toISOString();
+
+    const existingId = props.getProperty('HEALTH_MARKER_FILE_ID');
+    if (existingId)
+    {
+      try { DriveApp.getFileById(existingId).setName(name); return; }
+      catch (e) { /* deleted or inaccessible — fall through and recreate */ }
+    }
+
+    const rootFolderId = props.getProperty('SPAM_LOG_FOLDER_ID');
+    if (!rootFolderId) return;
+
+    const file = DriveApp.getFolderById(rootFolderId).createFile(name, '');
+    props.setProperty('HEALTH_MARKER_FILE_ID', file.getId());
+  }
+  catch (e)
+  {
+    logError('updateHealthMarker failed (non-fatal): ' + e.toString());
   }
 }
 

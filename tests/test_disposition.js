@@ -801,6 +801,73 @@ console.log('\n=== heartbeat + errors are reachable from outside Apps Script ===
           'writes=' + writes.length);
   }
 
+  // The Drive marker is the machine-readable surface: its NAME carries status,
+  // and Drive metadata is readable with exactly the credentials `clasp login`
+  // already produces — unlike the transcript (needs script.processes), Cloud
+  // Logging (needs a manually attached GCP project) or the Health tab itself
+  // (Sheets API is not enabled for clasp's OAuth client).
+  {
+    const drive = { created: [], renamed: [], props: { SPAM_LOG_FOLDER_ID: 'folder123' } };
+    const hc = makeCtx({ props: drive.props });
+    let health = null;
+    hc.SpreadsheetApp = { openById: () => ({
+      getSheetByName: n => (n === 'Health' ? health : null),
+      insertSheet: () => (health = {
+        getRange: () => ({ setValues() {} }), setFrozenRows() {} }) }) };
+    hc.DriveApp = {
+      getFolderById: () => ({ createFile: (n) => { drive.created.push(n);
+        return { getId: () => 'marker1' }; } }),
+      getFileById: (id) => ({ setName: n => drive.renamed.push({ id, n }) })
+    };
+
+    hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 0 });
+    check('a health marker file is created on first run', drive.created.length === 1,
+          JSON.stringify(drive.created));
+    check('the marker name carries status and version',
+          /^SpamDetector_health_OK_v[\d.]+_/.test(drive.created[0] || ''),
+          String(drive.created[0]));
+    // hc.props, not drive.props — makeCtx copies the props object it is given.
+    check('the marker id is remembered', hc.props.HEALTH_MARKER_FILE_ID === 'marker1',
+          JSON.stringify(hc.props));
+
+    // Subsequent runs RENAME the same file — never accumulate copies.
+    hc.logRunHeartbeat({ processed: 1, spam: 0, errors: 0, auditFindings: 0 });
+    check('later runs rename rather than create', drive.created.length === 1 &&
+          drive.renamed.length === 1, JSON.stringify(drive));
+    check('the rename targets the remembered id',
+          (drive.renamed[0] || {}).id === 'marker1', JSON.stringify(drive.renamed));
+
+    // A failing run must be visible in the name, since that is the whole point.
+    hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 0,
+                         runError: 'TypeError: boom' });
+    const last = drive.renamed[drive.renamed.length - 1];
+    check('a thrown run is visible in the marker name',
+          !!last && last.n.indexOf('_health_THREW_') !== -1, JSON.stringify(last));
+
+    // A deleted marker must be recreated, not silently skipped forever.
+    hc.DriveApp.getFileById = () => { throw new Error('gone'); };
+    hc.logRunHeartbeat({ processed: 2, spam: 0, errors: 0, auditFindings: 0 });
+    check('a deleted marker is recreated', drive.created.length === 2,
+          JSON.stringify(drive.created));
+  }
+
+  // A broken Drive must not break the run.
+  {
+    const hc = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1',
+                                  SPAM_LOG_FOLDER_ID: 'folder123' } });
+    let health = null;
+    hc.SpreadsheetApp = { openById: () => ({
+      getSheetByName: n => (n === 'Health' ? health : null),
+      insertSheet: () => (health = {
+        getRange: () => ({ setValues() {} }), setFrozenRows() {} }) }) };
+    hc.DriveApp = { getFolderById: () => { throw new Error('drive down'); },
+                    getFileById: () => { throw new Error('drive down'); } };
+    let threw = false;
+    try { hc.logRunHeartbeat({ processed: 1, spam: 0, errors: 0, auditFindings: 0 }); }
+    catch (e) { threw = true; }
+    check('an unwritable Drive marker does not break the run', threw === false);
+  }
+
   // A broken Sheet must not break the run either.
   {
     const hc = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } });

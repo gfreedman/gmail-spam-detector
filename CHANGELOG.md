@@ -17,6 +17,51 @@ detail plus the diffs.
 
 ---
 
+## v6.58.3
+
+**The health check no longer needs a hand-crafted OAuth token.**
+
+v6.58.0 put health in a `Health` tab and `scripts/prod_health.py` read it via
+the Sheets API — which required minting an access token and passing it in
+`GOOGLE_OAUTH_ACCESS_TOKEN`. Requiring a human to hand-craft a token before they
+can ask "is it running?" is not a health check. The Sheets API is not even
+enabled for clasp's OAuth client, so the credentials already on the machine
+could never have worked.
+
+Producing the signal was never the hard part; reading it was. Every channel
+Apps Script offers is closed to the credentials that exist:
+
+| Channel | Why it cannot be read |
+|---|---|
+| `Logger.log` (transcript) | Apps Script API needs the `script.processes` scope → 403 |
+| `console.*` (Cloud Logging) | goes to the script's *default* GCP project; the one in `.clasp.json` has never received an entry |
+| `Health` tab (Sheets API) | not enabled for clasp's OAuth client; needs a separate token |
+
+Drive **metadata**, though, is readable with exactly what `clasp login` writes to
+`~/.clasprc.json` — and a file name is metadata. So `updateHealthMarker()` keeps
+one marker file and renames it each run:
+
+```
+SpamDetector_health_OK_v6.58.3_2026-09-17T21:38:13.367Z
+```
+
+One file, renamed in place, id kept in Script Properties so copies never
+accumulate; content stays empty. `prod_health.py` now takes no arguments and no
+token — it refreshes the clasp credential itself, reads the name, and checks
+liveness, deployed version and status.
+
+The marker is also written **before** the Sheet, and independent of it. It was
+behind the `SPAM_LOG_SHEET_ID` guard, so a missing or broken spreadsheet took
+the machine-readable signal down with it — exactly backwards, since a
+misconfigured Sheet is when you most need to be told.
+
+The `Health` tab stays as the human-readable surface. Eight new assertions cover
+marker creation, the name format, rename-not-recreate, recreation after
+deletion, `THREW` appearing in the name, and an unwritable Drive not breaking
+the run.
+
+---
+
 ## v6.58.2
 
 Header and gauge are now written together, in one call.

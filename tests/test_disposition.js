@@ -719,6 +719,59 @@ console.log('\n=== heartbeat + errors are reachable from outside Apps Script ===
   check('audit findings are visible in the heartbeat',
         out.log.some(l => l.indexOf('audit=FINDINGS:2') !== -1), JSON.stringify(out.log));
 
+  // The Health tab is the readable surface. console.* is not: Apps Script
+  // routes it to Cloud Logging under the script's attached GCP project, and
+  // this script uses the auto-created default one, which no credential here can
+  // query. Verified empirically — the project in .clasp.json has never received
+  // a log entry.
+  {
+    const writes = [];
+    const hc = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } });
+    let health = null;
+    hc.SpreadsheetApp = {
+      openById: () => ({
+        getSheetByName: n => (n === 'Health' ? health : null),
+        insertSheet: n => {
+          health = {
+            getRange: (r, c, nr, nc) => ({ setValues: v => writes.push({ r, v: v[0] }) }),
+            setFrozenRows() {}
+          };
+          return health;
+        }
+      })
+    };
+    hc.logRunHeartbeat({ processed: 2, spam: 1, errors: 0, auditFindings: 0 });
+    const header = writes.find(w => w.r === 1);
+    const row    = writes.find(w => w.r === 2);
+    check('a Health tab is created with a header', !!header && header.v[0] === 'LastRunAt',
+          JSON.stringify(header));
+    check('health is written to row 2 (a gauge, not a log)', !!row, JSON.stringify(writes));
+    check('a healthy run reports status OK', !!row && row.v[2] === 'OK', JSON.stringify(row));
+    check('health carries the counters', !!row && row.v[3] === 2 && row.v[4] === 1,
+          JSON.stringify(row));
+
+    // Eventful runs always write; quiet runs are throttled so the 1-minute
+    // trigger does not pay a Sheets call every minute.
+    const before = writes.length;
+    hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 0 });
+    check('a quiet run immediately after is throttled', writes.length === before,
+          'writes=' + writes.length);
+    hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 3 });
+    const flagged = writes[writes.length - 1];
+    check('audit findings bypass the throttle and report AUDIT_FINDINGS',
+          !!flagged && flagged.v[2] === 'AUDIT_FINDINGS', JSON.stringify(flagged));
+  }
+
+  // A broken Sheet must not break the run either.
+  {
+    const hc = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } });
+    hc.SpreadsheetApp = { openById: () => { throw new Error('sheet down'); } };
+    let threw = false;
+    try { hc.logRunHeartbeat({ processed: 1, spam: 0, errors: 0, auditFindings: 0 }); }
+    catch (e) { threw = true; }
+    check('an unwritable Health tab does not break the run', threw === false);
+  }
+
   // Logging must never be able to break the run.
   const c2 = makeCtx({});
   c2.console = { log() { throw new Error('no console'); },

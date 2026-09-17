@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.57.0
+ * @version 6.58.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -81,7 +81,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.57.0';
+const SCRIPT_VERSION = '6.58.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -3500,6 +3500,8 @@ function logError(message)
  */
 function logRunHeartbeat(stats)
 {
+  writeHealthRow(stats);
+
   const line = 'RUN v' + SCRIPT_VERSION +
                ' processed=' + stats.processed +
                ' spam='      + stats.spam +
@@ -4514,6 +4516,73 @@ function archiveRawEml(messageId, rawContent, logType)
  * Non-blocking: errors are caught and logged; spam detection is unaffected.
  * The finally block always clears _pendingLogEntries to prevent memory growth.
  */
+/**
+ * Write last-run health to a 'Health' tab: ONE row, overwritten each time.
+ *
+ * console.error/console.log were supposed to carry this, and they do not reach
+ * anywhere readable. Apps Script sends them to Cloud Logging under the GCP
+ * project attached to the script, and this script uses the auto-created default
+ * project — confirmed empirically: the project named in .clasp.json has never
+ * received a single log entry, and the Apps Script API refuses processes.list
+ * without the script.processes scope. Attaching a standard GCP project is a
+ * manual console procedure with an OAuth consent screen attached to it.
+ *
+ * The Sheet, meanwhile, is already configured, already written to, and already
+ * readable with credentials that exist. So health goes there.
+ *
+ * Overwritten rather than appended: this is a gauge, not a log. A 1-minute
+ * trigger would add 1,440 rows a day and bury the detection log it shares a
+ * spreadsheet with. Staleness is the signal — if LastRunAt is older than a few
+ * minutes, the detector is not running.
+ *
+ * Throttled: a quiet run rewrites at most every HEALTH_INTERVAL_MS, so the
+ * common case costs no Sheets call at all. Anything eventful (work done, an
+ * error, an audit finding) always writes immediately.
+ */
+function writeHealthRow(stats)
+{
+  const HEALTH_INTERVAL_MS = 5 * 60 * 1000;
+
+  try
+  {
+    const props    = PropertiesService.getScriptProperties();
+    const eventful = stats.processed > 0 || stats.spam > 0 ||
+                     stats.errors > 0 || stats.auditFindings > 0;
+    const lastAt   = parseInt(props.getProperty('LAST_HEALTH_WRITE_MS') || '0', 10);
+
+    if (!eventful && Date.now() - lastAt < HEALTH_INTERVAL_MS) return;
+
+    const sheetId = props.getProperty('SPAM_LOG_SHEET_ID');
+    if (!sheetId) return;   // logging not configured; nothing to write to
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Health');
+    if (!sheet)
+    {
+      sheet = ss.insertSheet('Health');
+      sheet.getRange(1, 1, 1, 7).setValues([[
+        'LastRunAt', 'Version', 'Status', 'Processed', 'SpamActioned',
+        'RunErrors', 'AuditFindings']]);
+      sheet.setFrozenRows(1);
+    }
+
+    const status = stats.auditFindings > 0 ? 'AUDIT_FINDINGS'
+                 : stats.errors > 0        ? 'ERRORS'
+                 : 'OK';
+
+    sheet.getRange(2, 1, 1, 7).setValues([[
+      new Date().toISOString(), SCRIPT_VERSION, status,
+      stats.processed, stats.spam, stats.errors, stats.auditFindings]]);
+
+    props.setProperty('LAST_HEALTH_WRITE_MS', String(Date.now()));
+  }
+  catch (e)
+  {
+    // Never let the health gauge break the run it is reporting on.
+    logError('writeHealthRow failed (non-fatal): ' + e.toString());
+  }
+}
+
 /**
  * Queue an audit row. Synthesized rather than derived from a message, because
  * the message an audit concerns may already be permanently deleted.

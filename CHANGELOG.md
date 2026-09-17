@@ -17,6 +17,46 @@ detail plus the diffs.
 
 ---
 
+## v6.58.0
+
+**v6.57.0's heartbeat went somewhere unreadable. This puts it where it can be read.**
+
+I shipped console.error/console.log as the queryable prod signal and then
+checked: Cloud Logging returned **zero entries**. Apps Script routes console.*
+to the GCP project attached to the script, and this script uses the auto-created
+default project — the project named in `.clasp.json` has never received a single
+log entry. Attaching a standard GCP project is a manual console procedure with
+an OAuth consent screen, not something a deploy can do.
+
+So the v6.57.0 claim was wrong in the way that matters: the signal existed and
+nothing could read it. Same category as the bug it was meant to catch.
+
+`writeHealthRow()` writes to a **Health** tab in the log spreadsheet already in
+use — configured, already written to, readable with credentials that exist.
+
+- **One row, overwritten.** A gauge, not a log. At one run per minute an
+  appended row would add 1,440 rows a day to a spreadsheet whose whole purpose
+  is the detection log. **Staleness is the signal**: if `LastRunAt` is older
+  than a few minutes, the detector is not running.
+- **Columns:** `LastRunAt, Version, Status, Processed, SpamActioned, RunErrors,
+  AuditFindings`. `Status` is `OK`, `ERRORS`, or `AUDIT_FINDINGS`.
+- **Throttled.** A quiet run rewrites at most every 5 minutes, so the common
+  case costs no Sheets call. Anything eventful — work done, an error, an audit
+  finding — writes immediately and bypasses the throttle.
+- Wrapped so an unwritable Sheet cannot break the run it reports on.
+
+`scripts/prod_health.py` reads it back and exits non-zero on a stale run, a
+version mismatch, or a non-OK status, so cron or CI can gate on it. The Health
+tab is also two columns of plain text, so it answers the question by eye.
+
+`console.error` from v6.57.0 is retained — harmless, and correct the day a
+standard GCP project does get attached.
+
+Seven new assertions cover tab creation, the gauge row, status mapping, the
+throttle, findings bypassing it, and an unwritable Sheet not throwing.
+
+---
+
 ## v6.57.0
 
 **Prod health is now answerable from outside Apps Script.**

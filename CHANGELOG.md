@@ -17,6 +17,31 @@ detail plus the diffs.
 
 ---
 
+## v6.55.1
+
+Two nits from a review of v6.55.0, one of them live.
+
+**`getRuleFromSignals(null)` described every null-signal disposition as a
+"false negative".** That string lands in the Sheet's rule-description column, so
+mail the detector had judged correctly *on purpose* was filed as a detection
+failure. It is what made the whitelisted LinkedIn row read
+"False negative — no rule triggered" for an invitation from an actual colleague.
+
+Removing the whitelisted row in v6.55.0 hid one instance and left the cause: two
+live callers still pass null — `GMAIL_SPAM_EXPIRED` (aged out on Gmail's verdict)
+and `SPAM_MISSED_REFUSED_WHITELISTED` (a refusal) — and both are deliberate
+dispositions. A real false negative is re-scored before logging, so it carries
+signals and never reaches that branch; the label was wrong for 100% of actual
+null cases. Now "Not rule-based — see log type", with an assertion.
+
+**The published site was stale by two releases.** `docs/index.html` advertised
+"Seven rules" and "Nine independent signals" with no Rule 8 and no Rule 9. Added
+both rule rows and signal cards for the free-mail sender shape and callback-scam
+anatomy. Counted prose that a new rule silently falsifies is now uncounted, so
+the next release cannot make the page wrong by omission.
+
+---
+
 ## v6.55.0
 
 Two bugs the user found by reading the Sheet, both mine.

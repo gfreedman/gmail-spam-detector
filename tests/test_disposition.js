@@ -596,6 +596,21 @@ console.log('\n=== logging: every reviewed message produces a row ===');
           .indexOf('FREEMAIL_RANDOM_LOCAL') !== -1);
 }
 
+console.log('\n=== null signals are a deliberate disposition, not a miss ===');
+{
+  // The Sheet's rule-description column is derived from getRuleFromSignals().
+  // For null signals it used to read "False negative — no rule triggered",
+  // which asserted the detector had FAILED on mail it had judged correctly on
+  // purpose. Every live caller passing null is deliberate: GMAIL_SPAM_EXPIRED
+  // and SPAM_MISSED_REFUSED_WHITELISTED. A real false negative is re-scored
+  // before logging, so it carries signals and never lands here.
+  const c = makeCtx({});
+  const d = c.getRuleFromSignals(null).description;
+  check('null signals report rule NONE', c.getRuleFromSignals(null).rule === 'NONE');
+  check('null signals are NOT described as a false negative',
+        d.toLowerCase().indexOf('false negative') === -1, d);
+}
+
 console.log('\n=== Signal 9: callback phishing (the raju47326yu Norton scam) ===');
 {
   // Verbatim shape of the message that got past every other signal on

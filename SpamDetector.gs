@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.55.0
+ * @version 6.55.1
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -79,7 +79,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.55.0';
+const SCRIPT_VERSION = '6.55.1';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -4551,7 +4551,15 @@ function getRuleFromSignals(signals)
 {
   if (!signals)
   {
-    return { rule: 'NONE', description: 'False negative — no rule triggered' };
+    // NOT "false negative". null means no signals were collected at all, and
+    // every live caller that passes null is a DELIBERATE disposition, not a
+    // miss: GMAIL_SPAM_EXPIRED (aged out on Gmail's verdict) and
+    // SPAM_MISSED_REFUSED_WHITELISTED (a refusal). Labelling those "false
+    // negative" in the Sheet asserted the detector had failed on mail it had
+    // judged correctly on purpose — which is exactly how a whitelisted
+    // LinkedIn keep came to be filed as a detection failure. An actual false
+    // negative carries real signals, because it is re-scored before logging.
+    return { rule: 'NONE', description: 'Not rule-based — see log type' };
   }
 
   if (signals.bulkEmailService && signals.blacklistedSender)

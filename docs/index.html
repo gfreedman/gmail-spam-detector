@@ -746,7 +746,7 @@
       <div class="step">
         <div class="step-num">Step 2</div>
         <div class="step-title">Analyze</div>
-        <p>Each message passes through 9 independent signal detectors — bulk infrastructure check, domain blacklist, clickbait patterns, Unicode obfuscation, fear language, marketing sender format, service impersonation, and link-graph analysis. Signals feed 7 rules evaluated in priority order. First match wins.</p>
+        <p>Each message passes through independent signal detectors — bulk infrastructure check, domain blacklist, clickbait patterns, Unicode obfuscation, fear language, marketing sender format, service impersonation, link-graph analysis, free-mail sender shape, and callback-scam anatomy. Signals feed 9 rules evaluated in priority order. First match wins.</p>
       </div>
       <div class="step">
         <div class="step-num">Step 3</div>
@@ -797,7 +797,7 @@
 <section id="rules">
   <div class="wrap">
     <h2>Rules</h2>
-    <p>Seven rules, evaluated in priority order. The first rule that matches wins &mdash; no further rules are checked. Rules 1&ndash;3 all require bulk email infrastructure as a prerequisite, which eliminates virtually all false positives from personal senders. Rules 6 and 7 deliberately do <em>not</em>, because the phishing they target arrives through compromised legitimate accounts rather than bulk infrastructure.</p>
+    <p>Nine rules, evaluated in priority order. The first rule that matches wins &mdash; no further rules are checked. Rules 1&ndash;3 all require bulk email infrastructure as a prerequisite, which eliminates virtually all false positives from personal senders. Rules 6&ndash;9 deliberately do <em>not</em>, because the phishing they target arrives through compromised legitimate accounts or throwaway free-mail addresses rather than bulk infrastructure.</p>
     <table>
       <thead>
         <tr><th>Rule</th><th>Condition</th><th>Rationale</th></tr>
@@ -838,6 +838,16 @@
           <td><strong>Call-to-action names a document brand the destination does not control</strong></td>
           <td>A button reading &ldquo;VIEW IN DOCUSIGN&rdquo; whose link goes somewhere DocuSign does not own borrows trust the sender has not earned. This is the only rule that reads the <em>link graph</em> rather than sender-side wording, which is how it catches phishing with clean prose, no urgency and a valid DKIM signature. It abstains when the destination is a click-tracker or the sender's own domain &mdash; a wrapped link is unverifiable, not malicious. <strong>Quarantines rather than deletes.</strong></td>
         </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 8</span></td>
+          <td><strong>Free-mail sender with a machine-generated address + 2+ spam behaviors</strong></td>
+          <td>Rules 1&ndash;3 all require bulk infrastructure, so a direct-send advance-fee scam from a throwaway account slipped through entirely &mdash; it is not bulk-routed, and <code>gmail.com</code> cannot be blacklisted without distrusting every real person who uses it. The gate is narrow: a consumer free-mail domain <em>and</em> a local part no human would choose, plus two further independent behaviours.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 9</span></td>
+          <td><strong>Free-mail sender invoicing as a brand it does not control, with a phone number to call</strong></td>
+          <td>A callback scam carries <em>no link at all</em>, so every signal that reads a link graph or marketing vocabulary scores it zero &mdash; and it passes SPF, DKIM and DMARC, because the free-mail provider really did send it. The payload is a phone number, which moves the victim to a call where no email filter follows. Detected by anatomy rather than wording: a free-mail sender <em>and</em> a named brand it provably is not <em>and</em> billing language <em>and</em> a phone number. A four-way conjunction, because no single part is rare. <strong>Quarantines rather than deletes.</strong></td>
+        </tr>
       </tbody>
     </table>
   </div>
@@ -847,7 +857,7 @@
 <section id="signals">
   <div class="wrap">
     <h2>Signals</h2>
-    <p>Nine independent signals feed the rules. Each signal answers a specific factual question about the email — bulk infrastructure? domain blacklisted? clickbait count? fear language? — without reference to the others. Verdict logic lives in the rules, not the signals.</p>
+    <p>Independent signals feed the rules. Each signal answers a specific factual question about the email — bulk infrastructure? domain blacklisted? clickbait count? fear language? — without reference to the others. Verdict logic lives in the rules, not the signals.</p>
     <div class="grid-2 grid-2col" style="margin-top:12px">
       <div class="card">
         <span class="card-icon">📡</span>
@@ -888,6 +898,16 @@
         <span class="card-icon">📢</span>
         <div class="card-title">Marketing sender format</div>
         <div class="card-body">Detects spammy From field patterns: "Name | Org" pipe separators, "Name at Organization" constructions, business names with investment/profit/insider/alert in them, and subdomain patterns like @F.FinanceInsiderPro.com.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🎲</span>
+        <div class="card-title">Free-mail machine-generated sender</div>
+        <div class="card-body">A consumer free-mail domain paired with a local part no human would choose &mdash; <code>raju47326yu</code>, a name followed by a long digit run, dense consonant strings. Deliberately never decisive on its own, because plenty of real people have digits in their address and a false positive here would delete mail from a person. It exists to <em>corroborate</em>: in the Spam folder, where Gmail has already judged the message, one independent signal is enough.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">☎️</span>
+        <div class="card-title">Callback scam anatomy</div>
+        <div class="card-body">Fires only on all four of: a free-mail sender, a named brand it provably is not (Norton, McAfee, PayPal, Geek Squad&hellip;), billing language, and a phone number. Four conditions because no single one is rare &mdash; real people invoice from Gmail, and real invoices carry phone numbers. It is the combination with an impersonated brand that has no innocent reading.</div>
       </div>
       <div class="card">
         <span class="card-icon">🔍</span>

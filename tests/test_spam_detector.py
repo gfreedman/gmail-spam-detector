@@ -20,8 +20,12 @@ Exit codes:
     1 — one or more tests failed (CI will block deploy)
 """
 
+import json
+import os
 import re
+import subprocess
 import sys
+import tempfile
 import time
 import email
 from email import policy
@@ -551,11 +555,14 @@ GMAIL_API_METHODS = {
 # =============================================================================
 # Link-Graph Helpers — mirrors of the SpamDetector.gs implementations
 #
-# These four functions must behave identically to decodeHtmlEntities(),
-# extractUrlHost(), hostMatchesDomain() and extractAnchors() in SpamDetector.gs.
-# They cannot be loaded from source (they are code, not data), so parity is
-# maintained by the shared test tables in run_edge_case_tests(). If you change
-# one side, change the other and extend those tables.
+# These functions must behave identically to their SpamDetector.gs
+# counterparts. They cannot be loaded from source (they are code, not data).
+#
+# Parity is no longer maintained by hand. run_parity_tests() (Phase 7) runs
+# every .eml fixture through BOTH this mirror and the shipped JavaScript and
+# fails on any disagreement, so drift is caught mechanically rather than by
+# remembering to update two copies of a table. Change one side and the suite
+# tells you about the other.
 # =============================================================================
 
 _ENTITY_HEX = re.compile(r'&#x([0-9a-f]{1,6});', re.I)
@@ -1691,6 +1698,191 @@ def run_performance_tests(all_emails):
 
 
 # =============================================================================
+# Phase 7: JS/Python Signal Parity
+#
+# The problem this solves: everything above tests the PYTHON mirror of the
+# detection logic. Option B keeps the PATTERNS honest by parsing them out of
+# SpamDetector.gs, but the LOGIC is written twice, so a fix applied to the .gs
+# and not to the mirror passes every test in this file. That is not
+# hypothetical — it happened once, and was caught only because someone happened
+# to add a scam fixture.
+#
+# The previous answer was hand-copied "parity tables" in this file and in
+# tests/test_link_graph.js. Those have the same flaw one level up: a human has
+# to remember to update both sides.
+#
+# So compare the two implementations mechanically. Python owns the INPUTS — it
+# already parses the .eml files, so there is no second .eml parser to drift —
+# and pipes them to tests/parity_signals.js, which runs them through the real
+# collectSignals(), makeVerdict() and getRuleFromSignals(). Then assert the two
+# agree, signal by signal, on every fixture.
+#
+# It extends itself, which is the point: every new .eml is automatically a
+# parity case, and every new signal is automatically compared. A signal added
+# to the .gs with no Python counterpart fails on the coverage check below
+# rather than silently going untested.
+# =============================================================================
+
+# JS camelCase -> Python snake_case. Derived mechanically, with an explicit
+# table only for names that are not a straight case conversion. Anything
+# missing is reported as a failure, never skipped.
+_PARITY_KEY_OVERRIDES = {
+    'bulkEmailService': 'bulk_email',
+}
+
+
+def _camel_to_snake(name):
+    return re.sub(r'(?<!^)(?=[A-Z])', '_', name).lower()
+
+
+def run_parity_tests():
+    """
+    Assert the Python mirror and the shipped JavaScript agree on every fixture.
+
+    Returns True if they agree everywhere, False otherwise.
+    """
+    print('=' * 80)
+    print('JS/Python Signal Parity')
+    print('=' * 80)
+
+    bridge = Path(__file__).parent / 'parity_signals.js'
+    if not bridge.exists():
+        print(f'❌ missing {bridge}')
+        return False
+
+    # Build the shared input set from the same parse_eml the rest of the suite
+    # uses, so both implementations see byte-identical inputs.
+    cases, parsed_by_file = [], {}
+    for folder in ('spam_examples', 'scam_examples', 'ham_examples'):
+        d = Path(__file__).parent / folder
+        if not d.exists():
+            continue
+        for f in sorted(d.glob('*.eml')):
+            try:
+                pe = parse_eml(f)
+            except ValueError as e:
+                print(f'❌ {f.name}: {e}')
+                return False
+            raw = f.read_text(encoding='utf-8', errors='ignore')
+            key = f'{folder}/{f.name}'
+            parsed_by_file[key] = pe
+            cases.append({
+                'file': key,
+                'subject': pe.subject,
+                'from': pe.from_field,
+                'plainBody': pe.body,
+                'html': pe.html,
+                'raw': raw,
+                'hasAttachment': bool(pe.has_attachment),
+            })
+
+    with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False,
+                                     encoding='utf-8') as tf:
+        json.dump(cases, tf)
+        tmp = tf.name
+
+    try:
+        proc = subprocess.run(['node', str(bridge), tmp],
+                              capture_output=True, text=True, timeout=180)
+    except FileNotFoundError:
+        print('❌ node not found — the parity phase needs Node (CI installs it)')
+        return False
+    except subprocess.TimeoutExpired:
+        print('❌ parity bridge timed out')
+        return False
+    finally:
+        os.unlink(tmp)
+
+    if proc.returncode != 0:
+        print(f'❌ parity bridge failed (exit {proc.returncode})')
+        print(proc.stderr[:2000])
+        return False
+
+    try:
+        payload = json.loads(proc.stdout)
+    except json.JSONDecodeError as e:
+        print(f'❌ parity bridge produced invalid JSON: {e}')
+        print(proc.stdout[:500])
+        return False
+
+    js_keys, js_results = payload['signalKeys'], payload['results']
+    failures = []
+
+    # ── Coverage: every JS signal must have a Python counterpart ───────────
+    # This is the drift guard for NEW signals. Adding one to SpamDetector.gs
+    # without mirroring it here fails immediately, instead of the signal simply
+    # never being exercised by the corpus.
+    sample, _, _ = analyze_email('x', 'a@b.invalid', False)
+    key_map = {}
+    for jk in js_keys:
+        pk = _PARITY_KEY_OVERRIDES.get(jk, _camel_to_snake(jk))
+        if pk not in sample:
+            failures.append(
+                f'signal {jk!r} exists in SpamDetector.gs but the Python mirror '
+                f'has no {pk!r} — mirror it in analyze_email(), or add an entry '
+                f'to _PARITY_KEY_OVERRIDES if it is named differently')
+        else:
+            key_map[jk] = pk
+
+    if not failures:
+        print(f'✅ all {len(js_keys)} JS signals have a Python counterpart')
+
+    # ── Per-fixture comparison ─────────────────────────────────────────────
+    compared = 0
+    for case in cases:
+        key = case['file']
+        js = js_results.get(key)
+        if js is None:
+            failures.append(f'{key}: no JS result returned')
+            continue
+        if 'error' in js:
+            failures.append(f'{key}: JS threw — {js["error"][:200]}')
+            continue
+
+        pe = parsed_by_file[key]
+        py_signals, py_is_spam, _ = analyze_email(*pe)
+        py_whitelisted = 'whitelisted' in py_signals.get('matched_patterns', [])
+
+        if js['whitelisted'] != py_whitelisted:
+            failures.append(
+                f'{key}: whitelisted differs — JS={js["whitelisted"]} '
+                f'Python={py_whitelisted}')
+            continue
+        if js['whitelisted']:
+            compared += 1
+            continue
+
+        for jk, pk in key_map.items():
+            jv, pv = js['signals'][jk], py_signals[pk]
+            # Normalize: JS booleans vs Python bools, counts vs ints.
+            if isinstance(jv, bool) or isinstance(pv, bool):
+                same = bool(jv) == bool(pv)
+            else:
+                same = int(jv) == int(pv)
+            if not same:
+                failures.append(f'{key}: {jk}=JS({jv!r}) vs {pk}=Python({pv!r})')
+
+        if bool(js['isSpam']) != bool(py_is_spam):
+            failures.append(
+                f'{key}: VERDICT differs — JS={js["isSpam"]} Python={py_is_spam}')
+        compared += 1
+
+    if failures:
+        print(f'\n❌ {len(failures)} parity failure(s) across {compared} fixture(s):')
+        for f in failures[:40]:
+            print(f'   {f}')
+        if len(failures) > 40:
+            print(f'   ... and {len(failures) - 40} more')
+        print('\n   A mismatch means SpamDetector.gs and the Python mirror in this')
+        print('   file have diverged. The .gs is what ships — fix the mirror to')
+        print('   match it, unless the .gs is the side that is wrong.')
+        return False
+
+    print(f'✅ {compared} fixtures agree on all {len(key_map)} signals and the verdict')
+    return True
+
+
+# =============================================================================
 # Phase 5: Edge Case Tests
 # =============================================================================
 
@@ -2143,6 +2335,12 @@ def main():
     print()
     edge_cases_passed = run_edge_case_tests()
 
+    # ── Phase 7: JS/Python Signal Parity ───────────────────────────────────
+    # Everything above tests the Python MIRROR. This is the only phase that
+    # asserts the mirror still matches the JavaScript that actually ships.
+    print()
+    parity_passed = run_parity_tests()
+
     # ── Final Summary ──────────────────────────────────────────────────────
     # Aggregate results from all phases and determine exit code for CI
     print('\n' + '=' * 80)
@@ -2178,7 +2376,14 @@ def main():
     elif ham_total > 0:
         print(f'✅ HAM: {ham_passed}/{ham_total} correctly allowed (0% false positives)')
 
-    # Report edge case results
+    # Report parity, then edge case, results
+    if not parity_passed:
+        print('❌ JS/PYTHON PARITY: the Python mirror has diverged from '
+              'SpamDetector.gs')
+        all_good = False
+    else:
+        print('✅ PARITY: Python mirror matches the shipped JavaScript')
+
     if not edge_cases_passed:
         print('❌ EDGE CASES: one or more edge case tests failed')
         all_good = False

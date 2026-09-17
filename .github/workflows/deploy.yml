@@ -72,8 +72,11 @@ jobs:
         run: node -e "new (require('vm').Script)(require('fs').readFileSync('SpamDetector.gs','utf8'))"
 
       # Run the Python test suite: parser self-tests, Gmail API method validation,
-      # spam/scam/ham detection, edge cases, and performance benchmark.
-      # Exits 1 on failure. Example counts are validated by the README stats check.
+      # spam/scam/ham detection, edge cases, JS/Python signal parity, and the
+      # performance benchmark. Exits 1 on failure.
+      #
+      # Phase 7 (parity) shells out to `node tests/parity_signals.js`, so it
+      # depends on the Setup Node.js step above — keep Node before this step.
       - name: Run spam detection tests
         run: python tests/test_spam_detector.py
 
@@ -89,9 +92,10 @@ jobs:
         run: node tests/test_disposition.js
 
       # Link-graph tests — URL host parsing, domain matching and Signal 7,
-      # asserted against the shipped JavaScript rather than the Python mirror
-      # of those helpers (which can drift). Every row is a real bypass or
-      # false positive found in review.
+      # asserted against the shipped JavaScript directly. Every row is a real
+      # bypass or false positive found in review. (Mirror drift itself is now
+      # caught by Phase 7 of the Python suite, which compares both
+      # implementations over every fixture.)
       - name: Run link-graph tests
         run: node tests/test_link_graph.js
 

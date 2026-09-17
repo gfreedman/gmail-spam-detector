@@ -17,6 +17,47 @@ detail plus the diffs.
 
 ---
 
+## v6.60.0
+
+**The Python mirror can no longer drift from the JavaScript without CI failing.**
+
+`tests/test_spam_detector.py` hand-mirrors the detection logic in Python. Option
+B keeps the pattern *constants* honest by parsing them out of `SpamDetector.gs`,
+but the *logic* is written twice — so a fix applied to the `.gs` and not to the
+mirror passed every test in the file. That already happened once, and was caught
+only because someone happened to add a scam fixture.
+
+The previous mitigation was hand-copied "parity tables" in this suite and in
+`tests/test_link_graph.js`. Same flaw one level up: a human has to remember to
+update both.
+
+New **Phase 7** compares the implementations mechanically. Python owns the
+inputs — it already parses the `.eml` files, so there is no second `.eml` parser
+to drift — and pipes them to `tests/parity_signals.js`, which runs them through
+the genuine `collectSignals()`, `makeVerdict()` and `getRuleFromSignals()`.
+Python then asserts both sides agree signal-by-signal, and on the verdict, for
+every fixture.
+
+Two guards, both verified by deliberately introducing the fault:
+
+| Fault injected | Result |
+|---|---|
+| Flipped `callback_phishing` in the Python mirror | ❌ exit 1, naming the fixture, the signal, and both values |
+| Added an unmirrored `someNewSignal` to the `.gs` | ❌ exit 1, naming the missing Python key |
+
+Current state: **81 fixtures agree on all 11 signals and the verdict.**
+
+It extends itself, which is the point — every new `.eml` becomes a parity case
+and every new signal is compared automatically, so this does not decay the way
+the hand-maintained tables did.
+
+One bug caught while wiring it: the failure was assigned to `all_passed`, a name
+that does not exist in `main()` (the real variable is `all_good`), so a parity
+failure would have printed and still exited 0. Verified by injection rather than
+by reading, which is the only reason it was found.
+
+---
+
 ## v6.59.2
 
 Remove the scheduled health workflow. It was not asked for.

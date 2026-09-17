@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred work, as of **v6.55.0** (2026-09-17).
+Deferred work, as of **v6.60.0** (2026-09-17).
 
 Everything here was surfaced by two external reviews — a Google L6 security pass
 and a Palo Alto Networks L6 code/docs pass — plus findings from the day's own
@@ -100,6 +100,20 @@ leave-alone branch was (no row), and its whitelist branch was not. The question
 "what does this do on the second pass over the same message?" would have caught
 it, and is worth asking of every branch in `reviewGmailSpam()` and
 `recheckRecentSpamChecked()` before touching their scope again.
+
+**The Python-mirror drift risk is closed** (v6.60.0). It was the oldest open
+item here and the one with a proven bite: `tests/test_spam_detector.py`
+hand-mirrors the detection logic, Option B covers only the pattern CONSTANTS,
+and a fix applied to `SpamDetector.gs` and not to the mirror passed CI silently
+— which happened once, caught by accident. Hand-copied "parity tables" in both
+suites were the previous mitigation and had the same flaw one level up: a human
+had to remember both copies.
+
+Phase 7 now runs all 81 fixtures through the shipped JavaScript *and* the Python
+mirror and fails on any disagreement, plus fails when a signal exists in the
+`.gs` with no Python counterpart. Both failure paths were verified by
+deliberately introducing each fault. It extends itself: new fixtures and new
+signals are compared automatically.
 
 A related gap, now closed: the README **scam** count was never CI-validated, and
 it drifted 4 → 5 in v6.55.0 with nothing to catch it, while spam and ham had had

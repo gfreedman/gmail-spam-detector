@@ -17,6 +17,32 @@ detail plus the diffs.
 
 ---
 
+## v6.60.1
+
+Delete three functions nothing called.
+
+`setupTrigger()`, `reviewSpamFolderNow()` and `purgeAllSpamNow()` were all
+manual editor entry points, wired to nothing, and never once invoked. They were
+added on my own initiative rather than asked for.
+
+`purgeAllSpamNow()` is the one worth naming: a one-click function that
+permanently deleted up to 1,000 messages, **including Gmail-classified mail this
+script never evaluated**, with no preview. `docs/BACKLOG.md` 2.5 proposed adding
+a `DRY_RUN` flag to make it safer. Deleting unused code that can destroy mail is
+the better answer, so that item is closed as moot rather than done.
+
+Also removed: the Tier-3 nit about it duplicating `destroySpam()`'s paging loop,
+and the stale references in the README, the workflow's failure hint, and a
+source comment that told the reader to run a function that no longer exists.
+The trigger is once again created in the Apps Script UI, as the README
+documents.
+
+Net: 84 fewer lines of source, no behaviour change. Nothing in the detection,
+disposition, logging or health paths is touched — full suite green, and
+`clasp status` still pushes exactly `appsscript.json` + `SpamDetector.gs`.
+
+---
+
 ## v6.60.0
 
 **The Python mirror can no longer drift from the JavaScript without CI failing.**

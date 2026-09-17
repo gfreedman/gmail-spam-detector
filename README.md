@@ -117,7 +117,7 @@ Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely
 
 **Mail Gmail filed as spam is deleted only after a grace period.** Gmail intercepts that mail before your inbox, so the detector's rules never judged it — and Gmail's own false-positive classes (first contact from a new correspondent, 2FA from a small service, an invoice on a cheap relay) are exactly what no whitelist can enumerate in advance. So `reviewGmailSpam()` lets it age `CONFIG.gmailSpamGraceDays` (default **7**) first, which is your recovery window: the folder is visible, searchable, and one "Not spam" click from undoing Gmail's mistake. After that Gmail's verdict stands and the message is archived, logged and deleted. Whitelisted senders are never deleted at any age, and nothing is ever moved back to your inbox.
 
-Mail already reviewed is normally skipped, so the folder is not re-fetched every cycle. But "reviewed" is a fact about *the logic that did the reviewing*, not about the message — so a `SCRIPT_VERSION` change re-reviews the whole folder once, and an improved rule gets applied to spam the previous logic dismissed. (It did not, before v6.54.0: six messages sat through two releases meant to remove them.) `reviewSpamFolderNow()` runs the same pass on demand from the editor.
+Mail already reviewed is normally skipped, so the folder is not re-fetched every cycle. But "reviewed" is a fact about *the logic that did the reviewing*, not about the message — so a `SCRIPT_VERSION` change re-reviews the whole folder once, and an improved rule gets applied to spam the previous logic dismissed. (It did not, before v6.54.0: six messages sat through two releases meant to remove them.)
 
 ### Labels you'll see
 
@@ -236,7 +236,7 @@ if (serviceImpersonation) { return SPAM; }
 // Cleanup boundary: destroySpam() sweeps ONLY messages this detector
 // condemned (tagged by markAsSpam() before it deletes). Mail Gmail's own
 // classifier filed is left alone and purged by Gmail at 30 days, so Gmail's
-// false positives stay recoverable. purgeAllSpamNow() empties the folder
+// false positives stay recoverable. Gmail purges its own Spam at 30 days,
 // manually if you want it cleared sooner.
 
 // RULE 7: CTA names a document brand the destination does not control → phishing

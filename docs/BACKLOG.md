@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred work, as of **v6.60.0** (2026-09-17).
+Deferred work, as of **v6.60.1** (2026-09-17).
 
 Everything here was surfaced by two external reviews — a Google L6 security pass
 and a Palo Alto Networks L6 code/docs pass — plus findings from the day's own
@@ -37,7 +37,7 @@ Then confirm prod is alive. Cheapest signal: new inbox mail picking up
 item with an ongoing cost rather than a hypothetical one — every misjudged
 legitimate email's full content accumulates in Drive with no expiry. It is also
 self-contained: one maintenance step, no scope change, no re-authorization, and
-`purgeAllSpamNow()`'s paging loop is the shape to copy.
+`destroySpam()`'s paging loop is the shape to copy.
 
 **Watch before changing more.** Two behaviours shipped 2026-09-16 that have not
 been observed over a meaningful period:
@@ -210,7 +210,7 @@ private-to-owner — verified: no `setSharing`, `addEditor`, `addViewer` or
 **Plan.** Add a maintenance step deleting EMLs older than N days (90?), keeping
 the Sheet row forever — the row is the training data, the EML is only the
 recovery copy. Document the window in the README next to the recovery
-instructions. Note `purgeAllSpamNow()`'s paging loop is the shape to reuse.
+instructions. Note `destroySpam()`'s paging loop is the shape to reuse.
 
 **Escalates if:** detection volume rises, or you ever share the parent folder.
 
@@ -289,18 +289,22 @@ exactly how today's stale comments accumulated.
 
 ### 2.4 `LockService` only guards `processInbox()`
 
-`cleanseInbox()`, `purgeAllSpamNow()`, `destroySpam()`, `checkFalseNegatives()`
+`cleanseInbox()`, `destroySpam()`, `checkFalseNegatives()`
 and `reviewGmailSpam()` are all callable from the editor with no lock, alongside
 the 1-minute trigger. `cleanseInbox()` is the dangerous combination: 500
 threads, guaranteed to exceed the 6-minute limit. Every destructive entry point
 should take the same script lock.
 
-### 2.5 `purgeAllSpamNow()` needs a dry run
+### 2.5 ~~`purgeAllSpamNow()` needs a dry run~~ — CLOSED in v6.60.1
 
-Deletes up to 1,000 messages including Gmail-classified mail the script never
-evaluated. Keeping the capability as a manual action is the right call, but a
-one-click editor function with no preview isn't a meaningful safety boundary.
-Add a `DRY_RUN` default that lists what it *would* delete.
+Moot: the function is gone. It was a one-click editor function that deleted up
+to 1,000 messages including Gmail-classified mail the script never evaluated,
+with no preview — and it was never once invoked. Deleting unused code that can
+destroy mail beats adding a dry-run flag to it.
+
+Removed alongside `setupTrigger()` and `reviewSpamFolderNow()`, which were also
+never called by anything. If the empty-the-folder capability is ever wanted
+back, build it with a `DRY_RUN` default from the start.
 
 ---
 
@@ -310,9 +314,6 @@ Add a `DRY_RUN` default that lists what it *would* delete.
   targets one message id; both fallbacks call `thread.moveToSpam()`, moving your
   own replies in a reply-chain lure. Use `Gmail.Users.Messages.modify` on the
   single id, and `moveToArchive()` rather than `moveToSpam()`.
-- **`purgeAllSpamNow()` duplicates `destroySpam()`'s paging loop** with magic
-  numbers (`10`, `100`, `500`) where the original uses named constants. Extract
-  one `deleteSpamPages(labelIds, excludeIds)`.
 - **`shouldProcessMessage()` compares chars to bytes.** `getBody().length` is
   UTF-16 chars, `maxEmailSizeBytes` is bytes. Its docstring also claims these
   are "typically emails with large attachments" — `getBody()` returns the HTML

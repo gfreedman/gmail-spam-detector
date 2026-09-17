@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.60.0
+ * @version 6.60.1
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -81,7 +81,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.60.0';
+const SCRIPT_VERSION = '6.60.1';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -1134,8 +1134,7 @@ function cleanseInbox()
  * deletes. It deliberately does NOT clear pre-existing or Gmail-classified
  * spam any more: doing so permanently destroyed mail this script never
  * evaluated, unarchived and unlogged, within minutes of Gmail misfiling it.
- * Gmail purges its own Spam at 30 days; run purgeAllSpamNow() manually if you
- * want the folder emptied sooner.
+ * Gmail purges its own Spam at 30 days, so the folder still drains on its own.
  *
  * Uses batch deletion in pages of 100 with rate limiting between batches.
  * Caps at MAX_ITERATIONS (10 batches = ~1000 messages) to prevent runaway
@@ -5000,109 +4999,6 @@ function buildSignalsCsv(signals)
   if (signals.callbackPhishing)           parts.push('CALLBACK_PHISHING');
 
   return parts.join(',');
-}
-
-
-/**
- * Install the time-driven trigger, at the interval this code is written for.
- *
- * The trigger was previously created by hand in the Apps Script UI, per the
- * README. That drifted: the health markers this script writes were arriving
- * exactly 10 minutes apart, not at the 1-minute cadence the README documents
- * and v6.40.0's performance work was tuned for. Nothing in the code could
- * detect that, because nothing in the code created the trigger.
- *
- * A 10-minute interval is not broken, but it is not what is documented, and it
- * means up to 10 minutes of spam sitting in the inbox rather than one. This
- * makes the interval a property of the source instead of a setting someone
- * picked from a dropdown once.
- *
- * Idempotent: removes existing processInbox triggers before adding one, so
- * running it twice does not stack duplicates (each duplicate would be a full
- * extra execution against the same quota).
- *
- * Run from the Apps Script editor.
- */
-function setupTrigger()
-{
-  const existing = ScriptApp.getProjectTriggers();
-  let removed = 0;
-
-  for (let i = 0; i < existing.length; i++)
-  {
-    if (existing[i].getHandlerFunction() === 'processInbox')
-    {
-      ScriptApp.deleteTrigger(existing[i]);
-      removed++;
-    }
-  }
-
-  ScriptApp.newTrigger('processInbox').timeBased().everyMinutes(1).create();
-
-  logInfo('Trigger installed: processInbox every 1 minute' +
-          (removed > 0 ? ' (replaced ' + removed + ' existing)' : ''));
-  return { removed: removed, intervalMinutes: 1 };
-}
-
-/**
- * Manually re-review the whole Spam folder with the current detection logic.
- *
- * Same as the automatic pass a version change triggers, but on demand — for
- * when the rules have been improved without a version bump, or to act on the
- * folder immediately rather than waiting for the next maintenance cycle.
- *
- * Non-destructive by itself: it applies exactly the same disposition rules as
- * the automatic pass. Whitelisted senders are kept, corroborated spam is
- * archived, logged and deleted, and anything else waits for the grace period.
- *
- * Run from the Apps Script editor.
- */
-function reviewSpamFolderNow()
-{
-  logInfo('Manual full re-review of the Spam folder requested');
-  reviewGmailSpam(true);
-  flushSpamLog();
-}
-
-/**
- * Manually empty the ENTIRE spam folder, including mail Gmail classified.
- *
- * Not called by any trigger. destroySpam() used to do this automatically every
- * few minutes, which permanently destroyed Gmail's own false positives with no
- * archive and no log row. The capability is kept because emptying the folder is
- * a reasonable thing to want — but as a deliberate, human-invoked action rather
- * than a background sweep.
- *
- * Run from the Apps Script editor. There is no undo: batchDelete bypasses Trash.
- */
-function purgeAllSpamNow()
-{
-  if (typeof Gmail === 'undefined' || !Gmail.Users || !Gmail.Users.Messages)
-  {
-    logInfo('Gmail API not available');
-    return;
-  }
-
-  let destroyed = 0;
-  for (let i = 0; i < 10; i++)
-  {
-    let res;
-    try { res = Gmail.Users.Messages.list('me', { labelIds: ['SPAM'], maxResults: 100 }); }
-    catch (e) { logError('Failed to list spam: ' + e.toString()); break; }
-
-    if (!res.messages || res.messages.length === 0) break;
-
-    const ids = res.messages.map(function(m) { return m.id; })
-      .filter(function(id) { return _quarantinedMessageIds.indexOf(id) === -1; });
-    if (ids.length === 0) break;
-
-    try { Gmail.Users.Messages.batchDelete({ ids: ids }, 'me'); destroyed += ids.length; }
-    catch (e) { logError('Batch destroy failed: ' + e.toString()); break; }
-
-    Utilities.sleep(500);
-  }
-
-  logInfo('purgeAllSpamNow: permanently deleted ' + destroyed + ' message(s)');
 }
 
 

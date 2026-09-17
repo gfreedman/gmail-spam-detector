@@ -430,8 +430,8 @@ jobs:
             echo "2. **Raw Log tab** for \`AUDIT_LOG_GAP\` / \`AUDIT_SPAM_NOT_ACTIONED\` rows."
             echo "3. The Apps Script **execution transcript**, if the script throws before it can report."
             echo ""
-            echo "If the trigger is gone or on the wrong interval, run \`setupTrigger()\`"
-            echo "in the Apps Script editor — it installs processInbox at 1 minute, idempotently."
+            echo "If the trigger is gone, re-create it in the Apps Script editor:"
+            echo "Triggers -> Add Trigger -> processInbox, time-driven, minutes timer."
           } >> "$GITHUB_STEP_SUMMARY"
           exit 1
 

@@ -17,6 +17,48 @@ detail plus the diffs.
 
 ---
 
+## v6.56.0
+
+**Production now tells on itself.**
+
+Every disposition bug this project has shipped was invisible in production. The
+code believed it had acted, nothing disagreed out loud, and the only way to find
+out was for a human to open the Spam folder or read the Sheet and notice. Six
+messages sat through two releases meant to remove them. A whitelisted keep was
+filed as a detection failure. Every test was green throughout, because the tests
+prove what the new code does — they never ask whether prod agrees.
+
+`auditRunIntegrity()` runs at the end of every `processInbox()` and checks two
+invariants. It costs **zero** Gmail API calls: it reads only tallies already
+accumulated during the run.
+
+1. **Log parity.** Every permanently deleted message has a Sheet row. Deletion
+   is irreversible, so an unlogged delete destroys the only record that it ever
+   happened — and "all spam must be logged" is a standing requirement, not a
+   nicety. Violated whenever a delete path skips `accumulateLogEntry()`.
+
+2. **Spam actioned.** Phase 2 left no aged, non-whitelisted mail behind. This is
+   the "is the detector acting on the Spam folder at all?" check — the invariant
+   whose violation went unnoticed for two releases. Mail phase 2 deliberately
+   spares (whitelisted) is not a violation; mail it silently failed to resolve
+   is.
+
+Findings go to the **Sheet**, not only `logError`. A lesson already recorded
+here is that `logError` reaches only the Apps Script transcript, which nobody
+reads — so a silent failure stayed silent. The Sheet is the surface actually
+looked at, so that is where a broken invariant belongs, as an `AUDIT_LOG_GAP` or
+`AUDIT_SPAM_NOT_ACTIONED` row.
+
+The audit is deliberately non-throwing and silent on healthy runs. An audit that
+breaks the run it audits is worse than the bug it reports, and one that cries
+wolf is one you learn to ignore.
+
+Nine new assertions in `tests/test_disposition.js` cover both findings, the
+healthy path, an idle run, deliberately spared whitelisted mail, and that a
+failing audit cannot throw into the run.
+
+---
+
 ## v6.55.1
 
 Two nits from a review of v6.55.0, one of them live.

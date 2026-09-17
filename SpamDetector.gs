@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.55.1
+ * @version 6.56.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -21,6 +21,8 @@
  *   2. markAsSpam()   — report to Gmail (trains filters) + immediately delete by ID
  *      quarantineAsPhishing() — Rule 7 only: report + label, NO delete
  *   3. destroySpam()  — safety-net sweep of this detector's own verdicts
+ *   5. auditRunIntegrity() — verifies the run did what it believes it did;
+ *      writes AUDIT_* rows to the Sheet when an invariant is violated
  *   4. reviewGmailSpam() — deletes Gmail-classified spam after a grace period
  *      (CONFIG.gmailSpamGraceDays); whitelisted senders are never deleted.
  *      A version change re-reviews the whole folder, so an improved rule is
@@ -79,7 +81,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.55.1';
+const SCRIPT_VERSION = '6.56.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -832,6 +834,12 @@ function processInbox()
     return;
   }
 
+  // Reset audit state for this run. Inside the lock and after the skip check,
+  // so a skipped invocation cannot clear a running one's tally.
+  _destroyedMessageIds = [];
+  _loggedMessageIds    = [];
+  _unresolvedAgedSpam  = 0;
+
   try
   {
     // Validate config before doing any work. If something is misconfigured we
@@ -914,6 +922,10 @@ function processInbox()
 
     // Second flush picks up any entries queued by maintenance.
     flushSpamLog();
+
+    // Last: check that what the run believes it did matches what it recorded.
+    // After both flushes, so _loggedMessageIds is complete.
+    auditRunIntegrity();
   }
   catch (error)
   {
@@ -1293,14 +1305,17 @@ function reviewGmailSpam(forceFullReview)
         {
           logError('Cannot archive aged spam, NOT deleting: ' +
                    sanitizeForLog(message.getSubject()));
+          _unresolvedAgedSpam++;
           continue;
         }
 
         if (deleteMessagePermanently(message, thread)) { expired++; }
+        else { _unresolvedAgedSpam++; }
       }
       catch (threadError)
       {
         logError('reviewGmailSpam phase 2 error: ' + threadError.toString());
+        _unresolvedAgedSpam++;
       }
     }
 
@@ -1474,6 +1489,7 @@ function deleteMessagePermanently(message, thread)
     Gmail.Users.Messages.modify(
       { addLabelIds: purgeId ? ['SPAM', purgeId] : ['SPAM'] }, 'me', messageId);
     Gmail.Users.Messages.batchDelete({ ids: [messageId] }, 'me');
+    _destroyedMessageIds.push(messageId);
 
     logInfo('GMAIL SPAM DESTROYED: ' + sanitizeForLog(message.getSubject()));
     return true;
@@ -2722,6 +2738,7 @@ function markAsSpam(message, thread)
       try
       {
         Gmail.Users.Messages.batchDelete({ ids: [messageId] }, 'me');
+        _destroyedMessageIds.push(messageId);
         logInfo('SPAM DESTROYED: ' + subject);
       }
       catch (deleteError)
@@ -3786,6 +3803,29 @@ const SPAM_MISSED_LABEL = 'SpamMissed';
 let _pendingLogEntries = [];
 
 /**
+ * Run-scoped audit state. Reset at the top of every processInbox().
+ *
+ * These exist because every disposition bug this project has shipped was
+ * invisible in production: the code believed it had acted, and the only way to
+ * find out was for a human to open the Spam folder or the Sheet and notice. Six
+ * messages sat through two releases meant to remove them; a whitelisted keep
+ * was filed as a detection failure. Nothing alerted, and every test was green.
+ *
+ * So record what actually happened and compare it to what must be true.
+ * See auditRunIntegrity().
+ * @type {Array<string>}
+ */
+let _destroyedMessageIds = [];
+/** @type {Array<string>} Message ids that reached the Sheet buffer this run. */
+let _loggedMessageIds    = [];
+/**
+ * Aged Spam-folder threads phase 2 neither deleted nor deliberately spared.
+ * Non-zero means the detector is NOT acting on the folder.
+ * @type {number}
+ */
+let _unresolvedAgedSpam  = 0;
+
+/**
  * Per-execution caches for domain lists. Populated on first access via
  * getCachedWhitelist() / getCachedBlacklist(); never mutated mid-run.
  * Apps Script re-initializes all module-level vars on each trigger invocation,
@@ -4328,6 +4368,8 @@ function accumulateLogEntry(message, signals, logType, options)
     // messages already deleted; now the archives are already on disk, and the
     // buffer holds only the small Sheets row.
 
+    _loggedMessageIds.push(message.getId());
+
     _pendingLogEntries.push({
       driveUrl:               archive.driveUrl,
       archived:               archive.archived,
@@ -4421,6 +4463,95 @@ function archiveRawEml(messageId, rawContent, logType)
  * Non-blocking: errors are caught and logged; spam detection is unaffected.
  * The finally block always clears _pendingLogEntries to prevent memory growth.
  */
+/**
+ * Queue an audit row. Synthesized rather than derived from a message, because
+ * the message an audit concerns may already be permanently deleted.
+ *
+ * @param {string} logType - 'AUDIT_LOG_GAP' or 'AUDIT_SPAM_NOT_ACTIONED'.
+ * @param {string} detail  - Human-readable finding; lands in the Subject column.
+ */
+function queueAuditRow(logType, detail)
+{
+  _pendingLogEntries.push({
+    driveUrl: '', archived: false,
+    detectedAt: new Date().toISOString(),
+    logType:   logType,
+    messageId: '', threadId: '',
+    subject:          detail,
+    fromDisplayName:  'SpamDetector self-audit',
+    fromAddress:      '', sendingDomain: '', replyTo: '',
+    ruleInfo:        { rule: 'AUDIT', description: 'Automated prod invariant check' },
+    clickbaitCount:   0,
+    signalsCsv:       '',
+    bulkEmailService: false,
+    hasAttachment:    false,
+    listUnsubscribePresent: false
+  });
+}
+
+/**
+ * Verify, in production, that the detector actually did what it believes it did.
+ *
+ * Runs at the end of every processInbox(). Costs no Gmail API calls — it reads
+ * only tallies already accumulated during the run.
+ *
+ * Two invariants, both chosen because their violation has actually shipped here
+ * and neither was detectable without a human reading the mailbox or the Sheet:
+ *
+ *   1. LOG PARITY — every permanently deleted message has a Sheet row. The
+ *      standing requirement is that all spam is logged, and deletion is
+ *      irreversible, so an unlogged delete destroys the only record that it
+ *      happened. Violated whenever a delete path skips accumulateLogEntry().
+ *
+ *   2. SPAM ACTIONED — phase 2 left no aged, non-whitelisted mail behind. This
+ *      is the "is prod acting on the Spam folder at all?" check. Six messages
+ *      sat through two releases intended to remove them; every test passed
+ *      green throughout, because no test and no alert looked at the folder.
+ *
+ * Findings go to the SHEET, not just logError. An earlier lesson in this
+ * project is that logError reaches only the Apps Script transcript, which
+ * nobody reads — so a silent failure stayed silent. The Sheet is the surface
+ * the user actually looks at, so that is where a broken invariant belongs.
+ *
+ * Deliberately non-throwing: an audit that breaks the run it audits is worse
+ * than the bug it reports.
+ */
+function auditRunIntegrity()
+{
+  try
+  {
+    const unlogged = _destroyedMessageIds.filter(function (id) {
+      return _loggedMessageIds.indexOf(id) === -1;
+    });
+
+    if (unlogged.length > 0)
+    {
+      const detail = 'LOG GAP: ' + unlogged.length + ' message(s) permanently ' +
+                     'deleted with no Sheet row — ids: ' + unlogged.join(', ');
+      logError('AUDIT FAILED — ' + detail);
+      queueAuditRow('AUDIT_LOG_GAP', detail);
+    }
+
+    if (_unresolvedAgedSpam > 0)
+    {
+      const detail = 'SPAM NOT ACTIONED: ' + _unresolvedAgedSpam + ' aged, ' +
+                     'non-whitelisted Spam-folder thread(s) were neither ' +
+                     'deleted nor spared this run';
+      logError('AUDIT FAILED — ' + detail);
+      queueAuditRow('AUDIT_SPAM_NOT_ACTIONED', detail);
+    }
+
+    // Flush only when the audit itself queued something. flushSpamLog() already
+    // no-ops on an empty buffer, but being explicit keeps the intent readable:
+    // a clean audit writes nothing at all.
+    if (_pendingLogEntries.length > 0) flushSpamLog();
+  }
+  catch (auditError)
+  {
+    logError('auditRunIntegrity failed (non-fatal): ' + auditError.toString());
+  }
+}
+
 function flushSpamLog()
 {
   if (_pendingLogEntries.length === 0) return;

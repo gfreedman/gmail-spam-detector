@@ -596,6 +596,98 @@ console.log('\n=== logging: every reviewed message produces a row ===');
           .indexOf('FREEMAIL_RANDOM_LOCAL') !== -1);
 }
 
+console.log('\n=== auditRunIntegrity: prod tells on itself ===');
+{
+  // Every disposition bug this project shipped was invisible in production:
+  // the code believed it had acted and nothing disagreed out loud. These
+  // assertions cover the two invariants that would have caught them.
+  const audited = (build) => {
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const rows = [];
+    const errs = [];
+    c.queueAuditRow = (t, d) => rows.push({ type: t, detail: d });
+    c.flushSpamLog = () => {};
+    c.logError = e => errs.push(String(e));
+    build(c);
+    c.auditRunIntegrity();
+    return { rows, errs };
+  };
+
+  // 1. A delete with no Sheet row must be reported. Deletion is irreversible,
+  //    so an unlogged delete destroys the only record that it happened.
+  {
+    const { rows, errs } = audited(c => {
+      const m = blacklistMessage('mGAP');
+      c.deleteMessagePermanently(m, fakeThread([m], c.calls));
+    });
+    check('an unlogged permanent delete raises AUDIT_LOG_GAP',
+          rows.some(r => r.type === 'AUDIT_LOG_GAP'), JSON.stringify(rows));
+    check('the log gap names the message id',
+          rows.some(r => r.detail.indexOf('mGAP') !== -1), JSON.stringify(rows));
+    check('the log gap also reaches logError',
+          errs.some(e => e.indexOf('AUDIT FAILED') !== -1), JSON.stringify(errs));
+  }
+
+  // 2. The normal path — logged, then deleted — must stay silent. An audit that
+  //    cries wolf on healthy runs is one the user learns to ignore.
+  {
+    const { rows } = audited(c => {
+      const m = blacklistMessage('mOK');
+      c.accumulateLogEntry(m, c.collectSignals(m), 'GMAIL_SPAM_CONFIRMED');
+      c.deleteMessagePermanently(m, fakeThread([m], c.calls));
+    });
+    check('a logged-then-deleted message raises nothing',
+          rows.length === 0, JSON.stringify(rows));
+  }
+
+  // 3. A completely idle run raises nothing.
+  check('an idle run raises nothing', audited(() => {}).rows.length === 0);
+
+  // 4. Aged spam that phase 2 could not remove must be reported. This is the
+  //    "is prod acting on the Spam folder at all?" invariant — the one whose
+  //    violation sat unnoticed through two releases.
+  {
+    const { rows, errs } = audited(c => {
+      const m = blacklistMessage('mAGED');
+      const t = fakeThread([m], c.calls);
+      c.GmailApp.search = (q) => (q.indexOf('older_than') !== -1 ? [t] : []);
+      c.GmailApp.getMessagesForThreads = ts => ts.map(x => x.__messages);
+      // The delete fails, so phase 2 neither removed nor spared it.
+      c.Gmail.Users.Messages.batchDelete = () => { throw new Error('quota'); };
+      c.reviewGmailSpam(false);
+    });
+    check('aged spam left behind raises AUDIT_SPAM_NOT_ACTIONED',
+          rows.some(r => r.type === 'AUDIT_SPAM_NOT_ACTIONED'), JSON.stringify(rows));
+    check('the not-actioned finding reaches logError',
+          errs.some(e => e.indexOf('SPAM NOT ACTIONED') !== -1), JSON.stringify(errs));
+  }
+
+  // 5. A whitelisted sender phase 2 spares is NOT a failure to action.
+  {
+    const { rows } = audited(c => {
+      const m = blacklistMessage('mWLAGED');
+      m.getFrom = () => 'LinkedIn <invitations@linkedin.com>';
+      const t = fakeThread([m], c.calls);
+      c.GmailApp.search = (q) => (q.indexOf('older_than') !== -1 ? [t] : []);
+      c.GmailApp.getMessagesForThreads = ts => ts.map(x => x.__messages);
+      c.reviewGmailSpam(false);
+    });
+    check('deliberately spared whitelisted mail raises nothing',
+          rows.length === 0, JSON.stringify(rows));
+  }
+
+  // 6. The audit must never break the run it audits.
+  {
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    c.queueAuditRow = () => { throw new Error('sheet down'); };
+    const m = blacklistMessage('mTHROW');
+    c.deleteMessagePermanently(m, fakeThread([m], c.calls));
+    let threw = false;
+    try { c.auditRunIntegrity(); } catch (e) { threw = true; }
+    check('a failing audit does not throw into the run', threw === false);
+  }
+}
+
 console.log('\n=== null signals are a deliberate disposition, not a miss ===');
 {
   // The Sheet's rule-description column is derived from getRuleFromSignals().

@@ -47,6 +47,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - ✅ **100% detection** on 54/54 spam + 5/5 scam (.eml files)
 - ✅ **0% false positives** on 22/22 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
+- ✅ **Every run audits itself** — `auditRunIntegrity()` writes an `AUDIT_*` row to the Sheet if a deleted message has no log row, or if aged non-whitelisted spam was left in the folder. Costs no API calls; silent when healthy.
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
 - ✅ **Signal collection and verdict logic kept separate** (`collectSignals()` gathers facts, `makeVerdict()` judges)
 

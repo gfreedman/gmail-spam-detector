@@ -65,7 +65,7 @@ def main():
     ap.add_argument('--sheet-id', default=SHEET_ID)
     a = ap.parse_args()
 
-    url = ('https://sheets.googleapis.com/v4/spreadsheets/%s/values/Health!A2:G2'
+    url = ('https://sheets.googleapis.com/v4/spreadsheets/%s/values/Health!A2:H2'
            % a.sheet_id)
     try:
         req = urllib.request.Request(url, headers={'Authorization': 'Bearer ' + token()})
@@ -78,9 +78,13 @@ def main():
             'so it has not run since v6.58.0 deployed')
         return 1
 
-    last_at, version, status, processed, spam, errors, findings = (vals[0] + [''] * 7)[:7]
-    print('\nHealth row: %s  v%s  %s  processed=%s spam=%s errors=%s findings=%s\n'
+    (last_at, version, status, processed, spam,
+     errors, findings, last_error) = (vals[0] + [''] * 8)[:8]
+    print('\nHealth row: %s  v%s  %s  processed=%s spam=%s errors=%s findings=%s'
           % (last_at, version, status, processed, spam, errors, findings))
+    if last_error:
+        print('LastError : %s' % last_error)
+    print()
 
     # 1. liveness
     try:
@@ -103,7 +107,9 @@ def main():
 
     # 3. invariants
     if status == 'OK':
-        ok('status OK (no in-run errors, no audit findings)')
+        ok('status OK (run completed, no in-run errors, no audit findings)')
+    elif status == 'THREW':
+        bad('status THREW — the run did not complete: %s' % (last_error or '(no detail)'))
     else:
         bad('status is %s — check the Raw Log tab for AUDIT_* rows' % status)
 

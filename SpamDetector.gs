@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.58.0
+ * @version 6.58.1
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -81,7 +81,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.58.0';
+const SCRIPT_VERSION = '6.58.1';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -840,6 +840,14 @@ function processInbox()
   _loggedMessageIds    = [];
   _unresolvedAgedSpam  = 0;
 
+  // Declared out here, not in the try, because `finally` reads them to emit the
+  // heartbeat even when the run throws.
+  let spamCount      = 0;
+  let processedCount = 0;
+  let errorCount     = 0;
+  let auditFindings  = 0;
+  let runError       = null;
+
   try
   {
     // Validate config before doing any work. If something is misconfigured we
@@ -849,13 +857,6 @@ function processInbox()
 
     // Single search call — the only API call on the fast path when inbox is clean.
     const threads = GmailApp.search(buildSearchQuery(), 0, CONFIG.maxEmailsPerRun);
-
-    // Hoisted out of the threads-present block so logRunHeartbeat() can read
-    // them: an empty-inbox run must still emit a heartbeat, otherwise "quiet"
-    // and "crashed" look identical from outside.
-    let spamCount      = 0;
-    let processedCount = 0;
-    let errorCount     = 0;
 
     if (threads.length > 0)
     {
@@ -927,18 +928,15 @@ function processInbox()
     // Second flush picks up any entries queued by maintenance.
     flushSpamLog();
 
-    // Last: check that what the run believes it did matches what it recorded.
+    // Check that what the run believes it did matches what it recorded.
     // After both flushes, so _loggedMessageIds is complete.
-    const auditFindings = auditRunIntegrity();
-
-    // One queryable line per execution. Emitted unconditionally, including on
-    // empty-inbox runs, because that is what separates "nothing to do" from
-    // "never ran".
-    logRunHeartbeat({ processed: processedCount, spam: spamCount,
-                      errors: errorCount, auditFindings: auditFindings });
+    auditFindings = auditRunIntegrity();
   }
   catch (error)
   {
+    // Recorded for the heartbeat in `finally`, so a failed run still reports.
+    runError = error.toString();
+
     if (error.toString().includes('Service invoked too many times for one day: gmail'))
     {
       logInfo('Gmail quota exhausted for today — skipping run, will resume after quota reset');
@@ -950,6 +948,23 @@ function processInbox()
   }
   finally
   {
+    // The heartbeat MUST be in `finally`, not at the end of the try.
+    //
+    // Placed in the try (v6.58.0) it only fired when the run succeeded, so a
+    // run that threw reported nothing at all — indistinguishable from a trigger
+    // that never fired. That is precisely the blind spot the heartbeat exists
+    // to close, reintroduced one level down: the failure mode a health signal
+    // most needs to report is the one that skips the health signal.
+    //
+    // `return` inside the catch (the Gmail-quota branch) also jumps straight
+    // here, so that path reports too.
+    //
+    // Runs before releaseLock() so the write happens while this execution still
+    // holds the lock, and cannot interleave with the next trigger's row.
+    logRunHeartbeat({ processed: processedCount, spam: spamCount,
+                      errors: errorCount, auditFindings: auditFindings,
+                      runError: runError });
+
     lock.releaseLock();
   }
 }
@@ -4547,7 +4562,8 @@ function writeHealthRow(stats)
   {
     const props    = PropertiesService.getScriptProperties();
     const eventful = stats.processed > 0 || stats.spam > 0 ||
-                     stats.errors > 0 || stats.auditFindings > 0;
+                     stats.errors > 0 || stats.auditFindings > 0 ||
+                     !!stats.runError;
     const lastAt   = parseInt(props.getProperty('LAST_HEALTH_WRITE_MS') || '0', 10);
 
     if (!eventful && Date.now() - lastAt < HEALTH_INTERVAL_MS) return;
@@ -4560,19 +4576,23 @@ function writeHealthRow(stats)
     if (!sheet)
     {
       sheet = ss.insertSheet('Health');
-      sheet.getRange(1, 1, 1, 7).setValues([[
+      sheet.getRange(1, 1, 1, 8).setValues([[
         'LastRunAt', 'Version', 'Status', 'Processed', 'SpamActioned',
-        'RunErrors', 'AuditFindings']]);
+        'RunErrors', 'AuditFindings', 'LastError']]);
       sheet.setFrozenRows(1);
     }
 
-    const status = stats.auditFindings > 0 ? 'AUDIT_FINDINGS'
-                 : stats.errors > 0        ? 'ERRORS'
+    // THREW outranks everything: the run did not complete, so its other
+    // counters are partial and must not read as a clean result.
+    const status = stats.runError            ? 'THREW'
+                 : stats.auditFindings > 0   ? 'AUDIT_FINDINGS'
+                 : stats.errors > 0          ? 'ERRORS'
                  : 'OK';
 
-    sheet.getRange(2, 1, 1, 7).setValues([[
+    sheet.getRange(2, 1, 1, 8).setValues([[
       new Date().toISOString(), SCRIPT_VERSION, status,
-      stats.processed, stats.spam, stats.errors, stats.auditFindings]]);
+      stats.processed, stats.spam, stats.errors, stats.auditFindings,
+      escapeSheetCell(String(stats.runError || '').substring(0, 500))]]);
 
     props.setProperty('LAST_HEALTH_WRITE_MS', String(Date.now()));
   }

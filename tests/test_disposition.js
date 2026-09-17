@@ -762,6 +762,36 @@ console.log('\n=== heartbeat + errors are reachable from outside Apps Script ===
           !!flagged && flagged.v[2] === 'AUDIT_FINDINGS', JSON.stringify(flagged));
   }
 
+  // A run that THROWS must still report. Placed in the try (v6.58.0) the
+  // heartbeat only fired on success, so a failed run was indistinguishable
+  // from a trigger that never fired — the very blind spot it exists to close.
+  {
+    const writes = [];
+    const hc = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } });
+    let health = null;
+    hc.SpreadsheetApp = { openById: () => ({
+      getSheetByName: n => (n === 'Health' ? health : null),
+      insertSheet: () => (health = {
+        getRange: (r, c, nr, nc) => ({ setValues: v => writes.push({ r, v: v[0] }) }),
+        setFrozenRows() {} }) }) };
+    hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 0,
+                         runError: 'TypeError: boom' });
+    const row = writes.find(w => w.r === 2);
+    check('a thrown run reports status THREW', !!row && row.v[2] === 'THREW',
+          JSON.stringify(row));
+    check('the error text is recorded on the health row',
+          !!row && String(row.v[7]).indexOf('boom') !== -1, JSON.stringify(row));
+    check('THREW outranks a clean counter set',
+          !!row && row.v[2] !== 'OK', JSON.stringify(row));
+
+    // ...and must not be swallowed by the quiet-run throttle.
+    const before = writes.length;
+    hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 0,
+                         runError: 'TypeError: again' });
+    check('a thrown run bypasses the throttle', writes.length > before,
+          'writes=' + writes.length);
+  }
+
   // A broken Sheet must not break the run either.
   {
     const hc = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } });

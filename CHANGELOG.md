@@ -17,6 +17,35 @@ detail plus the diffs.
 
 ---
 
+## v6.58.1
+
+**The heartbeat could not report the failure it existed to report.**
+
+v6.58.0 put `logRunHeartbeat()` at the end of `processInbox()`'s `try`. So it
+only ran when the run *succeeded*. A run that threw wrote no health row at all —
+indistinguishable from a trigger that never fired, which is exactly the blind
+spot the heartbeat was added to close. The same bug one level down: the failure
+mode a health signal most needs to report is the one that skips the signal.
+
+Found while verifying v6.58.0 in production: no Health tab appeared after
+several trigger cycles, and with the heartbeat inside the `try` there was no way
+to tell "not running" from "throwing every run".
+
+- The heartbeat now lives in `finally`, so it reports on success, on throw, and
+  on the Gmail-quota `return` inside the `catch` (which also jumps to `finally`).
+- Counters and `auditFindings` moved to function scope, since `finally` reads them.
+- New `THREW` status, which outranks every other — a run that did not complete
+  has partial counters and must not read as clean.
+- New `LastError` column carries the exception text, escaped and truncated.
+- A thrown run bypasses the quiet-run throttle.
+- It runs before `releaseLock()`, so the write completes while this execution
+  still holds the lock and cannot interleave with the next trigger's row.
+
+Four new assertions cover the THREW status, the recorded error text, THREW
+outranking clean counters, and bypassing the throttle.
+
+---
+
 ## v6.58.0
 
 **v6.57.0's heartbeat went somewhere unreadable. This puts it where it can be read.**

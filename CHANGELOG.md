@@ -17,6 +17,16 @@ detail plus the diffs.
 
 ---
 
+## v6.49.1
+
+Added `docs/BACKLOG.md`: the deferred work from both external reviews, tiered,
+with a *why it can wait* and *what would escalate it* for each item — the second
+being the part that actually ages well. Also records the known-and-accepted
+Signal 7 evasions so they are not rediscovered as bugs, and the four ideas
+deliberately rejected.
+
+Documentation only; no behaviour change.
+
 ## v6.49.0
 
 Close two zero-cost Signal 7 bypasses, and move this changelog out of the source

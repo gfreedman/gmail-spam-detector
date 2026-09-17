@@ -329,6 +329,7 @@ addToWhitelist('domain.com');
 ├── LICENSE
 ├── docs/
 │   ├── index.html               # Published GitHub Pages site
+│   ├── BACKLOG.md               # Deferred work, with why-it-can-wait rationale
 │   └── EXPORTING_EMAILS.md      # How to export .eml files from Gmail
 ├── scripts/
 │   ├── patch_version.js         # Stamps @version + SCRIPT_VERSION at deploy
@@ -344,7 +345,7 @@ addToWhitelist('domain.com');
 └── .github/workflows/           # CI/CD pipeline
 ```
 
-Docs: [Changelog](CHANGELOG.md) · [Exporting emails](docs/EXPORTING_EMAILS.md) · [Spam logging design](docs/SPAM_LOGGING_PLAN.md)
+Docs: [Changelog](CHANGELOG.md) · [Backlog](docs/BACKLOG.md) · [Exporting emails](docs/EXPORTING_EMAILS.md) · [Spam logging design](docs/SPAM_LOGGING_PLAN.md)
 
 ## 🔐 Privacy & Security
 

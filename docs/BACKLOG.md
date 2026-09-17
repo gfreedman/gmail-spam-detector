@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred work, as of **v6.60.3** (2026-09-17).
+Deferred work, as of **v6.61.0** (2026-09-17).
 
 Everything here was surfaced by two external reviews — a Google L6 security pass
 and a Palo Alto Networks L6 code/docs pass — plus findings from the day's own
@@ -214,23 +214,21 @@ instructions. Note `destroySpam()`'s paging loop is the shape to reuse.
 
 **Escalates if:** detection volume rises, or you ever share the parent folder.
 
-### 1.3 Signals fail open, one throw at a time
+### 1.3 ~~Signals fail open, one throw at a time~~ — DONE in v6.61.0
 
-`collectSignals()` — Signals 5 and 7 are individually wrapped in `try/catch`,
-which is correct and deliberate. Signals 1a, 2, 2b–2d, 3, 4 and 6 are not, so a
-single throw from `getRawContent()` or `getPlainBody()` discards *all* of them,
-and `analyzeMessage()`'s catch-all returns `{isSpam: false}`.
+Every signal block is now individually wrapped, and the two catches that already
+existed (Signals 5 and 7) now count their skips too — uncounted, they let a
+genuinely degraded verdict report itself as complete.
 
-Worse, `processInbox()` still stamps `SpamChecked`, so the message is never
-re-examined — an attacker-triggerable permanent exemption via malformed MIME.
+The permanent-exemption half is closed as well: `analyzeMessage()` returns
+`unevaluated`, and `processInbox()` no longer stamps `SpamChecked` on a message
+it never judged. Bounded to one retry via the review label, so undecodable mail
+cannot become an unbounded re-fetch loop.
 
-**Plan.** Wrap each signal block the way 5 and 7 already are. Where the whole
-verdict is unavailable, `logError` and **do not** apply `SpamChecked`, so the
-message is retried rather than exempted. Add a disposition assertion: a message
-whose `getRawContent()` throws must not end up labelled clean.
-
-**Escalates immediately** if you ever see a message sail through that obviously
-should have been caught — this is the mechanism that would explain it.
+14 assertions in `tests/test_disposition.js`, including that a message whose
+`getRawContent()` throws is flagged but NOT marked processed on the first
+failure, IS on the second, and that an oversize message — permanently
+unevaluable — is marked on the first pass.
 
 ---
 

@@ -173,6 +173,10 @@ function fakeThread(messages, sink) {
     __ops: ops,
     getId: () => 't1',
     getFirstMessageSubject: () => messages[0].getSubject(),
+    // threadHasLabel() reads this as a retry counter. Omitting it made the
+    // helper fail closed (its deliberate behaviour) and every "first failure"
+    // test silently exercised the second-failure path instead.
+    getLabels: () => labels.map(n => ({ getName: () => n })),
     getMessages: () => messages,
     // Ops are recorded on the thread itself (__ops), not in makeCtx's `calls`,
     // which is out of scope here. removeLabel used to record nothing at all,
@@ -594,6 +598,133 @@ console.log('\n=== logging: every reviewed message produces a row ===');
   check('FREEMAIL_RANDOM_LOCAL appears in the signals CSV',
         vm.runInContext("buildSignalsCsv({freeMailRandomLocal:true})", ctx)
           .indexOf('FREEMAIL_RANDOM_LOCAL') !== -1);
+}
+
+console.log('\n=== a message that cannot be evaluated is not exempted ===');
+{
+  // The bug: getRawContent() throwing made analyzeMessage() return
+  // {isSpam:false}, indistinguishable from a genuine clean verdict, and
+  // processInbox() then stamped SpamChecked — which removes the thread from the
+  // search query for good. Malformed MIME was a PERMANENT detector exemption
+  // an attacker could trigger on purpose.
+  const throwingMessage = (id) => {
+    const m = blacklistMessage(id);
+    m.getRawContent = () => { throw new Error('malformed MIME'); };
+    return m;
+  };
+
+  // 1. The verdict must report that no judgement was reached.
+  {
+    const c = makeCtx({});
+    const v = c.analyzeMessage(throwingMessage('mTHREW1'));
+    check('a throwing message is not judged spam', v.isSpam === false);
+    check('and is reported as unevaluated', v.unevaluated === 'error',
+          JSON.stringify(v.unevaluated));
+  }
+
+  // 2. First failure: flagged for review, but NOT marked processed — so the
+  //    next run tries again instead of exempting it forever.
+  {
+    const c = makeCtx({});
+    const m = throwingMessage('mTHREW2');
+    const t = fakeThread([m], c.calls);
+    // Scoped to the inbox query: an unscoped stub also feeds this thread to
+    // reviewGmailSpam() and the recheck pass, which then apply SpamChecked and
+    // make the assertion below pass or fail for the wrong reason.
+    c.GmailApp.search = (q) => (q.indexOf('in:inbox') !== -1 ? [t] : []);
+    c.GmailApp.getMessagesForThreads = () => [[m]];
+    c.processInbox();
+    check('first failure applies the review label',
+          t.__labels.indexOf('SuspectedSpam') !== -1, JSON.stringify(t.__labels));
+    check('first failure does NOT apply SpamChecked (so it is retried)',
+          t.__labels.indexOf('SpamChecked') === -1, JSON.stringify(t.__labels));
+    check('and nothing was deleted',
+          c.calls.filter(x => x.op === 'batchDelete').length === 0);
+  }
+
+  // 3. Second failure: the retry is spent, so it IS marked processed. Otherwise
+  //    genuinely undecodable mail becomes an unbounded re-fetch loop — the
+  //    failure mode that cost 11,500 reads/day in v6.50.1.
+  {
+    const c = makeCtx({});
+    const m = throwingMessage('mTHREW3');
+    const t = fakeThread([m], c.calls);
+    t.__labels.push('SuspectedSpam');          // already tried once
+    // Scoped to the inbox query: an unscoped stub also feeds this thread to
+    // reviewGmailSpam() and the recheck pass, which then apply SpamChecked and
+    // make the assertion below pass or fail for the wrong reason.
+    c.GmailApp.search = (q) => (q.indexOf('in:inbox') !== -1 ? [t] : []);
+    c.GmailApp.getMessagesForThreads = () => [[m]];
+    c.processInbox();
+    check('second failure DOES apply SpamChecked (retry bounded)',
+          t.__labels.indexOf('SpamChecked') !== -1, JSON.stringify(t.__labels));
+  }
+
+  // 4. An oversize message is permanently unevaluable, so retrying it forever
+  //    buys nothing — it must be marked processed on the FIRST pass.
+  {
+    const c = makeCtx({});
+    const m = blacklistMessage('mBIG');
+    m.getBody = () => 'x'.repeat(6 * 1024 * 1024);   // over the 5MB cap
+    const t = fakeThread([m], c.calls);
+    // Scoped to the inbox query: an unscoped stub also feeds this thread to
+    // reviewGmailSpam() and the recheck pass, which then apply SpamChecked and
+    // make the assertion below pass or fail for the wrong reason.
+    c.GmailApp.search = (q) => (q.indexOf('in:inbox') !== -1 ? [t] : []);
+    c.GmailApp.getMessagesForThreads = () => [[m]];
+    c.processInbox();
+    check('oversize mail is flagged for review',
+          t.__labels.indexOf('SuspectedSpam') !== -1, JSON.stringify(t.__labels));
+    check('oversize mail IS marked processed (permanently unevaluable)',
+          t.__labels.indexOf('SpamChecked') !== -1, JSON.stringify(t.__labels));
+  }
+
+  // 5. One signal throwing must not discard the others: a blacklisted bulk
+  //    sender is still caught even when an unrelated signal fails.
+  {
+    const c = makeCtx({});
+    const m = blacklistMessage('mPARTIAL');
+    // Signal 5 is `subject.trim() === '' && getAttachments()...`, so it
+    // short-circuits on a non-empty subject and never touches attachments.
+    // An empty subject is what actually reaches the throwing call.
+    m.getSubject = () => '';
+    m.getAttachments = () => { throw new Error('attachment read failed'); };
+    const sig = c.collectSignals(m);
+    check('an unrelated signal failure does not discard the rest',
+          !!sig && sig.blacklistedSender === true && sig.bulkEmailService === true,
+          JSON.stringify(sig));
+    check('the gap is recorded as degraded', !!sig && sig._degraded === true);
+    check('spam is still convicted despite the gap', c.makeVerdict(sig) === true);
+    check('DEGRADED is surfaced in the Sheet signals column',
+          c.buildSignalsCsv(sig).indexOf('DEGRADED') !== -1,
+          c.buildSignalsCsv(sig));
+  }
+
+  // 6. A degraded run that finds NOTHING is not a clean bill of health.
+  {
+    const c = makeCtx({});
+    const m = blacklistMessage('mCLEANISH');
+    m.getSubject = () => '';                 // reaches Signal 5, see above
+    m.getFrom = () => 'Ada <ada@example.org>';
+    m.getRawContent = () => 'Received: from mail.example.org\r\n\r\nhi';
+    m.getBody = () => '<p>hi</p>';
+    m.getPlainBody = () => 'hi';
+    m.getAttachments = () => { throw new Error('attachment read failed'); };
+    const v = c.analyzeMessage(m);
+    check('degraded + not-spam is reported as unevaluated',
+          v.isSpam === false && v.unevaluated === 'error',
+          JSON.stringify({ isSpam: v.isSpam, unevaluated: v.unevaluated }));
+  }
+
+  // 7. threadHasLabel must fail CLOSED — a false would grant another retry
+  //    every run if label reads are broken.
+  {
+    const c = makeCtx({});
+    const t = fakeThread([blacklistMessage('mLBL')], c.calls);
+    t.getLabels = () => { throw new Error('labels unavailable'); };
+    check('threadHasLabel fails closed when labels cannot be read',
+          c.threadHasLabel(t, 'SuspectedSpam') === true);
+  }
 }
 
 console.log('\n=== auditRunIntegrity: prod tells on itself ===');

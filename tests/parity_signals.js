@@ -82,7 +82,12 @@ const signalKeys = Object.keys(
     ? ctx.collectSignals(stub({ file: '_probe', from: 'a@b.invalid',
                                 subject: 'x', plainBody: 'x', html: '', raw: '' })) || {}
     : {}
-).filter(k => k !== 'matched_patterns');
+)
+  // `_`-prefixed keys are META, not detection signals (e.g. _degraded, set when
+  // a signal threw and was skipped). They have no Python counterpart by design,
+  // so they are excluded from the parity contract rather than forcing a mirror
+  // of something that is not a signal.
+  .filter(k => k !== 'matched_patterns' && k.charAt(0) !== '_');
 
 const results = {};
 for (const c of cases) {
@@ -92,8 +97,12 @@ for (const c of cases) {
       results[c.file] = { whitelisted: true };
       continue;
     }
-    const out = { whitelisted: false, signals: {}, };
-    for (const k of Object.keys(signals)) out.signals[k] = signals[k];
+    const out = { whitelisted: false, signals: {} };
+    for (const k of Object.keys(signals)) {
+      if (k.charAt(0) === '_') continue;   // meta, see signalKeys above
+      out.signals[k] = signals[k];
+    }
+    out.degraded = signals._degraded === true;
     out.isSpam = ctx.makeVerdict(signals) === true;
     out.rule   = ctx.getRuleFromSignals(signals).rule;
     results[c.file] = out;

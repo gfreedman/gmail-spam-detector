@@ -17,6 +17,64 @@ detail plus the diffs.
 
 ---
 
+## v6.61.0
+
+**Backlog 1.3: signals no longer fail open, and a message that was never judged
+is no longer permanently exempted.**
+
+Two separate defects, one root cause.
+
+**1. One throw discarded eight signals.** Signals 5 and 7 were individually
+wrapped in `try/catch`; 1a, 1b, 1c, 2, 2b–2d, 3, 4, 6, 8 and 9 were not. A
+single throw skipped every remaining signal and `analyzeMessage()`'s catch-all
+returned `{isSpam: false}`.
+
+All twelve are now wrapped individually — a failing signal contributes nothing
+and the rest still run. Three variables genuinely crossed block boundaries
+(`textToCheck`, `atIdx`, `isFreeMail`), so they are hoisted: a `const` declared
+inside a `try` is invisible to the next block.
+
+The pre-existing catches on Signals 5 and 7 now increment the skip counter too.
+Leaving them uncounted meant a genuinely degraded verdict reported itself as
+complete — found by a test that asserted `_degraded` and failed.
+
+**2. The permanent exemption.** This was the more serious half. A throw made
+`analyzeMessage()` return `{isSpam: false}`, indistinguishable from a real clean
+verdict, and `processInbox()` then applied `SpamChecked` — which removes the
+thread from the search query **for good**. Malformed MIME that makes
+`getRawContent()` throw was a permanent detector exemption an attacker could
+trigger deliberately.
+
+Now `analyzeMessage()` reports `unevaluated`, and a message that was not judged
+is flagged for review but **not** marked processed, so the next run tries again.
+Two cases are deliberately different:
+
+| Reason | Retried? | Why |
+|---|---|---|
+| `'size'` (over the 5MB cap) | No — marked processed immediately | Permanent property of the message; re-fetching forever costs quota and changes nothing |
+| `'error'` (a throw) | Once | May be transient; bounded by the review label so undecodable mail cannot become an unbounded re-fetch loop — the failure mode that cost 11,500 reads/day in v6.50.1 |
+
+A clean verdict reached with a signal missing is also reported as unevaluated.
+Spam is still acted on: missing signals can only cause a **miss**, never a false
+positive.
+
+New `threadHasLabel()` is the retry counter — a label rather than a Script
+Property because it is per-thread, survives executions, needs no cleanup and is
+visible in Gmail. It fails **closed**: if labels cannot be read it claims
+"already retried", ending the loop rather than granting one every run.
+
+`_degraded` is meta rather than a detection signal, hence the underscore, which
+the parity bridge filters — it has no Python counterpart by design. It surfaces
+as `DEGRADED` in the Sheet's signals column, so a degraded verdict is visible in
+the log rather than only in a transcript nobody reads.
+
+**Detection behaviour is unchanged**, which the parity phase proves: all 81
+fixtures still agree with the Python mirror on every signal and verdict across
+this refactor of the most important function in the file. 14 new assertions;
+158 total in the disposition suite.
+
+---
+
 ## v6.60.3
 
 Docs-only cleanup from a review pass. No code change.

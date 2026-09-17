@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.60.3
+ * @version 6.61.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -81,7 +81,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.60.3';
+const SCRIPT_VERSION = '6.61.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -892,15 +892,42 @@ function processInbox()
           // sweep indefinitely.
           if (!result.destroyed)
           {
-            // An unevaluated message still gets SpamChecked (otherwise every
-            // run re-fetches it), but is also flagged so it is not silently
-            // indistinguishable from mail that passed all seven rules.
+            // An unevaluated message is flagged for review either way, so it is
+            // never silently indistinguishable from mail that passed every
+            // rule. What differs is whether it is ALSO marked processed —
+            // SpamChecked is what removes it from the search query for good.
             if (result.unevaluated)
             {
+              const subject = sanitizeForLog(thread.getFirstMessageSubject());
+
+              // Read the label BEFORE adding it: this is the retry counter.
+              const alreadyRetried = threadHasLabel(thread, CONFIG.reviewLabel);
+
               try { thread.addLabel(getOrCreateLabel(CONFIG.reviewLabel)); }
               catch (e) { logError('Could not flag unevaluated thread: ' + e.toString()); }
-              logInfo('FLAGGED (too large to evaluate): ' +
-                      sanitizeForLog(thread.getFirstMessageSubject()));
+
+              // 'size' is a permanent property of the message: it will be too
+              // large on every future run, so re-fetching it forever costs
+              // quota and changes nothing. Mark it processed.
+              //
+              // 'error' may be transient — a timeout, a quota blip, one
+              // malformed part. Leaving it unmarked means the next run tries
+              // again, which is the point: a message that threw was never
+              // judged, and stamping it processed is a permanent exemption
+              // obtainable by making getRawContent() fail.
+              //
+              // Bounded to ONE retry by the review label above, so genuinely
+              // undecodable mail cannot become an unbounded re-fetch loop —
+              // the failure mode that cost 11,500 reads/day in v6.50.1.
+              if (result.unevaluated === 'error' && !alreadyRetried)
+              {
+                logInfo('NOT marking processed, will retry next run: ' + subject);
+                continue;
+              }
+
+              logInfo('FLAGGED (unevaluated: ' + result.unevaluated +
+                      (result.unevaluated === 'error' ? ', retry exhausted' : '') +
+                      '): ' + subject);
             }
             thread.addLabel(label);
           }
@@ -1428,6 +1455,41 @@ function hasCorroboratingSignal(signals)
 }
 
 /**
+ * Does this thread already carry the named label?
+ *
+ * Used as a one-shot retry counter for messages that could not be evaluated:
+ * the review label's presence means "we already tried once". A label is used
+ * rather than a Script Property because it is per-thread, survives executions,
+ * needs no cleanup, and is visible to the user in Gmail.
+ *
+ * Fails CLOSED (returns true) when the labels cannot be read. A false here
+ * grants another retry, and if label reads are broken that could loop every
+ * run; claiming "already retried" ends the loop instead.
+ *
+ * @param {GmailThread} thread
+ * @param {string} labelName
+ * @return {boolean}
+ */
+function threadHasLabel(thread, labelName)
+{
+  try
+  {
+    const labels = thread.getLabels() || [];
+    for (let i = 0; i < labels.length; i++)
+    {
+      if (labels[i].getName() === labelName) return true;
+    }
+    return false;
+  }
+  catch (e)
+  {
+    logError('Could not read thread labels, assuming already retried: ' +
+             e.toString());
+    return true;
+  }
+}
+
+/**
  * Cheap whitelist test that costs no extra Gmail fetch.
  *
  * Only reads getFrom(), which comes with the message metadata, so the aged
@@ -1684,12 +1746,19 @@ function processThread(thread, messages)
         // message was never evaluated by any rule and never reconsidered.
         // Flagging the thread makes an unevaluated message visible instead of
         // indistinguishable from a clean one.
-        threadUnevaluated = true;
+        threadUnevaluated = 'size';
         continue;
       }
 
       processedCount++;
       const verdict = analyzeMessage(message);
+
+      // 'size' is permanent and must not be retried forever; 'error' may be
+      // transient. Never let an 'error' downgrade a 'size' already recorded.
+      if (verdict.unevaluated && threadUnevaluated !== 'size')
+      {
+        threadUnevaluated = verdict.unevaluated;
+      }
 
       logDebug('Email: "' + sanitizeForLog(message.getSubject()) + '" - Spam: ' + verdict.isSpam);
 
@@ -1906,6 +1975,19 @@ function collectSignals(message)
   const body = sanitizeInput(plainBody).trim() || stripHtmlTags(html);
   const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
 
+  // ── Values shared across signal blocks ──────────────────────────────────
+  // Declared here, not inside the block that first needs them, because each
+  // signal below is individually wrapped in try/catch — and a `const` declared
+  // inside a try is not visible to the next block. Anything two signals share
+  // has to outlive both.
+  const textToCheck = subject + ' ' + from;   // Signals 2 and 3
+  const atIdx       = senderAddress.lastIndexOf('@');
+  let   isFreeMail  = false;                  // set by Signal 8, read by Signal 9
+
+  // Counts signals that threw and were skipped. A verdict reached with fewer
+  // signals than intended is not a trustworthy "clean" — see _degraded below.
+  let signalsSkipped = 0;
+
   // ── Initialize signal accumulators ───────────────────────────────────────
   // Each detection phase below populates one signal. makeVerdict() combines
   // them to produce the spam/not-spam decision.
@@ -1930,10 +2012,20 @@ function collectSignals(message)
   // something spam. But it "multiplies" other signals: if you're using bulk
   // infrastructure AND have clickbait subjects, that combination is very suspicious.
   // Rules 1-3 all require bulk email as a prerequisite for exactly this reason.
-  if (isBulkEmail(rawContent))
+  try
   {
-    signals.bulkEmailService = true;
-    logDebug('Bulk email service detected');
+    if (isBulkEmail(rawContent))
+    {
+      signals.bulkEmailService = true;
+      logDebug('Bulk email service detected');
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 1a threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 1b: Blacklisted sender domain ────────────────────────────────
@@ -1941,59 +2033,99 @@ function collectSignals(message)
   // One match is enough — these domains have no legitimate use.
   // Match against the extracted email address only (not the display name) for
   // the same reason as the whitelist check above — prevents spoofing both ways.
-  const blacklist = getCachedBlacklist();
-  for (let i = 0; i < blacklist.length; i++)
+  try
   {
-    // Strict domain matching, same reasoning as the whitelist above.
-    if (addressMatchesDomain(senderAddress, blacklist[i]))
+    const blacklist = getCachedBlacklist();
+    for (let i = 0; i < blacklist.length; i++)
     {
-      signals.blacklistedSender = true;
-      logDebug('Blacklisted sender detected: ' + blacklist[i]);
-      break;
+      // Strict domain matching, same reasoning as the whitelist above.
+      if (addressMatchesDomain(senderAddress, blacklist[i]))
+      {
+        signals.blacklistedSender = true;
+        logDebug('Blacklisted sender detected: ' + blacklist[i]);
+        break;
+      }
     }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 1b threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 1c: Suspicious From display name ─────────────────────────────
   // Strip the <email@address> portion, then check the remaining display name.
   // Legitimate senders use plain names ("John Smith"); spam mills stuff
   // headlines into display names ("Breaking • Banks Closing • Alert").
-  const fromDisplayName = from.replace(/<[^>]*>$/, '').trim(); // quotes already stripped above
-  if (fromDisplayName.includes('•') ||     // Bullet separator — never used by legitimate senders
-      fromDisplayName.length > LIMITS.maxDisplayNameLength) // Excessive length — keyword stuffing
+  try
   {
-    signals.suspiciousFromName = true;
-    logDebug('Suspicious From name detected: ' + sanitizeForLog(fromDisplayName));
-  }
+    const fromDisplayName = from.replace(/<[^>]*>$/, '').trim(); // quotes already stripped above
+    if (fromDisplayName.includes('•') ||     // Bullet separator — never used by legitimate senders
+        fromDisplayName.length > LIMITS.maxDisplayNameLength) // Excessive length — keyword stuffing
+    {
+      signals.suspiciousFromName = true;
+      logDebug('Suspicious From name detected: ' + sanitizeForLog(fromDisplayName));
+    }
 
-  // Subject echo removed: caused false positives on legitimate company emails
-  // (e.g. "Your Converse Canada order" + From "Converse Canada") — a company
-  // using its own name in both fields is normal, not suspicious. All spam
-  // previously caught by this signal was already caught by Rule 1 (blacklist).
+    // Subject echo removed: caused false positives on legitimate company emails
+    // (e.g. "Your Converse Canada order" + From "Converse Canada") — a company
+    // using its own name in both fields is normal, not suspicious. All spam
+    // previously caught by this signal was already caught by Rule 1 (blacklist).
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 1c threw and was skipped: ' + signalError.toString());
+  }
 
   // ── Signal 2: Clickbait / sensationalism patterns ───────────────────────
   // Each pattern targets a CATEGORY of spam tactic, not specific phrases.
   // Patterns are checked against both subject AND from field concatenated,
   // since spammers stuff clickbait into display names too.
   // Each matching pattern increments clickbaitCount independently.
-  const textToCheck = subject + ' ' + from;
-  for (let i = 0; i < CLICKBAIT_PATTERNS.length; i++)
+
+  try
   {
-    if (CLICKBAIT_PATTERNS[i].test(textToCheck))
+    for (let i = 0; i < CLICKBAIT_PATTERNS.length; i++)
     {
-      signals.clickbaitCount++;
+      if (CLICKBAIT_PATTERNS[i].test(textToCheck))
+      {
+        signals.clickbaitCount++;
+      }
     }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 2 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 2b: Body crypto scam patterns ────────────────────────────────
   // High-confidence terms that almost never appear in legitimate email bodies.
   // Checked against body only — subject/from rarely contain these phrases.
   // Each match increments clickbaitCount independently (supports Rule 4).
-  for (let i = 0; i < BODY_CRYPTO_PATTERNS.length; i++)
+  try
   {
-    if (BODY_CRYPTO_PATTERNS[i].test(body))
+    for (let i = 0; i < BODY_CRYPTO_PATTERNS.length; i++)
     {
-      signals.clickbaitCount++;
+      if (BODY_CRYPTO_PATTERNS[i].test(body))
+      {
+        signals.clickbaitCount++;
+      }
     }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 2b threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 2c: Body fear patterns ───────────────────────────────────────
@@ -2001,12 +2133,22 @@ function collectSignals(message)
   // FEAR_PATTERNS only check subject+from, missing scams that keep the subject
   // bland (e.g. "System Configuration Notice") and put fear in the body.
   // Each match increments clickbaitCount (same as BODY_CRYPTO_PATTERNS).
-  for (let i = 0; i < BODY_FEAR_PATTERNS.length; i++)
+  try
   {
-    if (BODY_FEAR_PATTERNS[i].test(body))
+    for (let i = 0; i < BODY_FEAR_PATTERNS.length; i++)
     {
-      signals.clickbaitCount++;
+      if (BODY_FEAR_PATTERNS[i].test(body))
+      {
+        signals.clickbaitCount++;
+      }
     }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 2c threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 2d: Unicode obfuscation in body ──────────────────────────────
@@ -2015,26 +2157,46 @@ function collectSignals(message)
   // Subject+from already checked in Signal 2 — this catches body-only evasion.
   // Break after first match: all four patterns detect the same technique, so
   // counting them independently would over-inflate clickbaitCount.
-  for (let i = 0; i < BODY_UNICODE_PATTERNS.length; i++)
+  try
   {
-    if (BODY_UNICODE_PATTERNS[i].test(body))
+    for (let i = 0; i < BODY_UNICODE_PATTERNS.length; i++)
     {
-      signals.clickbaitCount++;
-      break;
+      if (BODY_UNICODE_PATTERNS[i].test(body))
+      {
+        signals.clickbaitCount++;
+        break;
+      }
     }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 2d threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 3: Fear-mongering detection ──────────────────────────────────
   // Boolean signal — we only need to know if fear is present, not how many
   // patterns match. First match short-circuits the loop.
-  for (let i = 0; i < FEAR_PATTERNS.length; i++)
+  try
   {
-    if (FEAR_PATTERNS[i].test(textToCheck))
+    for (let i = 0; i < FEAR_PATTERNS.length; i++)
     {
-      signals.fearMongering = true;
-      logDebug('Fear-mongering detected (pattern match)');
-      break; // Boolean signal — one match is enough
+      if (FEAR_PATTERNS[i].test(textToCheck))
+      {
+        signals.fearMongering = true;
+        logDebug('Fear-mongering detected (pattern match)');
+        break; // Boolean signal — one match is enough
+      }
     }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 3 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 4: Marketing sender format ───────────────────────────────────
@@ -2042,14 +2204,24 @@ function collectSignals(message)
   // name formatting like "Name | Org", spammy business names, and suspicious
   // email address patterns. Commas deliberately excluded — common in legit
   // org/place names. Bare pipe check removed — subsumed by /\|\s*[A-Z]/.
-  for (let i = 0; i < MARKETING_PATTERNS.length; i++)
+  try
   {
-    if (MARKETING_PATTERNS[i].test(from))
+    for (let i = 0; i < MARKETING_PATTERNS.length; i++)
     {
-      signals.marketingFormat = true;
-      logDebug('Marketing sender format detected');
-      break; // Boolean signal — one match is enough
+      if (MARKETING_PATTERNS[i].test(from))
+      {
+        signals.marketingFormat = true;
+        logDebug('Marketing sender format detected');
+        break; // Boolean signal — one match is enough
+      }
     }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 4 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 5: Empty subject + attachment ────────────────────────────────
@@ -2067,7 +2239,11 @@ function collectSignals(message)
   }
   catch (attachError)
   {
-    // Non-fatal: skip this signal if attachment check fails (e.g., malformed message)
+    // Non-fatal: skip this signal if attachment check fails (e.g., malformed
+    // message). Counted like every other skip — this catch predates
+    // signalsSkipped, and leaving it uncounted made a genuinely degraded
+    // verdict report itself as complete.
+    signalsSkipped++;
     logError('Could not check attachments — signal skipped: ' + attachError.toString());
   }
 
@@ -2076,20 +2252,30 @@ function collectSignals(message)
   // ONLY ever sent by the actual service's own mail servers. A "Document shared
   // with you" email from ywammaui.org is 100% phishing — a compromised
   // legitimate account used as a delivery vector.
-  const matchesServiceSubject = IMPERSONATION_SUBJECT_PATTERNS.some(function(p) {
-    return p.test(subject);
-  });
-  if (matchesServiceSubject)
+  try
   {
-    const senderLower = senderAddress.toLowerCase();
-    const fromTrustedService = CLOUD_SERVICE_DOMAINS.some(function(d) {
-      return senderLower.endsWith('@' + d) || senderLower.endsWith('.' + d);
+    const matchesServiceSubject = IMPERSONATION_SUBJECT_PATTERNS.some(function(p) {
+      return p.test(subject);
     });
-    if (!fromTrustedService)
+    if (matchesServiceSubject)
     {
-      signals.serviceImpersonation = true;
-      logDebug('Service impersonation: cloud service subject from untrusted sender ' + sanitizeForLog(senderAddress));
+      const senderLower = senderAddress.toLowerCase();
+      const fromTrustedService = CLOUD_SERVICE_DOMAINS.some(function(d) {
+        return senderLower.endsWith('@' + d) || senderLower.endsWith('.' + d);
+      });
+      if (!fromTrustedService)
+      {
+        signals.serviceImpersonation = true;
+        logDebug('Service impersonation: cloud service subject from untrusted sender ' + sanitizeForLog(senderAddress));
+      }
     }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 6 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 8: Free-mail sender with a machine-generated local part ──────
@@ -2098,26 +2284,32 @@ function collectSignals(message)
   // from a person. It exists to CORROBORATE an existing spam verdict: in the
   // Spam folder, where Gmail has already judged the message, one independent
   // signal is enough. See reviewGmailSpam().
-  const atIdx = senderAddress.lastIndexOf('@');
-  // Hoisted: Signal 9 needs the same determination, and computing it twice
-  // would let the two signals disagree after an edit to one of them.
-  let isFreeMail = false;
-  if (atIdx > 0)
+  try
   {
-    const localPart   = senderAddress.substring(0, atIdx);
-    const senderHost  = senderAddress.substring(atIdx + 1);
-    isFreeMail        = FREE_MAIL_DOMAINS.some(function(d) {
-      return hostMatchesDomain(senderHost, d);
-    });
-
-    if (isFreeMail && RANDOM_LOCAL_PART_PATTERNS.some(function(p) {
-      return p.test(localPart);
-    }))
+    if (atIdx > 0)
     {
-      signals.freeMailRandomLocal = true;
-      logDebug('Free-mail sender with machine-generated local part: ' +
-               sanitizeForLog(senderAddress));
+      const localPart   = senderAddress.substring(0, atIdx);
+      const senderHost  = senderAddress.substring(atIdx + 1);
+      isFreeMail        = FREE_MAIL_DOMAINS.some(function(d) {
+        return hostMatchesDomain(senderHost, d);
+      });
+
+      if (isFreeMail && RANDOM_LOCAL_PART_PATTERNS.some(function(p) {
+        return p.test(localPart);
+      }))
+      {
+        signals.freeMailRandomLocal = true;
+        logDebug('Free-mail sender with machine-generated local part: ' +
+                 sanitizeForLog(senderAddress));
+      }
     }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 8 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 9: Callback phishing (the payload is a phone number) ─────────
@@ -2150,24 +2342,34 @@ function collectSignals(message)
   // and per the project's standing rule, a fuzzy signal gets a recoverable
   // disposition. In the Spam folder it still deletes, because it counts toward
   // hasCorroboratingSignal() where Gmail has already judged the message.
-  if (isFreeMail)
+  try
   {
-    const scanText = (subject + ' ' + body)
-      .substring(0, LIMITS.maxRawScanChars)
-      .toLowerCase();
-
-    const impersonated = IMPERSONATED_SUPPORT_BRANDS.filter(function(b) {
-      return scanText.indexOf(b) !== -1;
-    });
-
-    if (impersonated.length > 0 &&
-        CALLBACK_PHONE_PATTERN.test(scanText) &&
-        BILLING_LANGUAGE_PATTERNS.some(function(p) { return p.test(scanText); }))
+    if (isFreeMail)
     {
-      signals.callbackPhishing = true;
-      logDebug('Callback phishing: free-mail sender invoicing as "' +
-               impersonated[0] + '" with a phone number');
+      const scanText = (subject + ' ' + body)
+        .substring(0, LIMITS.maxRawScanChars)
+        .toLowerCase();
+
+      const impersonated = IMPERSONATED_SUPPORT_BRANDS.filter(function(b) {
+        return scanText.indexOf(b) !== -1;
+      });
+
+      if (impersonated.length > 0 &&
+          CALLBACK_PHONE_PATTERN.test(scanText) &&
+          BILLING_LANGUAGE_PATTERNS.some(function(p) { return p.test(scanText); }))
+      {
+        signals.callbackPhishing = true;
+        logDebug('Callback phishing: free-mail sender invoicing as "' +
+                 impersonated[0] + '" with a phone number');
+      }
     }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 9 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 7: Brand-mismatched call-to-action ───────────────────────────
@@ -2196,8 +2398,15 @@ function collectSignals(message)
   }
   catch (ctaError)
   {
+    signalsSkipped++;
     logError('Brand-CTA scan failed — signal skipped: ' + ctaError.toString());
   }
+
+  // Meta, not a detection signal — hence the underscore, which the parity
+  // bridge filters out. True when at least one signal threw, meaning a
+  // "not spam" verdict here was reached with less evidence than intended and
+  // must not be treated as a clean bill of health. See processThread().
+  signals._degraded = signalsSkipped > 0;
 
   return signals;
 }
@@ -2353,12 +2562,28 @@ function analyzeMessage(message)
     const signals = collectSignals(message);
     if (signals === null) return { isSpam: false, signals: null }; // whitelisted
     const isSpam = makeVerdict(signals);
-    return { isSpam: isSpam, signals: signals };
+
+    // A clean verdict reached with a signal missing is not a clean verdict.
+    // Spam is still acted on — missing signals can only cause a MISS, never a
+    // false positive — but "not spam" from a degraded run is reported as
+    // unevaluated so it gets retried rather than permanently exempted.
+    const unevaluated = (!isSpam && signals._degraded) ? 'error' : false;
+    return { isSpam: isSpam, signals: signals, unevaluated: unevaluated };
   }
   catch (error)
   {
+    // `unevaluated` is the important half of this return.
+    //
+    // Returning {isSpam:false} alone made a throw indistinguishable from a
+    // genuine clean verdict, and processInbox() then stamped SpamChecked, so
+    // the message was never looked at again. Malformed MIME that makes
+    // getRawContent() throw was therefore a PERMANENT detector exemption an
+    // attacker could trigger on purpose.
+    //
+    // The verdict stays not-spam — never destroy mail on an error — but the
+    // caller now knows the message was not actually judged.
     logError('Error analyzing message: ' + error.toString());
-    return { isSpam: false, signals: null }; // Default to not-spam on error
+    return { isSpam: false, signals: null, unevaluated: 'error' };
   }
 }
 
@@ -5003,6 +5228,9 @@ function buildSignalsCsv(signals)
   if (signals.brandMismatchedCta)         parts.push('BRAND_MISMATCH_CTA');
   if (signals.freeMailRandomLocal)        parts.push('FREEMAIL_RANDOM_LOCAL');
   if (signals.callbackPhishing)           parts.push('CALLBACK_PHISHING');
+  // Surfaced in the Sheet so a degraded verdict is visible in the log, not
+  // just in an execution transcript nobody reads.
+  if (signals._degraded)                  parts.push('DEGRADED');
 
   return parts.join(',');
 }

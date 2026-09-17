@@ -17,6 +17,26 @@ detail plus the diffs.
 
 ---
 
+## v6.58.2
+
+Header and gauge are now written together, in one call.
+
+v6.58.0 wrote the Health header only when creating the tab. v6.58.1 then added
+a `LastError` column, so an already-created tab kept its 7-column header while
+row 2 received 8 values — `LastError` sat in an unlabelled column H. Verified
+in prod: the live tab showed exactly that.
+
+Writing both rows every time costs the same single `setValues` call and makes
+the tab self-healing the next time this schema changes.
+
+Also corrects the record from v6.58.1: the Health tab **was** being written by
+v6.58.0. It first appeared at 21:28 UTC with status OK, after the reads that had
+reported it missing — those were simply too early. v6.58.1's `finally`
+placement remains correct and necessary on its own merits (a run that throws
+must still report), but it was not fixing a write that had failed.
+
+---
+
 ## v6.58.1
 
 **The heartbeat could not report the failure it existed to report.**

@@ -733,7 +733,8 @@ console.log('\n=== heartbeat + errors are reachable from outside Apps Script ===
         getSheetByName: n => (n === 'Health' ? health : null),
         insertSheet: n => {
           health = {
-            getRange: (r, c, nr, nc) => ({ setValues: v => writes.push({ r, v: v[0] }) }),
+            getRange: (r, c, nr, nc) => ({
+              setValues: v => writes.push({ r, rows: v.length, v: v }) }),
             setFrozenRows() {}
           };
           return health;
@@ -741,14 +742,21 @@ console.log('\n=== heartbeat + errors are reachable from outside Apps Script ===
       })
     };
     hc.logRunHeartbeat({ processed: 2, spam: 1, errors: 0, auditFindings: 0 });
-    const header = writes.find(w => w.r === 1);
-    const row    = writes.find(w => w.r === 2);
-    check('a Health tab is created with a header', !!header && header.v[0] === 'LastRunAt',
-          JSON.stringify(header));
-    check('health is written to row 2 (a gauge, not a log)', !!row, JSON.stringify(writes));
+    // One write covering rows 1-2: header + gauge together, so an existing tab
+    // cannot keep a stale schema. v6.58.0 created a 7-column header and v6.58.1
+    // wrote 8 values, leaving LastError unlabelled in column H.
+    const w = writes.find(x => x.r === 1);
+    check('header and gauge are written together', !!w && w.rows === 2,
+          JSON.stringify(writes));
+    check('the header names all 8 columns',
+          !!w && w.v[0].length === 8 && w.v[0][0] === 'LastRunAt' &&
+          w.v[0][7] === 'LastError', JSON.stringify(w && w.v[0]));
+    const row = w && { v: w.v[1] };
     check('a healthy run reports status OK', !!row && row.v[2] === 'OK', JSON.stringify(row));
     check('health carries the counters', !!row && row.v[3] === 2 && row.v[4] === 1,
           JSON.stringify(row));
+    check('the gauge row is 8 wide, matching the header',
+          !!row && row.v.length === 8, JSON.stringify(row));
 
     // Eventful runs always write; quiet runs are throttled so the 1-minute
     // trigger does not pay a Sheets call every minute.
@@ -759,7 +767,7 @@ console.log('\n=== heartbeat + errors are reachable from outside Apps Script ===
     hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 3 });
     const flagged = writes[writes.length - 1];
     check('audit findings bypass the throttle and report AUDIT_FINDINGS',
-          !!flagged && flagged.v[2] === 'AUDIT_FINDINGS', JSON.stringify(flagged));
+          !!flagged && flagged.v[1][2] === 'AUDIT_FINDINGS', JSON.stringify(flagged));
   }
 
   // A run that THROWS must still report. Placed in the try (v6.58.0) the
@@ -772,11 +780,12 @@ console.log('\n=== heartbeat + errors are reachable from outside Apps Script ===
     hc.SpreadsheetApp = { openById: () => ({
       getSheetByName: n => (n === 'Health' ? health : null),
       insertSheet: () => (health = {
-        getRange: (r, c, nr, nc) => ({ setValues: v => writes.push({ r, v: v[0] }) }),
+        getRange: (r, c, nr, nc) => ({
+          setValues: v => writes.push({ r, rows: v.length, v: v }) }),
         setFrozenRows() {} }) }) };
     hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 0,
                          runError: 'TypeError: boom' });
-    const row = writes.find(w => w.r === 2);
+    const row = writes.length ? { v: writes[writes.length - 1].v[1] } : null;
     check('a thrown run reports status THREW', !!row && row.v[2] === 'THREW',
           JSON.stringify(row));
     check('the error text is recorded on the health row',

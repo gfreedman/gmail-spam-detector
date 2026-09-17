@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.58.1
+ * @version 6.58.2
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -81,7 +81,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.58.1';
+const SCRIPT_VERSION = '6.58.2';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -4576,9 +4576,6 @@ function writeHealthRow(stats)
     if (!sheet)
     {
       sheet = ss.insertSheet('Health');
-      sheet.getRange(1, 1, 1, 8).setValues([[
-        'LastRunAt', 'Version', 'Status', 'Processed', 'SpamActioned',
-        'RunErrors', 'AuditFindings', 'LastError']]);
       sheet.setFrozenRows(1);
     }
 
@@ -4589,10 +4586,20 @@ function writeHealthRow(stats)
                  : stats.errors > 0          ? 'ERRORS'
                  : 'OK';
 
-    sheet.getRange(2, 1, 1, 8).setValues([[
-      new Date().toISOString(), SCRIPT_VERSION, status,
-      stats.processed, stats.spam, stats.errors, stats.auditFindings,
-      escapeSheetCell(String(stats.runError || '').substring(0, 500))]]);
+    // Header and data written TOGETHER, every time, in one call.
+    //
+    // Writing the header only when creating the tab meant an existing tab kept
+    // whatever schema it was created with: v6.58.0 made a 7-column header, and
+    // v6.58.1 then wrote 8 values into row 2, leaving LastError as an unlabelled
+    // column H. Writing both rows is the same number of Sheets calls and makes
+    // the tab self-healing whenever this schema changes again.
+    sheet.getRange(1, 1, 2, 8).setValues([
+      ['LastRunAt', 'Version', 'Status', 'Processed', 'SpamActioned',
+       'RunErrors', 'AuditFindings', 'LastError'],
+      [new Date().toISOString(), SCRIPT_VERSION, status,
+       stats.processed, stats.spam, stats.errors, stats.auditFindings,
+       escapeSheetCell(String(stats.runError || '').substring(0, 500))]
+    ]);
 
     props.setProperty('LAST_HEALTH_WRITE_MS', String(Date.now()));
   }

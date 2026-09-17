@@ -17,6 +17,28 @@ detail plus the diffs.
 
 ---
 
+## v6.50.3
+
+Actually apply the `docs/BACKLOG.md` update that v6.50.2 claimed to make.
+
+The v6.50.2 patch script aborted on a bad function call before writing the file,
+but the version bump, the changelog entry and the push all went ahead — so
+v6.50.2 shipped a changelog asserting the backlog had been brought current when
+it had not been touched. The claim, not the code, was the defect.
+
+The backlog now genuinely carries: the corrected "as of" version, a **Where to
+pick up** section (commands to run, first concrete action, the two behaviours
+that want observing, and the note that `BLOG.md` and `SESSION_REPORT.md` are
+gitignored), a **Settled — do not re-litigate** section recording the four
+disposition decisions with their reasoning, and `reviewGmailSpam()` added to the
+list of unlocked destructive entry points.
+
+Worth recording as its own lesson: a patch script that fails partway leaves the
+commit describing an intent rather than a result. `validate.py` catches version
+and count drift but cannot catch a changelog entry that is simply untrue.
+
+Documentation only.
+
 ## v6.50.2
 
 Bring `docs/BACKLOG.md` current. It was written at v6.49.0 and did not know

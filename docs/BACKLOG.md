@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred work, as of **v6.49.0** (2026-09-16).
+Deferred work, as of **v6.50.2** (2026-09-17).
 
 Everything here was surfaced by two external reviews — a Google L6 security pass
 and a Palo Alto Networks L6 code/docs pass — plus findings from the day's own
@@ -10,6 +10,50 @@ deliberately *not* done, and why.
 Each entry says **why it can wait** and **what would escalate it**. That second
 part matters more than the ordering: priorities here are a judgement about
 today's conditions, and conditions change.
+
+---
+
+## Where to pick up
+
+**Prod state at v6.50.2.** Healthy and unattended. Verified: the 1-minute
+trigger runs under the narrowed OAuth grant (v6.48.1 removed
+`script.external_request`); inbox fully processed; no false positives;
+detection log at 591 rows.
+
+**Before touching anything,** run these and confirm green:
+
+```bash
+python3 tests/test_spam_detector.py     # corpus + edge cases
+node tests/test_disposition.js          # the code that deletes mail
+node tests/test_link_graph.js           # URL parsing + Signal 7
+node tests/test_patch_version.js        # deploy-time version patch
+python3 scripts/validate.py             # repo consistency
+```
+
+Then confirm prod is alive. Cheapest signal: new inbox mail picking up
+`SpamChecked`. Also check `CHANGELOG.md`'s newest entry matches `@version`.
+
+**First concrete action: Tier 1.2, the retention policy.** It is the only open
+item with an ongoing cost rather than a hypothetical one — every misjudged
+legitimate email's full content accumulates in Drive with no expiry. It is also
+self-contained: one maintenance step, no scope change, no re-authorization, and
+`purgeAllSpamNow()`'s paging loop is the shape to copy.
+
+**Watch before changing more.** Two behaviours shipped 2026-09-16 that have not
+been observed over a meaningful period:
+
+- `reviewGmailSpam()` (v6.50.0) re-judges Gmail's spam verdicts and deletes only
+  on agreement. Its agreement rate is unknown. If it rarely agrees, our rules
+  are weaker than Gmail's on that population and the folder stays cluttered.
+  Look for `GMAIL_SPAM_CONFIRMED` rows in the Sheet.
+- `holdForReview()` (v6.48.0) makes the recheck pass label instead of delete. A
+  filling `SuspectedSpam` label is the early warning that a recently deployed
+  pattern is over-matching.
+
+**Not in the repo.** `BLOG.md` (813 lines) and `tests/SESSION_REPORT.md` (518)
+are both in `.gitignore`, so neither survives a fresh clone. `BLOG.md` is the
+best-written document in the project and is frozen at v6.33.0 — if it matters,
+track it. `SESSION_REPORT.md` describes a 3-rule v5.1 architecture; delete it.
 
 ---
 
@@ -34,6 +78,26 @@ What held were the things encoded as **executable invariants**, not prose:
 > **Rule for anything touching irreversible deletion: write the assertion, not
 > the comment.** A comment describing an invariant is a wish. A test is the
 > invariant.
+
+---
+
+## Settled on 2026-09-16 — do not re-litigate
+
+- **Spam folder disposition.** Resolved twice. v6.46.0 stopped the blanket sweep
+  (it was permanently deleting Gmail's false positives, unarchived and
+  unlogged). v6.50.0 added `reviewGmailSpam()`, which re-judges Gmail's verdicts
+  and deletes *only on agreement*, leaving whitelisted senders and anything we
+  score clean exactly where they are. Nothing is ever moved back to the inbox —
+  deliberate: a wrong whitelist entry would re-deliver real spam.
+- **Rule 7 quarantines; Rules 1–6 delete.** Rule 7 has an irreducible
+  false-positive class; the others key on sender reputation or content the
+  sender chose.
+- **The recheck pass holds rather than deletes** (v6.48.0). It overrules a
+  decision the user already made, using a pattern deployed minutes earlier.
+  `checkFalseNegatives()` still deletes, because a manual `SpamMissed` label is
+  the user *asking* for it.
+- **Nothing is deleted without a Drive archive** (v6.47.0). Enforced in
+  `disposeDetectedMessage()`, asserted in `test_disposition.js`.
 
 ---
 
@@ -165,8 +229,8 @@ exactly how today's stale comments accumulated.
 
 ### 2.4 `LockService` only guards `processInbox()`
 
-`cleanseInbox()`, `purgeAllSpamNow()`, `destroySpam()` and
-`checkFalseNegatives()` are all callable from the editor with no lock, alongside
+`cleanseInbox()`, `purgeAllSpamNow()`, `destroySpam()`, `checkFalseNegatives()`
+and `reviewGmailSpam()` are all callable from the editor with no lock, alongside
 the 1-minute trigger. `cleanseInbox()` is the dangerous combination: 500
 threads, guaranteed to exceed the 6-minute limit. Every destructive entry point
 should take the same script lock.

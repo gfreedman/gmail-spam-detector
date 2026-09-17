@@ -355,6 +355,77 @@ jobs:
           fi
 
   # ===========================================================================
+  # Stage 3b: Verify prod
+  #
+  # `validate` proves the new source is LIVE in Apps Script. It does not prove
+  # the script still RUNS. Those are different failures, and the second one has
+  # actually happened here: a deploy can leave syntactically valid code that
+  # throws on every trigger, and nothing downstream would notice — the detector
+  # writes no Sheet rows when it is broken, which is indistinguishable from a
+  # quiet mailbox.
+  #
+  # So this asks prod itself. scripts/prod_health.py reads the Drive marker the
+  # detector renames each run (see updateHealthMarker) and checks three things:
+  # the trigger is running, the LIVE version matches this commit, and the last
+  # run completed clean with no audit findings.
+  #
+  # It cannot prevent a bad deploy — the push already happened. It is detection,
+  # not prevention: a red X tied to the change that caused it.
+  #
+  # Polls because the marker only updates when the trigger next fires (~1 min).
+  # A version change bypasses the health throttle (v6.59.0) specifically so this
+  # does not have to wait out the 5-minute quiet-run interval.
+  #
+  # Runs in parallel with `tag` rather than before it: tagging is bookkeeping and
+  # should not be blocked by a runtime health problem.
+  # ===========================================================================
+  verify-prod:
+    needs: validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Write clasp credentials
+        run: printf '%s' '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
+
+      - name: Ask prod whether it is healthy
+        run: |
+          # Up to 8 attempts, 45s apart (~6 min) — comfortably longer than the
+          # 1-minute trigger interval, so a slow or queued execution does not
+          # read as a failure.
+          for i in $(seq 1 8); do
+            echo "── attempt $i/8"
+            if python3 scripts/prod_health.py --max-age-min 12; then
+              {
+                echo "## ✅ Prod verified healthy"
+                echo ""
+                echo "Trigger running, live version matches this commit, last run clean."
+              } >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            [ "$i" -lt 8 ] && sleep 45
+          done
+
+          echo "::error::prod did not report healthy after ~6 minutes"
+          {
+            echo "## ❌ Prod did NOT report healthy"
+            echo ""
+            echo "The new source is live (validate passed) but the running script"
+            echo "is not reporting a clean run on this version. Check, in order:"
+            echo ""
+            echo "1. **Health tab** in the Spam Intelligence Log — \`Status\` and \`LastError\`."
+            echo "2. **Raw Log tab** for \`AUDIT_LOG_GAP\` / \`AUDIT_SPAM_NOT_ACTIONED\` rows."
+            echo "3. The Apps Script **execution transcript**, if the script throws before it can report."
+            echo ""
+            echo "If the trigger itself is gone, re-create it with \`setupTrigger()\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
+  # ===========================================================================
   # Stage 4: Tag
   #
   # Auto-creates a git tag when the commit message contains a version number

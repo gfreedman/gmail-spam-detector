@@ -46,18 +46,40 @@ def bad(m): fail.append(m); print('\033[91m❌\033[0m  ' + m)
 
 
 def access_token():
+    """
+    Refresh the clasp credential.
+
+    Handles every shape this file has been seen in, because the CI secret and a
+    local `clasp login` do not agree: clasp@3.x writes {"tokens": {"default":
+    {...}}}, older versions wrote {"token": {...}} or a flat object, and the
+    client id/secret may sit in a sibling `oauth2ClientSettings` rather than
+    alongside the refresh token. The deploy workflow already carries this same
+    tolerance; keeping the two in step matters because CI runs this script
+    against the secret, not against a local login.
+    """
     p = os.path.expanduser('~/.clasprc.json')
     if not os.path.exists(p):
         sys.exit('No ~/.clasprc.json — run:  npx @google/clasp@3.3.0 login')
     raw = json.load(open(p))
-    t = raw.get('tokens', raw)
-    t = t.get('default', t)
-    for k in ('client_id', 'client_secret', 'refresh_token'):
-        if k not in t:
-            sys.exit('~/.clasprc.json has no %s — re-run clasp login' % k)
+    t = (raw.get('token')
+         or (raw.get('tokens') or {}).get('default')
+         or raw.get('tokens')
+         or raw)
+
+    refresh = t.get('refresh_token')
+    if not refresh:
+        sys.exit('No refresh_token in ~/.clasprc.json (top-level keys: %s) — '
+                 're-run clasp login' % sorted(raw.keys()))
+
+    oa   = raw.get('oauth2ClientSettings', t.get('oauth2ClientSettings', {})) or {}
+    cid  = oa.get('clientId')     or raw.get('client_id')     or t.get('client_id')
+    csec = oa.get('clientSecret') or raw.get('client_secret') or t.get('client_secret')
+    if not cid or not csec:
+        sys.exit('No OAuth client id/secret in ~/.clasprc.json — re-run clasp login')
+
     body = urllib.parse.urlencode({
-        'client_id': t['client_id'], 'client_secret': t['client_secret'],
-        'refresh_token': t['refresh_token'], 'grant_type': 'refresh_token'}).encode()
+        'client_id': cid, 'client_secret': csec,
+        'refresh_token': refresh, 'grant_type': 'refresh_token'}).encode()
     try:
         return json.load(urllib.request.urlopen(
             'https://oauth2.googleapis.com/token', body))['access_token']

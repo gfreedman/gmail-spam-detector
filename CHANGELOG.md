@@ -17,6 +17,49 @@ detail plus the diffs.
 
 ---
 
+## v6.59.0
+
+**Prod health is now checked by CI — on every deploy, and every 30 minutes.**
+
+Two jobs, because they catch different failures:
+
+- **`verify-prod`** (deploy pipeline, after `validate`). `validate` proves the
+  new source is *live*; it does not prove the script still *runs*. A deploy can
+  leave syntactically valid code that throws on every trigger, and nothing
+  downstream would notice — a broken detector writes no Sheet rows, which is
+  indistinguishable from a quiet mailbox. It cannot prevent a bad deploy, since
+  the push already happened; it is detection tied to the change that caused it.
+  Runs in parallel with `tag`, because tagging is bookkeeping and should not be
+  blocked by a runtime problem.
+- **`.github/workflows/health.yml`** (cron, every 30 min). Most ways this
+  detector dies have nothing to do with a deploy: the trigger stops firing, the
+  daily Gmail quota is exhausted, the OAuth grant is revoked, a permission
+  changes. **The failure that motivated all of this was exactly that shape** —
+  six obvious spam messages sat in the folder across two releases, nothing was
+  broken at deploy time, and nothing told anyone afterwards. A deploy-time-only
+  check would have missed it entirely.
+
+**A version change now bypasses the health throttle.** Without this the
+5-minute quiet-run interval held the *previous* version's health signal after a
+deploy, so `verify-prod` would read the old version and fail on staleness rather
+than on a defect. A flaky check is one that gets ignored. The first run on new
+code is also the run most worth reporting, so it writes immediately and
+`LAST_HEALTH_VERSION` makes it fire exactly once.
+
+`verify-prod` still polls (8 × 45s) because the marker only updates when the
+trigger next fires, and the scheduled job allows a 12-minute marker age, which
+tolerates a couple of missed executions plus the throttle.
+
+`prod_health.py`'s credential parsing now matches the deploy workflow's
+tolerance — clasp@3.x `tokens.default`, older `token`, flat, and
+`oauth2ClientSettings` nesting. CI runs it against the `CLASP_TOKEN` secret
+rather than a local login, and those do not agree.
+
+Three new assertions cover the version-change bypass, that it fires only once,
+and that ordinary quiet runs stay throttled.
+
+---
+
 ## v6.58.3
 
 **The health check no longer needs a hand-crafted OAuth token.**

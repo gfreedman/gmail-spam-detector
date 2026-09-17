@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.58.3
+ * @version 6.59.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -81,7 +81,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.58.3';
+const SCRIPT_VERSION = '6.59.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -4561,9 +4561,21 @@ function writeHealthRow(stats)
   try
   {
     const props    = PropertiesService.getScriptProperties();
+    // A VERSION CHANGE counts as eventful.
+    //
+    // Without this the throttle held the previous version's health signal for
+    // up to HEALTH_INTERVAL_MS after a deploy, so anything checking "is the new
+    // version live and healthy?" saw the OLD version and had to either poll for
+    // five minutes or report a failure that was really just staleness. A
+    // post-deploy check built on that is flaky, and flaky checks get ignored.
+    //
+    // The first run on new code is also the run most worth reporting.
+    const lastVersion  = props.getProperty('LAST_HEALTH_VERSION');
+    const versionMoved = lastVersion !== SCRIPT_VERSION;
+
     const eventful = stats.processed > 0 || stats.spam > 0 ||
                      stats.errors > 0 || stats.auditFindings > 0 ||
-                     !!stats.runError;
+                     !!stats.runError || versionMoved;
     const lastAt   = parseInt(props.getProperty('LAST_HEALTH_WRITE_MS') || '0', 10);
 
     if (!eventful && Date.now() - lastAt < HEALTH_INTERVAL_MS) return;
@@ -4583,6 +4595,7 @@ function writeHealthRow(stats)
     // Sheet is misconfigured is the moment you most need to be told.
     updateHealthMarker(props, status);
     props.setProperty('LAST_HEALTH_WRITE_MS', String(Date.now()));
+    props.setProperty('LAST_HEALTH_VERSION', SCRIPT_VERSION);
 
     const sheetId = props.getProperty('SPAM_LOG_SHEET_ID');
     if (!sheetId) return;   // no spreadsheet configured; the marker still went out

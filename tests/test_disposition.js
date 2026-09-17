@@ -764,6 +764,21 @@ console.log('\n=== heartbeat + errors are reachable from outside Apps Script ===
     hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 0 });
     check('a quiet run immediately after is throttled', writes.length === before,
           'writes=' + writes.length);
+
+    // ...but a VERSION CHANGE must bypass it, or a post-deploy check sees the
+    // OLD version for up to 5 minutes and fails on staleness rather than on a
+    // defect. A flaky check is one that gets ignored.
+    hc.props.LAST_HEALTH_VERSION = '0.0.1';
+    hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 0 });
+    check('a version change bypasses the throttle', writes.length > before,
+          'writes=' + writes.length);
+    check('the new version is recorded so it fires only once',
+          hc.props.LAST_HEALTH_VERSION === vm.runInContext('SCRIPT_VERSION', hc),
+          String(hc.props.LAST_HEALTH_VERSION));
+    const after = writes.length;
+    hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 0 });
+    check('the next quiet run is throttled again', writes.length === after,
+          'writes=' + writes.length);
     hc.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 3 });
     const flagged = writes[writes.length - 1];
     check('audit findings bypass the throttle and report AUDIT_FINDINGS',

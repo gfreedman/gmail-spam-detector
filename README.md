@@ -47,6 +47,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - ✅ **100% detection** on 54/54 spam + 5/5 scam (.eml files)
 - ✅ **0% false positives** on 22/22 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
+- ✅ **CI asks prod whether it is healthy** — after every deploy, and on a 30-minute schedule. Catches a trigger that stopped firing, an exhausted quota, or a revoked grant, none of which a deploy-time-only check would see.
 - ✅ **Health is checkable in one command** — `python3 scripts/prod_health.py` (no token, no flags) reports whether the trigger is running, whether the deployed version matches local, and whether the last run was clean. Reads a Drive marker the detector renames each run; the `Health` tab in the log spreadsheet is the same thing for human eyes.
 - ✅ **Every run audits itself** — `auditRunIntegrity()` writes an `AUDIT_*` row to the Sheet if a deleted message has no log row, or if aged non-whitelisted spam was left in the folder. Costs no API calls; silent when healthy.
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)

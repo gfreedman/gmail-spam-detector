@@ -17,6 +17,36 @@ detail plus the diffs.
 
 ---
 
+## v6.59.1
+
+**The new CI job failed on its first run, and it was right to.**
+
+`verify-prod` polled for 6 minutes and never saw the new version. The marker
+timestamps explain why: 21:28:06, 21:38:13, 21:48:06, 21:58:06 — **exactly ten
+minutes apart**, with a five-minute health throttle. The live trigger is on a
+**10-minute interval**, not the 1-minute one the README documents and v6.40.0's
+performance work was tuned for.
+
+Nothing in the codebase could have detected this, because nothing in the
+codebase created the trigger — it was made by hand in the Apps Script UI, where
+"every 10 minutes" is one dropdown entry away from "every 1 minute". The health
+marker is what made it visible at all.
+
+A 10-minute interval is not broken, but it is not what is documented, and it
+means up to 10 minutes of spam sitting in the inbox instead of one.
+
+- New **`setupTrigger()`** makes the interval a property of the source rather
+  than a dropdown someone picked once. Idempotent — it removes existing
+  `processInbox` triggers first, since each duplicate would be a full extra
+  execution against the same quota. Run it from the editor.
+- `verify-prod` now polls 20 × 45s (15 min), because the budget has to cover
+  the trigger interval plus margin.
+- The scheduled check allows a 25-minute marker age: trigger interval (10) +
+  health throttle (5) + margin. A healthy marker can legitimately be 15 minutes
+  old, and a check that false-alarms is a check that gets muted.
+
+---
+
 ## v6.59.0
 
 **Prod health is now checked by CI — on every deploy, and every 30 minutes.**

@@ -50,10 +50,15 @@ jobs:
       - name: Ask prod whether it is healthy
         run: |
           # No version assertion here: this runs against whatever is deployed,
-          # which is the point. Staleness is the signal — the marker timestamp
-          # must be recent. 12 min tolerates a couple of missed 1-minute
-          # executions and the 5-minute quiet-run health throttle.
-          if python3 scripts/prod_health.py --max-age-min 12; then
+          # which is the point. Staleness is the signal.
+          #
+          # Budget = trigger interval + health throttle + margin. The live
+          # trigger has been observed at 10 minutes (not the 1 minute the README
+          # documents), and quiet runs throttle the health write to 5 minutes, so
+          # a perfectly healthy marker can legitimately be ~15 minutes old. 25
+          # minutes leaves room for one missed execution without crying wolf —
+          # a check that false-alarms is a check that gets muted.
+          if python3 scripts/prod_health.py --max-age-min 25; then
             echo "## ✅ Prod healthy" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi

@@ -688,6 +688,47 @@ console.log('\n=== auditRunIntegrity: prod tells on itself ===');
   }
 }
 
+console.log('\n=== heartbeat + errors are reachable from outside Apps Script ===');
+{
+  // Logger.log writes ONLY to the Apps Script execution transcript, which no
+  // API this project holds credentials for can read (script.processes is not a
+  // granted scope, and Cloud Logging received nothing). So "did the last run
+  // succeed?" was unanswerable without opening the editor by hand, and a clean
+  // run looked identical to a script that crashed on its first line.
+  const c = makeCtx({});
+  const out = { log: [], error: [] };
+  c.console = { log: m => out.log.push(String(m)), error: m => out.error.push(String(m)) };
+
+  c.logError('boom');
+  check('logError reaches console.error (Cloud Logging)',
+        out.error.some(e => e.indexOf('boom') !== -1), JSON.stringify(out.error));
+
+  c.logRunHeartbeat({ processed: 3, spam: 1, errors: 0, auditFindings: 0 });
+  const hb = out.log.find(l => l.indexOf('RUN v') === 0);
+  check('a heartbeat line is emitted per run', !!hb, JSON.stringify(out.log));
+  // SCRIPT_VERSION is a top-level `const`, so it lives in the vm's lexical
+  // scope and is NOT a property of the context object — read it by evaluation.
+  const ver = vm.runInContext('SCRIPT_VERSION', c);
+  check('the heartbeat carries the running version',
+        !!hb && !!ver && hb.indexOf('v' + ver) !== -1, String(hb) + ' ver=' + ver);
+  check('a healthy run reports audit=clean',
+        !!hb && hb.indexOf('audit=clean') !== -1, String(hb));
+
+  out.log.length = 0;
+  c.logRunHeartbeat({ processed: 0, spam: 0, errors: 0, auditFindings: 2 });
+  check('audit findings are visible in the heartbeat',
+        out.log.some(l => l.indexOf('audit=FINDINGS:2') !== -1), JSON.stringify(out.log));
+
+  // Logging must never be able to break the run.
+  const c2 = makeCtx({});
+  c2.console = { log() { throw new Error('no console'); },
+                 error() { throw new Error('no console'); } };
+  let threw = false;
+  try { c2.logError('x'); c2.logRunHeartbeat({ processed:0, spam:0, errors:0, auditFindings:0 }); }
+  catch (e) { threw = true; }
+  check('a broken console does not break the run', threw === false);
+}
+
 console.log('\n=== null signals are a deliberate disposition, not a miss ===');
 {
   // The Sheet's rule-description column is derived from getRuleFromSignals().

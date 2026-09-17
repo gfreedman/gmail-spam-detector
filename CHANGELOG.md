@@ -17,6 +17,46 @@ detail plus the diffs.
 
 ---
 
+## v6.57.0
+
+**Prod health is now answerable from outside Apps Script.**
+
+v6.56.0 added a self-audit, and verifying it exposed a worse gap: there was no
+way to ask "did the last run succeed?" at all.
+
+`logInfo`/`logError` wrote only via `Logger.log`, which lands in the Apps Script
+execution transcript. That transcript is not merely the place nobody reads — it
+is unreachable by anything holding this project's credentials. The Apps Script
+API needs the `script.processes` scope, which the deploy credential does not
+have (confirmed: 403 `ACCESS_TOKEN_SCOPE_INSUFFICIENT`), and a Cloud Logging
+query over the attached GCP project returned **zero** entries because
+`Logger.log` does not go there.
+
+The practical consequence: **a clean run and a script that crashed on its first
+line look identical from outside.** Both write no Sheet rows and no readable
+log. The v6.56.0 audit could not have reported a crash that prevented it from
+running, and "no audit rows" was being read as health when it is equally
+consistent with total failure.
+
+Two changes:
+
+- `logError` now also calls `console.error`, which does reach Cloud Logging,
+  where it is queryable and alertable. Errors only — routing every `logInfo`
+  there would bury them under a per-minute trigger's routine chatter.
+- New `logRunHeartbeat()` emits exactly one line per execution:
+  `RUN v6.57.0 processed=N spam=N errors=N audit=clean|FINDINGS:N`. Emitted
+  unconditionally, **including on empty-inbox runs**, because that is precisely
+  what separates "nothing to do" from "never ran". One line per minute is
+  trivial for Cloud Logging and cheap to query.
+
+Both are wrapped so a missing or throwing `console` cannot break the run, and
+`Logger.log` is retained alongside, so nothing is lost from the transcript.
+
+Six new assertions cover error routing, the heartbeat's contents including the
+running version and audit findings, and that a broken console does not throw.
+
+---
+
 ## v6.56.0
 
 **Production now tells on itself.**

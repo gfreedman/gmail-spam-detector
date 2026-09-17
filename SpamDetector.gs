@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.56.0
+ * @version 6.57.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -81,7 +81,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.56.0';
+const SCRIPT_VERSION = '6.57.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -850,13 +850,17 @@ function processInbox()
     // Single search call — the only API call on the fast path when inbox is clean.
     const threads = GmailApp.search(buildSearchQuery(), 0, CONFIG.maxEmailsPerRun);
 
+    // Hoisted out of the threads-present block so logRunHeartbeat() can read
+    // them: an empty-inbox run must still emit a heartbeat, otherwise "quiet"
+    // and "crashed" look identical from outside.
+    let spamCount      = 0;
+    let processedCount = 0;
+    let errorCount     = 0;
+
     if (threads.length > 0)
     {
       logInfo('Found ' + threads.length + ' threads to process');
       const startTime = Date.now();
-      let spamCount    = 0;
-      let processedCount = 0;
-      let errorCount   = 0;
 
       // Deferred label lookup — skipped entirely on empty-inbox runs.
       const label = getOrCreateLabel(CONFIG.processedLabel);
@@ -925,7 +929,13 @@ function processInbox()
 
     // Last: check that what the run believes it did matches what it recorded.
     // After both flushes, so _loggedMessageIds is complete.
-    auditRunIntegrity();
+    const auditFindings = auditRunIntegrity();
+
+    // One queryable line per execution. Emitted unconditionally, including on
+    // empty-inbox runs, because that is what separates "nothing to do" from
+    // "never ran".
+    logRunHeartbeat({ processed: processedCount, spam: spamCount,
+                      errors: errorCount, auditFindings: auditFindings });
   }
   catch (error)
   {
@@ -3458,6 +3468,47 @@ function logDebug(message)
 function logError(message)
 {
   Logger.log('[ERROR] ' + message);
+
+  // ALSO console.error, which is what makes this reachable from outside.
+  //
+  // Logger.log writes only to the Apps Script execution transcript. That is not
+  // merely "the place nobody reads" — it cannot be queried by anything at all:
+  // the Apps Script API needs the script.processes scope the deploy credential
+  // does not hold, and Cloud Logging received nothing, so there was no way to
+  // answer "did the last run succeed?" without opening the editor by hand.
+  //
+  // console.error goes to Cloud Logging under the attached GCP project, where
+  // it is queryable and alertable. Errors only — logInfo stays on Logger.log to
+  // keep the per-minute trigger's routine chatter out of Cloud Logging.
+  try { console.error('[ERROR] ' + message); }
+  catch (e) { /* console is absent in some contexts; never break logging */ }
+}
+
+/**
+ * Emit one queryable heartbeat per run, to Cloud Logging.
+ *
+ * The externally verifiable answer to "is the detector alive and healthy?".
+ * Absence of error rows in the Sheet proves nothing on its own — a script that
+ * crashes on its first line also writes no rows, and looks identical to a clean
+ * run from the outside. One line per execution distinguishes the two.
+ *
+ * Deliberately a single line, at INFO, once per run: 1440/day is trivial for
+ * Cloud Logging and cheap to query, where routing every logInfo there would not
+ * be.
+ *
+ * @param {Object} stats - {processed, spam, errors, auditFindings}
+ */
+function logRunHeartbeat(stats)
+{
+  const line = 'RUN v' + SCRIPT_VERSION +
+               ' processed=' + stats.processed +
+               ' spam='      + stats.spam +
+               ' errors='    + stats.errors +
+               ' audit='     + (stats.auditFindings > 0
+                                 ? 'FINDINGS:' + stats.auditFindings : 'clean');
+  Logger.log('[INFO] ' + line);
+  try { console.log(line); }
+  catch (e) { /* never break the run over a log line */ }
 }
 
 
@@ -4520,6 +4571,8 @@ function auditRunIntegrity()
 {
   try
   {
+    let findings = 0;
+
     const unlogged = _destroyedMessageIds.filter(function (id) {
       return _loggedMessageIds.indexOf(id) === -1;
     });
@@ -4530,6 +4583,7 @@ function auditRunIntegrity()
                      'deleted with no Sheet row — ids: ' + unlogged.join(', ');
       logError('AUDIT FAILED — ' + detail);
       queueAuditRow('AUDIT_LOG_GAP', detail);
+      findings++;
     }
 
     if (_unresolvedAgedSpam > 0)
@@ -4539,16 +4593,20 @@ function auditRunIntegrity()
                      'deleted nor spared this run';
       logError('AUDIT FAILED — ' + detail);
       queueAuditRow('AUDIT_SPAM_NOT_ACTIONED', detail);
+      findings++;
     }
 
     // Flush only when the audit itself queued something. flushSpamLog() already
     // no-ops on an empty buffer, but being explicit keeps the intent readable:
     // a clean audit writes nothing at all.
     if (_pendingLogEntries.length > 0) flushSpamLog();
+
+    return findings;
   }
   catch (auditError)
   {
     logError('auditRunIntegrity failed (non-fatal): ' + auditError.toString());
+    return 0;
   }
 }
 

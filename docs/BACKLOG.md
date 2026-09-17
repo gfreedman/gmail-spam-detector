@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred work, as of **v6.60.2** (2026-09-17).
+Deferred work, as of **v6.60.3** (2026-09-17).
 
 Everything here was surfaced by two external reviews — a Google L6 security pass
 and a Palo Alto Networks L6 code/docs pass — plus findings from the day's own
@@ -255,23 +255,28 @@ single reason Tier 1.1 matters.
 `pull_request` trigger — so a fork PR cannot reach the secrets. That closes the
 classic exfiltration route already.
 
-### 2.2 Port the corpus harness to Node, delete the Python mirror
+### 2.2 Port the corpus harness to Node, delete the Python mirror — **downgraded**
 
-`tests/test_spam_detector.py` hand-reimplements seven link-graph helpers
+`tests/test_spam_detector.py` hand-reimplements the link-graph helpers
 (`_extract_url_host`, `_is_link_wrapper_host`, `_has_brand_mismatched_cta`, …) —
 ~200 lines of duplicated **logic**, which breaks the single-source-of-truth
 property the whole parse-the-`.gs` architecture exists to provide.
 
-**This has already bitten once:** v6.45.0's fixes landed in the `.gs` and not in
-the mirror, and a new scam fixture caught it. Both sides now carry a parity
-table, which is a mitigation, not a fix.
+**The urgency is gone.** This item existed because drift was *silent*: v6.45.0's
+fixes landed in the `.gs` and not the mirror, and a new scam fixture caught it by
+luck. v6.60.0's Phase 7 now runs every fixture through both implementations and
+fails CI on any disagreement, plus fails when a signal exists in the `.gs` with
+no Python counterpart. Both failure paths were verified by fault injection.
 
-**Plan.** `tests/test_disposition.js` already proves the shipped `.gs` can run
-against fake messages. `parse_eml` is the only genuinely Python-specific piece.
-Port the corpus runner to Node, delete the mirror, and have all four suites test
-one implementation. Interim step: delete the ~40 assertions in
-`run_edge_case_tests()` that duplicate `test_link_graph.js`, keeping the mirror
-as a scoring detail with one parity smoke test.
+So what remains is **duplication**, not **risk** — a maintenance cost (two
+places to edit) rather than a correctness hazard. That is a fair trade for the
+Python corpus runner, which is the more readable of the two harnesses.
+
+**Do this only if** the double-editing becomes annoying in practice, or the
+mirror starts lagging often enough that Phase 7 failures become routine noise.
+If you do: `parse_eml` is the only genuinely Python-specific piece, and
+`tests/parity_signals.js` already demonstrates the shipped `.gs` running over
+corpus inputs, so it is most of the port.
 
 ### 2.3 Split `SpamDetector.gs`
 
@@ -305,6 +310,26 @@ destroy mail beats adding a dry-run flag to it.
 Removed alongside `setupTrigger()` and `reviewSpamFolderNow()`, which were also
 never called by anything. If the empty-the-folder capability is ever wanted
 back, build it with a `DRY_RUN` default from the start.
+
+---
+
+### 2.6 `cleanseInbox()` is an undocumented destructive entry point
+
+Not mentioned in the README, `docs/index.html`, or anywhere a user would look —
+found only by auditing for functions with no call sites. It runs the full rule
+set over up to 500 inbox threads in one pass and deletes what Rule 1 matches.
+
+That is a reasonable one-off tool for a first run on a backlogged inbox, and it
+shares `analyzeMessage()` with the trigger path so it cannot disagree with it.
+But an undocumented function that permanently deletes mail is discoverable only
+by reading the source, which means the person most likely to run it is the one
+least likely to know what it does.
+
+**Plan.** Either document it in the README beside the whitelist tools with an
+explicit "deletes mail, run once" warning, or delete it — the trigger reaches
+the same mail within one interval anyway, just more slowly. Deleting is
+probably right: `purgeAllSpamNow()` was removed in v6.60.1 on the same
+reasoning.
 
 ---
 

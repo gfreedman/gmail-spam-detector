@@ -275,6 +275,21 @@ Check execution log to see all whitelisted domains.
 removeFromWhitelist('example.com');
 ```
 
+### Blacklist a Spam Domain
+
+The blacklist has the same three functions. A blacklisted domain trips Rule 1
+as soon as the sender also uses bulk email infrastructure.
+
+```javascript
+addToBlacklist('spammer.com');
+viewBlacklist();
+removeFromBlacklist('spammer.com');
+```
+
+Domains built into `DEFAULT_DOMAINS` in the source are merged at runtime, so
+editing the source takes effect on the next run with no refresh call. These
+functions are only for entries you add yourself.
+
 ## 🔍 Monitoring
 
 ### View Activity

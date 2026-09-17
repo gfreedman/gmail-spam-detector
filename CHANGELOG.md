@@ -17,6 +17,32 @@ detail plus the diffs.
 
 ---
 
+## v6.60.3
+
+Docs-only cleanup from a review pass. No code change.
+
+**Half the list-management API was undocumented.** `addToWhitelist`,
+`viewWhitelist` and `removeFromWhitelist` were in the README; their three
+blacklist counterparts were not, despite existing and working. Added, with a
+note that source-level `DEFAULT_DOMAINS` entries are merged at runtime and need
+no refresh call — the thing people used to get wrong.
+
+**`docs/BACKLOG.md` 2.2 was stale.** "Port the corpus harness to Node, delete
+the Python mirror" existed because mirror drift was *silent*. v6.60.0 closed
+that, so the item is downgraded from a correctness hazard to a maintenance
+preference, with an explicit "do this only if" condition instead of an implied
+should.
+
+**New backlog item 2.6: `cleanseInbox()` is an undocumented destructive entry
+point.** Found by auditing for functions with no call sites. It deletes Rule-1
+matches across up to 500 inbox threads and is mentioned nowhere a user would
+look, so the person most likely to run it is the one least likely to know what
+it does. Recorded rather than acted on, because deleting it is a behaviour
+change and this release is docs-only — but deleting is probably right, on the
+same reasoning that removed `purgeAllSpamNow()` in v6.60.1.
+
+---
+
 ## v6.60.2
 
 Document the trigger interval that is actually running: **10 minutes**.

@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.49.1
+ * @version 6.50.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -70,7 +70,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.49.1';
+const SCRIPT_VERSION = '6.50.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -1000,6 +1000,102 @@ function cleanseInbox()
  * Caps at MAX_ITERATIONS (10 batches = ~1000 messages) to prevent runaway
  * loops if something goes wrong with the API.
  */
+/**
+ * Re-judge mail GMAIL classified as spam, and delete only what this detector
+ * independently agrees about.
+ *
+ * Why this exists. v6.46.0 scoped destroySpam() to messages this detector
+ * itself condemned, because the blanket sweep was permanently deleting Gmail's
+ * own false positives within minutes, unarchived and unlogged. That was the
+ * right fix for the data loss, but it left Gmail-classified spam piling up in a
+ * folder the user then has to police by hand — trading one bad outcome for a
+ * worse experience.
+ *
+ * The binary was a false one. Instead of "delete everything Gmail flagged" or
+ * "touch nothing Gmail flagged", run the seven rules over it and act only on
+ * agreement:
+ *
+ *   we agree it is spam  -> archive to Drive, log it, delete it
+ *   anything else        -> leave it exactly where it is
+ *
+ * "Anything else" includes whitelisted senders, which is the case that matters
+ * most. collectSignals() returns null for a whitelisted sender, analyzeMessage()
+ * reports not-spam, and the message is left alone. A LinkedIn notification that
+ * Gmail misfiled is therefore never touched by this function — under the old
+ * blanket sweep it was destroyed with no trace.
+ *
+ * Deliberately does NOT move anything back to the inbox. Rescuing a false
+ * positive is a separate decision with its own failure mode (a wrong whitelist
+ * entry would re-deliver actual spam), and mail re-appearing in the inbox
+ * without the user asking is its own surprise.
+ *
+ * Scoped by Gmail search rather than label intersection because analyzeMessage()
+ * needs GmailMessage objects, which the REST list() does not return. The
+ * "-label:purgeLabel" term is index-dependent, but the failure mode is benign:
+ * a lagging index means a message we already condemned gets re-evaluated and
+ * deleted, which is what the sweep would have done anyway.
+ */
+function reviewGmailSpam()
+{
+  const REVIEW_LIMIT = 20;
+
+  try
+  {
+    const query   = 'in:spam -label:' + CONFIG.purgeLabel;
+    const threads = GmailApp.search(query, 0, REVIEW_LIMIT);
+    if (threads.length === 0) return;
+
+    logInfo('Reviewing ' + threads.length + ' Gmail-classified spam thread(s)');
+
+    const allMessages = GmailApp.getMessagesForThreads(threads);
+    let agreed = 0;
+    let left   = 0;
+
+    for (let i = 0; i < threads.length; i++)
+    {
+      try
+      {
+        const thread   = threads[i];
+        const messages = allMessages[i];
+        if (!messages || messages.length === 0) continue;
+        const message = messages[0];
+
+        const verdict = analyzeMessage(message);
+
+        // Not spam by our rules — including every whitelisted sender, for which
+        // collectSignals() returns null. Leave it untouched for the user.
+        if (!verdict.isSpam)
+        {
+          left++;
+          continue;
+        }
+
+        // Logged with its own type so the training set can tell "we caught this
+        // in the inbox" apart from "Gmail caught it and we concurred" — those
+        // are different detection events even though both are spam.
+        const archived = accumulateLogEntry(message, verdict.signals,
+                                            'GMAIL_SPAM_CONFIRMED');
+
+        if (disposeDetectedMessage(message, thread, verdict.signals, archived))
+        {
+          agreed++;
+        }
+      }
+      catch (threadError)
+      {
+        logError('reviewGmailSpam thread error: ' + threadError.toString());
+      }
+    }
+
+    logInfo('Gmail spam review: agreed on ' + agreed + ', left ' + left +
+            ' for you (not spam by our rules)');
+  }
+  catch (error)
+  {
+    logError('reviewGmailSpam failed: ' + error.toString());
+  }
+}
+
 function destroySpam()
 {
   // Guard: Gmail Advanced Service must be enabled in the project
@@ -3351,6 +3447,11 @@ function runPeriodicMaintenance()
   // Cheap, and genuinely time-sensitive: one search each.
   checkFalseNegatives();
   destroySpam();
+
+  // Re-judge Gmail's own spam verdicts and delete only what we agree about.
+  // Runs after destroySpam() so our own failed deletes are retried first and
+  // do not show up here as unreviewed.
+  reviewGmailSpam();
 
   // Expensive, and NOT time-sensitive. recheckRecentSpamChecked() re-evaluates
   // recent mail against the CURRENT patterns, so between deploys it keeps

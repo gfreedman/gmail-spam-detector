@@ -531,7 +531,7 @@ _ATTR_RE_CACHE = {}
 
 
 def _attr_re(names):
-    """Compile (and cache) an attribute matcher for an alternation of names.
+    r"""Compile (and cache) an attribute matcher for an alternation of names.
 
     [\s/] not just \s: HTML5 allows '/' as an attribute separator, so
     <a/href="..."> is a valid anchor clients navigate normally.
@@ -562,7 +562,7 @@ def _extract_attribute_values(fragment, names):
 
 
 def _find_tag_end(html, start_idx, limit):
-    """Mirror of findTagEnd(). Quote-aware scan for the real closing '>'.
+    r"""Mirror of findTagEnd(). Quote-aware scan for the real closing '>'.
 
     A regex like <a\s[^>]*> stops at the first '>', including one inside a
     quoted attribute value, so <a title=">" href="..."> lost its href.

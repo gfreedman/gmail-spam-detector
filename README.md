@@ -108,7 +108,7 @@ Disposition depends on which rule fired, and the difference matters.
 **Rule 7 — quarantined, never deleted:**
 Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely. Rule 7 reads the link graph rather than sender reputation, and a legitimate sender can reproduce that pattern by accident, so permanent deletion is the wrong default.
 
-**Your Spam folder is left alone.** The safety-net sweep only retries deletes that this detector itself initiated. Mail *Gmail's* classifier filed stays put for you to review, and Gmail purges it at 30 days.
+**Mail Gmail filed as spam gets a second opinion.** `reviewGmailSpam()` runs the seven rules over it and acts only on agreement: if we independently think it's spam, it's archived, logged and deleted; anything else — including every whitelisted sender — is left exactly where it is. Nothing is ever moved back to your inbox. So the folder stays tidy without Gmail's false positives being destroyed.
 
 ### Labels you'll see
 

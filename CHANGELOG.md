@@ -17,6 +17,52 @@ detail plus the diffs.
 
 ---
 
+## v6.50.0
+
+Re-judge Gmail's own spam verdicts instead of ignoring them.
+
+v6.46.0 scoped `destroySpam()` to messages this detector itself condemned,
+because the blanket sweep was permanently deleting Gmail's false positives
+within minutes — unarchived, unlogged, no Trash. That fixed the data loss but
+left Gmail-classified spam piling up in a folder the user then has to police by
+hand. It traded one bad outcome for a worse experience, and the binary was a
+false one.
+
+New `reviewGmailSpam()` runs the seven rules over mail Gmail filed and acts only
+on agreement:
+
+    we agree it is spam  ->  archive to Drive, log it, delete it
+    anything else        ->  leave it exactly where it is
+
+"Anything else" includes every whitelisted sender, which is the case that
+matters. `collectSignals()` returns null for a whitelisted sender, so a LinkedIn
+notification Gmail misfiled is never touched — under the old blanket sweep it was
+destroyed with no trace.
+
+Deliberately does **not** move anything back to the inbox. Rescuing a false
+positive has its own failure mode (a wrong whitelist entry would re-deliver real
+spam) and mail reappearing unasked is its own surprise.
+
+Logged as `GMAIL_SPAM_CONFIRMED` rather than `SPAM_DETECTED`, so the training set
+can distinguish "we caught this in the inbox" from "Gmail caught it and we
+concurred" — different detection events, both genuinely spam.
+
+Scoped by Gmail search (`in:spam -label:SpamDetectorPurge`) rather than label
+intersection, because `analyzeMessage()` needs GmailMessage objects that the REST
+`list()` does not return. The negative label term is index-dependent, but the
+failure mode is benign: a lagging index re-evaluates a message already condemned,
+which the sweep would have deleted anyway.
+
+Five disposition assertions cover it, including that a whitelisted sender is
+neither deleted nor archived, that the query excludes our own purge label, and
+that nothing is ever moved back to the inbox.
+
+Also fixed the test harness itself: the fake messages lacked `getThread()`,
+`getReplyTo()` and `getHeader()`, and the stub lacked `Utilities.newBlob()`, so
+`accumulateLogEntry()` threw and the archive invariant refused every delete. The
+invariant was working; the harness was lying about why. And two Python docstrings
+containing `\s` now use raw strings, clearing a SyntaxWarning.
+
 ## v6.49.1
 
 Added `docs/BACKLOG.md`: the deferred work from both external reviews, tiered,

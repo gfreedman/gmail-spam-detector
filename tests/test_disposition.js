@@ -52,7 +52,11 @@ function makeCtx(opts) {
     Utilities: {
       sleep() {},
       formatDate: () => '2026/09/15',
-      base64Encode: s => 'b64'
+      base64Encode: s => 'b64',
+      // Required by archiveRawEml(). Without it the archive throws, reports
+      // failure, and the archive invariant refuses every delete — which makes
+      // unrelated tests fail for the right reason in a confusing way.
+      newBlob: (content, type, name) => ({ content, type, name })
     },
     Session: { getScriptTimeZone: () => 'UTC' },
     LockService: {
@@ -66,7 +70,11 @@ function makeCtx(opts) {
       })
     },
     GmailApp: {
-      search: () => opts.threads || [],
+      search: (q) => {
+        calls.push({ op: 'search', q });
+        if (opts.searchResults && q in opts.searchResults) return opts.searchResults[q];
+        return opts.threads || [];
+      },
       getMessagesForThreads: ts => ts.map(t => t.__messages),
       getUserLabelByName: n => labelObj(n),
       createLabel: n => labelObj(n)
@@ -123,7 +131,12 @@ function phishMessage(id) {
     getBody: () => html,
     getRawContent: () => 'X-SES-Outgoing: 1\r\nPrecedence: bulk\r\n\r\n' + html,
     getAttachments: () => [],
-    getDate: () => new Date('2026-09-16T15:25:41Z')
+    getDate: () => new Date('2026-09-16T15:25:41Z'),
+    // accumulateLogEntry() reads all three; omitting them made it throw, report
+    // no archive, and the archive invariant then refused every delete.
+    getThread: () => ({ getId: () => 't-' + id }),
+    getReplyTo: () => '',
+    getHeader: () => ''
   };
 }
 
@@ -138,7 +151,10 @@ function blacklistMessage(id) {
     getBody: () => '<p>body</p>',
     getRawContent: () => 'X-SES-Outgoing: 1\r\n\r\nbody',
     getAttachments: () => [],
-    getDate: () => new Date('2026-09-16T15:25:41Z')
+    getDate: () => new Date('2026-09-16T15:25:41Z'),
+    getThread: () => ({ getId: () => 't-' + id }),
+    getReplyTo: () => '',
+    getHeader: () => ''
   };
 }
 
@@ -296,6 +312,49 @@ console.log('\n=== markAsSpam tags its own verdicts before deleting ===');
   check('tag is applied BEFORE the delete',
         ctx.calls.findIndex(c => c.op === 'modify') <
         ctx.calls.findIndex(c => c.op === 'batchDelete'));
+}
+
+console.log('\n=== Gmail-classified spam: delete only on agreement ===');
+{
+  // Gmail filed both. Our rules agree about the blacklisted one and consider
+  // the whitelisted one legitimate. Only the first may be touched.
+  const spammy = blacklistMessage('mGSPAM');
+  const legit  = blacklistMessage('mLINKEDIN');
+  legit.getFrom = () => 'LinkedIn <notifications@linkedin.com>';
+  legit.getSubject = () => 'You have 3 new invitations';
+  legit.getRawContent = () => 'Received: from mail.linkedin.com\r\n\r\nhi';
+  legit.getBody = () => '<p>hi</p>';
+
+  const tSpam  = fakeThread([spammy]);
+  const tLegit = fakeThread([legit]);
+
+  // SPAM_LOG_FOLDER_ID must be set or archiveRawEml() fails and the archive
+  // invariant correctly refuses to delete anything — which is its own passing
+  // test elsewhere, but not what this one is checking.
+  const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  ctx.GmailApp.search = (q) => {
+    ctx.calls.push({ op: 'search', q });
+    if (q.indexOf('in:spam') !== -1) return [tSpam, tLegit];
+    return [];
+  };
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+
+  ctx.reviewGmailSpam();
+
+  const deleted = ctx.calls.filter(c => c.op === 'batchDelete')
+                           .reduce((a, c) => a.concat(c.ids), []);
+  check('the spam we agree about IS deleted', deleted.indexOf('mGSPAM') !== -1,
+        'deleted=' + JSON.stringify(deleted));
+  check('the WHITELISTED sender is NOT deleted', deleted.indexOf('mLINKEDIN') === -1,
+        'deleted=' + JSON.stringify(deleted));
+  check('whitelisted message is not archived out of Spam either',
+        !ctx.calls.some(c => c.op === 'modify' && c.id === 'mLINKEDIN'),
+        'a LinkedIn notification Gmail misfiled must be left exactly where it is');
+  check('query excludes our own purge label',
+        ctx.calls.some(c => c.op === 'search' &&
+                            c.q.indexOf('-label:SpamDetectorPurge') !== -1));
+  check('nothing is moved back to the inbox',
+        !ctx.calls.some(c => c.op === 'modify' && (c.add || []).indexOf('INBOX') !== -1));
 }
 
 console.log('\n=== the recheck path HOLDS, it never deletes ===');

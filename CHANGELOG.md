@@ -17,6 +17,46 @@ detail plus the diffs.
 
 ---
 
+## v6.54.0
+
+**A fix that could not see the mail it was written for.**
+
+Six obviously-bad messages sat in the Spam folder across two releases that were
+supposed to remove them. v6.52.0 added Signal 8 (machine-generated free-mail
+local part) specifically to catch `raju47326yu@gmail.com`, shipped green, and
+changed nothing about the folder.
+
+The cause was a label, not a rule. v6.50.1 started stamping left-alone
+Spam-folder mail with `processedLabel` to stop a re-fetch loop that was costing
+11,500 reads/day. Correct on its own. But phase 1's query excludes
+`-label:SpamChecked`, so once a message has been judged by *any* version it is
+permanently invisible to every later version. Those six were reviewed and marked
+by the old agree-then-delete logic, which found no agreement. Signal 8 never got
+a look at them.
+
+That is the same class of bug as the one at the top of `docs/BACKLOG.md`: the
+instance was fixed and the class was not. "Reviewed" was recorded as a permanent
+fact about the message when it is really a fact about *the logic that reviewed
+it* — so improving the logic has to invalidate it.
+
+`reviewGmailSpam(forceFullReview)` now drops that exclusion when
+`SCRIPT_VERSION` changes, reusing the version-change mechanism
+`recheckRecentSpamChecked()` already applies to the inbox: when detection logic
+changes, re-examine what you previously decided. One bounded pass per deploy
+(`REVIEW_LIMIT` 20), not a standing loop, so the quota leak v6.50.1 closed stays
+closed.
+
+A forced pass widens only *which* messages are judged, never what a verdict
+means — whitelisted senders are still kept, uncorroborated mail still waits out
+the grace period, and deletion is still gated on a successful archive. Five new
+assertions in `tests/test_disposition.js` cover both query shapes, the delete of
+previously-dismissed spam, and whitelist survival under a forced pass.
+
+Also adds `reviewSpamFolderNow()` — the same pass on demand from the editor, for
+acting on the folder without waiting for a version bump or the next cycle.
+
+---
+
 ## v6.53.0
 
 `checkFalseNegatives()` refuses to delete whitelisted mail, and two bugs found

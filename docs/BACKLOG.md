@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred work, as of **v6.51.0** (2026-09-17).
+Deferred work, as of **v6.54.0** (2026-09-17).
 
 Everything here was surfaced by two external reviews — a Google L6 security pass
 and a Palo Alto Networks L6 code/docs pass — plus findings from the day's own
@@ -69,6 +69,18 @@ instance and not the class**:
   **none** — the Drive write actually happened *after* the `batchDelete`.
 - The memory fix was half-applied: `archiveRawEml()` went synchronous but
   `rawContent` stayed in the buffer with no consumer.
+- Signal 8 (v6.52.0) was written to catch a specific free-mail sender and could
+  not see it: the message already carried `SpamChecked` from the previous
+  review logic, and phase 1 excludes that label unconditionally. Two releases
+  aimed at six messages changed nothing about those six messages. v6.54.0 makes
+  the exclusion version-aware.
+
+That last one generalizes past this codebase: **a cache of a decision must be
+invalidated by a change to the thing that decides.** `SpamChecked` recorded
+"reviewed" as a permanent property of the message when it is really a property
+of the logic that reviewed it. Any state that lets work be skipped needs an
+answer to "what invalidates this?" — and "nothing" is only correct when the
+decision cannot change.
 
 What held were the things encoded as **executable invariants**, not prose:
 `disposeDetectedMessage()` refusing to delete without a Drive file id,

@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.53.0
+ * @version 6.54.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -22,7 +22,9 @@
  *      quarantineAsPhishing() — Rule 7 only: report + label, NO delete
  *   3. destroySpam()  — safety-net sweep of this detector's own verdicts
  *   4. reviewGmailSpam() — deletes Gmail-classified spam after a grace period
- *      (CONFIG.gmailSpamGraceDays); whitelisted senders are never deleted
+ *      (CONFIG.gmailSpamGraceDays); whitelisted senders are never deleted.
+ *      A version change re-reviews the whole folder, so an improved rule is
+ *      applied to spam the previous logic already dismissed.
  *
  * Decision logic (8 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
@@ -74,7 +76,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.53.0';
+const SCRIPT_VERSION = '6.54.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -1078,7 +1080,7 @@ function cleanseInbox()
  * Every branch either deletes the message or marks the thread reviewed, so no
  * message is ever re-fetched cycle after cycle. See markReviewed().
  */
-function reviewGmailSpam()
+function reviewGmailSpam(forceFullReview)
 {
   const REVIEW_LIMIT = 20;
 
@@ -1096,13 +1098,40 @@ function reviewGmailSpam()
   // a recovery window.
   try
   {
-    const query = 'in:spam -label:' + CONFIG.purgeLabel +
-                  ' -label:' + CONFIG.processedLabel;
+    // forceFullReview drops the "already reviewed" exclusion.
+    //
+    // A message reviewed by an OLDER version carries processedLabel, so it is
+    // permanently invisible to any later improvement in the review logic. That
+    // is not hypothetical: v6.50.1 began marking left-alone spam, and when
+    // v6.52.0 added Signal 8 specifically to catch throwaway free-mail senders,
+    // the messages it was written for had already been marked by the previous
+    // logic and were skipped. The fix that mattered could not see the mail it
+    // was for.
+    //
+    // So on a version change, re-examine the folder from scratch — exactly the
+    // reasoning recheckRecentSpamChecked() already applies to the inbox. Once
+    // per deploy, bounded by REVIEW_LIMIT, so it costs one pass rather than a
+    // permanent loop.
+    //
+    // ONE-SHOT IS DELIBERATE — do not "fix" it into a drain loop. Because the
+    // forced query drops the processedLabel exclusion, it returns the same first
+    // REVIEW_LIMIT threads on every call. Anything reviewed-but-not-deleted
+    // (whitelisted, or uncorroborated and awaiting grace) therefore keeps coming
+    // back, so the set never shrinks and a repeating forced pass would re-fetch
+    // it forever. That is precisely the 11,500-reads/day leak v6.50.1 closed.
+    // runPeriodicMaintenance() writes LAST_SEEN_VERSION before calling this, so
+    // exactly one pass runs per version. A folder holding more than REVIEW_LIMIT
+    // unseen threads is only partly re-reviewed; the remainder still exits via
+    // phase 2's grace period, which is the correct fallback.
+    const query = forceFullReview
+      ? 'in:spam -label:' + CONFIG.purgeLabel
+      : 'in:spam -label:' + CONFIG.purgeLabel + ' -label:' + CONFIG.processedLabel;
     const threads = GmailApp.search(query, 0, REVIEW_LIMIT);
 
     if (threads.length > 0)
     {
-      logInfo('Reviewing ' + threads.length + ' unseen Gmail-classified thread(s)');
+      logInfo('Reviewing ' + threads.length + ' Gmail-classified thread(s)' +
+              (forceFullReview ? ' (full re-review: detection logic changed)' : ''));
       const allMessages = GmailApp.getMessagesForThreads(threads);
       let deleted = 0, kept = 0, waiting = 0;
 
@@ -3823,7 +3852,9 @@ function runPeriodicMaintenance()
   // Re-judge Gmail's own spam verdicts and delete only what we agree about.
   // Runs after destroySpam() so our own failed deletes are retried first and
   // do not show up here as unreviewed.
-  reviewGmailSpam();
+  // versionChanged forces a full re-review, so a detection improvement is
+  // applied to spam the previous logic already looked at and dismissed.
+  reviewGmailSpam(versionChanged);
 
   // Expensive, and NOT time-sensitive. recheckRecentSpamChecked() re-evaluates
   // recent mail against the CURRENT patterns, so between deploys it keeps
@@ -4470,6 +4501,26 @@ function buildSignalsCsv(signals)
   return parts.join(',');
 }
 
+
+/**
+ * Manually re-review the whole Spam folder with the current detection logic.
+ *
+ * Same as the automatic pass a version change triggers, but on demand — for
+ * when the rules have been improved without a version bump, or to act on the
+ * folder immediately rather than waiting for the next maintenance cycle.
+ *
+ * Non-destructive by itself: it applies exactly the same disposition rules as
+ * the automatic pass. Whitelisted senders are kept, corroborated spam is
+ * archived, logged and deleted, and anything else waits for the grace period.
+ *
+ * Run from the Apps Script editor.
+ */
+function reviewSpamFolderNow()
+{
+  logInfo('Manual full re-review of the Spam folder requested');
+  reviewGmailSpam(true);
+  flushSpamLog();
+}
 
 /**
  * Manually empty the ENTIRE spam folder, including mail Gmail classified.

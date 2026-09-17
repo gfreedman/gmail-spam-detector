@@ -363,6 +363,63 @@ console.log('\n=== Gmail spam phase 1: corroborated verdicts delete immediately 
         queries.some(q => q.indexOf('older_than:') !== -1), JSON.stringify(queries));
 }
 
+console.log('\n=== a version change re-reviews spam the OLD logic dismissed ===');
+{
+  // A message reviewed by an older version carries processedLabel and is
+  // permanently invisible to any later improvement. That happened for real:
+  // v6.50.1 began marking left-alone spam, so when v6.52.0 added Signal 8 to
+  // catch throwaway free-mail senders, the messages it was written for had
+  // already been marked and were skipped.
+  const raju = blacklistMessage('mOLDMARK');
+  raju.getFrom = () => 'raju <raju47326yu@gmail.com>';
+  raju.getSubject = () => 'Hello friend';
+  raju.getRawContent = () => 'Received: from mail-x\r\n\r\nhi';
+  raju.getBody = () => '<p>hi</p>';
+  const thread = fakeThread([raju]);
+  thread.__labels.push('SpamChecked');      // reviewed by the old logic
+
+  // Normal pass: the exclusion hides it.
+  let ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  let q1 = null;
+  ctx.GmailApp.search = (q) => { if (q.indexOf('in:spam') !== -1 && !q1) q1 = q;
+    return (q.indexOf('-label:SpamChecked') !== -1) ? [] : [thread]; };
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.reviewGmailSpam(false);
+  check('normal pass excludes already-reviewed mail',
+        !!q1 && q1.indexOf('-label:SpamChecked') !== -1, String(q1));
+
+  // Forced pass: the exclusion is dropped and the message is finally judged.
+  ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  let q2 = null;
+  ctx.GmailApp.search = (q) => { if (q.indexOf('in:spam') !== -1 && !q2) q2 = q;
+    return q.indexOf('older_than') === -1 ? [thread] : []; };
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.reviewGmailSpam(true);
+  check('forced pass drops the already-reviewed exclusion',
+        !!q2 && q2.indexOf('-label:SpamChecked') === -1, String(q2));
+  check('forced pass still excludes our own verdicts',
+        !!q2 && q2.indexOf('-label:SpamDetectorPurge') !== -1, String(q2));
+  check('previously-dismissed spam is now deleted',
+        ctx.calls.filter(c => c.op === 'batchDelete')
+                 .reduce((a,c)=>a.concat(c.ids),[]).indexOf('mOLDMARK') !== -1,
+        JSON.stringify(ctx.calls.filter(c => c.op === 'batchDelete')));
+
+  // A whitelisted sender must survive the forced pass too.
+  const wl = blacklistMessage('mOLDWL');
+  wl.getFrom = () => 'LinkedIn <jobalerts-noreply@linkedin.com>';
+  wl.getRawContent = () => 'Received: from mail.linkedin.com\r\n\r\nhi';
+  wl.getBody = () => '<p>hi</p>';
+  const tWl = fakeThread([wl]);
+  tWl.__labels.push('SpamChecked');
+  ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  ctx.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? [tWl] : []);
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.reviewGmailSpam(true);
+  check('whitelisted mail survives a forced full re-review',
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0,
+        JSON.stringify(ctx.calls.filter(c => c.op === 'batchDelete')));
+}
+
 console.log('\n=== a real person on free mail is NOT deleted by corroboration ===');
 {
   // The whole risk of Signal 8 is deleting mail from a person. These must fall

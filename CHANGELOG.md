@@ -17,6 +17,23 @@ detail plus the diffs.
 
 ---
 
+## v6.50.1
+
+Close a quota leak introduced one release earlier. `reviewGmailSpam()` left
+messages it disagreed about with no marker, so they matched
+`in:spam -label:SpamDetectorPurge` again on the very next cycle and were
+re-evaluated every five minutes indefinitely — 20 threads x 2 Gmail reads x 288
+cycles is roughly 11,500 reads a day spent recomputing answers already reached,
+against a ~20,000 daily ceiling. Quota exhaustion stops detection entirely, so
+this was a self-inflicted outage risk.
+
+Reviewed-and-left messages now get `CONFIG.processedLabel`, and the query
+excludes it. The message itself is untouched: still in Spam, unmoved,
+undeleted — only the thread label changes.
+
+This is the same failure the day kept producing: a decision made and then not
+recorded, so the system recomputes it forever. Two assertions now cover it.
+
 ## v6.50.0
 
 Re-judge Gmail's own spam verdicts instead of ignoring them.

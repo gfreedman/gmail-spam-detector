@@ -355,6 +355,14 @@ console.log('\n=== Gmail-classified spam: delete only on agreement ===');
                             c.q.indexOf('-label:SpamDetectorPurge') !== -1));
   check('nothing is moved back to the inbox',
         !ctx.calls.some(c => c.op === 'modify' && (c.add || []).indexOf('INBOX') !== -1));
+  // Without this the function re-reads every message it already decided about,
+  // every cycle, forever — ~11,500 Gmail reads/day recomputing known answers.
+  check('the left-alone message is marked processed so it is judged once',
+        tLegit.__labels.indexOf('SpamChecked') !== -1,
+        JSON.stringify(tLegit.__labels));
+  check('query also excludes already-reviewed messages',
+        ctx.calls.some(c => c.op === 'search' &&
+                            c.q.indexOf('-label:SpamChecked') !== -1));
 }
 
 console.log('\n=== the recheck path HOLDS, it never deletes ===');

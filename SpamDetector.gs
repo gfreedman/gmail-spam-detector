@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.50.0
+ * @version 6.50.1
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -70,7 +70,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.50.0';
+const SCRIPT_VERSION = '6.50.1';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -1041,7 +1041,14 @@ function reviewGmailSpam()
 
   try
   {
-    const query   = 'in:spam -label:' + CONFIG.purgeLabel;
+    // Excludes processedLabel as well as purgeLabel. A message we review and
+    // decide to LEAVE gets processedLabel applied below, so it is judged once
+    // rather than re-judged every cycle. Without that this function re-read
+    // every message it had already decided about: 20 threads x 2 Gmail reads x
+    // 288 cycles/day is ~11 500 reads against a ~20 000 daily ceiling, spent
+    // recomputing answers it already had.
+    const query   = 'in:spam -label:' + CONFIG.purgeLabel +
+                    ' -label:' + CONFIG.processedLabel;
     const threads = GmailApp.search(query, 0, REVIEW_LIMIT);
     if (threads.length === 0) return;
 
@@ -1063,9 +1070,22 @@ function reviewGmailSpam()
         const verdict = analyzeMessage(message);
 
         // Not spam by our rules — including every whitelisted sender, for which
-        // collectSignals() returns null. Leave it untouched for the user.
+        // collectSignals() returns null. Leave the message where it is, but
+        // mark the thread processed so this decision is not recomputed every
+        // cycle. The label is the only change; the message stays in Spam,
+        // unmoved and undeleted.
         if (!verdict.isSpam)
         {
+          try
+          {
+            const processed = getOrCreateLabel(CONFIG.processedLabel);
+            if (processed) thread.addLabel(processed);
+          }
+          catch (labelError)
+          {
+            // Non-fatal: costs a re-evaluation next cycle, nothing more.
+            logError('Could not mark reviewed spam as processed: ' + labelError.toString());
+          }
           left++;
           continue;
         }

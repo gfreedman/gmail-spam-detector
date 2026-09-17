@@ -30,6 +30,15 @@ if f'{spam_count}/' in readme:
 else:
     fail(f'README spam count stale — found {spam_count} .eml files, README missing "{spam_count}/"')
 
+# Scam was unvalidated until v6.55.0 — the count drifted from 4 to 5 with
+# nothing to catch it, which is the same gap the spam/ham checks exist to close.
+scam_count = len(list((ROOT / 'tests/scam_examples').glob('*.eml')))
+if f'{scam_count}/{scam_count} scam' in readme:
+    ok(f'README scam count ({scam_count}/{scam_count})')
+else:
+    fail(f'README scam count stale — found {scam_count} .eml files, '
+         f'README missing "{scam_count}/{scam_count} scam"')
+
 if f'{ham_count}/' in readme:
     ok(f'README ham count ({ham_count}/{ham_count})')
 else:

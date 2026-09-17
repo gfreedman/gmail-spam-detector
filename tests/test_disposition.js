@@ -571,7 +571,13 @@ console.log('\n=== logging: every reviewed message produces a row ===');
   };
   ctx.reviewGmailSpam();
 
-  check('both messages logged', rows.length === 2, JSON.stringify(rows));
+  // Only the DELETED message is logged. A whitelisted keep is a non-action,
+  // and a row for it reads in the Sheet as "LinkedIn was flagged as spam".
+  // It also grew without bound: whitelisted mail is never deleted, so it sits
+  // in the folder permanently and the v6.54.0 forced re-review re-judged it on
+  // every version change — a fresh pair of rows per deploy.
+  check('only the deleted message is logged', rows.length === 1,
+        JSON.stringify(rows));
   const del  = rows.find(r => r.id === 'mLOG1');
   const kept = rows.find(r => r.id === 'mLOG2');
   check('corroborated deletion logs CORROBORATED or CONFIRMED',
@@ -579,13 +585,137 @@ console.log('\n=== logging: every reviewed message produces a row ===');
                   del.type === 'GMAIL_SPAM_CONFIRMED'), JSON.stringify(del));
   check('deleted message IS archived to Drive',
         !!del && del.skipArchive === false);
-  check('kept message logs KEPT_WHITELISTED',
-        !!kept && kept.type === 'GMAIL_SPAM_KEPT_WHITELISTED', JSON.stringify(kept));
-  check('kept message is NOT copied to Drive',
-        !!kept && kept.skipArchive === true);
+  check('whitelisted keep writes NO Sheet row', kept === undefined,
+        JSON.stringify(rows));
+  check('whitelisted keep is still not deleted',
+        ctx.calls.filter(c => c.op === 'batchDelete')
+                 .reduce((a, c) => a.concat(c.ids), []).indexOf('mLOG2') === -1,
+        JSON.stringify(ctx.calls.filter(c => c.op === 'batchDelete')));
   check('FREEMAIL_RANDOM_LOCAL appears in the signals CSV',
         vm.runInContext("buildSignalsCsv({freeMailRandomLocal:true})", ctx)
           .indexOf('FREEMAIL_RANDOM_LOCAL') !== -1);
+}
+
+console.log('\n=== Signal 9: callback phishing (the raju47326yu Norton scam) ===');
+{
+  // Verbatim shape of the message that got past every other signal on
+  // 2026-09-17. It has NO links (so Signal 7 has nothing to compare), is
+  // direct-send (so Rules 1-3 have no bulk prerequisite) and its subject is a
+  // flat statement (so no clickbait or fear pattern fires). The payload is a
+  // phone number, which is exactly why an email filter cannot follow it.
+  const NORTON_BODY = [
+    'Invoice Date: Thursday, September 17, 2026',
+    'Invoice No: 73125625',
+    'Payment ID: 384S14L31CNIVUQ31',
+    '',
+    'Hey Geoff C Freedman,',
+    'This is an advance notification regarding your upcoming membership',
+    'renewal with Norton.',
+    'your subscription is scheduled to renew automatically on Thursday,',
+    'September 17, 2026 using the payment method associated with your account.',
+    'Product: Norton Antivirus Security',
+    'Renewal Amount: $145.91',
+    'If you have any questions regarding your membership or would like to',
+    'update your account, please contact our support team at +1 (859) 433-9193.',
+    '(c) 2026 Norton. All rights reserved.'
+  ].join('\n');
+
+  function callbackMessage(id) {
+    const m = blacklistMessage(id || 'mCB');
+    // From display name is the RECIPIENT'S OWN NAME — self-spoof.
+    m.getFrom = () => 'Geoff C Freedman <raju47326yu@gmail.com>';
+    m.getSubject = () => 'It has been updated to Invoice 73125625.';
+    m.getPlainBody = () => NORTON_BODY;
+    m.getBody = () => '<pre>' + NORTON_BODY + '</pre>';
+    // No bulk fingerprint: sent straight through smtp.gmail.com.
+    m.getRawContent = () => 'Received: from [172.28.1.128]\r\n' +
+                            'from: Geoff C Freedman <raju47326yu@gmail.com>\r\n\r\n' +
+                            NORTON_BODY;
+    return m;
+  }
+
+  const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  const sig = ctx.collectSignals(callbackMessage('mCB1'));
+
+  check('Signal 9 fires on the real callback scam',
+        !!sig && sig.callbackPhishing === true, JSON.stringify(sig));
+  check('it is judged spam', ctx.makeVerdict(sig) === true);
+  check('it is attributed to Rule 9',
+        ctx.getRuleFromSignals(sig).rule === 'Rule 9',
+        ctx.getRuleFromSignals(sig).rule);
+  check('CALLBACK_PHISHING appears in the signals CSV',
+        ctx.buildSignalsCsv(sig).indexOf('CALLBACK_PHISHING') !== -1,
+        ctx.buildSignalsCsv(sig));
+  check('it corroborates a Gmail spam verdict',
+        ctx.hasCorroboratingSignal(sig) === true);
+  // The signals it does NOT have are the point — this is why it was missed.
+  check('no other rule could have caught it',
+        sig.clickbaitCount === 0 && !sig.fearMongering &&
+        !sig.brandMismatchedCta && !sig.bulkEmailService,
+        'clickbait=' + sig.clickbaitCount + ' fear=' + sig.fearMongering +
+        ' cta=' + sig.brandMismatchedCta + ' bulk=' + sig.bulkEmailService);
+
+  // Disposition: QUARANTINED, never deleted. Rule 9 is absent from
+  // DESTRUCTIVE_RULES, and the residual FP class (a person forwarding a real
+  // receipt with a callback number) must stay recoverable.
+  {
+    const c2 = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const msg = callbackMessage('mCB2');
+    const th  = fakeThread([msg], c2.calls);
+    const destroyed = c2.disposeDetectedMessage(msg, th, c2.collectSignals(msg), true);
+    check('Rule 9 does NOT permanently delete',
+          c2.calls.filter(x => x.op === 'batchDelete').length === 0,
+          JSON.stringify(c2.calls.filter(x => x.op === 'batchDelete')));
+    check('Rule 9 reports the thread as surviving', destroyed === false);
+    check('Rule 9 applies the Phishing label',
+          th.__labels.indexOf('Phishing') !== -1, JSON.stringify(th.__labels));
+    // Not `typeof getRuleFromSignals === 'function'` — that passes whatever
+    // the disposition does. Rule 9 must reach the quarantine branch as an
+    // EXPECTED rule, so no "Unidentified rule" error may be raised.
+    const errs = [];
+    const c3 = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    c3.logError = e => errs.push(String(e));
+    const m3 = callbackMessage('mCB3');
+    const t3 = fakeThread([m3], c3.calls);
+    c3.disposeDetectedMessage(m3, t3, c3.collectSignals(m3), true);
+    check('Rule 9 is not reported as an unidentified verdict',
+          errs.every(e => e.indexOf('Unidentified rule') === -1),
+          JSON.stringify(errs));
+  }
+
+  // False-positive guards. Each removes exactly ONE of the four conditions,
+  // so each proves that condition is load-bearing rather than decorative.
+  const drop = (mut) => {
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m = callbackMessage('mFP');
+    mut(m);
+    const g = c.collectSignals(m);
+    return !!g && g.callbackPhishing === true;
+  };
+
+  check('NOT free mail (billing from a real corporate domain) -> no fire',
+        drop(m => { m.getFrom = () => 'Norton <billing@norton.com>'; }) === false);
+  check('no impersonated brand (a real personal invoice) -> no fire',
+        drop(m => {
+          const b = NORTON_BODY.replace(/Norton/g, 'my consulting work');
+          m.getPlainBody = () => b; m.getBody = () => '<pre>' + b + '</pre>';
+        }) === false);
+  check('no phone number (nothing to call) -> no fire',
+        drop(m => {
+          const b = NORTON_BODY.replace('+1 (859) 433-9193', 'our help centre');
+          m.getPlainBody = () => b; m.getBody = () => '<pre>' + b + '</pre>';
+        }) === false);
+  check('no billing language (a plain note) -> no fire',
+        drop(m => {
+          const b = 'Hi, Norton asked me to pass on their number: +1 (859) 433-9193.';
+          m.getPlainBody = () => b; m.getBody = () => '<pre>' + b + '</pre>';
+        }) === false);
+  check('a friend on gmail sharing a phone number -> no fire',
+        drop(m => {
+          m.getSubject = () => 'my new number';
+          const b = 'Hey, my new number is 604 555 0134 — call any time.';
+          m.getPlainBody = () => b; m.getBody = () => '<pre>' + b + '</pre>';
+        }) === false);
 }
 
 console.log('\n=== checkFalseNegatives: SpamMissed cannot destroy whitelisted mail ===');

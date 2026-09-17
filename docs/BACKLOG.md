@@ -1,6 +1,6 @@
 # Backlog
 
-Deferred work, as of **v6.54.0** (2026-09-17).
+Deferred work, as of **v6.55.0** (2026-09-17).
 
 Everything here was surfaced by two external reviews — a Google L6 security pass
 and a Palo Alto Networks L6 code/docs pass — plus findings from the day's own
@@ -15,7 +15,7 @@ today's conditions, and conditions change.
 
 ## Where to pick up
 
-**Prod state at v6.50.2.** Healthy and unattended. Verified: the 1-minute
+**Prod state at v6.55.0.** Healthy and unattended. Verified: the 1-minute
 trigger runs under the narrowed OAuth grant (v6.48.1 removed
 `script.external_request`); inbox fully processed; no false positives;
 detection log at 591 rows.
@@ -75,7 +75,13 @@ instance and not the class**:
   aimed at six messages changed nothing about those six messages. v6.54.0 makes
   the exclusion version-aware.
 
-That last one generalizes past this codebase: **a cache of a decision must be
+- v6.54.0's forced re-review then made an existing cosmetic bug unbounded:
+  phase 1 logged a Sheet row for whitelisted mail it deliberately kept, and
+  since whitelisted mail never leaves the Spam folder, every deploy re-judged it
+  and appended another pair of rows. Fixing one leak opened another of the same
+  shape (v6.49.1, v6.50.1, now v6.54.0 — three in a row).
+
+Two lessons worth carrying. First: **a cache of a decision must be
 invalidated by a change to the thing that decides.** `SpamChecked` recorded
 "reviewed" as a permanent property of the message when it is really a property
 of the logic that reviewed it. Any state that lets work be skipped needs an
@@ -86,6 +92,19 @@ What held were the things encoded as **executable invariants**, not prose:
 `disposeDetectedMessage()` refusing to delete without a Drive file id,
 `destroySpam()` refusing to sweep without its label, and
 `tests/test_disposition.js` asserting both.
+
+Second: **before widening what a periodic pass looks at, check what that pass
+writes.** A forced re-review is only safe if every branch it can reach is
+idempotent. Phase 1's delete branches were (the message is gone), its
+leave-alone branch was (no row), and its whitelist branch was not. The question
+"what does this do on the second pass over the same message?" would have caught
+it, and is worth asking of every branch in `reviewGmailSpam()` and
+`recheckRecentSpamChecked()` before touching their scope again.
+
+A related gap, now closed: the README **scam** count was never CI-validated, and
+it drifted 4 → 5 in v6.55.0 with nothing to catch it, while spam and ham had had
+checks for releases. An unvalidated sibling of a validated thing is a good place
+to look for the next silent drift.
 
 > **Rule for anything touching irreversible deletion: write the assertion, not
 > the comment.** A comment describing an invariant is a wish. A test is the

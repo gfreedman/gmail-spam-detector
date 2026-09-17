@@ -17,6 +17,79 @@ detail plus the diffs.
 
 ---
 
+## v6.55.0
+
+Two bugs the user found by reading the Sheet, both mine.
+
+**1. LinkedIn invitations appeared as rows in the spam log.**
+
+`reviewGmailSpam()` phase 1 wrote a `GMAIL_SPAM_KEPT_WHITELISTED` row for mail
+it deliberately left alone. In a sheet whose other rows are all deletions, that
+reads as "LinkedIn was flagged as spam" — the opposite of what happened.
+
+It also duplicated without bound, and v6.54.0 is what made it do so. Whitelisted
+mail is never deleted, so it stays in the Spam folder permanently; the new forced
+re-review re-judges the whole folder on every version change. One fresh pair of
+rows per deploy, for the same two invitations, forever. The same shape as the
+quota leaks in v6.50.1 and v6.49.1: a per-deploy cost I introduced while fixing
+something else.
+
+Phase 2 already had this right — it counts spared whitelisted mail and writes no
+row. Phase 1 now matches it. The `logInfo` line remains, which is where a
+non-action belongs. The Sheet records what the detector DID.
+
+**2. A Norton callback scam was classified as generic spam, and nothing in the
+inbox path would have caught it at all.**
+
+`raju47326yu@gmail.com` reached the Spam folder and was removed only because
+Gmail had already judged it and Signal 8 corroborated. On its own merits the
+detector scored it at zero:
+
+- No links anywhere, so Signal 7 had nothing to compare.
+- Direct-send through `smtp.gmail.com`, so Rules 1-3 had no bulk prerequisite.
+- Subject "It has been updated to Invoice 73125625." — a flat statement, so no
+  clickbait or fear pattern fired.
+- Valid SPF, DKIM and DMARC, because gmail.com really did send it.
+
+It was a fake Norton renewal: From display name set to the recipient's own name,
+a plausible invoice ($145.91, a product key, a payment ID), and a support number
+to call. **The scam works precisely because it has no link to inspect** — the
+victim is moved to a phone call, where no email filter follows. Signals built to
+read link graphs and marketing vocabulary cannot see it.
+
+New **Signal 9 / Rule 9** detects the anatomy instead of the wording. All four
+must hold: a free-mail sender, a named brand it provably isn't, billing
+language, and a phone number. A four-way conjunction because no single part is
+rare — real people invoice from Gmail, and real invoices carry phone numbers. It
+is the combination with an impersonated brand that has no innocent reading.
+
+Rule 9 **quarantines rather than deletes** (absent from `DESTRUCTIVE_RULES`,
+which is an allowlist, so this is the default it falls into). The residual
+false-positive class is someone forwarding a genuine receipt and adding a
+callback number — unlikely, not absurd — and a fuzzy signal gets a recoverable
+disposition. In the Spam folder it still deletes, because it counts toward
+`hasCorroboratingSignal()` where Gmail has already judged the message. Logged as
+`PHISHING_DETECTED`, not `SPAM_DETECTED`.
+
+**Tests.** The real message is now `tests/scam_examples/Norton renewal callback
+scam from freemail.eml` (scam corpus 4 → 5). 15 new Node assertions drive the
+shipped `collectSignals()` with its verbatim content and assert the quarantine
+routing; five of them remove one condition each, so every condition is proven
+load-bearing rather than decorative.
+
+Signal 9 is also mirrored in the Python harness, so the 22-file ham corpus
+actually exercises it — without the mirror the new signal would have had no
+false-positive coverage at all, which is the drift liability documented in
+`docs/BACKLOG.md`. Supporting parser change: `_load_string_array` grew an
+`allow_spaces` flag for phrase arrays like `'geek squad'`, relaxing only the
+space rule while still failing on the newline and comma that actually indicate a
+desynchronized parse.
+
+`scripts/validate.py` now checks the README scam count too. It was unvalidated,
+and it drifted from 4 to 5 in this very release with nothing to catch it.
+
+---
+
 ## v6.54.0
 
 **A fix that could not see the mail it was written for.**

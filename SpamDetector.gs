@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.54.0
+ * @version 6.55.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 1-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -26,7 +26,7 @@
  *      A version change re-reviews the whole folder, so an improved rule is
  *      applied to spam the previous logic already dismissed.
  *
- * Decision logic (8 rules, evaluated in priority order — first match wins):
+ * Decision logic (9 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
  *   Rule 2: Bulk email + 2+ clickbait patterns → spam
  *   Rule 3: Bulk email + 2+ distinct spam behaviors → spam
@@ -36,6 +36,9 @@
  *   Rule 7: CTA link text names a document brand the href does not belong to → phishing
  *           (QUARANTINED: archived + labelled, never deleted — see quarantineAsPhishing)
  *   Rule 8: Free-mail machine-generated sender + 2+ spam behaviors → spam
+ *   Rule 9: Free-mail sender invoicing as a brand it does not control, with a
+ *           phone number as the payload → callback phishing
+ *           (QUARANTINED: archived + labelled, never deleted)
  *
  * Changelog: see CHANGELOG.md. It is not reproduced here — it reached 459
  * lines and three consecutive entries described three incompatible designs for
@@ -76,7 +79,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.54.0';
+const SCRIPT_VERSION = '6.55.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -599,6 +602,48 @@ const IMPERSONATION_SUBJECT_PATTERNS = Object.freeze([
 ]);
 
 /**
+ * Brands whose support/billing mail is impersonated by callback scams.
+ *
+ * These are consumer security, payment and marketplace brands — the ones a
+ * fake renewal notice leans on, because "your antivirus auto-renews today"
+ * creates urgency about money the recipient believes they already spend.
+ *
+ * Matched as plain substrings against lowercased subject+body, so keep entries
+ * lowercase. A brand here can never be the free-mail sender's own domain, so
+ * naming one from a gmail.com address is always a misrepresentation.
+ * @const {Array<string>}
+ */
+const IMPERSONATED_SUPPORT_BRANDS = Object.freeze([
+  'norton', 'mcafee', 'geek squad', 'best buy', 'paypal', 'lifelock',
+  'windows defender', 'microsoft defender', 'applecare', 'apple care',
+  'amazon prime', 'coinbase', 'quickbooks', 'avast', 'malwarebytes'
+]);
+
+/**
+ * North American phone number, the payload of a callback scam.
+ *
+ * Linear — no nested quantifiers, so it is not a ReDoS risk on the 64KB
+ * scan window. Requires a separator between groups, so it does not match a
+ * bare 10-digit run such as an order number.
+ * @const {RegExp}
+ */
+const CALLBACK_PHONE_PATTERN =
+  /(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}/;
+
+/**
+ * Billing language. A fake invoice has to state what is being charged.
+ * @const {Array<RegExp>}
+ */
+const BILLING_LANGUAGE_PATTERNS = Object.freeze([
+  /\b(?:invoice|subscription|membership|order)\s+(?:no|number|id|date|summary|total)\b/i,
+  /\b(?:auto[-\s]?renew(?:al|s|ed|ing)?|renewal amount|renewal date)\b/i,
+  /\b(?:has been|will be|was)\s+(?:charged|debited|billed)\b/i,
+  /\bpayment\s+(?:id|method|of)\b/i,
+  /\b(?:refund|cancellation)\s+(?:request|department|team|amount|process)\b/i,
+  /\btotal\s+(?:amount|due|charged)\b/i
+]);
+
+/**
  * Trusted sender domains for cloud document-sharing services.
  * Used with IMPERSONATION_SUBJECT_PATTERNS: if the subject matches a service
  * notification template and the sender is NOT from one of these domains, it's phishing.
@@ -971,7 +1016,8 @@ function cleanseInbox()
               // batchDelete. cleanse mode previously deleted with no Drive EML and
               // no Sheets row at all, so a misjudged message left no trace.
               const archived = accumulateLogEntry(message, verdict.signals,
-                firedRule === 'Rule 7' ? 'PHISHING_DETECTED' : 'SPAM_DETECTED');
+                (firedRule === 'Rule 7' || firedRule === 'Rule 9')
+                  ? 'PHISHING_DETECTED' : 'SPAM_DETECTED');
 
               if (disposeDetectedMessage(message, thread, verdict.signals, archived))
               {
@@ -1149,8 +1195,20 @@ function reviewGmailSpam(forceFullReview)
           // Whitelisted: never deleted, at any age, by any phase.
           if (signals === null)
           {
-            accumulateLogEntry(message, null, 'GMAIL_SPAM_KEPT_WHITELISTED',
-                               { skipArchive: true });
+            // NOT logged to the Sheet. The Sheet records what the detector DID
+            // to mail — deleted, quarantined — and a whitelisted keep is mail
+            // it deliberately left alone. Rows for it read as "LinkedIn was
+            // flagged as spam", which is the opposite of what happened.
+            //
+            // It also duplicated without bound. Whitelisted mail is never
+            // deleted, so it stays in the folder forever, and the v6.54.0
+            // forced re-review re-judges the whole folder on every version
+            // change — one new pair of rows per deploy, for the same two
+            // LinkedIn invitations. Phase 2 already had this right: it counts
+            // spared whitelisted mail and writes no row.
+            //
+            // The information is not lost: logInfo below records it in the
+            // execution transcript, which is where a non-action belongs.
             markReviewed(thread);
             kept++;
             logInfo('KEPT (whitelisted sender Gmail misfiled): ' +
@@ -1326,7 +1384,8 @@ function hasCorroboratingSignal(signals)
          signals.suspiciousFromName ||
          signals.serviceImpersonation ||
          signals.brandMismatchedCta ||
-         signals.freeMailRandomLocal;
+         signals.freeMailRandomLocal ||
+         signals.callbackPhishing;
 }
 
 /**
@@ -1603,7 +1662,8 @@ function processThread(thread, messages)
         // so phishing rows stay visually distinct in the Sheets log. Missing
         // this is the log-TYPE half of the v6.38.1 bug.
         const detectionLogType = verdict.signals &&
-          (verdict.signals.serviceImpersonation || verdict.signals.brandMismatchedCta)
+          (verdict.signals.serviceImpersonation || verdict.signals.brandMismatchedCta ||
+           verdict.signals.callbackPhishing)
           ? 'PHISHING_DETECTED' : 'SPAM_DETECTED';
         // Capture whether the raw message actually reached Drive — the
         // destructive branch is gated on it.
@@ -1819,7 +1879,8 @@ function collectSignals(message)
     emptySubjectWithAttachment: false, // Empty subject + has attachment (payload scam)
     serviceImpersonation: false,       // Cloud service subject from non-service sender (phishing)
     brandMismatchedCta: false,         // CTA names a document brand, links elsewhere (phishing)
-    freeMailRandomLocal: false         // free-mail sender with a machine-generated local part
+    freeMailRandomLocal: false,        // free-mail sender with a machine-generated local part
+    callbackPhishing: false            // fake brand invoice from free mail, payload is a phone number
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -1998,11 +2059,14 @@ function collectSignals(message)
   // Spam folder, where Gmail has already judged the message, one independent
   // signal is enough. See reviewGmailSpam().
   const atIdx = senderAddress.lastIndexOf('@');
+  // Hoisted: Signal 9 needs the same determination, and computing it twice
+  // would let the two signals disagree after an edit to one of them.
+  let isFreeMail = false;
   if (atIdx > 0)
   {
     const localPart   = senderAddress.substring(0, atIdx);
     const senderHost  = senderAddress.substring(atIdx + 1);
-    const isFreeMail  = FREE_MAIL_DOMAINS.some(function(d) {
+    isFreeMail        = FREE_MAIL_DOMAINS.some(function(d) {
       return hostMatchesDomain(senderHost, d);
     });
 
@@ -2013,6 +2077,56 @@ function collectSignals(message)
       signals.freeMailRandomLocal = true;
       logDebug('Free-mail sender with machine-generated local part: ' +
                sanitizeForLog(senderAddress));
+    }
+  }
+
+  // ── Signal 9: Callback phishing (the payload is a phone number) ─────────
+  //
+  // Closes the class that got raju47326yu@gmail.com past every other signal.
+  // That message was a fake Norton renewal notice: From display name set to the
+  // recipient's own name, sender a throwaway gmail.com address, body a plausible
+  // invoice ($145.91, a product key, a payment ID) and a support number to call.
+  //
+  // Nothing else could see it. It carried NO links at all, so Signal 7 had
+  // nothing to compare; it was direct-send, so Rules 1-3 had no bulk
+  // prerequisite; its subject is a flat statement, so no clickbait or fear
+  // pattern fired. Only Signal 8 touched it, and Signal 8 deliberately cannot
+  // convict alone. The scam works precisely BECAUSE it has no link to inspect —
+  // the victim is moved to a phone call, where no email filter follows.
+  //
+  // So detect the anatomy rather than the wording. All four must hold:
+  //   1. free-mail sender          — a real brand never bills from gmail.com
+  //   2. names an impersonated brand — claims to be someone it provably isn't
+  //   3. billing language           — asserts money is moving
+  //   4. a phone number             — the actual payload
+  //
+  // A four-way conjunction because no single part is rare. Real people do send
+  // invoices from Gmail, and real invoices carry phone numbers; it is the
+  // combination with an impersonated brand that has no innocent reading.
+  //
+  // Quarantines rather than deletes (Rule 9 is absent from DESTRUCTIVE_RULES).
+  // The residual false-positive class is a person forwarding a genuine Norton
+  // receipt and adding a callback number, which is unlikely but not absurd —
+  // and per the project's standing rule, a fuzzy signal gets a recoverable
+  // disposition. In the Spam folder it still deletes, because it counts toward
+  // hasCorroboratingSignal() where Gmail has already judged the message.
+  if (isFreeMail)
+  {
+    const scanText = (subject + ' ' + body)
+      .substring(0, LIMITS.maxRawScanChars)
+      .toLowerCase();
+
+    const impersonated = IMPERSONATED_SUPPORT_BRANDS.filter(function(b) {
+      return scanText.indexOf(b) !== -1;
+    });
+
+    if (impersonated.length > 0 &&
+        CALLBACK_PHONE_PATTERN.test(scanText) &&
+        BILLING_LANGUAGE_PATTERNS.some(function(p) { return p.test(scanText); }))
+    {
+      signals.callbackPhishing = true;
+      logDebug('Callback phishing: free-mail sender invoicing as "' +
+               impersonated[0] + '" with a phone number');
     }
   }
 
@@ -2155,6 +2269,17 @@ function makeVerdict(signals)
     return true;
   }
 
+  // Rule 9: Callback phishing — fake brand invoice from free mail with a
+  // phone-number payload. No bulk prerequisite and no link required, which is
+  // the whole point: this class carries neither. See Signal 9 for why all four
+  // of its conditions are required together.
+  if (signals.callbackPhishing)
+  {
+    logInfo('PHISHING DETECTED: Callback scam (free-mail sender invoicing as a ' +
+            'brand it is not, with a phone number to call)');
+    return true;
+  }
+
   // No rule triggered — email is not spam
   logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
            ', blacklist=' + signals.blacklistedSender +
@@ -2165,7 +2290,8 @@ function makeVerdict(signals)
            ', emptySubjectAttachment=' + signals.emptySubjectWithAttachment +
            ', serviceImpersonation=' + signals.serviceImpersonation +
            ', brandMismatchedCta=' + signals.brandMismatchedCta +
-           ', freeMailRandomLocal=' + signals.freeMailRandomLocal);
+           ', freeMailRandomLocal=' + signals.freeMailRandomLocal +
+           ', callbackPhishing=' + signals.callbackPhishing);
   return false;
 }
 
@@ -2278,7 +2404,12 @@ function disposeDetectedMessage(message, thread, signals, archived)
     return true;  // thread destroyed — caller must not touch it again
   }
 
-  if (rule !== 'Rule 7')
+  // Rules that quarantine BY DESIGN. Anything reaching the non-destructive
+  // branch from outside this list is an unidentified verdict, which is worth
+  // an error even though the disposition is the safe one.
+  const QUARANTINE_RULES = ['Rule 7', 'Rule 9'];
+
+  if (QUARANTINE_RULES.indexOf(rule) === -1)
   {
     logError('Unidentified rule "' + rule + '" for a message judged spam — ' +
              'quarantining rather than deleting');
@@ -4472,6 +4603,11 @@ function getRuleFromSignals(signals)
     return { rule: 'Rule 8', description: 'Free-mail machine-generated sender + ' + spamBehaviorCount + ' spam behaviors' };
   }
 
+  if (signals.callbackPhishing)
+  {
+    return { rule: 'Rule 9', description: 'Callback phishing (free-mail sender invoicing as a brand it does not control, payload is a phone number)' };
+  }
+
   return { rule: 'NONE', description: 'No rule triggered' };
 }
 
@@ -4497,6 +4633,7 @@ function buildSignalsCsv(signals)
   if (signals.serviceImpersonation)       parts.push('SERVICE_IMPERSONATION');
   if (signals.brandMismatchedCta)         parts.push('BRAND_MISMATCH_CTA');
   if (signals.freeMailRandomLocal)        parts.push('FREEMAIL_RANDOM_LOCAL');
+  if (signals.callbackPhishing)           parts.push('CALLBACK_PHISHING');
 
   return parts.join(',');
 }

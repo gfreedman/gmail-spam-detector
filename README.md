@@ -29,7 +29,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 9. **Link-graph anomalies** (a CTA naming a brand its destination doesn't own)
 10. **Machine-generated free-mail addresses** (throwaway accounts like `raju47326yu@gmail.com`)
 
-**Detection Logic — 8 rules, first match wins:**
+**Detection Logic — 9 rules, first match wins:**
 - Bulk email + blacklisted sender = SPAM
 - Bulk email + 2+ clickbait patterns = SPAM
 - Bulk email + 2+ spam behaviors = SPAM
@@ -38,12 +38,13 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - Cloud-service subject from a non-service sender = PHISHING
 - CTA names a document brand its destination doesn't control = PHISHING (quarantined, not deleted)
 - Free-mail sender with a machine-generated address + 2 spam behaviours = SPAM
+- Free-mail sender invoicing as a brand it doesn't control, with a phone number to call = PHISHING (quarantined, not deleted)
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
 
 ## 📊 Results
 
-- ✅ **100% detection** on 54/54 spam + 4/4 scam (.eml files)
+- ✅ **100% detection** on 54/54 spam + 5/5 scam (.eml files)
 - ✅ **0% false positives** on 22/22 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **No domain whack-a-mole** (catches new spam domains automatically)
@@ -344,7 +345,7 @@ addToWhitelist('domain.com');
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
 │   ├── spam_examples/           # Real spam .eml files (54)
-│   ├── scam_examples/           # Scam .eml files (4)
+│   ├── scam_examples/           # Scam .eml files (5)
 │   └── ham_examples/            # Legitimate .eml files (22)
 └── .github/workflows/           # CI/CD pipeline
 ```

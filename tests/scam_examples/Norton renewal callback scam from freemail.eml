@@ -1,0 +1,49 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Return-Path: <raju47326yu@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id 38308e7fff4ca-3a5f7e8ac82sor216261fa.1.2026.09.17.07.19.13
+        for <geoff.c.freedman@gmail.com>
+        (Google Transport Security);
+        Thu, 17 Sep 2026 07:19:13 -0700 (PDT)
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20251104;
+       spf=pass (google.com: domain of raju47326yu@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=raju47326yu@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com
+Received: from [172.28.1.128] ([161.120.221.248])
+        by smtp.gmail.com with ESMTPSA id 38308e7fff4ca-3a5dafa9cedsm14293791fa.27.2026.09.17.07.19.12
+        for <geoff.c.freedman@gmail.com>;
+        Thu, 17 Sep 2026 07:19:12 -0700 (PDT)
+Message-ID: <6aabf6e0.11beeb9d.39f01b.efc4@mx.google.com>
+Date: Thu, 17 Sep 2026 07:19:12 -0700 (PDT)
+MIME-Version: 1.0
+Content-Type: text/plain; charset="us-ascii"
+Content-Transfer-Encoding: 7bit
+to: Geoff C Freedman <geoff.c.freedman@gmail.com>
+from: Geoff C Freedman <raju47326yu@gmail.com>
+subject: It has been updated to Invoice 73125625.
+Importance: normal
+Priority: normal
+
+Invoice Date: Thursday, September 17, 2026
+Invoice No: 73125625
+Payment ID: 384S14L31CNIVUQ31
+
+Hey Geoff C Freedman,
+
+This is an advance notification regarding your upcoming membership renewal with Norton.
+
+According to your current membership settings, your subscription is scheduled to renew automatically on Thursday, September 17, 2026 using the payment method associated with your account. No action is required if you wish to continue your membership without interruption.
+
+Membership Summary
+Product: Norton Antivirus Security
+Product Key: d1e02711-9e0a-4bb6-a2b6-d7f0c6abd3ac
+Quantity: 3 Users
+Membership Duration: One Year
+Renewal Amount: $145.91
+Renewal Date: Thursday, September 17, 2026
+
+If you have any questions regarding your membership or would like to update your account before the renewal date, please contact our support team at +1 (859) 433-9193.
+
+Thank you for your continued confidence in Norton. We appreciate your membership and look forward to serving you.
+
+(c) 2026 Norton. All rights reserved.

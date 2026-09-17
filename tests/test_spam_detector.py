@@ -320,27 +320,46 @@ def _strip_js_comments(text):
     return ''.join(out)
 
 
-def _load_string_array(source, const_name):
-    """Extract a JS Object.freeze([...]) string array as a Python list."""
+def _load_string_array(source, const_name, allow_spaces=False):
+    """
+    Extract a JS Object.freeze([...]) string array as a Python list.
+
+    `allow_spaces` is for arrays of human-language phrases rather than
+    identifiers — IMPERSONATED_SUPPORT_BRANDS holds 'geek squad'. It relaxes
+    only the space rule; the checks that actually detect a desynchronized
+    parse stay on. See _extract_quoted_strings.
+    """
     content = _extract_bracket_content(source, f'const {const_name} = Object.freeze([')
-    return _extract_quoted_strings(content, const_name)
+    return _extract_quoted_strings(content, const_name, allow_spaces)
 
 
-def _extract_quoted_strings(content, const_name):
+def _extract_quoted_strings(content, const_name, allow_spaces=False):
     """
     Pull quoted string literals out of a JS array body, comments removed first.
 
-    Validates that no entry contains whitespace. Every string array in
-    SpamDetector.gs holds domains, header fingerprints or hostname labels —
-    none of which contain spaces or newlines. A whitespace-bearing entry means
-    quote pairing has desynchronized, so fail loudly here rather than let a
-    corrupted allowlist silently change detection behaviour.
+    Validates entry shape. Most string arrays in SpamDetector.gs hold domains,
+    header fingerprints or hostname labels — none of which contain whitespace
+    — so a whitespace-bearing entry means quote pairing has desynchronized.
+    Fail loudly here rather than let a corrupted allowlist silently change
+    detection behaviour.
+
+    `allow_spaces=True` exempts arrays of natural-language phrases, but keeps
+    the checks that a desync actually trips: a run-together parse swallows the
+    delimiters between entries, so a newline or a comma inside a value still
+    fails. Those are the symptoms; a single space is not.
     """
     values = re.findall(r"""['"]([^'"]+)['"]""", _strip_js_comments(content))
-    bad = [v for v in values if re.search(r'\s', v)]
+
+    if allow_spaces:
+        bad = [v for v in values if re.search(r'[\r\n,]', v)]
+        reason = 'contain a newline or comma'
+    else:
+        bad = [v for v in values if re.search(r'\s', v)]
+        reason = 'contain whitespace'
+
     if bad:
         raise ValueError(
-            f'{const_name}: {len(bad)} entries contain whitespace '
+            f'{const_name}: {len(bad)} entries {reason} '
             f'(e.g. {bad[0]!r}) — quote pairing desynchronized, '
             f'likely an apostrophe or quote inside a comment'
         )
@@ -441,6 +460,9 @@ def _load_gs_constants(gs_path):
         'CTA_VERB_PATTERN':             _load_single_regex(source, 'CTA_VERB_PATTERN'),
         'FREE_MAIL_DOMAINS':            _load_string_array(source, 'FREE_MAIL_DOMAINS'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
+        'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
+            source, 'IMPERSONATED_SUPPORT_BRANDS', allow_spaces=True),
+        'BILLING_LANGUAGE_PATTERNS':    _load_regex_array(source, 'BILLING_LANGUAGE_PATTERNS'),
         'RFC2822_QUOTED_NAME':          _load_single_regex(source, 'RFC2822_QUOTED_NAME'),
         'LIMITS':                       limits,
         # Both parsed by the same generic loader — keys are discovered from the
@@ -477,6 +499,13 @@ TRACKER_LABELS                  = _gs['TRACKER_LABELS']
 CTA_VERB_PATTERN                = _gs['CTA_VERB_PATTERN']
 FREE_MAIL_DOMAINS               = _gs['FREE_MAIL_DOMAINS']
 RANDOM_LOCAL_PART_PATTERNS      = _gs['RANDOM_LOCAL_PART_PATTERNS']
+IMPERSONATED_SUPPORT_BRANDS     = _gs['IMPERSONATED_SUPPORT_BRANDS']
+BILLING_LANGUAGE_PATTERNS       = _gs['BILLING_LANGUAGE_PATTERNS']
+# Single regex rather than an array, so it is mirrored by value. Kept here
+# beside the arrays it is used with; SpamDetector.gs CALLBACK_PHONE_PATTERN is
+# the original and the two must stay identical.
+CALLBACK_PHONE_PATTERN          = re.compile(
+    r'(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}')
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -487,6 +516,7 @@ MAX_HTML_SCAN_CHARS             = _gs['LIMITS']['maxHtmlScanChars']
 MAX_ANCHORS_SCANNED             = _gs['LIMITS']['maxAnchorsScanned']
 MAX_ANCHOR_TEXT_CHARS           = _gs['LIMITS']['maxAnchorTextChars']
 MAX_ANCHOR_TAG_CHARS            = _gs['LIMITS']['maxAnchorTagChars']
+MAX_RAW_SCAN_CHARS              = _gs['LIMITS']['maxRawScanChars']
 
 
 # =============================================================================
@@ -985,6 +1015,8 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'service_impersonation': False,
                     'brand_mismatched_cta': False,
                     'free_mail_random_local': False,
+        'callback_phishing': False,
+                    'callback_phishing': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -999,6 +1031,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'service_impersonation': False,
         'brand_mismatched_cta': False,
         'free_mail_random_local': False,
+        'callback_phishing': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1114,6 +1147,25 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             signals['free_mail_random_local'] = True
             signals['matched_patterns'].append('free_mail_random_local')
 
+    # ── Signal: Callback phishing (the payload is a phone number) ──────────
+    # Mirrors Signal 9. Four conditions, all required: a free-mail sender, an
+    # impersonated brand, billing language, and a phone number. The class it
+    # closes carries no links and no urgency vocabulary, so every other signal
+    # scores it zero — see the raju47326yu Norton scam of 2026-09-17.
+    #
+    # Mirrored here so the 22-file ham corpus actually exercises it. The Node
+    # suite proves the shipped JS behaviour; this proves it does not fire on
+    # legitimate mail. Keep the two in step — Option B covers the pattern
+    # CONSTANTS above, not this logic.
+    if _at > 0 and any(_host_matches_domain(
+            sender_address[_at + 1:], d) for d in FREE_MAIL_DOMAINS):
+        _scan = (subject + ' ' + body)[:MAX_RAW_SCAN_CHARS].lower()
+        if any(b in _scan for b in IMPERSONATED_SUPPORT_BRANDS) and \
+           CALLBACK_PHONE_PATTERN.search(_scan) and \
+           any(p.search(_scan) for p in BILLING_LANGUAGE_PATTERNS):
+            signals['callback_phishing'] = True
+            signals['matched_patterns'].append('callback_phishing')
+
     # ── Signal: Brand-mismatched CTA phishing ──────────────────────────────
     # A button naming DocuSign/Adobe Sign/SharePoint whose href the brand does
     # not control. The only signal that reads the LINK GRAPH rather than
@@ -1200,6 +1252,14 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         elif signals['free_mail_random_local'] and behavior_count >= 2:
             is_spam = True
             rule = 'RULE 8: Free-mail machine-generated sender + behaviors'
+
+        # Rule 9: Callback phishing — fake brand invoice from free mail whose
+        #   payload is a phone number. No bulk prerequisite and no link
+        #   needed, because this class has neither. Quarantines rather than
+        #   deletes in production (Rule 9 is absent from DESTRUCTIVE_RULES).
+        elif signals['callback_phishing']:
+            is_spam = True
+            rule = 'RULE 9: Callback phishing'
 
     return signals, is_spam, rule
 
@@ -1299,6 +1359,20 @@ def run_parser_tests():
         failures.append('  whitespace-bearing entry should raise ValueError')
     except ValueError:
         pass  # Expected
+
+    # allow_spaces=True is for natural-language phrase arrays
+    # (IMPERSONATED_SUPPORT_BRANDS holds 'geek squad'). It must relax ONLY the
+    # space rule — the symptoms of a desynchronized parse still have to fail,
+    # or the exemption becomes a blanket one and the guard stops guarding.
+    if _extract_quoted_strings("'geek squad', 'best buy'", 'TEST',
+                               allow_spaces=True) != ['geek squad', 'best buy']:
+        failures.append('  allow_spaces rejected a legitimate multi-word brand')
+    for bad_src, why in (("'a,b'", 'comma'), ("'a\nb'", 'newline')):
+        try:
+            _extract_quoted_strings(bad_src, 'TEST', allow_spaces=True)
+            failures.append(f'  allow_spaces should still reject a {why}')
+        except ValueError:
+            pass  # Expected
 
     # ── _load_object_of_string_arrays ──────────────────────────────────────
     src3 = ("const MAP = Object.freeze({\n"

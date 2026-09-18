@@ -529,39 +529,30 @@ jobs:
               print('::error::Deployed but not in sources.json: %s — a stale '
                     'remote file shadows nothing locally and is never tested'
                     % ', '.join(extra))
-          # ORDER IS A WARNING, NOT YET AN ERROR.
+          # Order is a HARD FAILURE.
           #
-          # It rests on an undocumented assumption — that projects.getContent
-          # returns files in project order — and it CANNOT fail today, because
-          # there is exactly one SERVER_JS file. Its first real execution would
-          # be the Phase 1 deploy itself, and if the API canonicalises the
-          # response order the validate job would go permanently red AFTER a
-          # successful deploy, blaming filePushOrder, which would be innocent.
+          # It was a warning until the 21-file deploy (run 35377133412), which
+          # was the first time this predicate could execute at all: with one
+          # SERVER_JS file it was unfalsifiable, so failing on it would have
+          # been a guess. That run returned the files in manifest order, which
+          # establishes both that filePushOrder takes effect and that
+          # projects.getContent preserves project order.
           #
-          # missing/extra stay hard failures: those are the conditions that are
-          # actually dangerous. Promote this to an error once it has been seen
-          # to pass against a real multi-file project.
+          # So a mismatch now means something actually changed, and it matters:
+          # project order is concatenation order, and the syntax lint upstream
+          # validated one specific concatenation. A differently-ordered remote
+          # is a program CI has not parsed.
           if not missing and not extra and deployed != expected:
-              print('::warning::Deployed files are in a different order than '
-                    'sources.json. Not failing the build: response order is not '
-                    'a documented guarantee. Investigate before relying on '
-                    'filePushOrder.')
-              print('Deployed: %s' % ', '.join(deployed))
-              print('Expected: %s' % ', '.join(expected))
-          if missing or extra:
+              print('::error::Deployed files are in a different order than '
+                    'sources.json — the concatenation CI linted is not the one '
+                    'Apps Script builds. Check filePushOrder in .clasp.json.')
+          if missing or extra or deployed != expected:
               print('Deployed: %s' % ', '.join(deployed))
               print('Expected: %s' % ', '.join(expected))
               sys.exit(1)
 
-          # The success line must not claim "in order" when the warning above
-          # just said the order differs. In a 21-file log the green line is what
-          # gets read and the warning is what gets scrolled past.
-          if deployed == expected:
-              print('✅ Deployed files match sources.json (%d file(s), in order): %s'
-                    % (len(expected), ', '.join(expected)))
-          else:
-              print('ℹ️  File set matches sources.json (%d files); order differs '
-                    '— see the warning above.' % len(expected))
+          print('✅ Deployed files match sources.json (%d file(s), in order): %s'
+                % (len(expected), ', '.join(expected)))
           PYEOF
 
   # ===========================================================================

@@ -50,10 +50,17 @@ function escapeSheetCell(value)
 
 function accumulateLogEntry(message, signals, logType, options)
 {
-  // rawContent: supplied by the caller when it already has it, so the message
-  // is not fetched twice. collectSignals() pulls getRawContent() for bulk
-  // detection, and this function pulled it again — two fetches per message on
-  // the delete path, measured.
+  // rawContent: used when the caller supplies it, so the message is not fetched
+  // twice. collectSignals() pulls getRawContent() for bulk detection and this
+  // function pulls it again, so a deleted message costs two full RFC822 reads.
+  //
+  // NO CALLER SUPPLIES IT TODAY. This comment previously described the
+  // double-fetch in the past tense as though it had been fixed; the parameter
+  // was documented and never read. It is read now, so passing it works — but
+  // threading the value out of collectSignals() means changing the return
+  // contract of the detection path, which the parity bridge probes, so that is
+  // a separate change. Deletions are low-volume (single digits most days), so
+  // the standing cost is small; the defect was the claim, not the quota.
   // skipArchive: log the Sheets row but do NOT copy the raw message to Drive.
   //
   // Used for messages we are logging but NOT deleting. The Drive EML exists
@@ -62,6 +69,9 @@ function accumulateLogEntry(message, signals, logType, options)
   // whitelisted sender Gmail misfiled) into Drive for no benefit. Also skips
   // the getRawContent() fetch entirely, saving a Gmail read.
   const skipArchive = !!(options && options.skipArchive);
+  const suppliedRaw = (options && typeof options.rawContent === 'string')
+    ? options.rawContent
+    : null;
   try
   {
     const from            = sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2');
@@ -82,8 +92,15 @@ function accumulateLogEntry(message, signals, logType, options)
     let rawContent = '';
     if (!skipArchive)
     {
-      try { rawContent = message.getRawContent(); }
-      catch (e) { logError('getRawContent failed for ' + message.getId() + ': ' + e.toString()); }
+      if (suppliedRaw !== null)
+      {
+        rawContent = suppliedRaw;
+      }
+      else
+      {
+        try { rawContent = message.getRawContent(); }
+        catch (e) { logError('getRawContent failed for ' + message.getId() + ': ' + e.toString()); }
+      }
     }
 
     // Write the EML to Drive NOW, synchronously, before the caller disposes of

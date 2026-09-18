@@ -59,6 +59,12 @@ def manifest():
     root = m.get('rootDir')
     if not isinstance(root, str) or not root:
         raise RuntimeError('sources.json: "rootDir" must be a non-empty string')
+    # A trailing slash, a leading slash or ".." would each silently break a
+    # different one of the derivations below.
+    if root.endswith('/') or root.startswith('/') or '..' in root.split('/'):
+        raise RuntimeError('sources.json: "rootDir" must be a plain relative '
+                           'path with no leading or trailing slash and no '
+                           '"..": %r' % root)
     # Everything clasp deploys must live under rootDir — clasp only crawls that
     # directory, so a source outside it is simply never pushed.
     outside = [s for s in sources if not s.startswith(root + '/')]

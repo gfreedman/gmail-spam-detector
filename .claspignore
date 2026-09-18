@@ -1,4 +1,9 @@
-# Clasp ignore - only push the .gs files in sources.json, plus appsscript.json
+# Clasp ignore - only push the .gs files in sources.json, plus appsscript.json.
+#
+# PATTERNS HERE ARE ROOTDIR-RELATIVE. clasp crawls rootDir (src/) and filters
+# these against the crawl's relative names, so the deny globs below that name
+# repo directories (tests/**, scripts/**, ...) can never match and are kept only
+# because rootDir is a setting that can change.
 #
 # NOTE: clasp treats ANY .js under rootDir as Apps Script source and will try
 # to upload it as a .gs file. A bare "*.js" pattern matches only top-level
@@ -29,6 +34,13 @@ __pycache__/**
 # here; tests/test_patch_version.js asserts both directions.
 *.gs
 **/*.gs
+
+# HTML is a clasp-supported file type, so an unlisted .html under rootDir is
+# pushed. It is invisible to both deploy guards: the pre-push check only asks
+# whether manifest files are PRESENT, and the deployed-file assertion filters
+# to type == 'SERVER_JS'. Same hole *.gs closed.
+*.html
+**/*.html
 .DS_Store
 .clasp.json
 .clasp.json.example
@@ -38,12 +50,17 @@ LICENSE
 
 # Whitelist only these files.
 #
-# ROOTDIR-RELATIVE, not repo-relative. clasp crawls rootDir with fdir and
-# filters these patterns against the crawl's relative paths, so the entry
-# for src/Config.gs is "!Config.gs". Writing "!src/Config.gs" matches
-# nothing, and with *.gs denied above that makes clasp push ZERO files —
-# replacing the deployed script with nothing. Verified against clasp 3.3.0's
-# own micromatch; tests/test_patch_version.js asserts it both ways.
+# ROOTDIR-RELATIVE, not repo-relative. The entry for src/Config.gs is
+# "!Config.gs". Writing "!src/Config.gs" matches nothing.
+#
+# MIND WHICH FAILURE IS THE DANGEROUS ONE. Whitelisting NOTHING is a silent
+# no-op: clasp reports "Script is already up to date" and returns early, so the
+# remote is untouched. A PARTIAL whitelist is the destructive case — clasp calls
+# updateContent with the files it did match, and every source it missed is
+# deleted from the deployed project. So a typo in ONE line here is worse than
+# deleting all of them. Verified against clasp 3.3.0's own micromatch;
+# tests/test_patch_version.js asserts both directions, including that no line
+# carries the rootDir prefix or trailing whitespace.
 !Config.gs
 !Clickbait.gs
 !Patterns.gs

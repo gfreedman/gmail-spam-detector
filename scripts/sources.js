@@ -68,6 +68,15 @@ function manifest() {
   if (typeof m.rootDir !== 'string' || !m.rootDir) {
     throw new Error('sources.json: "rootDir" must be a non-empty string');
   }
+  // A trailing slash, a leading slash or ".." would all silently break the
+  // rootDir-relative derivations below (claspRelative) and the "under rootDir"
+  // check, each in a different direction.
+  if (m.rootDir.endsWith('/') || m.rootDir.startsWith('/') ||
+      m.rootDir.split('/').includes('..')) {
+    throw new Error('sources.json: "rootDir" must be a plain relative path ' +
+                    'with no leading or trailing slash and no "..": ' +
+                    JSON.stringify(m.rootDir));
+  }
   // Everything clasp deploys must live under rootDir, because clasp only
   // crawls that directory. A source outside it is simply never pushed.
   const outside = m.sources.filter(s => !s.startsWith(m.rootDir + '/'));

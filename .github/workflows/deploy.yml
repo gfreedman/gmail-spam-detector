@@ -522,11 +522,14 @@ jobs:
           # concatenation order, and the syntax lint upstream validated one
           # specific concatenation. A set comparison would pass on a remote
           # whose order differs from the one CI proved parses.
-          # basename, not just the extension: manifest entries are repo-relative
-          # (src/Config.gs) while Apps Script reports the name with both the
-          # rootDir prefix and the extension stripped (Config).
+          # clasp's actual rule (files.js:233-235): the remote name is the
+          # ROOTDIR-RELATIVE path minus the extension — so src/sub/X.gs would
+          # deploy as "sub/X", not "X". basename() only coincides while the
+          # layout is flat, and this repo has already moved its sources once.
+          # clasp_relative() is the manifest's own helper, so there is one
+          # derivation of the rule rather than two.
           deployed = [f.get('name') for f in files if f.get('type') == 'SERVER_JS']
-          expected = [os.path.splitext(os.path.basename(n))[0]
+          expected = [os.path.splitext(sources.clasp_relative(n))[0]
                       for n in sources.source_names()]
 
           missing = sorted(set(expected) - set(deployed))

@@ -1,3 +1,19 @@
+/**
+ * Patterns.gs — Every detection constant except the clickbait list.
+ *
+ * Body-scan patterns (crypto, fear, Unicode obfuscation), From-field patterns,
+ * bulk-service fingerprints, the impersonation and callback-phishing vocabulary,
+ * and the domain lists the link-graph and free-mail signals match against.
+ *
+ * These are the growth axis of the whole system: a missed spam usually ends as
+ * a new entry here rather than new logic. The Python test harness parses these
+ * arrays out of the source at import time, so they are never duplicated in the
+ * tests — reformatting them can break that parser.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 /**
  * Body-only crypto scam patterns — high-confidence terms that almost never

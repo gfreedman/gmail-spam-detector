@@ -1,3 +1,20 @@
+/**
+ * Verdict.gs — The nine rules, and the analyze entry point.
+ *
+ * makeVerdict() evaluates the rules in priority order, first match wins, and
+ * returns a boolean. analyzeMessage() wraps collectSignals() + makeVerdict() and
+ * is the catch-all: anything thrown below it returns unevaluated:'error' so the
+ * message is retried rather than silently marked clean.
+ *
+ * NOTE: the same nine rules are implemented a second time as
+ * getRuleFromSignals() in Flush.gs, which is what the destroy-vs-quarantine
+ * decision actually reads. The two are pinned to each other by an exhaustive
+ * 5,120-combination test in tests/test_disposition.js.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 /**
  * Apply the 7-rule decision cascade to a collected signals object.

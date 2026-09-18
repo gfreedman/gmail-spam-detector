@@ -1,4 +1,18 @@
-
+/**
+ * Clickbait.gs — Clickbait and sensationalism patterns, plus the RFC 2822 quoted-name regex.
+ *
+ * CLICKBAIT_PATTERNS is the largest constant in the project and the one that
+ * grows on almost every miss. Signal 2 scans subject + From with it, counting
+ * EVERY match, so Rule 4 can convict on volume alone with no bulk-email
+ * prerequisite. That makes an over-broad pattern here able to delete mail by
+ * itself — each addition is a deletion rule, not a hint.
+ *
+ * Split from Patterns.gs purely by size. Nothing else depends on the split.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Normalization

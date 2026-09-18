@@ -1,4 +1,18 @@
-
+/**
+ * Disposition.gs — What happens to a message once it is judged spam.
+ *
+ * The irreversible path. disposeDetectedMessage() routes on the rule name:
+ * DESTRUCTIVE_RULES are permanently deleted, everything else is quarantined.
+ * That allowlist is deliberately an allowlist, so a NEW rule defaults to the
+ * recoverable branch.
+ *
+ * Nothing here deletes without an archive: accumulateLogEntry() must report a
+ * successful Drive write first.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Spam Action — Report and Delete

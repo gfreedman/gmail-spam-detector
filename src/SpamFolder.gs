@@ -1,4 +1,18 @@
-
+/**
+ * SpamFolder.gs — Gmail's OWN spam verdicts: re-judging them, and publishing the folder.
+ *
+ * This is mail Gmail intercepted before the inbox, so our rules never saw it.
+ * reviewGmailSpam() deletes only what an independent signal corroborates, then
+ * ages the rest out after CONFIG.gmailSpamGraceDays. writeSpamFolderSnapshot()
+ * publishes the folder to a Sheet tab, because the Gmail API hides SPAM from
+ * search and this script is the only thing that can see it.
+ *
+ * Distinct from Cleanup.gs, which sweeps mail THIS detector condemned.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 /**
  * Safety-net cleanup of spam THIS DETECTOR condemned.

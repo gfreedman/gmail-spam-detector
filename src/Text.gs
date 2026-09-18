@@ -1,4 +1,14 @@
-
+/**
+ * Text.gs — Input sanitization and HTML-to-text helpers.
+ *
+ * sanitizeInput() bounds attacker-controlled text before any regex touches it —
+ * the cap exists to stop quadratic backtracking on a hostile body, not for
+ * tidiness. Everything that reads a message field goes through here first.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Input Sanitization

@@ -1,4 +1,20 @@
-
+/**
+ * Signals.gs — Signal collection: the whitelist gate, field extraction, 11 detections.
+ *
+ * ONE function, deliberately long. Fourteen try/catch blocks write eleven signal
+ * keys (four of them accumulate into clickbaitCount), and every block is wrapped
+ * individually because a single throw used to discard eight of eleven signals.
+ *
+ * That structure is load-bearing, not accidental: code INSIDE a block degrades
+ * one signal; code OUTSIDE one propagates to analyzeMessage()'s catch-all and
+ * the message is never judged at all. Moving a line across a try boundary
+ * changes disposition. A decomposition was reviewed and declined — see
+ * docs/BACKLOG.md 2.3a for what it would require first.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Spam Detection Engine

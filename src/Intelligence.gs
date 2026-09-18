@@ -1,3 +1,17 @@
+/**
+ * Intelligence.gs — The Drive/Sheets archive, health reporting, and the run audit.
+ *
+ * accumulateLogEntry() writes the EML to Drive SYNCHRONOUSLY before returning,
+ * because the caller deletes the message next. Its return value is the invariant
+ * Disposition.gs enforces: no archive, no permanent delete.
+ *
+ * auditRunIntegrity() costs zero API calls and verifies the run did what it
+ * believes it did — a delete with no log row is a reported finding.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 /**
  * Capture a spam event into the in-memory log buffer.

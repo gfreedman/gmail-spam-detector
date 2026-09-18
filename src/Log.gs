@@ -1,4 +1,17 @@
-
+/**
+ * Log.gs — Logging primitives and the run heartbeat.
+ *
+ * logDebug() is suppressed in production. Use logInfo() for anything that
+ * matters to diagnosing whether the script did work — a silent skip looks
+ * identical to a silent crash.
+ *
+ * logRunHeartbeat() is called from processInbox()'s finally, so a run that
+ * throws still reports.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Logging

@@ -1,4 +1,17 @@
-
+/**
+ * Domains.gs — Whitelist and blacklist: reading, caching, and editing.
+ *
+ * getWhitelist()/getBlacklist() merge DEFAULT_DOMAINS from source with whatever
+ * the user added via Script Properties, on every call. That merge is why a new
+ * domain in Config.gs takes effect the moment it deploys.
+ *
+ * The whitelist is checked before any expensive field fetch and before any
+ * signal runs, so an entry here disables detection entirely for that sender.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Domain List Management (Whitelist / Blacklist)

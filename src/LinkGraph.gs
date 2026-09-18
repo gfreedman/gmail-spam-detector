@@ -1,3 +1,18 @@
+/**
+ * LinkGraph.gs — URL/host parsing, domain matching, and the brand-mismatched CTA scan.
+ *
+ * The link-graph signal (Rule 7) lives here: it compares the BRAND NAMED IN A
+ * LINK'S TEXT against the host the link actually points at, which catches
+ * phishing that carries no clickbait, no urgency and a valid DKIM signature.
+ *
+ * addressMatchesDomain() is also the whitelist/blacklist matcher, and its
+ * substring-vs-boundary semantics are security-critical — read its comments
+ * before changing them.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 /**
  * Extract the lowercase host from a URL taken from an href attribute.

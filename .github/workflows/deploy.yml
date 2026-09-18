@@ -27,7 +27,13 @@ on:
     branches: [main]
     # Only run when relevant files change — saves CI minutes on doc-only commits
     paths:
-      - '**/*.gs'                    # Apps Script source (every file in sources.json)
+      - '*.gs'                       # Apps Script source at the repo root
+      - '**/*.gs'                    # ...and in any subdirectory (Phase 1 may use src/)
+                                     # BOTH are listed deliberately: '**' is documented
+                                     # as matching zero or more characters, so '**/*.gs'
+                                     # may reduce to '/*.gs' and miss root-level files.
+                                     # A path filter that silently stops matching is the
+                                     # same failure as the workflow-file omission.
       - 'sources.json'               # The source manifest itself
       - 'appsscript.json'            # Apps Script manifest (scopes, runtime)
       - 'tests/**'                   # Test suite and .eml examples
@@ -266,7 +272,7 @@ jobs:
       # to break a deploy.
       - name: Assert clasp will push every manifest file
         run: |
-          if ! clasp status --json > /tmp/clasp_status.json 2>/tmp/clasp_status.err; then
+          if ! timeout 60 clasp status --json > /tmp/clasp_status.json 2>/tmp/clasp_status.err; then
             echo "::warning::'clasp status --json' failed — skipping the pre-push check"
             cat /tmp/clasp_status.err || true
             exit 0

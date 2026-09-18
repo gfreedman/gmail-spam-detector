@@ -1407,6 +1407,63 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
         ctx.calls.filter(c => c.op === 'batchDelete').length === 0);
 }
 
+// ---------------------------------------------------------------------------
+// The two rule cascades must agree — exhaustively
+// ---------------------------------------------------------------------------
+//
+// makeVerdict() (Verdict.gs) returns a boolean. getRuleFromSignals()
+// (Flush.gs) re-implements the SAME nine rules in the same order to return a
+// rule name. disposeDetectedMessage() then routes destroy-vs-quarantine off
+// getRuleFromSignals(...).rule against DESTRUCTIVE_RULES.
+//
+// So the decision to PERMANENTLY DESTROY mail is made by a second,
+// hand-maintained copy of the cascade, living in the file named for flushing
+// the log buffer, and its correspondence to makeVerdict() was guarded only by
+// a comment ("Rule order is the contract").
+//
+// The dangerous divergence does not change isSpam at all: a rule sliding
+// between a destructive and a quarantine slot changes only whether the mail is
+// recoverable. The 81-fixture parity suite compares JS against PYTHON on both
+// values, which catches this only if some fixture happens to trip it — and the
+// corpus fires Rule 1 in 51 of 59 convictions and never fires Rules 3 or 6.
+//
+// The signal space is small enough to check completely, so check it completely:
+// 10 booleans x clickbaitCount 0..4 = 5120 combinations, in well under a second.
+{
+  console.log('\n=== the two rule cascades must agree (exhaustive) ===');
+  const ctx = makeCtx();
+  const BOOLS = ['bulkEmailService', 'blacklistedSender', 'fearMongering',
+                 'marketingFormat', 'suspiciousFromName',
+                 'emptySubjectWithAttachment', 'serviceImpersonation',
+                 'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing'];
+
+  // Guard the guard: if collectSignals() grows a signal this list does not
+  // know about, the sweep below silently stops being exhaustive.
+  const live = Object.keys(ctx.collectSignals(phishMessage('mX')) || {})
+    .filter(k => k.charAt(0) !== '_' && k !== 'clickbaitCount').sort();
+  check('the exhaustive sweep covers every boolean signal (' + live.length + ')',
+        live.join(',') === BOOLS.slice().sort().join(','),
+        'live=' + live.join(',') + ' swept=' + BOOLS.slice().sort().join(','));
+
+  let combos = 0, disagreements = [];
+  for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
+    for (let cb = 0; cb <= 4; cb++) {
+      const sig = { clickbaitCount: cb };
+      for (let i = 0; i < BOOLS.length; i++) sig[BOOLS[i]] = !!(mask & (1 << i));
+      const isSpam = ctx.makeVerdict(sig) === true;
+      const rule   = ctx.getRuleFromSignals(sig).rule;
+      combos++;
+      if (isSpam !== (rule !== 'NONE') && disagreements.length < 5) {
+        disagreements.push('rule=' + rule + ' isSpam=' + isSpam + ' fired=' +
+          BOOLS.filter(k => sig[k]).concat(cb ? ['clickbait=' + cb] : []).join('+'));
+      }
+    }
+  }
+  check('makeVerdict agrees with getRuleFromSignals on all ' + combos +
+        ' signal combinations', disagreements.length === 0,
+        disagreements.join(' | '));
+}
+
 console.log('\n' + '='.repeat(70));
 console.log(failures === 0
   ? '✅ DISPOSITION TESTS PASSED (' + passed + ' assertions)'

@@ -45,20 +45,28 @@ function debugWhyFlagged(searchTerm)
     }
     else
     {
+      // ITERATED, never hand-listed.
+      //
+      // This list was maintained by hand and drifted TWICE. serviceImpersonation
+      // went missing from v6.38.0 — a Rule 6 phishing verdict printed "SPAM"
+      // with every listed signal false, in the one tool whose entire job is
+      // explaining why something was flagged. A comment was added saying so, and
+      // then callbackPhishing was added to collectSignals() and never added
+      // here, so Rule 9 verdicts printed exactly the same way.
+      //
+      // Object.keys() cannot drift. A new signal shows up the moment
+      // collectSignals() returns it, with no second edit to forget. Meta keys
+      // are `_`-prefixed and listed separately: _degraded is worth seeing in a
+      // debug dump but is not a detection signal.
       logInfo('Signals:');
-      logInfo('  bulk=' + signals.bulkEmailService);
-      logInfo('  blacklist=' + signals.blacklistedSender);
-      logInfo('  clickbait=' + signals.clickbaitCount);
-      logInfo('  fear=' + signals.fearMongering);
-      logInfo('  marketing=' + signals.marketingFormat);
-      logInfo('  suspiciousFrom=' + signals.suspiciousFromName);
-      logInfo('  emptySubjectAttachment=' + signals.emptySubjectWithAttachment);
-      // serviceImpersonation was missing since v6.38.0 — a Rule 6 phishing
-      // verdict printed "SPAM" with every listed signal false, in the one tool
-      // whose entire job is explaining why something was flagged.
-      logInfo('  serviceImpersonation=' + signals.serviceImpersonation);
-      logInfo('  brandMismatchedCta=' + signals.brandMismatchedCta);
-      logInfo('  freeMailRandomLocal=' + signals.freeMailRandomLocal);
+      Object.keys(signals).sort().forEach(function(key)
+      {
+        if (key.charAt(0) !== '_') logInfo('  ' + key + '=' + signals[key]);
+      });
+      Object.keys(signals).sort().forEach(function(key)
+      {
+        if (key.charAt(0) === '_') logInfo('  [meta] ' + key + '=' + signals[key]);
+      });
       logInfo('');
       logInfo('Verdict: ' + (makeVerdict(signals) ? 'SPAM' : 'not spam'));
     }

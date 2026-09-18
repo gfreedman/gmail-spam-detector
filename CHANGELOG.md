@@ -20,6 +20,46 @@ detail plus the diffs.
 
 ---
 
+## v6.64.0
+
+**The parity net could pass while asserting nothing.**
+
+`tests/parity_signals.js` derived its signal key list from a live probe call
+with `|| {}` on the end. `collectSignals()` returns `null` for a whitelisted
+sender, so a probe address that ever became whitelisted yielded
+`Object.keys({})` — an empty list. Everything downstream iterates that list, so
+the suite compared **zero** signals across all 81 fixtures and printed:
+
+    ✅ all 0 JS signals have a Python counterpart
+    ✅ 81 fixtures agree on all 0 signals and the verdict
+
+A green run that asserted nothing, on the check that guards every detection
+change in this repo. The bridge now exits non-zero if the probe does not return
+a signals object, and Python asserts the count is exactly 11 — which also
+catches the list silently shrinking. Proven by pointing the probe at a
+whitelisted domain.
+
+**`_degraded` was computed and never read.** The bridge has always emitted it;
+`run_parity_tests` never looked. It is true when a signal threw and was skipped,
+meaning the verdict was reached on less evidence than intended, and no fixture
+is supposed to do that. Now asserted false per fixture. Proven by making Signal
+1a throw: 172 failures across 81 fixtures.
+
+**`Debug.gs` had drifted a second time.** It listed ten of eleven signals —
+`callbackPhishing` was missing, so a Rule 9 verdict printed "SPAM" with every
+listed signal false. That is exactly the bug the comment three lines above it
+records happening to `serviceImpersonation` in v6.38.0: the comment was added,
+the pattern that caused it was not changed, and it recurred. Replaced the
+hand-written list with `Object.keys(signals)`, which cannot drift.
+
+No detection behaviour changes; `Debug.gs` is a manual tool and is not on the
+delete path.
+
+These came out of a three-way review of a proposed `collectSignals()`
+decomposition. The refactor was not done — see `docs/BACKLOG.md`.
+
+---
+
 ## v6.63.0
 
 **The Apps Script sources moved into `src/`, and a near-miss worth recording.**

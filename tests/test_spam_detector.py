@@ -1871,6 +1871,24 @@ def run_parity_tests():
     js_keys, js_results = payload['signalKeys'], payload['results']
     failures = []
 
+    # ── The key list must not be empty ─────────────────────────────────────
+    #
+    # Everything below iterates js_keys. An empty list compares NOTHING and
+    # prints "all 0 JS signals have a Python counterpart" followed by
+    # "81 fixtures agree on all 0 signals" — a green run that asserted nothing.
+    # The bridge now exits non-zero on a null probe, and this is the second
+    # half of that guard: it also catches the count silently shrinking.
+    #
+    # If you added or removed a signal, change this number deliberately and
+    # mirror the signal in analyze_email().
+    EXPECTED_SIGNAL_COUNT = 11
+    if len(js_keys) != EXPECTED_SIGNAL_COUNT:
+        failures.append(
+            f'the JS source exposes {len(js_keys)} detection signals, expected '
+            f'{EXPECTED_SIGNAL_COUNT} ({", ".join(sorted(js_keys)) or "none"}) — '
+            f'if this is a deliberate change, update EXPECTED_SIGNAL_COUNT and '
+            f'mirror the signal in analyze_email()')
+
     # ── Coverage: every JS signal must have a Python counterpart ───────────
     # This is the drift guard for NEW signals. Adding one to the .gs source
     # without mirroring it here fails immediately, instead of the signal simply
@@ -1914,6 +1932,24 @@ def run_parity_tests():
         if js['whitelisted']:
             compared += 1
             continue
+
+        # ── _degraded must be false across the corpus ──────────────────────
+        #
+        # The bridge has always computed this and nothing ever read it. It is
+        # true when a signal threw and was skipped, which means the verdict was
+        # reached on less evidence than intended — and no fixture is supposed to
+        # do that. Asserting today's truth turns a silent change into a failure:
+        # if a future edit makes a signal throw on real mail, this goes red
+        # instead of the corpus quietly grading itself on 10 signals.
+        #
+        # The Python mirror has no _degraded counterpart by design (it has no
+        # per-signal try/catch), so this is asserted against the constant rather
+        # than compared across implementations.
+        if js.get('degraded') is not False:
+            failures.append(
+                f'{key}: a signal threw and was skipped in the JS source '
+                f'(_degraded=true) — the verdict for this fixture was reached '
+                f'with incomplete evidence')
 
         for jk, pk in key_map.items():
             jv, pv = js['signals'][jk], py_signals[pk]

@@ -20,6 +20,48 @@ detail plus the diffs.
 
 ---
 
+## v6.63.0
+
+**The Apps Script sources moved into `src/`, and a near-miss worth recording.**
+
+Root held 29 files, 21 of them `.gs`. The sources plus `appsscript.json` now
+live in `src/`, which is clasp's `rootDir`; root is 7 files. clasp strips the
+prefix, so the deployed names are unchanged.
+
+**No behaviour change — the version bump exists to make the deploy falsifiable.**
+This move preserves every deployed file name *and*, without a bump, the version
+string. A push that silently did nothing would still satisfy the deployed-file
+assertion and `prod_health.py`'s version match, leaving the fail-open pre-push
+guard as the only check able to notice. Bumping gives `validate` something that
+can actually fail.
+
+**The near-miss.** The first version of this change wrote `.claspignore` entries
+as `!src/Config.gs`. clasp crawls `rootDir` with `fdir().withRelativePaths()`
+and runs micromatch against the crawl's *relative* names before it ever builds a
+repo path, so those entries matched nothing; with `*.gs` denied, `clasp push
+--force` would have pushed zero files. `filePushOrder` uses the opposite
+convention — it is compared against `localPath`, which is repo-relative. Two
+conventions, one directory apart, and reasoning from the wrong one is how the
+deployed detector nearly got replaced with nothing.
+
+Guards added, each proven by injection:
+  - `.claspignore` entries must be rootDir-relative, and no line may carry the
+    rootDir prefix or trailing whitespace. clasp does not trim, so `!Config.gs `
+    is a pattern matching nothing — and a PARTIAL whitelist is the destructive
+    case, because `updateContent` deletes every source it did not receive.
+  - `rootDir` must hold nothing but the manifest files and `appsscript.json`.
+    Deny patterns cannot close this: clasp lowercases the extension before
+    matching types, so `Config.GS` is SERVER_JS and `page.HTML` is HTML, while
+    micromatch is case-sensitive and `*.gs` / `*.html` miss both.
+  - `sources.json` owns `rootDir`, validated for shape, and both readers expose
+    `claspRelative()` so the rootDir-relative rule has one derivation.
+
+The published install instructions said `clasp create --type standalone`, which
+defaults `rootDir` to `.` — with this layout that pushes `appsscript.json`
+alone, deleting every `.gs` from the project. Now passes `--rootDir src`.
+
+---
+
 ## Repository layout: SpamDetector.gs split into 21 files
 
 **No version bump, and no behaviour change — deliberately.**

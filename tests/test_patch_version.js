@@ -99,11 +99,57 @@ console.log('\n=== the manifest must describe the repo as it really is ===');
   // The other dangerous direction. .claspignore is deny-by-default with an
   // explicit "!" whitelist, so a manifest file with no "!" line is tested and
   // version-checked locally and then silently NOT deployed.
-  const claspLines = fs.readFileSync(path.join(root, '.claspignore'), 'utf8')
-    .split('\n').map(l => l.trim());
-  const notWhitelisted = listed.filter(f => claspLines.indexOf('!' + f) === -1);
-  check('every manifest file is whitelisted in .claspignore',
+  //
+  // ROOTDIR-RELATIVE. clasp crawls rootDir with fdir and filters ignore
+  // patterns against the crawl's RELATIVE paths, so src/Config.gs must be
+  // whitelisted as "!Config.gs". This check previously compared the
+  // repo-relative name, which passed happily against "!src/Config.gs" —
+  // entries that match nothing. With "*.gs" denied above, that resolves to
+  // clasp pushing ZERO files and replacing the deployed script with nothing.
+  // Confirmed against clasp 3.3.0's own micromatch.
+  // NOT trimmed. clasp's loadIgnoreFileOrDefaults is
+  // splitLines(content).filter(name => name.length > 0) — no trim and no
+  // comment stripping — so "!Config.gs " with one trailing space is a pattern
+  // that matches nothing. That is the PARTIAL-whitelist case: clasp pushes the
+  // other 20 files and updateContent DELETES Config.gs from the deployed
+  // project. Trimming here hid exactly that.
+  const claspRaw = fs.readFileSync(path.join(root, '.claspignore'), 'utf8');
+  const claspLines = claspRaw.split('\n');
+  const notWhitelisted = listed.filter(
+    f => claspLines.indexOf('!' + srcManifest.claspRelative(f)) === -1);
+  check('every manifest file is whitelisted in .claspignore (rootDir-relative)',
         notWhitelisted.length === 0, notWhitelisted.join(', '));
+
+  // And the specific mistake: a "!" line that still carries the rootDir prefix
+  // matches nothing, so it is worse than absent — it LOOKS correct in review.
+  const prefixed = claspLines.filter(
+    l => l.startsWith('!' + srcManifest.rootDir() + '/'));
+  check('no .claspignore "!" line is repo-relative', prefixed.length === 0,
+        prefixed.join(', '));
+
+  const trailing = claspLines.filter(l => /[ \t\r]+$/.test(l));
+  check('no .claspignore line has trailing whitespace', trailing.length === 0,
+        trailing.map(l => JSON.stringify(l)).join(', '));
+
+  // rootDir must hold NOTHING but the manifest and appsscript.json.
+  //
+  // Enumerating deny patterns cannot win this race: clasp lowercases the
+  // extension before matching file types (files.js:97), so "Config.GS" is
+  // SERVER_JS and "page.HTML" is HTML, while micromatch is case-SENSITIVE and
+  // "*.gs"/"*.html" miss both. Anything clasp recognises and we did not list is
+  // deployed untested, invisible to the pre-push guard (which only asks whether
+  // manifest files are present) and to the deployed-file assertion (which
+  // filters to SERVER_JS). Listing the directory sidesteps pattern matching
+  // entirely.
+  const allowed = new Set(listed.map(f => srcManifest.claspRelative(f))
+                                .concat(['appsscript.json']));
+  const strays = fs.readdirSync(path.join(root, srcManifest.rootDir()),
+                                { recursive: true })
+    .map(f => String(f).split(path.sep).join('/'))
+    .filter(f => fs.statSync(path.join(root, srcManifest.rootDir(), f)).isFile())
+    .filter(f => !allowed.has(f));
+  check('rootDir holds only manifest files + appsscript.json (' +
+        allowed.size + ' allowed)', strays.length === 0, strays.join(', '));
 
   // LF only. Python's open() normalizes CRLF to LF and Node's readFileSync
   // does not, so a CRLF file would make the two manifest readers emit

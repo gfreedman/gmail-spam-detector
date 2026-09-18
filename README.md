@@ -60,7 +60,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 1. Go to [script.google.com](https://script.google.com)
 2. Click **New Project**
-3. Copy in each `.gs` file listed in `sources.json`, keeping that order
+3. Copy in each `.gs` file from `src/`, in `sources.json` order
    (Apps Script concatenates them into one global scope)
 4. Rename to "Gmail Spam Detector"
 5. Click **Save**
@@ -347,9 +347,10 @@ addToWhitelist('domain.com');
 ```
 /
 ├── sources.json                 # Manifest: the .gs files that form the script
-├── Config.gs … Debug.gs         # 21 Apps Script sources (auto-deployed)
-├── appsscript.json              # Apps Script manifest (scopes, runtime)
 ├── .claspignore                 # Controls which files clasp uploads
+├── src/                         # clasp rootDir — everything here is deployed
+│   ├── Config.gs … Debug.gs     # 21 Apps Script sources, in sources.json order
+│   └── appsscript.json          # Apps Script manifest (scopes, runtime)
 ├── README.md
 ├── CHANGELOG.md                 # Release history (was the .gs header comment)
 ├── LICENSE
@@ -460,7 +461,7 @@ This repo has CI/CD that auto-deploys to Google Apps Script on every push to `ma
 
 2. Copy `.clasp.json.example` to `.clasp.json` and add your script ID:
    ```json
-   {"scriptId": "YOUR_SCRIPT_ID_HERE", "rootDir": "."}
+   {"scriptId": "YOUR_SCRIPT_ID_HERE", "rootDir": "src"}
    ```
 
 3. Enable Apps Script API at https://script.google.com/home/usersettings

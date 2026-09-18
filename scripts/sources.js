@@ -65,6 +65,17 @@ function manifest() {
     throw new Error('sources.json: versionFile ' + JSON.stringify(m.versionFile) +
                     ' is not listed in "sources"');
   }
+  if (typeof m.rootDir !== 'string' || !m.rootDir) {
+    throw new Error('sources.json: "rootDir" must be a non-empty string');
+  }
+  // Everything clasp deploys must live under rootDir, because clasp only
+  // crawls that directory. A source outside it is simply never pushed.
+  const outside = m.sources.filter(s => !s.startsWith(m.rootDir + '/'));
+  if (outside.length) {
+    throw new Error('sources.json: these are not under rootDir ' +
+                    JSON.stringify(m.rootDir) + ', so clasp would never push ' +
+                    'them: ' + outside.join(', '));
+  }
   return m;
 }
 
@@ -121,4 +132,22 @@ function concatSource() {
   }).join('');
 }
 
-module.exports = { sourceNames, versionFilePath, concatSource };
+/** clasp's rootDir, repo-relative. @return {string} */
+function rootDir() {
+  return manifest().rootDir;
+}
+
+/**
+ * A source's path as .claspignore sees it: relative to rootDir.
+ *
+ * clasp crawls rootDir and filters ignore patterns against the crawl's
+ * relative paths, so "src/Config.gs" must be written "!Config.gs".
+ *
+ * @param {string} name repo-relative manifest entry
+ * @return {string}
+ */
+function claspRelative(name) {
+  return path.relative(rootDir(), name).split(path.sep).join('/');
+}
+
+module.exports = { sourceNames, versionFilePath, concatSource, rootDir, claspRelative };

@@ -55,6 +55,17 @@ def manifest():
     if version_file not in sources:
         raise RuntimeError('sources.json: versionFile %r is not listed in "sources"'
                            % version_file)
+
+    root = m.get('rootDir')
+    if not isinstance(root, str) or not root:
+        raise RuntimeError('sources.json: "rootDir" must be a non-empty string')
+    # Everything clasp deploys must live under rootDir — clasp only crawls that
+    # directory, so a source outside it is simply never pushed.
+    outside = [s for s in sources if not s.startswith(root + '/')]
+    if outside:
+        raise RuntimeError('sources.json: these are not under rootDir %r, so '
+                           'clasp would never push them: %s'
+                           % (root, ', '.join(outside)))
     return m
 
 
@@ -71,6 +82,16 @@ def source_paths():
 def version_file_path():
     """Absolute path of the file carrying the version markers."""
     return os.path.join(ROOT, manifest()['versionFile'])
+
+
+def root_dir():
+    """clasp's rootDir, repo-relative."""
+    return manifest()['rootDir']
+
+
+def clasp_relative(name):
+    """A source's path as .claspignore sees it: relative to rootDir."""
+    return os.path.relpath(name, root_dir()).replace(os.sep, '/')
 
 
 def concat_source():

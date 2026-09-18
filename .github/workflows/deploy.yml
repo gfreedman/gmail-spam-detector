@@ -35,7 +35,7 @@ on:
                                      # A path filter that silently stops matching is the
                                      # same failure as the workflow-file omission.
       - 'sources.json'               # The source manifest itself
-      - 'appsscript.json'            # Apps Script manifest (scopes, runtime)
+      - 'src/appsscript.json'        # Apps Script manifest (scopes, runtime)
       - 'tests/**'                   # Test suite and .eml examples
       - 'scripts/**'                 # patch_version.js runs IN the deploy job
       - '.claspignore'               # Controls which files clasp uploads
@@ -220,10 +220,17 @@ jobs:
           # the sources). Pinning the source order should not
           # also quietly change the request shape of a working deploy of a
           # script that deletes mail.
+          # rootDir comes from the manifest so the layout is declared in one
+          # place. clasp strips it, so src/Config.gs deploys as 'Config'.
+          #
+          # filePushOrder is REPO-relative ('src/Config.gs') — it is matched
+          # against localPath. This is NOT the same convention as .claspignore,
+          # which is rootDir-relative. See the note in sources.json.
+          root = sources.root_dir()
           cfg = {
               'scriptId': os.environ['SCRIPT_ID'],
-              'rootDir': '.',
-              'filePushOrder': ['appsscript.json'] + sources.source_names(),
+              'rootDir': root,
+              'filePushOrder': [root + '/appsscript.json'] + sources.source_names(),
           }
           with open('.clasp.json', 'w', encoding='utf-8') as fh:
               json.dump(cfg, fh)
@@ -515,8 +522,11 @@ jobs:
           # concatenation order, and the syntax lint upstream validated one
           # specific concatenation. A set comparison would pass on a remote
           # whose order differs from the one CI proved parses.
+          # basename, not just the extension: manifest entries are repo-relative
+          # (src/Config.gs) while Apps Script reports the name with both the
+          # rootDir prefix and the extension stripped (Config).
           deployed = [f.get('name') for f in files if f.get('type') == 'SERVER_JS']
-          expected = [n[:-3] if n.endswith('.gs') else n
+          expected = [os.path.splitext(os.path.basename(n))[0]
                       for n in sources.source_names()]
 
           missing = sorted(set(expected) - set(deployed))

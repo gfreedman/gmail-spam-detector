@@ -36,8 +36,14 @@ __pycache__/**
 .gitignore
 LICENSE
 
-# Whitelist only these files (must match sources.json — asserted by
-# tests/test_patch_version.js in both directions)
+# Whitelist only these files.
+#
+# ROOTDIR-RELATIVE, not repo-relative. clasp crawls rootDir with fdir and
+# filters these patterns against the crawl's relative paths, so the entry
+# for src/Config.gs is "!Config.gs". Writing "!src/Config.gs" matches
+# nothing, and with *.gs denied above that makes clasp push ZERO files —
+# replacing the deployed script with nothing. Verified against clasp 3.3.0's
+# own micromatch; tests/test_patch_version.js asserts it both ways.
 !Config.gs
 !Clickbait.gs
 !Patterns.gs

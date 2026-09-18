@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.61.0
+ * @version 6.62.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -27,6 +27,10 @@
  *      (CONFIG.gmailSpamGraceDays); whitelisted senders are never deleted.
  *      A version change re-reviews the whole folder, so an improved rule is
  *      applied to spam the previous logic already dismissed.
+ *   6. writeSpamFolderSnapshot() — publishes the current Spam folder, and what
+ *      this detector intends to do with each message, to the "Spam Folder" tab.
+ *      The folder is invisible to API clients (SPAM is excluded from search by
+ *      default), so this script is the only thing that can report it.
  *
  * Decision logic (9 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
@@ -81,7 +85,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.61.0';
+const SCRIPT_VERSION = '6.62.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -839,6 +843,7 @@ function processInbox()
   _destroyedMessageIds = [];
   _loggedMessageIds    = [];
   _unresolvedAgedSpam  = 0;
+  _spamFolderVerdicts  = {};
 
   // Declared out here, not in the try, because `finally` reads them to emit the
   // heartbeat even when the run throws.
@@ -1272,6 +1277,7 @@ function reviewGmailSpam(forceFullReview)
             //
             // The information is not lost: logInfo below records it in the
             // execution transcript, which is where a non-action belongs.
+            recordSpamFolderVerdict(message, null, 'KEEP_WHITELISTED');
             markReviewed(thread);
             kept++;
             logInfo('KEPT (whitelisted sender Gmail misfiled): ' +
@@ -1283,6 +1289,7 @@ function reviewGmailSpam(forceFullReview)
           {
             // Gmail's word alone. Marked so it is judged once, then left for
             // phase 2 to remove after CONFIG.gmailSpamGraceDays.
+            recordSpamFolderVerdict(message, signals, 'AWAITING_GRACE');
             markReviewed(thread);
             waiting++;
             continue;
@@ -1292,8 +1299,11 @@ function reviewGmailSpam(forceFullReview)
             ? 'GMAIL_SPAM_CONFIRMED'
             : 'GMAIL_SPAM_CORROBORATED';
 
+          recordSpamFolderVerdict(message, signals, 'DELETE_' + logType);
+
           if (accumulateLogEntry(message, signals, logType) !== true)
           {
+            recordSpamFolderVerdict(message, signals, 'BLOCKED_NO_ARCHIVE');
             logError('Cannot archive, so NOT deleting: ' +
                      sanitizeForLog(message.getSubject()));
             markReviewed(thread);
@@ -1376,6 +1386,245 @@ function reviewGmailSpam(forceFullReview)
   catch (error)
   {
     logError('reviewGmailSpam phase 2 failed: ' + error.toString());
+  }
+}
+
+/**
+ * Record what reviewGmailSpam() decided about one Spam-folder message.
+ *
+ * Called from the Phase 1 loop, which has already paid for collectSignals().
+ * Stashing the answer costs nothing; recomputing it inside the snapshot would
+ * cost a second getRawContent() per message.
+ *
+ * @param {GmailMessage} message
+ * @param {Object|null} signals - From collectSignals(); null means whitelisted.
+ * @param {string} verdict
+ */
+function recordSpamFolderVerdict(message, signals, verdict)
+{
+  try
+  {
+    _spamFolderVerdicts[message.getId()] = {
+      verdict: verdict,
+      signals: describeSignals(signals)
+    };
+  }
+  catch (e)
+  {
+    // An annotation on a diagnostic tab is never worth failing a deletion
+    // decision over.
+    logError('Could not record spam-folder verdict (non-fatal): ' + e.toString());
+  }
+}
+
+/**
+ * Render the signals that fired as a short human-readable list.
+ *
+ * @param {Object|null} signals
+ * @return {string}
+ */
+function describeSignals(signals)
+{
+  if (!signals) return 'whitelisted (not evaluated)';
+
+  const fired = [];
+  if (signals.blacklistedSender)          fired.push('blacklisted');
+  if (signals.clickbaitCount > 0)         fired.push('clickbait x' + signals.clickbaitCount);
+  if (signals.fearMongering)              fired.push('fear');
+  if (signals.marketingFormat)            fired.push('marketing-format');
+  if (signals.suspiciousFromName)         fired.push('from-name');
+  if (signals.emptySubjectWithAttachment) fired.push('empty-subject+attachment');
+  if (signals.serviceImpersonation)       fired.push('service-impersonation');
+  if (signals.brandMismatchedCta)         fired.push('brand-cta');
+  if (signals.freeMailRandomLocal)        fired.push('freemail-random');
+  if (signals.callbackPhishing)           fired.push('callback-phishing');
+
+  // Parenthesised and last, deliberately. Bulk routing corroborates nothing on
+  // its own — hasCorroboratingSignal() excludes it because virtually every
+  // newsletter the user actually wants is bulk-routed — so it must not read as
+  // a reason the message is going to be deleted.
+  if (signals.bulkEmailService)           fired.push('(bulk)');
+  if (signals._degraded)                  fired.push('[DEGRADED: a signal threw]');
+
+  return fired.length > 0 ? fired.join(', ') : 'none';
+}
+
+/**
+ * Publish the current contents of Gmail's Spam folder to the "Spam Folder" tab.
+ *
+ * WHY THIS EXISTS. The Spam folder is the one place this detector acts that
+ * nothing outside Apps Script can see. The Sheet records what the detector DID
+ * — deleted, quarantined — so a message sitting in Spam awaiting its grace
+ * period appears nowhere at all, and the only honest answer to "what will the
+ * script do with that message?" was to open Gmail by hand. Worse, API clients
+ * (the Gmail REST connector included) exclude SPAM from search by default, so
+ * the folder is not reachable from outside even with a token. This script is
+ * the only thing that can already see it, so it is the thing that must publish
+ * it.
+ *
+ * A GAUGE, NOT A LOG — the same shape as the Health tab. The tab is cleared and
+ * rewritten on every maintenance cycle because it answers "what is in the
+ * folder right now", and an append-only version would grow one duplicate block
+ * per cycle for mail that has not changed. History of what was actually deleted
+ * already lives in the Raw Log, which is where a permanent record belongs.
+ *
+ * COST: two GmailApp.search() calls and one batched getMessagesForThreads().
+ * Everything read per message — getFrom, getSubject, getDate, getId — comes
+ * with thread metadata. Nothing here calls getRawContent(), and nothing here
+ * calls collectSignals(): verdicts come from _spamFolderVerdicts, which Phase 1
+ * populated for free. The "reviewed?" column is derived from a second search
+ * rather than thread.getLabels() for the same reason — one bounded query beats
+ * N per-thread label fetches.
+ *
+ * Never throws. A diagnostic tab must not be able to break the run it reports on.
+ */
+function writeSpamFolderSnapshot()
+{
+  // Bounded for the same reason REVIEW_LIMIT is: a folder with thousands of
+  // threads must not turn a diagnostic into a quota incident. The tab says so
+  // explicitly when it truncates, so a partial view can never be mistaken for
+  // an empty folder.
+  const SNAPSHOT_LIMIT = 100;
+
+  try
+  {
+    const sheetId = PropertiesService.getScriptProperties()
+                      .getProperty('SPAM_LOG_SHEET_ID');
+    if (!sheetId) return;   // no spreadsheet configured
+
+    const threads = GmailApp.search('in:spam', 0, SNAPSHOT_LIMIT);
+
+    // Threads Gmail has flagged that this detector has NOT yet judged. Used to
+    // fill the Reviewed column without a per-thread label fetch.
+    const unreviewed = {};
+    try
+    {
+      const pending = GmailApp.search(
+        'in:spam -label:' + CONFIG.processedLabel, 0, SNAPSHOT_LIMIT);
+      for (let p = 0; p < pending.length; p++)
+      {
+        unreviewed[pending[p].getId()] = true;
+      }
+    }
+    catch (e)
+    {
+      // Degrade to "unknown" rather than losing the whole snapshot.
+      logError('Could not determine reviewed set (non-fatal): ' + e.toString());
+    }
+
+    const header = [
+      'SnapshotAt', 'ReceivedAt', 'AgeDays', 'DeleteDueAt', 'Verdict',
+      'SignalsFired', 'FromAddress', 'FromName', 'Subject',
+      'Whitelisted', 'Reviewed', 'MessageId', 'ThreadId'
+    ];
+
+    const now     = new Date();
+    const nowIso  = now.toISOString();
+    const rows    = [];
+    const graceMs = CONFIG.gmailSpamGraceDays * 24 * 60 * 60 * 1000;
+
+    const messagesByThread = threads.length > 0
+      ? GmailApp.getMessagesForThreads(threads)
+      : [];
+
+    for (let i = 0; i < threads.length; i++)
+    {
+      try
+      {
+        const messages = messagesByThread[i];
+        if (!messages || messages.length === 0) continue;
+
+        const message  = messages[0];
+        const thread   = threads[i];
+        const from     = message.getFrom() || '';
+        const received = message.getDate();
+        const ageMs    = now.getTime() - received.getTime();
+        const ageDays  = Math.floor(ageMs / (24 * 60 * 60 * 1000));
+        const whitelisted = isWhitelistedSender(message);
+        const reviewed    = !unreviewed[thread.getId()];
+        const recorded    = _spamFolderVerdicts[message.getId()];
+
+        // Verdict, in priority order:
+        //   1. What Phase 1 actually decided this run, when it looked at this
+        //      message. Always the most accurate answer.
+        //   2. Whitelisted — never deleted by any phase, at any age.
+        //   3. Past the grace period — phase 2 takes it on the next cycle
+        //      regardless of signals.
+        //   4. Judged on an earlier run and left: waiting out the grace period.
+        //   5. Not yet judged.
+        let verdict, signalText;
+        if (recorded)
+        {
+          verdict    = recorded.verdict;
+          signalText = recorded.signals;
+        }
+        else
+        {
+          signalText = 'not evaluated this run';
+          verdict = whitelisted        ? 'KEEP_WHITELISTED'
+                  : ageMs >= graceMs   ? 'DELETE_AGED'
+                  : reviewed           ? 'AWAITING_GRACE'
+                  : 'PENDING_REVIEW';
+        }
+
+        // Blank rather than a date for mail that is never deleted — a due date
+        // on a whitelisted keep would be actively misleading.
+        const dueAt = whitelisted
+          ? ''
+          : new Date(received.getTime() + graceMs).toISOString();
+
+        rows.push([
+          nowIso,
+          received.toISOString(),
+          ageDays,
+          dueAt,
+          verdict,
+          escapeSheetCell(signalText),
+          escapeSheetCell(extractEmailAddress(from)),
+          escapeSheetCell(from.replace(/<[^>]*>/g, '').trim()),
+          escapeSheetCell(message.getSubject() || '(no subject)'),
+          whitelisted ? 'YES' : 'no',
+          reviewed    ? 'YES' : 'no',
+          message.getId(),
+          thread.getId()
+        ]);
+      }
+      catch (rowError)
+      {
+        logError('Spam snapshot row failed (skipped): ' + rowError.toString());
+      }
+    }
+
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Spam Folder');
+    if (!sheet)
+    {
+      sheet = ss.insertSheet('Spam Folder');
+      sheet.setFrozenRows(1);
+    }
+
+    // Cleared before every write. Without this a shrinking folder would leave
+    // the previous run's surplus rows behind, and stale rows on a tab whose
+    // whole purpose is "right now" are worse than no tab.
+    sheet.clearContents();
+
+    // Header and data written together, for the reason writeHealthRow()
+    // documents: a tab created under an older schema must self-heal rather than
+    // silently keep unlabelled columns.
+    const values = [header].concat(rows);
+    sheet.getRange(1, 1, values.length, header.length).setValues(values);
+
+    if (threads.length >= SNAPSHOT_LIMIT)
+    {
+      sheet.getRange(values.length + 1, 1).setValue(
+        'TRUNCATED at ' + SNAPSHOT_LIMIT + ' threads — the folder holds more.');
+    }
+
+    logInfo('Spam folder snapshot: ' + rows.length + ' thread(s) published');
+  }
+  catch (e)
+  {
+    logError('writeSpamFolderSnapshot failed (non-fatal): ' + e.toString());
   }
 }
 
@@ -4118,6 +4367,18 @@ let _loggedMessageIds    = [];
 let _unresolvedAgedSpam  = 0;
 
 /**
+ * What reviewGmailSpam() decided about each Spam-folder message it judged this
+ * run, keyed by Gmail message id.
+ *
+ * Exists so writeSpamFolderSnapshot() can publish a REASON rather than a bare
+ * listing. Phase 1 has already paid for collectSignals() on these messages;
+ * recomputing the verdict in the snapshot would mean a second getRawContent()
+ * each, which is the exact quota bill this file keeps refusing to pay.
+ * @type {Object<string, {verdict: string, signals: string}>}
+ */
+let _spamFolderVerdicts = {};
+
+/**
  * Per-execution caches for domain lists. Populated on first access via
  * getCachedWhitelist() / getCachedBlacklist(); never mutated mid-run.
  * Apps Script re-initializes all module-level vars on each trigger invocation,
@@ -4322,6 +4583,11 @@ function runPeriodicMaintenance()
   // versionChanged forces a full re-review, so a detection improvement is
   // applied to spam the previous logic already looked at and dismissed.
   reviewGmailSpam(versionChanged);
+
+  // Publish the folder AFTER the review, so the tab reflects the deletions this
+  // run just made rather than the state that preceded them. Costs two searches
+  // and no getRawContent(); see the function header.
+  writeSpamFolderSnapshot();
 
   // Expensive, and NOT time-sensitive. recheckRecentSpamChecked() re-evaluates
   // recent mail against the CURRENT patterns, so between deploys it keeps

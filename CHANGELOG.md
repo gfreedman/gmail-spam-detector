@@ -17,6 +17,49 @@ detail plus the diffs.
 
 ---
 
+## v6.62.0
+
+**The Spam folder is now readable from outside Apps Script.**
+
+The Spam folder was the one place this detector acts that nothing outside Apps
+Script could see. The Sheet records what the detector *did* — deleted,
+quarantined — so a message sitting in Spam waiting out `gmailSpamGraceDays`
+appeared nowhere at all. Asking "will the script delete that one, and when?"
+meant opening Gmail and reasoning about `reviewGmailSpam()` by hand.
+
+It is not merely undocumented, it is unreachable: Gmail API clients exclude
+`SPAM` from search by default, so `in:spam` returns nothing to an external
+token even when the token is otherwise fine. The script itself is the only
+thing that can already see the folder, so it is the thing that has to publish
+it.
+
+`writeSpamFolderSnapshot()` writes a **"Spam Folder"** tab: one row per thread
+currently in the folder, with the verdict this detector will apply and the
+signals behind it — `DELETE_GMAIL_SPAM_CONFIRMED`, `AWAITING_GRACE` with the
+exact `DeleteDueAt`, `KEEP_WHITELISTED`, `PENDING_REVIEW`, `DELETE_AGED`,
+`BLOCKED_NO_ARCHIVE`.
+
+A **gauge, not a log**, exactly like the `Health` tab: cleared and rewritten
+each cycle, because it answers "what is in the folder right now". An
+append-only version would add a duplicate block per cycle for mail that has not
+changed. The permanent record of what was actually deleted already lives in the
+Raw Log.
+
+**It costs no extra Gmail reads per message.** Verdicts come from
+`_spamFolderVerdicts`, which `reviewGmailSpam()` Phase 1 now populates as it
+goes — it has already paid for `collectSignals()` on those messages.
+Recomputing them in the snapshot would have meant a second `getRawContent()`
+each, which is the bill this file keeps refusing to pay. The whole function is
+two bounded searches and one batched `getMessagesForThreads()`; the "Reviewed"
+column comes from the second search rather than N per-thread `getLabels()`
+calls for the same reason. Bounded at 100 threads, and the tab says so
+explicitly when it truncates, so a partial view can never be misread as an
+empty folder.
+
+Never throws. A diagnostic tab must not be able to break the run it reports on.
+
+---
+
 ## v6.61.0
 
 **Backlog 1.3: signals no longer fail open, and a message that was never judged

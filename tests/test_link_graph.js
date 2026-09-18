@@ -1,7 +1,8 @@
 /**
  * Link-graph tests — URL host parsing, domain matching and Signal 7.
  *
- * Runs against the REAL SpamDetector.gs by loading it into a `vm` context.
+ * Runs against the REAL shipped source — every file in sources.json,
+ * concatenated as Apps Script concatenates them — in a `vm` context.
  * The Python harness mirrors these helpers in Python (see the Link-Graph
  * Helpers section in tests/test_spam_detector.py); that mirror could drift
  * without the suite noticing, so these assertions exercise the shipped

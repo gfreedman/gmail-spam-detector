@@ -25,7 +25,7 @@ Getting at prod health turned out to be the hard part, not producing it:
 
 Drive *metadata* is readable with exactly the credentials clasp already has, and
 a file name is metadata. So the detector renames one marker file each run and
-this reads the name back. See updateHealthMarker() in SpamDetector.gs.
+this reads the name back. See updateHealthMarker() in src/Intelligence.gs.
 
 Checks
   1. A marker exists and is recent   -> the trigger is actually running

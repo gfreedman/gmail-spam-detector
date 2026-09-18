@@ -276,19 +276,30 @@ If you do: `parse_eml` is the only genuinely Python-specific piece, and
 `tests/parity_signals.js` already demonstrates the shipped `.gs` running over
 corpus inputs, so it is most of the port.
 
-### 2.3 Split `SpamDetector.gs`
+### 2.3 Split `SpamDetector.gs` — **DONE** (v6.63.0)
 
-4,000 lines in one file. clasp pushes multiple `.gs` files into one project with
-shared global scope, so there's no module boundary — but there *is* a file
-boundary, and that's enough for navigation.
+The file reached 5,574 lines and is now 21, listed in `sources.json`:
+`Config.gs`, `Clickbait.gs`, `Patterns.gs`, `Inbox.gs`, `SpamFolder.gs`,
+`Cleanup.gs`, `Thread.gs`, `Signals.gs`, `Verdict.gs`, `Disposition.gs`,
+`Labels.gs`, `Text.gs`, `LinkGraph.gs`, `Log.gs`, `Setup.gs`, `Domains.gs`,
+`State.gs`, `Maintenance.gs`, `Intelligence.gs`, `Flush.gs`, `Debug.gs`, all
+under `src/` (clasp's `rootDir`).
 
-Proposed: `Config.gs`, `Patterns.gs` (~400 lines of constants), `Detect.gs`,
-`LinkGraph.gs`, `Disposition.gs`, `Logging.gs`, `Admin.gs`.
+Done in two steps, deliberately: a manifest was introduced first while the
+source was still one file, so every consumer moved off a hardcoded filename
+before anything moved. The split itself cut only at top-level declaration
+boundaries and reordered nothing, so concatenating the files reproduces the
+pre-split source byte for byte — `git show d520898:SpamDetector.gs | shasum -a
+256`.
 
-**Cost.** The Python harness's `_GS_PATH` becomes a glob, and `.claspignore`'s
-whitelist grows. **Worth it because** `Patterns.gs` alone would stop routine
-pattern edits from touching the same file as disposition logic — which is
-exactly how today's stale comments accumulated.
+The cost landed where predicted: `_GS_PATH` became a manifest read, and the
+`.claspignore` whitelist grew to 22 entries. What was NOT predicted is that the
+whitelist is rootDir-relative while `filePushOrder` is repo-relative — getting
+that backwards makes `clasp push --force` push nothing. See v6.63.0.
+
+**Still open from this item:** `Signals.gs` is 529 lines because
+`collectSignals()` is a single 503-line function. Splitting a function is a code
+change, not a file move, and was left alone.
 
 ### 2.4 `LockService` only guards `processInbox()`
 

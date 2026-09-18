@@ -1,6 +1,7 @@
 /**
- * Signal-parity bridge: run the SHIPPED SpamDetector.gs over inputs supplied by
- * the Python harness, and print what the real JavaScript concluded.
+ * Signal-parity bridge: run the SHIPPED JavaScript (every file in sources.json,
+ * concatenated) over inputs supplied by the Python harness, and print what the
+ * real JavaScript concluded.
  *
  * Why this exists
  * ---------------
@@ -77,7 +78,7 @@ function stub(c) {
 }
 
 // The signal key list comes from the live object, not a hardcoded copy, so a
-// signal added to SpamDetector.gs shows up here automatically and Python can
+// signal added to the .gs source shows up here automatically and Python can
 // fail on one it does not mirror.
 const signalKeys = Object.keys(
   vm.runInContext('collectSignals', ctx)

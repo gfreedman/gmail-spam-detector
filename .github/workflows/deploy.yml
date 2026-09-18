@@ -27,7 +27,8 @@ on:
     branches: [main]
     # Only run when relevant files change — saves CI minutes on doc-only commits
     paths:
-      - '*.gs'                       # Apps Script source at the repo root
+      - '*.gs'                       # a stray root .gs (there are none; the guards
+                                     #   reject one, and this makes CI notice it)
       - '**/*.gs'                    # ...and in any subdirectory (Phase 1 may use src/)
                                      # BOTH are listed deliberately: '**' is documented
                                      # as matching zero or more characters, so '**/*.gs'
@@ -250,12 +251,23 @@ jobs:
       # job, so this class of failure is caught before deploy.
       - name: Patch version in the source
         run: |
-          # head -n1: grep -oP prints EVERY match on its own line, so a subject
-          # like "v6.45.1: Fix the deploy step that blocked v6.45.0" yielded a
-          # two-line $VERSION. patch_version.js rejected it loudly; the sed it
-          # replaced would have mangled the file silently. Same guard is applied
-          # at the validate and tag sites below.
-          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' | head -n1 || true)
+          # ANCHORED to the start of the subject. The release convention is
+          # "v6.X.0: description", so only a LEADING version is the version.
+          #
+          # Unanchored, any version string anywhere in the subject won. The
+          # commit "Delete the tombstone comment for two functions removed in
+          # v6.47.0" carried no release version at all, but matched v6.47.0 and
+          # deployed 6.62.0's code stamped 6.47.0 — a silent mislabel that
+          # passed every check, because that commit had no version to validate
+          # against and the deployed-file assertion only compares names.
+          #
+          # head -n1 is kept: grep -oP prints every match on its own line, and a
+          # subject like "v6.45.1: Fix the deploy that blocked v6.45.0" would
+          # otherwise yield a two-line $VERSION. With the anchor it can match at
+          # most once, but the guard costs nothing and the two failure modes are
+          # independent. The same expression is used at the validate and tag
+          # sites below.
+          VERSION=$(git log -1 --pretty=%s | grep -oP '^v\d+\.\d+\.\d+' | head -n1 || true)
           if [ -n "$VERSION" ]; then
             node scripts/patch_version.js "${VERSION#v}"
           else
@@ -446,7 +458,7 @@ jobs:
 
       - name: Validate deployed version
         run: |
-          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' | head -n1 || true)
+          VERSION=$(git log -1 --pretty=%s | grep -oP '^v\d+\.\d+\.\d+' | head -n1 || true)
           if [ -z "$VERSION" ]; then
             echo "No version in commit — skipping version check"
             exit 0
@@ -665,7 +677,7 @@ jobs:
 
       - name: Auto-tag version commits
         run: |
-          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' | head -n1 || true)
+          VERSION=$(git log -1 --pretty=%s | grep -oP '^v\d+\.\d+\.\d+' | head -n1 || true)
           if [ -n "$VERSION" ]; then
             git tag "$VERSION" 2>/dev/null || true
             if git push origin "$VERSION" 2>/dev/null; then

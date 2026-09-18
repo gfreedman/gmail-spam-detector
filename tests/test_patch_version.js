@@ -191,6 +191,35 @@ console.log('\n=== the manifest must describe the repo as it really is ===');
         clashes.length === 0, clashes.join(', '));
 }
 
+console.log('\n=== the deploy must read the version from the START of the subject ===');
+// A release subject is "v6.X.0: description". Unanchored, ANY version string
+// anywhere in the subject won — and "Delete the tombstone comment for two
+// functions removed in v6.47.0" carried no release version at all, yet matched
+// v6.47.0 and deployed current code stamped 6.47.0. Nothing caught it: that
+// commit had no version for validate to check, and the deployed-file assertion
+// compares names, not versions. Only the prod health marker showed it, hours
+// later.
+{
+  const wf = fs.readFileSync(
+    path.join(__dirname, '..', '.github', 'workflows', 'deploy.yml'), 'utf8');
+  const lines = wf.split('\n').filter(l => l.includes('VERSION=$(git log'));
+  check('workflow extracts a version in the expected number of places (3)',
+        lines.length === 3, 'found ' + lines.length);
+  const unanchored = lines.filter(l => !l.includes("'^v"));
+  check('every version extraction is anchored to the subject start',
+        unanchored.length === 0, unanchored.map(l => l.trim()).join(' | '));
+
+  // And the regex itself must behave.
+  const re = /^v\d+\.\d+\.\d+/;
+  check('a leading version is extracted',
+        (('v6.63.0: Move the sources'.match(re) || [])[0]) === 'v6.63.0');
+  check('a version mentioned only in prose is NOT extracted',
+        'Delete the tombstone comment for two functions removed in v6.47.0'
+          .match(re) === null);
+  check('a subject with no version is NOT extracted',
+        'Phase 1: split SpamDetector.gs into 21 files'.match(re) === null);
+}
+
 console.log('\n=== deploy hygiene: clasp must not pick up Node scripts ===');
 // clasp treats ANY .js under rootDir as Apps Script source and uploads it as
 // .gs. Adding scripts/patch_version.js broke a deploy with

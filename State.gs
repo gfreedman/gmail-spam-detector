@@ -1,15 +1,4 @@
 
-/**
- * refreshWhitelist() and refreshBlacklist() were removed in v6.47.0.
- *
- * They existed when Script Properties were the only source of the domain lists
- * and had to be re-seeded after a source edit. Since v6.35.0 getWhitelist() and
- * getBlacklist() merge DEFAULT_DOMAINS at runtime, so source edits are live as
- * soon as clasp pushes and there is nothing to refresh. Nothing called them for
- * twelve releases, and three separate comments already described them as
- * obsolete.
- */
-
 
 // =============================================================================
 // Spam Intelligence Logging

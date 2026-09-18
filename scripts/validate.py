@@ -14,6 +14,9 @@ Install as git hook: ln -sf ../../scripts/validate.py .git/hooks/pre-push && chm
 import re, sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+import sources as _sources  # noqa: E402  (path must be set up first)
+
 ROOT    = Path(__file__).parent.parent
 errors  = []
 
@@ -50,7 +53,9 @@ else:
 # comment until v6.49.0, where it had reached 459 lines and three consecutive
 # entries described three incompatible designs for the same function. Moving it
 # out shrank the header from 494 lines to 41, and this check moved with it.
-gs = (ROOT / 'SpamDetector.gs').read_text()
+# Read once and reused by check 3 below: with a split source this is N file
+# reads, and doing it twice bought nothing.
+gs = _sources.concat_source()
 
 header_match = re.search(r'^ \* @version\s+([\d.]+)$', gs, re.M)
 header_ver   = header_match.group(1) if header_match else '(not found)'
@@ -90,20 +95,47 @@ else:
 # masking drift at deploy time while leaving it in the repo, and a commit
 # subject with no version deploys whatever was hand-edited. A stale
 # SCRIPT_VERSION silently disables the new-deploy maintenance trigger.
-gs_src       = (ROOT / 'SpamDetector.gs').read_text(encoding='utf-8')
-header_match = re.search(r'^ \* @version (\S+)$', gs_src, re.M)
-const_match  = re.search(r"^const SCRIPT_VERSION = '([^']*)';$", gs_src, re.M)
+# Searched across the WHOLE manifest, not just versionFile. patch_version.js
+# rewrites one file; if a second copy of either marker ever appeared in another
+# source file it would go unpatched and silently disagree with the deployed
+# version, so a duplicate is a hard failure here.
+header_hits = re.findall(r'^ \* @version (\S+)$', gs, re.M)
+const_hits  = re.findall(r"^const SCRIPT_VERSION = '([^']*)';$", gs, re.M)
+_files      = ', '.join(_sources.source_names())
 
-if not header_match:
-    fail('no " * @version X.Y.Z" line found in SpamDetector.gs')
-elif not const_match:
-    fail('no "const SCRIPT_VERSION = ..." line found in SpamDetector.gs')
-elif header_match.group(1) != const_match.group(1):
-    fail(f'@version ({header_match.group(1)}) disagrees with SCRIPT_VERSION '
-         f'({const_match.group(1)}) — a stale SCRIPT_VERSION silently disables '
+# A duplicate is cleared, not just reported. Leaving the hits in place let the
+# agreement check below run on hits[0] and print "✅ they agree" in the same
+# output as "❌ there are two of them" — a report that contradicts itself is
+# worse than either message alone.
+# A duplicate is reported and then STOPS the agreement check. Clearing the hits
+# instead routed the duplicate case through the not-found branch, which printed
+# 'no " * @version" line found' when there were two — a false statement, and the
+# one a reader would act on.
+_duplicated = False
+if len(header_hits) > 1:
+    fail(f'{len(header_hits)} " * @version" lines across {_files} — '
+         f'patch_version.js only rewrites one file, so a duplicate goes stale')
+    _duplicated = True
+if len(const_hits) > 1:
+    fail(f'{len(const_hits)} "const SCRIPT_VERSION" lines across {_files} — '
+         f'patch_version.js only rewrites one file, so a duplicate goes stale')
+    _duplicated = True
+
+# Compared as plain strings. Wrapping them back into match objects via
+# re.match(r'(.*)', ...) truncated at the first newline, which silently differs
+# from the captured value for the const pattern, whose [^']* can span lines.
+if _duplicated:
+    pass                      # already reported; agreement is meaningless
+elif not header_hits:
+    fail(f'no " * @version X.Y.Z" line found in {_files}')
+elif not const_hits:
+    fail(f'no "const SCRIPT_VERSION = ..." line found in {_files}')
+elif header_hits[0] != const_hits[0]:
+    fail(f'@version ({header_hits[0]}) disagrees with SCRIPT_VERSION '
+         f'({const_hits[0]}) — a stale SCRIPT_VERSION silently disables '
          f'the new-deploy maintenance trigger')
 else:
-    ok(f'@version and SCRIPT_VERSION agree ({header_match.group(1)})')
+    ok(f'@version and SCRIPT_VERSION agree ({header_hits[0]})')
 
 # ── Result ────────────────────────────────────────────────────────────────────
 print()

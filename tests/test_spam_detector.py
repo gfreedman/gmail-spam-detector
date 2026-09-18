@@ -155,7 +155,7 @@ def _extract_bracket_content(source, marker):
     start = source.find(marker)
     if start == -1:
         raise ValueError(
-            f'Marker not found in SpamDetector.gs: {marker!r}\n'
+            f'Marker not found in the Apps Script source: {marker!r}\n'
             f'Expected:  const NAME = Object.freeze([\n'
             f'Check the constant name is spelled correctly.'
         )
@@ -240,7 +240,7 @@ def _extract_brace_content(source, marker):
     """Like _extract_bracket_content but for { }."""
     start = source.find(marker)
     if start == -1:
-        raise ValueError(f'Marker not found in SpamDetector.gs: {marker!r}')
+        raise ValueError(f'Marker not found in the Apps Script source: {marker!r}')
     brace_start = source.index('{', start)
     depth = 0
     for i in range(brace_start, len(source)):
@@ -341,7 +341,7 @@ def _extract_quoted_strings(content, const_name, allow_spaces=False):
     """
     Pull quoted string literals out of a JS array body, comments removed first.
 
-    Validates entry shape. Most string arrays in SpamDetector.gs hold domains,
+    Validates entry shape. Most string arrays in the source hold domains,
     header fingerprints or hostname labels — none of which contain whitespace
     — so a whitespace-bearing entry means quote pairing has desynchronized.
     Fail loudly here rather than let a corrupted allowlist silently change
@@ -377,7 +377,7 @@ def _load_object_of_string_arrays(source, const_name):
 
     This is the shape DEFAULT_DOMAINS and BRAND_CTA_DOMAINS both use, so one
     loader serves both. Keys are discovered from the object body rather than
-    hardcoded, so adding a brand in SpamDetector.gs needs no parser change.
+    hardcoded, so adding a brand in the source needs no parser change.
 
     Each key's array is extracted with _extract_bracket_content, whose state
     machine correctly skips regex character classes and string literals when
@@ -418,7 +418,7 @@ def _load_single_regex(source, const_name):
     marker = f'const {const_name} = '
     start = source.find(marker)
     if start == -1:
-        raise ValueError(f'{const_name} not found in SpamDetector.gs')
+        raise ValueError(f'{const_name} not found in the Apps Script source')
     line_end = source.index('\n', start)
     line = source[start + len(marker):line_end].strip()
     parsed = _parse_js_regex_literal(line)
@@ -428,9 +428,15 @@ def _load_single_regex(source, const_name):
     return re.compile(_js_pattern_to_python(js_pat), _js_flags_to_python(js_flags))
 
 
-def _load_gs_constants(gs_path):
+def _load_gs_constants(source):
     """
-    Parse SpamDetector.gs and extract all detection constants used by the test.
+    Parse the Apps Script source and extract all detection constants used here.
+
+    Takes the CONCATENATION of every file in sources.json, not a path: the
+    deployed script may be split across several .gs files, and Apps Script
+    concatenates them into one global scope before running anything. Parsing
+    the same concatenation keeps this the single source of truth regardless of
+    how the source is divided up.
 
     Called once at module load time. Returns a dict with:
         CLICKBAIT_PATTERNS, BODY_CRYPTO_PATTERNS, FEAR_PATTERNS,
@@ -440,8 +446,6 @@ def _load_gs_constants(gs_path):
         LIMITS                 — dict of int values (maxDisplayNameLength, etc.)
         DEFAULT_DOMAINS        — dict with 'legitimate' and 'suspicious' lists
     """
-    source = gs_path.read_text(encoding='utf-8')
-
     # LIMITS: extract key: integer_value pairs from the Object.freeze({}) block
     limits_content = _extract_brace_content(source, 'const LIMITS = Object.freeze({')
     limits = {
@@ -480,12 +484,26 @@ def _load_gs_constants(gs_path):
 # Loaded Constants (single source of truth — all from SpamDetector.gs)
 # =============================================================================
 
-_GS_PATH = Path(__file__).parent.parent / 'SpamDetector.gs'
+# The source arrives through sources.json, so splitting SpamDetector.gs into
+# several .gs files needs no change here. _GS_SOURCE is the concatenation Apps
+# Script itself would build; scripts/sources.py is the only thing that knows
+# which files that is.
+sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
+import sources as _sources  # noqa: E402  (path must be set up first)
+
 try:
-    _gs = _load_gs_constants(_GS_PATH)
+    _GS_SOURCE = _sources.concat_source()
 except Exception as _e:
-    print(f'\nFATAL: Could not parse SpamDetector.gs — {_e}', file=sys.stderr)
-    print('Check that SpamDetector.gs exists and has not been reformatted.', file=sys.stderr)
+    print(f'\nFATAL: Could not read the Apps Script source — {_e}', file=sys.stderr)
+    print('Check sources.json and that every file it lists exists.', file=sys.stderr)
+    sys.exit(1)
+
+try:
+    _gs = _load_gs_constants(_GS_SOURCE)
+except Exception as _e:
+    print(f'\nFATAL: Could not parse the Apps Script source — {_e}', file=sys.stderr)
+    print(f'Files parsed: {", ".join(_sources.source_names())}', file=sys.stderr)
+    print('Check that they have not been reformatted.', file=sys.stderr)
     sys.exit(1)
 
 CLICKBAIT_PATTERNS              = _gs['CLICKBAIT_PATTERNS']
@@ -1394,7 +1412,7 @@ def run_parser_tests():
 
     # DEFAULT_DOMAINS must round-trip identically through the generic loader —
     # the guard that replacing its two hardcoded markers changed nothing.
-    _dd = _load_object_of_string_arrays(_GS_PATH.read_text(encoding='utf-8'),
+    _dd = _load_object_of_string_arrays(_GS_SOURCE,
                                         'DEFAULT_DOMAINS')
     if _dd.get('legitimate') != WHITELISTED_DOMAINS:
         failures.append('  DEFAULT_DOMAINS.legitimate differs via generic loader')
@@ -1425,6 +1443,56 @@ def run_parser_tests():
     if bad_lab:
         failures.append(f'  TRACKER_LABELS must be single labels: {bad_lab!r}')
 
+    # ── The two manifest readers must agree, byte for byte ──────────────────
+    #
+    # THE load-bearing invariant of the source manifest. scripts/sources.js
+    # feeds the three Node suites and the deploy-time syntax lint; this file's
+    # scripts/sources.py feeds the parser above and the version checks. If they
+    # ever disagree about WHICH files, in WHAT order, joined by WHAT separator,
+    # then CI is proving things about two different programs and the parity
+    # check in Phase 7 is comparing a JS build to a Python build of different
+    # source — while reporting green.
+    #
+    # Asserted rather than documented because the prose version could not fail:
+    # with a single-file manifest the order and the separator are unexercised,
+    # so the moment a second file lands is the moment this starts mattering and
+    # also the moment nothing would have noticed. Reversing the join order in
+    # sources.js left all five suites green.
+    #
+    # Node is already a hard dependency here — Phase 7 shells out to
+    # parity_signals.js — so this costs one extra subprocess.
+    # NOTE: capture_output + an explicit .decode('utf-8'), deliberately NOT
+    # text=True. Text mode opens the pipe with universal newlines and rewrites
+    # CRLF to LF in the subprocess output — which would hide exactly the line-
+    # ending drift this assertion exists to catch. run_parity_tests() below
+    # uses text=True because it is reading JSON, where that does not matter.
+    # Do not "make them consistent".
+    try:
+        _js_concat = subprocess.run(
+            ['node', '-e',
+             'process.stdout.write(require(process.argv[1]).concatSource())',
+             str(Path(__file__).parent.parent / 'scripts' / 'sources.js')],
+            capture_output=True, check=True, timeout=60).stdout.decode('utf-8')
+        if _js_concat != _GS_SOURCE:
+            failures.append(
+                f'  sources.js and sources.py disagree about the Apps Script '
+                f'source\n    sources.js: {len(_js_concat)} chars\n'
+                f'    sources.py: {len(_GS_SOURCE)} chars\n'
+                f'    files: {", ".join(_sources.source_names())}')
+    except subprocess.TimeoutExpired:
+        failures.append('  sources.js timed out while reading the manifest')
+    except subprocess.CalledProcessError as _e:
+        failures.append(f'  sources.js failed to load the manifest: '
+                        f'{_e.stderr.decode("utf-8", "replace").strip()[:300]}')
+    except UnicodeDecodeError as _e:
+        failures.append(f'  sources.js emitted bytes that are not UTF-8: {_e}')
+    except OSError as _e:
+        # FileNotFoundError (no node) is an OSError, as are PermissionError and
+        # a shim on PATH that is not executable. All of them mean "could not
+        # check", which must read as a failure row rather than a traceback.
+        failures.append(f'  could not run node to verify the two source '
+                        f'manifest readers agree: {_e}')
+
     if failures:
         print('❌ PARSER SELF-TESTS FAILED:')
         for msg in failures:
@@ -1441,9 +1509,9 @@ def run_parser_tests():
 
 def validate_api_methods():
     """
-    Static-analyze SpamDetector.gs to verify all Gmail API calls use real methods.
+    Static-analyze the Apps Script source to verify all Gmail API calls are real.
 
-    Reads the source file and regex-matches every Gmail.Users.Messages.xxx(),
+    Reads every file in sources.json and regex-matches Gmail.Users.Messages.xxx(),
     Gmail.Users.Threads.xxx(), etc. call. Each method name is checked against
     GMAIL_API_METHODS. This catches nonexistent methods (e.g., remove(),
     delete_(), delete()) that would compile fine in Apps Script but throw
@@ -1454,13 +1522,8 @@ def validate_api_methods():
 
     Returns:
         List of error strings. Empty list means all methods are valid.
-        Returns False if SpamDetector.gs is not found at expected path.
     """
-    if not _GS_PATH.exists():
-        print(f"ERROR: SpamDetector.gs not found at {_GS_PATH}")
-        return False
-
-    source = _GS_PATH.read_text()
+    source = _GS_SOURCE
 
     errors = []
     for api_object, valid_methods in GMAIL_API_METHODS.items():

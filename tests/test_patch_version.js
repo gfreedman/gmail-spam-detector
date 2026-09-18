@@ -11,6 +11,7 @@
 const fs = require('fs');
 const path = require('path');
 const { patchVersion } = require(path.join(__dirname, '..', 'scripts', 'patch_version.js'));
+const srcManifest = require(path.join(__dirname, '..', 'scripts', 'sources.js'));
 
 let failures = 0, passed = 0;
 const check = (d, c, detail) => {
@@ -18,9 +19,12 @@ const check = (d, c, detail) => {
   else { failures++; console.log('  ❌ ' + d + (detail ? ' — ' + detail : '')); }
 };
 
-const real = fs.readFileSync(path.join(__dirname, '..', 'SpamDetector.gs'), 'utf8');
+// The manifest's versionFile, not a hardcoded name: patch_version.js targets
+// that file, so this must test the same one.
+const real = fs.readFileSync(srcManifest.versionFilePath(), 'utf8');
 
-console.log('\n=== patch_version against the real SpamDetector.gs ===');
+console.log('\n=== patch_version against the real ' +
+            path.basename(srcManifest.versionFilePath()) + ' ===');
 const out = patchVersion(real, '9.9.9');
 check('header tag patched', /^ \* @version 9\.9\.9$/m.test(out));
 check('runtime constant patched', /^const SCRIPT_VERSION = '9\.9\.9';$/m.test(out));
@@ -66,6 +70,73 @@ mustThrow('missing SCRIPT_VERSION throws',
           () => patchVersion(' * @version 1.0.0\n', '6.45.0'));
 mustThrow('malformed version throws', () => patchVersion(real, 'v6.45.0'));
 mustThrow('empty version throws', () => patchVersion(real, ''));
+
+console.log('\n=== the manifest must describe the repo as it really is ===');
+// Phase 0 of the source split. These three assertions are what make a later
+// split safe: they fail the build the moment the manifest and the filesystem
+// disagree, rather than letting a forgotten file reach clasp — or not reach it.
+{
+  const root = path.join(__dirname, '..');
+  const listed = srcManifest.sourceNames();
+
+  const missing = listed.filter(f => !fs.existsSync(path.join(root, f)));
+  check('every file in sources.json exists', missing.length === 0, missing.join(', '));
+
+  // The dangerous direction. A new .gs file that nobody added to the manifest
+  // is invisible to every test suite here AND to the deploy's syntax lint,
+  // while clasp still happily pushes it — untested code, live.
+  // Recursive: a split that puts sources in src/ would otherwise make this
+  // guard blind to every file it exists to police.
+  const onDisk = fs.readdirSync(root, { recursive: true })
+    .map(f => String(f).split(path.sep).join('/'))
+    .filter(f => f.endsWith('.gs') &&
+                 !/^(venv|archive|node_modules|\.git|__pycache__)\//.test(f))
+    .sort();
+  const unlisted = onDisk.filter(f => listed.indexOf(f) === -1);
+  check('every .gs file in the repo is listed in sources.json (' + onDisk.length + ' found)',
+        unlisted.length === 0, unlisted.join(', '));
+
+  // The other dangerous direction. .claspignore is deny-by-default with an
+  // explicit "!" whitelist, so a manifest file with no "!" line is tested and
+  // version-checked locally and then silently NOT deployed.
+  const claspLines = fs.readFileSync(path.join(root, '.claspignore'), 'utf8')
+    .split('\n').map(l => l.trim());
+  const notWhitelisted = listed.filter(f => claspLines.indexOf('!' + f) === -1);
+  check('every manifest file is whitelisted in .claspignore',
+        notWhitelisted.length === 0, notWhitelisted.join(', '));
+
+  // LF only. Python's open() normalizes CRLF to LF and Node's readFileSync
+  // does not, so a CRLF file would make the two manifest readers emit
+  // different bytes for identical content. sources.py reads with newline=''
+  // to keep the bytes honest; this keeps the inputs honest.
+  const crlf = listed.filter(f => fs.readFileSync(path.join(root, f), 'utf8').includes('\r'));
+  check('every manifest file uses LF line endings', crlf.length === 0, crlf.join(', '));
+
+  // Duplicate top-level function/var across files is LAST-WINS IN SILENCE.
+  // Apps Script concatenates every .gs into one scope; duplicate const/let
+  // throws a load-time SyntaxError (so the concat lint catches those), but
+  // duplicate `function` and `var` are legal JS and simply overwrite. A
+  // mechanical split of a 5,600-line file with shared helpers is the canonical
+  // way to produce one, and every suite here would stay green while the real
+  // implementation was silently replaced.
+  const declaredIn = new Map();
+  for (const f of listed) {
+    const body = fs.readFileSync(path.join(root, f), 'utf8');
+    // async function and function* are valid Apps Script V8 and neither is in
+    // the source today — but a refactor is exactly when one would appear.
+    for (const m of body.matchAll(
+           /^(?:(?:async\s+)?function\s*\*?\s*([A-Za-z_$][\w$]*)|var\s+([A-Za-z_$][\w$]*))/gm)) {
+      const name = m[1] || m[2];
+      if (!declaredIn.has(name)) declaredIn.set(name, []);
+      declaredIn.get(name).push(f);
+    }
+  }
+  const clashes = [...declaredIn.entries()]
+    .filter(([, files]) => files.length > 1)
+    .map(([name, files]) => name + ' (' + files.join(' + ') + ')');
+  check('no top-level function/var is declared twice (' + declaredIn.size + ' checked)',
+        clashes.length === 0, clashes.join(', '));
+}
 
 console.log('\n=== deploy hygiene: clasp must not pick up Node scripts ===');
 // clasp treats ANY .js under rootDir as Apps Script source and uploads it as

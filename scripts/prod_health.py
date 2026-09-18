@@ -35,7 +35,9 @@ Checks
 """
 import argparse, datetime, json, os, re, sys, urllib.error, urllib.parse, urllib.request
 
-ROOT   = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import sources  # noqa: E402  (path must be set up first)
+
 PREFIX = 'SpamDetector_health_'
 # SpamDetector_health_<STATUS>_v<VERSION>_<ISO8601>
 MARKER = re.compile(r'^' + PREFIX + r'(?P<status>[A-Z_]+)_v(?P<ver>[\d.]+)_(?P<ts>.+)$')
@@ -107,7 +109,7 @@ def find_marker(token):
 
 
 def local_version():
-    src = open(os.path.join(ROOT, 'SpamDetector.gs'), encoding='utf-8').read()
+    src = sources.concat_source()
     m = re.search(r"const SCRIPT_VERSION = '([\d.]+)'", src)
     return m.group(1) if m else None
 

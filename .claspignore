@@ -21,6 +21,14 @@ __pycache__/**
 **/*.js
 *.json
 *.txt
+
+# .gs is denied too, so the "!" whitelist below is load-bearing rather than
+# decorative. Without this line an unlisted root-level .gs matched NO pattern
+# and was pushed — a file in nobody's manifest, linted by nothing, deployed
+# anyway. Every source file must now be listed in sources.json AND whitelisted
+# here; tests/test_patch_version.js asserts both directions.
+*.gs
+**/*.gs
 .DS_Store
 .clasp.json
 .clasp.json.example

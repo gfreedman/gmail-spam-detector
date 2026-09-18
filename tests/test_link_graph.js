@@ -14,7 +14,6 @@
  * Run: node tests/test_link_graph.js
  */
 'use strict';
-const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
 
@@ -26,7 +25,8 @@ const ctx = {
   }
 };
 vm.createContext(ctx);
-new vm.Script(fs.readFileSync(path.join(__dirname, '..', 'SpamDetector.gs'), 'utf8'))
+// Every file in sources.json, concatenated as Apps Script concatenates them.
+new vm.Script(require(path.join(__dirname, '..', 'scripts', 'sources.js')).concatSource())
   .runInContext(ctx);
 
 let failures = 0, passed = 0;

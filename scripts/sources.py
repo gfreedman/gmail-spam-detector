@@ -76,8 +76,12 @@ def version_file_path():
 def concat_source():
     """The deployed script as Apps Script will see it: all files, in order.
 
-    Joined with a newline so a file that does not end in one cannot weld its
-    last line onto the next file's first line.
+    Joined with NOTHING, deliberately: concatenating the split files must
+    reproduce the pre-split SpamDetector.gs byte for byte, which is the proof
+    that the split moved code and changed none. Any separator breaks that.
+
+    Safe because every source file must end with a newline —
+    tests/test_patch_version.js asserts it.
     """
     parts = []
     for path in source_paths():
@@ -91,8 +95,15 @@ def concat_source():
             # ever stops being true, the parity test fails loudly instead of the
             # difference being papered over.
             with open(path, encoding='utf-8', newline='') as fh:
-                parts.append(fh.read())
+                body = fh.read()
         except OSError as e:
             raise RuntimeError('sources.json lists %s, which cannot be read — %s'
                                % (os.path.relpath(path, ROOT), e))
-    return '\n'.join(parts)
+        # Enforced HERE, not only in a test — see the note in sources.js.
+        if body and not body.endswith('\n'):
+            raise RuntimeError(
+                '%s does not end with a newline. concat_source() joins with no '
+                "separator, so this would weld its last line onto the next "
+                'file\'s first.' % os.path.relpath(path, ROOT))
+        parts.append(body)
+    return ''.join(parts)

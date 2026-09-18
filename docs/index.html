@@ -725,7 +725,7 @@
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 1h5v5M6 10L15 1M8 3H3a1 1 0 00-1 1v9a1 1 0 001 1h9a1 1 0 001-1V8"/></svg>
           Open script.google.com ↗
         </a>
-        <p class="hero-card-desc">Paste SpamDetector.gs, run <code>setup()</code>, add a 10-minute time trigger. No server. No subscription.</p>
+        <p class="hero-card-desc">Paste in the <code>.gs</code> sources, run <code>setup()</code>, add a 10-minute time trigger. No server. No subscription.</p>
       </div>
     </div>
   </div>
@@ -1020,8 +1020,8 @@ clasp push</code></pre>
     <div class="install-grid">
       <div class="install-opt">
         <div class="install-label">script.google.com <span class="badge">simpler</span></div>
-        <p class="opt-note" style="margin:0 0 8px">Create a new project, delete the placeholder function, paste the full contents of <code>SpamDetector.gs</code> from GitHub, then follow steps 3–4 above.</p>
-        <a href="https://github.com/gfreedman/gmail-spam-detector/blob/main/SpamDetector.gs" target="_blank" rel="noopener" style="font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;">View SpamDetector.gs on GitHub ↗</a>
+        <p class="opt-note" style="margin:0 0 8px">Create a new project, delete the placeholder function, then add one script file per entry in <code>sources.json</code>, pasting each from GitHub in that order. Then follow steps 3–4 above.</p>
+        <a href="https://github.com/gfreedman/gmail-spam-detector/blob/main/sources.json" target="_blank" rel="noopener" style="font-size:13px;font-weight:600;color:var(--accent);text-decoration:none;">View the source manifest on GitHub ↗</a>
       </div>
     </div>
     <p class="note">Required Gmail scopes: <code>gmail.modify</code>, <code>gmail.labels</code>, <code>mail.google.com</code>, <code>drive</code>, <code>spreadsheets</code>. Google prompts for authorization on first run.</p>

@@ -60,7 +60,8 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 1. Go to [script.google.com](https://script.google.com)
 2. Click **New Project**
-3. Copy the entire contents of `SpamDetector.gs` into the editor
+3. Copy in each `.gs` file listed in `sources.json`, keeping that order
+   (Apps Script concatenates them into one global scope)
 4. Rename to "Gmail Spam Detector"
 5. Click **Save**
 
@@ -345,7 +346,8 @@ addToWhitelist('domain.com');
 
 ```
 /
-├── SpamDetector.gs              # Main script (auto-deployed)
+├── sources.json                 # Manifest: the .gs files that form the script
+├── Config.gs … Debug.gs         # 21 Apps Script sources (auto-deployed)
 ├── appsscript.json              # Apps Script manifest (scopes, runtime)
 ├── .claspignore                 # Controls which files clasp uploads
 ├── README.md
@@ -486,4 +488,4 @@ Built through iterative L6 engineering reviews focusing on:
 
 ---
 
-**Ready to kill spam?** Deploy `SpamDetector.gs` and let pattern detection do its work! 🚀
+**Ready to kill spam?** Deploy the sources in `sources.json` and let pattern detection do its work! 🚀

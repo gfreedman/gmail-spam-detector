@@ -112,6 +112,13 @@ console.log('\n=== the manifest must describe the repo as it really is ===');
   const crlf = listed.filter(f => fs.readFileSync(path.join(root, f), 'utf8').includes('\r'));
   check('every manifest file uses LF line endings', crlf.length === 0, crlf.join(', '));
 
+  // concatSource() joins with NOTHING so the concatenation is byte-identical to
+  // the pre-split source. That is only safe while every file ends with a
+  // newline; without this, one file's last line would weld onto the next file's
+  // first — silently, and producing valid-looking JavaScript.
+  const noEol = listed.filter(f => !fs.readFileSync(path.join(root, f), 'utf8').endsWith('\n'));
+  check('every manifest file ends with a newline', noEol.length === 0, noEol.join(', '));
+
   // Duplicate top-level function/var across files is LAST-WINS IN SILENCE.
   // Apps Script concatenates every .gs into one scope; duplicate const/let
   // throws a load-time SyntaxError (so the concat lint catches those), but

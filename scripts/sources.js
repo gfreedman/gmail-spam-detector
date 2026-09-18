@@ -84,23 +84,41 @@ function versionFilePath() {
 }
 
 /**
- * The deployed script as Apps Script will see it: every source file joined in
- * manifest order.
+ * The deployed script as Apps Script will see it: every source file
+ * concatenated in manifest order.
  *
- * Joined with a newline so a file that does not end in one cannot weld its last
- * line onto the next file's first line.
+ * Joined with NOTHING, deliberately. The split that produced these files was
+ * verified by `cmp`: concatenating them must reproduce the pre-split
+ * SpamDetector.gs byte for byte, which is the proof that the split moved code
+ * and changed none. Any separator here would break that property.
+ *
+ * Safe because every source file is required to end with a newline —
+ * tests/test_patch_version.js asserts it — so no file's last line can weld
+ * onto the next file's first.
  *
  * @return {string}
  */
 function concatSource() {
   return sourcePaths().map(p => {
+    let body;
     try {
-      return fs.readFileSync(p, 'utf8');
+      body = fs.readFileSync(p, 'utf8');
     } catch (e) {
       throw new Error('sources.json lists ' + path.relative(ROOT, p) +
                       ', which cannot be read — ' + e.message);
     }
-  }).join('\n');
+    // Enforced HERE, not only in a test. The '' join is correct only while
+    // every part ends with a newline, and a test in another process is too far
+    // from the function that depends on it: with the assertion living only in
+    // tests/test_patch_version.js — the fifth CI step — four suites ran to
+    // green on welded source before anything complained.
+    if (body !== '' && !body.endsWith('\n')) {
+      throw new Error(path.relative(ROOT, p) + ' does not end with a newline. ' +
+                      'concatSource() joins with no separator, so this would ' +
+                      "weld its last line onto the next file's first.");
+    }
+    return body;
+  }).join('');
 }
 
 module.exports = { sourceNames, versionFilePath, concatSource };

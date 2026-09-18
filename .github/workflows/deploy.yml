@@ -3,7 +3,7 @@
 #
 # Four-stage pipeline: Test → Deploy → Validate → Tag
 #   1. test:     Lint JS syntax, run Python detection tests, validate README stats
-#   2. deploy:   Push SpamDetector.gs to Google Apps Script via clasp
+#   2. deploy:   Push the .gs sources in sources.json to Apps Script via clasp
 #   3. validate: Read deployed script back via Apps Script REST API and confirm
 #                the expected @version tag is present in the live source
 #   4. tag:      Auto-create git tag if commit message contains a version number
@@ -94,7 +94,7 @@ jobs:
         run: python tests/test_spam_detector.py
 
       # Disposition tests — the only automated coverage of the code that
-      # IRREVERSIBLY deletes mail. Loads SpamDetector.gs into a Node vm with
+      # IRREVERSIBLY deletes mail. Loads the concatenated source into a vm with
       # GmailApp/Gmail/PropertiesService stubbed and asserts on the recorded
       # call log: Rule 7 must never issue batchDelete or add the SPAM label,
       # Rules 1-6 must still delete exactly one id, and a quarantine must be
@@ -151,7 +151,7 @@ jobs:
   # ===========================================================================
   # Stage 2: Deploy
   #
-  # Pushes SpamDetector.gs and appsscript.json to Google Apps Script via clasp.
+  # Pushes every file in sources.json plus appsscript.json via clasp.
   # Requires CLASP_TOKEN and SCRIPT_ID secrets to be configured in the repo.
   #
   # On failure, writes a summary to the GitHub Actions job summary page
@@ -217,7 +217,7 @@ jobs:
           # appsscript.json FIRST, so the push order is byte-identical to what
           # clasp produces today (its unlisted-file fallback sorts
           # alphabetically, which already puts appsscript.json ahead of
-          # SpamDetector.gs). Pinning the source order for Phase 1 should not
+          # the sources). Pinning the source order should not
           # also quietly change the request shape of a working deploy of a
           # script that deletes mail.
           cfg = {
@@ -230,7 +230,7 @@ jobs:
           print('clasp push order: %s' % ', '.join(cfg['filePushOrder']))
           PYEOF
 
-      # Patch @version in SpamDetector.gs to match the commit message version
+      # Patch @version in the manifest's versionFile to match the commit version
       # (e.g. "v6.22.0: ..." → @version 6.22.0). This runs only in CI so the
       # deployed script always shows the correct version without requiring a
       # manual source-file edit on every commit.
@@ -241,7 +241,7 @@ jobs:
       # command" — after the test job had already gone green. scripts/
       # patch_version.js is covered by tests/test_patch_version.js in the test
       # job, so this class of failure is caught before deploy.
-      - name: Patch version in SpamDetector.gs
+      - name: Patch version in the source
         run: |
           # head -n1: grep -oP prints EVERY match on its own line, so a subject
           # like "v6.45.1: Fix the deploy step that blocked v6.45.0" yielded a
@@ -395,7 +395,7 @@ jobs:
       # This used to live inside the version check, behind its "no version in
       # the commit subject — skip" guard. That made the deployed-file assertion
       # dead on precisely the commits it was written for: a subject like
-      # "chore: split SpamDetector.gs into 13 files" carries no version, so the
+      # "split SpamDetector.gs into 21 files" carries no version, so the
       # fetch never ran, the response file never existed, and the assertion
       # warned and skipped. The fetch has nothing to do with the version.
       - name: Fetch deployed source from the Apps Script API
@@ -553,8 +553,15 @@ jobs:
               print('Expected: %s' % ', '.join(expected))
               sys.exit(1)
 
-          print('✅ Deployed files match sources.json (%d file(s), in order): %s'
-                % (len(expected), ', '.join(expected)))
+          # The success line must not claim "in order" when the warning above
+          # just said the order differs. In a 21-file log the green line is what
+          # gets read and the warning is what gets scrolled past.
+          if deployed == expected:
+              print('✅ Deployed files match sources.json (%d file(s), in order): %s'
+                    % (len(expected), ', '.join(expected)))
+          else:
+              print('ℹ️  File set matches sources.json (%d files); order differs '
+                    '— see the warning above.' % len(expected))
           PYEOF
 
   # ===========================================================================

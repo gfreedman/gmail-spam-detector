@@ -1,6 +1,9 @@
 # Changelog
 
-Release history for `SpamDetector.gs`, newest first.
+Release history for the Apps Script source, newest first.
+
+The source was a single `SpamDetector.gs` until the split recorded at the top of
+this file; entries below that point name it, and were accurate when written.
 
 This lived in the file's own header comment until v6.49.0, where it had grown to
 459 lines — 11% of the source — and was actively misleading: three consecutive
@@ -14,6 +17,50 @@ seven rules). Historical reasoning lives here, where being long is fine.
 Each entry says *why*, not just what — these are mostly records of a specific
 miss or incident and the reasoning that produced the fix. `git log` has the same
 detail plus the diffs.
+
+---
+
+## Repository layout: SpamDetector.gs split into 21 files
+
+**No version bump, and no behaviour change — deliberately.**
+
+`SpamDetector.gs` had reached 5,574 lines. It is now 21 files listed in
+`sources.json`: `Config.gs`, `Clickbait.gs`, `Patterns.gs`, `Inbox.gs`,
+`SpamFolder.gs`, `Cleanup.gs`, `Thread.gs`, `Signals.gs`, `Verdict.gs`,
+`Disposition.gs`, `Labels.gs`, `Text.gs`, `LinkGraph.gs`, `Log.gs`, `Setup.gs`,
+`Domains.gs`, `State.gs`, `Maintenance.gs`, `Intelligence.gs`, `Flush.gs`,
+`Debug.gs`.
+
+Apps Script has no module system: every `.gs` is concatenated into one global
+scope. So this is a file move and nothing else — every function stays a global
+with the same name, and no call site changed.
+
+**The split is byte-exact, and that is checkable.** Cutting only at top-level
+declaration boundaries, never reordering, means concatenating the files in
+manifest order reproduces the pre-split source exactly:
+
+    cat Config.gs Clickbait.gs ... Debug.gs | shasum -a 256
+    aaeda257da842726c21425f5bf00aa5639bc72e5d9aac0a166123fb9c5ae23d8   # identical
+
+`concatSource()` therefore joins with `''` rather than `'\n'`, and every source
+file is required to end with a newline so nothing can weld onto the next.
+
+The version markers are untouched, so the **program** is byte-identical to what
+was already live. Be precise about what that does and does not claim: the
+concatenation our own readers build is provably identical, and the deployed
+*artifact* goes from one remote file to 21. Apps Script's own inter-file joining
+is neither controlled nor observable from here, so this is not a licence to skip
+verification on a later change.
+
+To re-check the claim at any point, from git alone — `d520898` is the last
+commit that contained the file:
+
+    git show d520898:SpamDetector.gs | shasum -a 256
+    aaeda257da842726c21425f5bf00aa5639bc72e5d9aac0a166123fb9c5ae23d8
+
+`Signals.gs` is 529 lines, the only file over 500 — of which `collectSignals()`
+is a single 503-line function. Splitting that function is a code change, not a
+file move, and is deliberately out of scope here.
 
 ---
 

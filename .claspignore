@@ -1,4 +1,4 @@
-# Clasp ignore - only push SpamDetector.gs and appsscript.json
+# Clasp ignore - only push the .gs files in sources.json, plus appsscript.json
 #
 # NOTE: clasp treats ANY .js under rootDir as Apps Script source and will try
 # to upload it as a .gs file. A bare "*.js" pattern matches only top-level
@@ -36,6 +36,27 @@ __pycache__/**
 .gitignore
 LICENSE
 
-# Whitelist only these files
-!SpamDetector.gs
+# Whitelist only these files (must match sources.json — asserted by
+# tests/test_patch_version.js in both directions)
+!Config.gs
+!Clickbait.gs
+!Patterns.gs
+!Inbox.gs
+!SpamFolder.gs
+!Cleanup.gs
+!Thread.gs
+!Signals.gs
+!Verdict.gs
+!Disposition.gs
+!Labels.gs
+!Text.gs
+!LinkGraph.gs
+!Log.gs
+!Setup.gs
+!Domains.gs
+!State.gs
+!Maintenance.gs
+!Intelligence.gs
+!Flush.gs
+!Debug.gs
 !appsscript.json

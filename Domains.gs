@@ -16,7 +16,7 @@
  *   Script Properties were initialized from DEFAULT_DOMAINS at setup() time.
  *   When DEFAULT_DOMAINS.legitimate is updated in source (e.g., a new whitelist
  *   entry is deployed), the old Script Properties snapshot doesn't update
- *   automatically — requiring a manual refreshWhitelist() call after every deploy.
+ *   automatically — it would need a manual refresh after every deploy.
  *
  *   By merging DEFAULT_DOMAINS.legitimate directly here, the source-code list
  *   is always live the moment clasp pushes the new code. Script Properties
@@ -56,7 +56,7 @@ function getWhitelist()
  *
  * Same merge strategy as getWhitelist() — DEFAULT_DOMAINS.suspicious is always
  * the live source-code list; Script Properties holds only user-added extras.
- * No refreshBlacklist() call needed after deploy.
+ * No post-deploy refresh needed.
  *
  * @return {Array<string>} DEFAULT_DOMAINS.suspicious ∪ user-added domains.
  */

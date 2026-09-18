@@ -80,12 +80,20 @@ function stub(c) {
 // The signal key list comes from the live object, not a hardcoded copy, so a
 // signal added to the .gs source shows up here automatically and Python can
 // fail on one it does not mirror.
-const signalKeys = Object.keys(
-  vm.runInContext('collectSignals', ctx)
-    ? ctx.collectSignals(stub({ file: '_probe', from: 'a@b.invalid',
-                                subject: 'x', plainBody: 'x', html: '', raw: '' })) || {}
-    : {}
-)
+// The probe MUST return a populated signals object. `|| {}` used to swallow a
+// null here — and collectSignals() returns null for a whitelisted sender — so a
+// probe address that ever became whitelisted would yield ZERO keys, and the
+// Python side would then compare zero signals across all 81 fixtures and print
+// a green tick. Fail loudly instead; Python asserts the count as well.
+const probeSignals = ctx.collectSignals(stub({
+  file: '_probe', from: 'a@b.invalid', subject: 'x', plainBody: 'x', html: '', raw: ''
+}));
+if (!probeSignals || typeof probeSignals !== 'object') {
+  console.error('parity bridge: collectSignals() probe returned ' + probeSignals +
+                ' — expected a signals object. Is the probe sender whitelisted?');
+  process.exit(1);
+}
+const signalKeys = Object.keys(probeSignals)
   // `_`-prefixed keys are META, not detection signals (e.g. _degraded, set when
   // a signal threw and was skipped). They have no Python counterpart by design,
   // so they are excluded from the parity contract rather than forcing a mirror

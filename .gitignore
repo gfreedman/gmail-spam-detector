@@ -27,7 +27,11 @@ Thumbs.db
 *~
 
 # Claude Code
-.claude/
+# .claude/settings.local.json holds machine-local permissions and stays out.
+# Skills are repo knowledge and must be committed — git will not descend into
+# an excluded directory, so this has to exclude the CONTENTS, not the dir.
+.claude/*
+!.claude/skills/
 
 # Clasp credentials (contains script ID)
 .clasp.json

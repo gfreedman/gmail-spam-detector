@@ -27,7 +27,14 @@ on:
     branches: [main]
     # Only run when relevant files change — saves CI minutes on doc-only commits
     paths:
-      - 'SpamDetector.gs'            # Main source code
+      - '*.gs'                       # Apps Script source at the repo root
+      - '**/*.gs'                    # ...and in any subdirectory (Phase 1 may use src/)
+                                     # BOTH are listed deliberately: '**' is documented
+                                     # as matching zero or more characters, so '**/*.gs'
+                                     # may reduce to '/*.gs' and miss root-level files.
+                                     # A path filter that silently stops matching is the
+                                     # same failure as the workflow-file omission.
+      - 'sources.json'               # The source manifest itself
       - 'appsscript.json'            # Apps Script manifest (scopes, runtime)
       - 'tests/**'                   # Test suite and .eml examples
       - 'scripts/**'                 # patch_version.js runs IN the deploy job
@@ -66,10 +73,16 @@ jobs:
         with:
           node-version: '24'
 
-      # Compile SpamDetector.gs as a Node vm.Script — catches syntax errors
-      # (missing brackets, invalid regex, etc.) that Apps Script would reject
-      - name: Lint SpamDetector.gs syntax
-        run: node -e "new (require('vm').Script)(require('fs').readFileSync('SpamDetector.gs','utf8'))"
+      # Compile the source as a Node vm.Script — catches syntax errors (missing
+      # brackets, invalid regex, etc.) that Apps Script would reject.
+      #
+      # Lints the CONCATENATION of every file in sources.json, because that is
+      # what Apps Script runs: all .gs files share one global scope. Linting
+      # files separately would miss a duplicate top-level declaration across
+      # two files, which is a load-time SyntaxError in production and silence
+      # here.
+      - name: Lint Apps Script syntax
+        run: node -e "new (require('vm').Script)(require(process.env.GITHUB_WORKSPACE + '/scripts/sources.js').concatSource())"
 
       # Run the Python test suite: parser self-tests, Gmail API method validation,
       # spam/scam/ham detection, edge cases, JS/Python signal parity, and the
@@ -183,10 +196,39 @@ jobs:
       - name: Write clasp credentials
         run: printf '%s' '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
 
-      # Write .clasp.json with the target script ID and root directory
+      # Write .clasp.json with the target script ID, root directory and the
+      # manifest's file order.
+      #
+      # filePushOrder matters because Apps Script concatenates every .gs file
+      # into one global scope in project order. sources.json calls itself the
+      # concatenation order and the CI syntax lint honours it; without pinning
+      # it here, clasp would decide the remote order itself and the program CI
+      # linted would not provably be the program Apps Script builds. Harmless
+      # under the current no-top-level-statements invariant, but that invariant
+      # is not enforced by anything, so do not rely on it.
       - name: Write clasp config
+        env:
+          SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
         run: |
-          echo '{"scriptId":"${{ secrets.SCRIPT_ID }}","rootDir":"."}' > .clasp.json
+          python3 - << 'PYEOF'
+          import json, os, sys
+          sys.path.insert(0, os.path.join(os.environ['GITHUB_WORKSPACE'], 'scripts'))
+          import sources
+          # appsscript.json FIRST, so the push order is byte-identical to what
+          # clasp produces today (its unlisted-file fallback sorts
+          # alphabetically, which already puts appsscript.json ahead of
+          # SpamDetector.gs). Pinning the source order for Phase 1 should not
+          # also quietly change the request shape of a working deploy of a
+          # script that deletes mail.
+          cfg = {
+              'scriptId': os.environ['SCRIPT_ID'],
+              'rootDir': '.',
+              'filePushOrder': ['appsscript.json'] + sources.source_names(),
+          }
+          with open('.clasp.json', 'w', encoding='utf-8') as fh:
+              json.dump(cfg, fh)
+          print('clasp push order: %s' % ', '.join(cfg['filePushOrder']))
+          PYEOF
 
       # Patch @version in SpamDetector.gs to match the commit message version
       # (e.g. "v6.22.0: ..." → @version 6.22.0). This runs only in CI so the
@@ -212,6 +254,56 @@ jobs:
           else
             echo "No version in commit message — version markers left unchanged"
           fi
+
+      # Ask clasp what it is ABOUT to push, and refuse if the manifest is not
+      # fully in that set.
+      #
+      # Now that .claspignore denies *.gs, the "!" whitelist is load-bearing —
+      # and a slip in it means `clasp push --force` replaces the remote with
+      # appsscript.json alone, DELETING the deployed detector. The validate job
+      # would only notice afterwards. tests/test_patch_version.js greps for a
+      # literal "!<file>" line, which a reordering or a broader deny pattern
+      # could satisfy while clasp still resolved the file away.
+      #
+      # This uses clasp's own resolution instead of guessing at it. Fail-safe by
+      # design: if `clasp status --json` cannot be run or parsed we warn and let
+      # the push proceed, because the string-level guard in `test` already ran
+      # and a new hard dependency on this command's output shape is its own way
+      # to break a deploy.
+      - name: Assert clasp will push every manifest file
+        run: |
+          if ! timeout 60 clasp status --json > /tmp/clasp_status.json 2>/tmp/clasp_status.err; then
+            echo "::warning::'clasp status --json' failed — skipping the pre-push check"
+            cat /tmp/clasp_status.err || true
+            exit 0
+          fi
+          python3 - << 'PYEOF'
+          import json, os, sys
+          sys.path.insert(0, os.path.join(os.environ['GITHUB_WORKSPACE'], 'scripts'))
+          import sources
+
+          try:
+              with open('/tmp/clasp_status.json', encoding='utf-8') as fh:
+                  status = json.load(fh)
+              to_push = status['filesToPush']
+          except (ValueError, OSError, KeyError, TypeError) as e:
+              print('::warning::Could not read filesToPush from clasp status '
+                    '(%s) — skipping the pre-push check' % e)
+              sys.exit(0)
+
+          pushing = {os.path.normpath(p) for p in to_push}
+          missing = [f for f in sources.source_names()
+                     if os.path.normpath(f) not in pushing]
+          if missing:
+              print('::error::clasp would NOT push: %s' % ', '.join(missing))
+              print('::error::Pushing now would replace the remote WITHOUT these '
+                    'files. Check the "!" whitelist in .claspignore.')
+              print('clasp would push: %s' % ', '.join(sorted(pushing)))
+              sys.exit(1)
+
+          print('✅ clasp will push all %d manifest file(s): %s'
+                % (len(sources.source_names()), ', '.join(sources.source_names())))
+          PYEOF
 
       # Push source files to Google Apps Script (--force overwrites remote)
       - name: Push to Apps Script
@@ -297,17 +389,20 @@ jobs:
           print('Token refreshed successfully')
           PYEOF
 
-      - name: Validate deployed version via Apps Script API
+      # Fetch the deployed source ONCE, unconditionally, for the two checks
+      # that follow.
+      #
+      # This used to live inside the version check, behind its "no version in
+      # the commit subject — skip" guard. That made the deployed-file assertion
+      # dead on precisely the commits it was written for: a subject like
+      # "chore: split SpamDetector.gs into 13 files" carries no version, so the
+      # fetch never ran, the response file never existed, and the assertion
+      # warned and skipped. The fetch has nothing to do with the version.
+      - name: Fetch deployed source from the Apps Script API
         env:
           SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
         run: |
-          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' | head -n1 || true)
-          if [ -z "$VERSION" ]; then
-            echo "No version in commit — skipping API validation"
-            exit 0
-          fi
-          VER_NUM="${VERSION#v}"
-          echo "Checking that @version $VER_NUM is live in Google Apps Script..."
+          rm -f /tmp/gas_content.json
 
           ACCESS_TOKEN=$(python3 -c "
           import json,os
@@ -333,10 +428,28 @@ jobs:
           if [ "$HTTP_CODE" != "200" ]; then
             # Non-200 means auth error, quota, or API unavailable.
             # Warn but don't block — clasp push already confirmed the upload.
-            echo "::warning::Apps Script API returned HTTP $HTTP_CODE — skipping version check"
+            echo "::warning::Apps Script API returned HTTP $HTTP_CODE — skipping API checks"
             echo "API response:" && cat /tmp/gas_content.json
+            # Removed so the steps below see "no response" rather than parsing
+            # an error body as if it were a file listing.
+            rm -f /tmp/gas_content.json
             exit 0
           fi
+          echo "Fetched deployed source from the Apps Script API"
+
+      - name: Validate deployed version
+        run: |
+          VERSION=$(git log -1 --pretty=%s | grep -oP 'v\d+\.\d+\.\d+' | head -n1 || true)
+          if [ -z "$VERSION" ]; then
+            echo "No version in commit — skipping version check"
+            exit 0
+          fi
+          if [ ! -s /tmp/gas_content.json ]; then
+            echo "::warning::No API response body — skipping version check"
+            exit 0
+          fi
+          VER_NUM="${VERSION#v}"
+          echo "Checking that @version $VER_NUM is live in Google Apps Script..."
 
           # The response is JSON: {"files": [{"name": "...", "source": "..."}]}
           # grep for the @version string in the raw JSON (safe — no special chars).
@@ -357,6 +470,92 @@ jobs:
             echo "Apps Script API response:" && cat /tmp/gas_content.json
             exit 1
           fi
+
+      # Assert the deployed FILE SET matches sources.json.
+      #
+      # The @version check above proves a version string is live. With one
+      # source file that was the whole story; with several it is not, because
+      # .claspignore is deny-by-default with an explicit "!" whitelist. A
+      # manifest file with no "!" line is tested locally, passes every suite,
+      # and is then silently never uploaded — and this job would still go green,
+      # because the one file carrying @version did make it. That is a
+      # half-deployed detector reporting healthy, which is the exact failure
+      # mode the audit and health work exists to prevent.
+      #
+      # Reuses /tmp/gas_content.json from the step above. If that step took one
+      # of its warn-and-continue paths the file is absent or not JSON; warn and
+      # skip here too rather than inventing a failure, since clasp push remains
+      # the ground truth.
+      - name: Assert deployed files match the manifest
+        run: |
+          if [ ! -s /tmp/gas_content.json ]; then
+            echo "::warning::No API response body — skipping deployed-file assertion"
+            exit 0
+          fi
+          python3 - << 'PYEOF'
+          import json, sys, os
+          sys.path.insert(0, os.path.join(os.environ['GITHUB_WORKSPACE'], 'scripts'))
+          import sources
+
+          try:
+              with open('/tmp/gas_content.json', encoding='utf-8') as fh:
+                  payload = json.load(fh)
+          except (ValueError, OSError) as e:
+              print('::warning::Could not parse the API response (%s) — '
+                    'skipping deployed-file assertion' % e)
+              sys.exit(0)
+
+          files = payload.get('files')
+          if not isinstance(files, list):
+              print('::warning::API response has no "files" array — skipping')
+              sys.exit(0)
+
+          # Apps Script strips the extension and types .gs as SERVER_JS.
+          # Compared as an ORDERED list, not a set: project order is
+          # concatenation order, and the syntax lint upstream validated one
+          # specific concatenation. A set comparison would pass on a remote
+          # whose order differs from the one CI proved parses.
+          deployed = [f.get('name') for f in files if f.get('type') == 'SERVER_JS']
+          expected = [n[:-3] if n.endswith('.gs') else n
+                      for n in sources.source_names()]
+
+          missing = sorted(set(expected) - set(deployed))
+          extra   = sorted(set(deployed) - set(expected))
+
+          if missing:
+              print('::error::NOT deployed: %s — check the "!" whitelist in '
+                    '.claspignore' % ', '.join(missing))
+          if extra:
+              print('::error::Deployed but not in sources.json: %s — a stale '
+                    'remote file shadows nothing locally and is never tested'
+                    % ', '.join(extra))
+          # ORDER IS A WARNING, NOT YET AN ERROR.
+          #
+          # It rests on an undocumented assumption — that projects.getContent
+          # returns files in project order — and it CANNOT fail today, because
+          # there is exactly one SERVER_JS file. Its first real execution would
+          # be the Phase 1 deploy itself, and if the API canonicalises the
+          # response order the validate job would go permanently red AFTER a
+          # successful deploy, blaming filePushOrder, which would be innocent.
+          #
+          # missing/extra stay hard failures: those are the conditions that are
+          # actually dangerous. Promote this to an error once it has been seen
+          # to pass against a real multi-file project.
+          if not missing and not extra and deployed != expected:
+              print('::warning::Deployed files are in a different order than '
+                    'sources.json. Not failing the build: response order is not '
+                    'a documented guarantee. Investigate before relying on '
+                    'filePushOrder.')
+              print('Deployed: %s' % ', '.join(deployed))
+              print('Expected: %s' % ', '.join(expected))
+          if missing or extra:
+              print('Deployed: %s' % ', '.join(deployed))
+              print('Expected: %s' % ', '.join(expected))
+              sys.exit(1)
+
+          print('✅ Deployed files match sources.json (%d file(s), in order): %s'
+                % (len(expected), ', '.join(expected)))
+          PYEOF
 
   # ===========================================================================
   # Stage 3b: Verify prod

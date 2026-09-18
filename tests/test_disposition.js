@@ -16,11 +16,13 @@
  * Run: node tests/test_disposition.js
  */
 'use strict';
-const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
 
-const GS_PATH = path.join(__dirname, '..', 'SpamDetector.gs');
+// Every file in sources.json, concatenated as Apps Script concatenates them.
+// Read once: this harness builds a fresh vm context per scenario and would
+// otherwise re-read the whole source for each one.
+const GS_SOURCE = require(path.join(__dirname, '..', 'scripts', 'sources.js')).concatSource();
 
 let failures = 0;
 let passed = 0;
@@ -115,7 +117,7 @@ function makeCtx(opts) {
     }
   };
   vm.createContext(ctx);
-  new vm.Script(fs.readFileSync(GS_PATH, 'utf8')).runInContext(ctx);
+  new vm.Script(GS_SOURCE).runInContext(ctx);
   return ctx;
 }
 

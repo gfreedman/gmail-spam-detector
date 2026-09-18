@@ -53,7 +53,9 @@ const ctx = {
   }
 };
 vm.createContext(ctx);
-new vm.Script(fs.readFileSync(path.join(__dirname, '..', 'SpamDetector.gs'), 'utf8'))
+// Every file in sources.json, concatenated exactly as Apps Script concatenates
+// them. One vm.Script, one global scope — the same shape as production.
+new vm.Script(require(path.join(__dirname, '..', 'scripts', 'sources.js')).concatSource())
   .runInContext(ctx);
 
 /** A GmailMessage stub carrying exactly the fields Python parsed. */

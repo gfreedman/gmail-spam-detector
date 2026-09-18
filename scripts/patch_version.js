@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Patch the two version markers in SpamDetector.gs to a given version.
+ * Patch the two version markers in the manifest's versionFile to a version.
  *
  * Called by the deploy workflow with the version parsed from the commit
  * message. Replaces:
@@ -20,10 +20,14 @@
  * both readable and testable: see `npm test`-less local check in
  * tests/test_patch_version.js.
  *
- * Usage: node scripts/patch_version.js 6.45.0 [path/to/SpamDetector.gs]
+ * The target file comes from sources.json ("versionFile") rather than a
+ * hardcoded name, so a source split moves the markers without touching this.
+ *
+ * Usage: node scripts/patch_version.js 6.45.0 [path/to/file.gs]
  */
 'use strict';
 const fs = require('fs');
+const { versionFilePath } = require('./sources.js');
 
 function patchVersion(source, version) {
   if (!/^\d+\.\d+\.\d+$/.test(version)) {
@@ -58,7 +62,7 @@ module.exports = { patchVersion };
 
 if (require.main === module) {
   const version = process.argv[2];
-  const file = process.argv[3] || 'SpamDetector.gs';
+  const file = process.argv[3] || versionFilePath();
   if (!version) {
     console.error('Usage: node scripts/patch_version.js X.Y.Z [file]');
     process.exit(1);

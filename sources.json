@@ -1,0 +1,29 @@
+{
+  "_comment": [
+    "The Apps Script source manifest — the single list of files that make up the",
+    "deployed script. Every consumer reads this instead of hardcoding a filename:",
+    "the four test suites, scripts/patch_version.js, scripts/validate.py,",
+    "scripts/prod_health.py, the .claspignore hygiene check, and the deploy",
+    "workflow's syntax lint, push order and deployed-file assertion.",
+    "",
+    "It exists so that splitting SpamDetector.gs into several .gs files is a pure",
+    "file move: nothing outside this manifest needs to learn the new names.",
+    "Read it via scripts/sources.js (Node) or scripts/sources.py (Python) rather",
+    "than parsing it again by hand — a third parser is a third thing to drift.",
+    "",
+    "sources    — concatenation AND clasp push order. Apps Script has no module",
+    "             system: all files share one global scope. SpamDetector.gs has no",
+    "             top-level executed statements and no cross-references between",
+    "             top-level initializers, so order does not affect behaviour today;",
+    "             it is pinned anyway, and emitted as filePushOrder at deploy time,",
+    "             so the concatenation CI lints is the one Apps Script builds.",
+    "versionFile — the one file carrying both version markers ('* @version X.Y.Z'",
+    "             and 'const SCRIPT_VERSION'). patch_version.js rewrites only this",
+    "             file; validate.py asserts the markers appear exactly once across",
+    "             the whole manifest, so a stray copy elsewhere is caught."
+  ],
+  "sources": [
+    "SpamDetector.gs"
+  ],
+  "versionFile": "SpamDetector.gs"
+}

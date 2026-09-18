@@ -27,7 +27,8 @@ on:
     branches: [main]
     # Only run when relevant files change — saves CI minutes on doc-only commits
     paths:
-      - '*.gs'                       # Apps Script source at the repo root
+      - '*.gs'                       # a stray root .gs (there are none; the guards
+                                     #   reject one, and this makes CI notice it)
       - '**/*.gs'                    # ...and in any subdirectory (Phase 1 may use src/)
                                      # BOTH are listed deliberately: '**' is documented
                                      # as matching zero or more characters, so '**/*.gs'

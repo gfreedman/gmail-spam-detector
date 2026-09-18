@@ -3,8 +3,8 @@
  *
  * Every Node consumer — the three vm-based test suites, patch_version.js, the
  * .claspignore hygiene check, and the deploy workflow's syntax lint — loads the
- * script through here, so splitting SpamDetector.gs into several .gs files
- * changes one JSON file and nothing else.
+ * script through here, so the 2026 split of SpamDetector.gs into 21 files
+ * changed one JSON file and nothing else.
  *
  * concatSource() is the important one. Apps Script concatenates every .gs file
  * in the project into a single global scope before running anything, so the

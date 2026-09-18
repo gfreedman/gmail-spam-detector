@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Test suite for SpamDetector.gs.
+Test suite for the Apps Script source (the .gs files listed in sources.json).
 
 Validates the spam detection engine against real-world .eml samples and ensures
 the deployed Google Apps Script only calls methods that actually exist on the
@@ -8,7 +8,7 @@ Gmail Advanced Service API.
 
 Seven test phases run in order:
     0. Parser self-tests — unit-test the JS→Python regex extractor
-    1. Gmail API method validation — static analysis of SpamDetector.gs
+    1. Gmail API method validation — static analysis of the .gs source
     2. Spam detection — every .eml in spam_examples/ must be flagged
     3. Scam detection — every .eml in scam_examples/ must be flagged
     4. Ham verification — every .eml in ham_examples/ must NOT be flagged
@@ -35,10 +35,10 @@ from typing import NamedTuple
 
 
 # =============================================================================
-# SpamDetector.gs Pattern Loader
+# Apps Script Pattern Loader
 #
 # Option B: single source of truth. All detection constants (regex patterns,
-# domain lists, numeric limits) are extracted directly from SpamDetector.gs at
+# domain lists, numeric limits) are extracted directly from the .gs source at
 # import time. The test never re-defines a pattern — if a pattern changes in
 # the source, the test automatically picks it up on the next run.
 #
@@ -481,11 +481,11 @@ def _load_gs_constants(source):
 
 
 # =============================================================================
-# Loaded Constants (single source of truth — all from SpamDetector.gs)
+# Loaded Constants (single source of truth — all from the .gs source)
 # =============================================================================
 
-# The source arrives through sources.json, so splitting SpamDetector.gs into
-# several .gs files needs no change here. _GS_SOURCE is the concatenation Apps
+# The source arrives through sources.json, so the split of SpamDetector.gs
+# into 21 files needed no change here. _GS_SOURCE is the concatenation Apps
 # Script itself would build; scripts/sources.py is the only thing that knows
 # which files that is.
 sys.path.insert(0, str(Path(__file__).parent.parent / 'scripts'))
@@ -524,7 +524,7 @@ RANDOM_LOCAL_PART_PATTERNS      = _gs['RANDOM_LOCAL_PART_PATTERNS']
 IMPERSONATED_SUPPORT_BRANDS     = _gs['IMPERSONATED_SUPPORT_BRANDS']
 BILLING_LANGUAGE_PATTERNS       = _gs['BILLING_LANGUAGE_PATTERNS']
 # Single regex rather than an array, so it is mirrored by value. Kept here
-# beside the arrays it is used with; SpamDetector.gs CALLBACK_PHONE_PATTERN is
+# beside the arrays it is used with; the .gs source CALLBACK_PHONE_PATTERN is
 # the original and the two must stay identical.
 CALLBACK_PHONE_PATTERN          = re.compile(
     r'(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}')
@@ -571,9 +571,9 @@ GMAIL_API_METHODS = {
 # =============================================================================
 
 # =============================================================================
-# Link-Graph Helpers — mirrors of the SpamDetector.gs implementations
+# Link-Graph Helpers — mirrors of the the .gs source implementations
 #
-# These functions must behave identically to their SpamDetector.gs
+# These functions must behave identically to their the .gs source
 # counterparts. They cannot be loaded from source (they are code, not data).
 #
 # Parity is no longer maintained by hand. run_parity_tests() (Phase 7) runs
@@ -930,7 +930,7 @@ def parse_eml(filepath):
     with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
         content = f.read()
 
-    # Case-insensitive check using BULK_EMAIL_FINGERPRINTS loaded from SpamDetector.gs
+    # Case-insensitive check using BULK_EMAIL_FINGERPRINTS loaded from the .gs source
     content_lower = content.lower()
     has_amazon_ses = any(fp in content_lower for fp in BULK_EMAIL_FINGERPRINTS)
 
@@ -938,7 +938,7 @@ def parse_eml(filepath):
     subject = decode_email_header(msg.get('subject', ''))
     from_raw = decode_email_header(msg.get('from', ''))
     # Strip outer RFC 2822 quotes from display names using the RFC2822_QUOTED_NAME
-    # pattern loaded from SpamDetector.gs — same normalization as getFrom() in GAS
+    # pattern loaded from the .gs source — same normalization as getFrom() in GAS
     from_field = RFC2822_QUOTED_NAME.sub(r'\1\2', from_raw)
 
     # Extract plain-text body for body-only pattern checks (e.g. crypto airdrop)
@@ -993,10 +993,10 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     """
     Run the detection logic against a single email's fields.
 
-    Mirrors the analyzeMessage() function in SpamDetector.gs. Collects signals
+    Mirrors the analyzeMessage() function in the .gs source. Collects signals
     from multiple pattern categories, then applies the 8-rule decision logic.
 
-    All patterns and constants used here are loaded from SpamDetector.gs at
+    All patterns and constants used here are loaded from the .gs source at
     import time — any change to the source is automatically reflected.
 
     The detection pipeline:
@@ -1060,13 +1060,13 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
-    # Concatenate subject + from for pattern matching (same as SpamDetector.gs)
+    # Concatenate subject + from for pattern matching (same as the .gs source)
     text_to_check = subject + ' ' + from_field
     from_lower = from_field.lower()
 
     # ── Signal: Blacklisted sender domain ──────────────────────────────────
     # Substring match against known spam mill domains (one match is enough).
-    # Use sender_address (email only, not display name) — mirrors SpamDetector.gs.
+    # Use sender_address (email only, not display name) — mirrors the .gs source.
     for domain in BLACKLISTED_DOMAINS:
         if _address_matches_domain(sender_address, domain):
             signals['blacklisted_sender'] = True
@@ -1109,7 +1109,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Cyrillic/Greek/fullwidth/math-alphanumeric characters hidden in body
     # anchors while the subject stays clean. Break after the first match: all
     # patterns detect the same technique, so counting them independently would
-    # over-inflate clickbait_count. Mirrors Signal 2d in SpamDetector.gs.
+    # over-inflate clickbait_count. Mirrors Signal 2d in the .gs source.
     #
     # This block was MISSING from the harness entirely (added with the v6.42.0
     # brand-CTA work). BODY_UNICODE_PATTERNS shipped in v6.39.0 and was applied
@@ -1203,7 +1203,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # ── Decision Logic (8 rules, evaluated in priority order) ──────────────
     #
     # The rules cascade from most-specific (Rule 1) to broadest (Rule 5).
-    # Only one rule can fire per email. This matches SpamDetector.gs exactly.
+    # Only one rule can fire per email. This matches the .gs source exactly.
     is_spam = False
     rule = ''
 
@@ -1765,7 +1765,7 @@ def run_performance_tests(all_emails):
 #
 # The problem this solves: everything above tests the PYTHON mirror of the
 # detection logic. Option B keeps the PATTERNS honest by parsing them out of
-# SpamDetector.gs, but the LOGIC is written twice, so a fix applied to the .gs
+# the .gs source, but the LOGIC is written twice, so a fix applied to the .gs
 # and not to the mirror passes every test in this file. That is not
 # hypothetical — it happened once, and was caught only because someone happened
 # to add a scam fixture.
@@ -1872,7 +1872,7 @@ def run_parity_tests():
     failures = []
 
     # ── Coverage: every JS signal must have a Python counterpart ───────────
-    # This is the drift guard for NEW signals. Adding one to SpamDetector.gs
+    # This is the drift guard for NEW signals. Adding one to the .gs source
     # without mirroring it here fails immediately, instead of the signal simply
     # never being exercised by the corpus.
     sample, _, _ = analyze_email('x', 'a@b.invalid', False)
@@ -1881,7 +1881,7 @@ def run_parity_tests():
         pk = _PARITY_KEY_OVERRIDES.get(jk, _camel_to_snake(jk))
         if pk not in sample:
             failures.append(
-                f'signal {jk!r} exists in SpamDetector.gs but the Python mirror '
+                f'signal {jk!r} exists in the .gs source but the Python mirror '
                 f'has no {pk!r} — mirror it in analyze_email(), or add an entry '
                 f'to _PARITY_KEY_OVERRIDES if it is named differently')
         else:
@@ -1936,7 +1936,7 @@ def run_parity_tests():
             print(f'   {f}')
         if len(failures) > 40:
             print(f'   ... and {len(failures) - 40} more')
-        print('\n   A mismatch means SpamDetector.gs and the Python mirror in this')
+        print('\n   A mismatch means the .gs source and the Python mirror in this')
         print('   file have diverged. The .gs is what ships — fix the mirror to')
         print('   match it, unless the .gs is the side that is wrong.')
         return False
@@ -2074,7 +2074,7 @@ def run_edge_case_tests():
     # ── URL host extraction: the bypass table ──────────────────────────────
     # Security-critical parsing. Each row is a real technique for making a
     # host look like one thing to a filter and another to a mail client. Keep
-    # in sync with the identical table in the Node test for SpamDetector.gs.
+    # in sync with the identical table in the Node test for the .gs source.
     for href, expected in [
         ('https://cptlbpolicy.com/',       'cptlbpolicy.com'),
         # userinfo: browsers resolve this to evil.com, so we must too
@@ -2340,7 +2340,7 @@ def main():
     print('=' * 80)
     api_errors = validate_api_methods()
     if api_errors:
-        print('❌ INVALID API METHODS FOUND IN SpamDetector.gs:')
+        print('❌ INVALID API METHODS FOUND IN the .gs source:')
         for err in api_errors:
             print(err)
         print()
@@ -2442,7 +2442,7 @@ def main():
     # Report parity, then edge case, results
     if not parity_passed:
         print('❌ JS/PYTHON PARITY: the Python mirror has diverged from '
-              'SpamDetector.gs')
+              'the .gs source')
         all_good = False
     else:
         print('✅ PARITY: Python mirror matches the shipped JavaScript')

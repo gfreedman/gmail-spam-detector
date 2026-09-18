@@ -2,7 +2,7 @@
  * Disposition tests — the only automated coverage of the code that
  * IRREVERSIBLY destroys mail.
  *
- * SpamDetector.gs is loaded into a `vm` context with GmailApp / Gmail /
+ * the .gs source is loaded into a `vm` context with GmailApp / Gmail /
  * PropertiesService / LockService / Utilities / Session stubbed, and every
  * side-effecting call is recorded. Assertions are made on that call log.
  *
@@ -165,7 +165,7 @@ function fakeThread(messages, sink) {
   const ops = [];
   // `sink` is optionally makeCtx's `calls`, so label operations and Gmail API
   // operations land in ONE ordered log. Without it the invariant at
-  // SpamDetector.gs "remove the label before deleting — a deleted thread
+  // the .gs source "remove the label before deleting — a deleted thread
   // cannot be relabelled" is unprovable, because the two op kinds lived in
   // separate arrays and any findIndex comparison between them was meaningless.
   const record = o => { ops.push(o); if (sink) sink.push(o); };
@@ -242,7 +242,7 @@ console.log('\n=== Rules 1-6 must still permanently delete ===');
 console.log('\n=== No Drive archive means NO permanent delete ===');
 {
   // The invariant that did not exist before v6.47.0. Four comments in
-  // SpamDetector.gs asserted "archived before deleting" while the Drive write
+  // the .gs source asserted "archived before deleting" while the Drive write
   // actually happened AFTER the batchDelete, so an interruption in between lost
   // the only copy. A destructive rule with no archive must now downgrade to a
   // hold, not delete.

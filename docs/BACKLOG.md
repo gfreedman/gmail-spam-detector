@@ -299,7 +299,57 @@ that backwards makes `clasp push --force` push nothing. See v6.63.0.
 
 **Still open from this item:** `Signals.gs` is 529 lines because
 `collectSignals()` is a single 503-line function. Splitting a function is a code
-change, not a file move, and was left alone.
+change, not a file move, and was left alone. See 2.3a.
+
+### 2.3a Decompose `collectSignals()` — REVIEWED AND DECLINED (v6.64.0)
+
+Proposed: `buildSignalContext()` + a `SIGNAL_DETECTORS` table + `runDetectors`.
+Reviewed three ways — correctness, architecture, and on-call ergonomics — and
+all three said no. The findings are worth more than the proposal was.
+
+**The plan was factually wrong.** There are **14** try/catch blocks writing
+**11** keys, not 11 writing 11. Signals 2, 2b, 2c and 2d all increment
+`clickbaitCount` *additively*, with 2d capped at 1. A `{key, detect}` table
+merged by assignment silently drops three of four — producing *lower* clickbait
+counts, i.e. missed spam, which the ham corpus cannot catch.
+
+**The proposed mitigation introduced a false positive.** Hoisting `isFreeMail`
+into the context as `FREE_MAIL_DOMAINS.some(hostMatchesDomain)` drops the
+`atIdx > 0` guard. A From header with no `@` — `Norton Billing <gmail.com>` —
+makes `substring(atIdx + 1)` return the whole string, so `isFreeMail` flips to
+true. That gates Rule 9 **and** `hasCorroboratingSignal()`, which authorises
+`deleteMessagePermanently()` on the Spam-folder path. Every suite stayed green.
+
+**Moving code across a `try` boundary changes disposition, in both directions.**
+A throw *inside* a signal guard costs one signal and still yields a verdict. A
+throw *outside* propagates to `analyzeMessage()`'s catch-all and the message is
+never judged. Hoisting anything out of a guard converts "one signal degrades"
+into "unjudged"; making the context lazy converts "unjudged, retried" into
+"judged on partial evidence, possibly deleted". Neither is a tidy-up.
+
+**PREREQUISITE, if this is ever revisited.** The 81-fixture parity suite tests
+JS against **Python**. A refactor needs JS against **JS-before** — a different
+proposition. Build a golden-master differential harness first: copy the current
+`Signals.gs` to a baseline, load both into one `vm`, and assert deep equality of
+the full returned object *including `_degraded`*, plus `makeVerdict` and
+`getRuleFromSignals`, over the corpus **and** generated boundary inputs (From
+forms with no `@`, leading `@`, trailing dot, over-length display names; empty
+and whitespace-only bodies; each `IMPERSONATION_SUBJECT_PATTERNS` template).
+It must stand green against the unmodified file and demonstrably fail when the
+file is perturbed. Only then is there a licence to move code.
+
+**Why the corpus cannot stand in for that.** Of 81 fixtures:
+`serviceImpersonation` fires in **0**, `_degraded` in **0**, `callbackPhishing`
+in 1, `emptySubjectWithAttachment` in 1; Rules 3 and 6 never fire; and 51 of 59
+convictions are Rule 1, a domain-list lookup the refactor barely touches. Two
+ham fixtures are one boolean flip from permanent deletion.
+
+**The smaller version, if appetite returns:** collapse the 14 duplicated
+try/catch copies into one local closure, leaving every block inline and in file
+order with its incident comments attached. No table, no context object, no
+`isFreeMail` hoist. That captures the duplication win — which is the only real
+one — without adding 14 globals to a 5,500-line shared scope that has no IDE
+navigation.
 
 ### 2.4 `LockService` only guards `processInbox()`
 

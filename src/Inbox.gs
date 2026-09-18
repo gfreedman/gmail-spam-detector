@@ -1,4 +1,16 @@
-
+/**
+ * Inbox.gs — Run entry points: the scheduled pass and the manual bulk pass.
+ *
+ * processInbox() is what the 10-minute trigger calls — it holds the script lock,
+ * the per-run counters, and the audit/heartbeat calls in its finally block.
+ * cleanseInbox() is the manual, higher-volume variant run from the editor.
+ *
+ * Neither decides anything about a message; they drive Thread.gs.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Core Processing Pipeline

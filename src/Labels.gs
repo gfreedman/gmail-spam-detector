@@ -1,4 +1,14 @@
-
+/**
+ * Labels.gs — Gmail label creation, and the config sanity check.
+ *
+ * Two small unrelated utilities that sit next to each other. getOrCreateLabel()
+ * is used by every quarantine and review path; validateConfig() is a startup
+ * check.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Label Management

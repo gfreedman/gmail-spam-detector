@@ -1,3 +1,21 @@
+/**
+ * Flush.gs — Buffered log flush, and the rule-name cascade.
+ *
+ * getRuleFromSignals() is here for historical reasons and is easy to miss: it is
+ * a SECOND implementation of makeVerdict()'s nine rules, returning the rule NAME
+ * rather than a boolean — and it is what disposeDetectedMessage() reads to
+ * decide whether a message is destroyed or quarantined.
+ *
+ * Rule order is the contract between the two. An exhaustive 5,120-combination
+ * test in tests/test_disposition.js now enforces it; before that it was a
+ * comment.
+ *
+ * flushSpamLog() drains the buffered Sheets rows at end of run.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 function flushSpamLog()
 {

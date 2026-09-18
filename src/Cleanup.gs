@@ -1,3 +1,17 @@
+/**
+ * Cleanup.gs — Label plumbing and the sweep for mail this detector condemned.
+ *
+ * destroySpam() is the safety net for markAsSpam()'s immediate delete failing;
+ * it is scoped by CONFIG.purgeLabel so it can never touch Gmail's own spam.
+ *
+ * hasCorroboratingSignal() lives here and is load-bearing: it is the gate on
+ * deleteMessagePermanently() for Spam-folder mail, where ONE signal is enough
+ * because Gmail has already judged the message.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 /**
  * Refuse a SpamMissed request: swap the label for the review label and say why.

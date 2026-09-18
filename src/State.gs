@@ -1,4 +1,15 @@
-
+/**
+ * State.gs — Per-execution module state, and the SpamMissed label name.
+ *
+ * Apps Script re-initializes module-level variables on every trigger invocation,
+ * so these reset naturally between runs — except where processInbox() clears
+ * them explicitly, which it does for the audit counters because a skipped
+ * invocation must not clear a running one's tally.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Spam Intelligence Logging

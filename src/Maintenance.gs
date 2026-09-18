@@ -1,3 +1,17 @@
+/**
+ * Maintenance.gs — Periodic housekeeping, and the false-negative recatch.
+ *
+ * runPeriodicMaintenance() gates the expensive passes behind a timer, EXCEPT on
+ * a version change: a fix deploy exists to catch something the previous code
+ * missed, so it forces an immediate cycle rather than waiting.
+ *
+ * recheckRecentSpamChecked() is what makes a detection fix clean up after
+ * itself unattended — recent mail is re-judged against the new patterns.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 /**
  * One-time setup for spam intelligence logging.

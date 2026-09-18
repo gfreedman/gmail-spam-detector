@@ -1,4 +1,14 @@
-
+/**
+ * Setup.gs — First-run setup: Script Properties and the log spreadsheet.
+ *
+ * Run setup() once from the editor. Script Properties now hold ONLY user-added
+ * custom domains — the defaults in Config.gs are merged at runtime, so a source
+ * edit is live as soon as clasp pushes, with no refresh step.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Setup and Initialization

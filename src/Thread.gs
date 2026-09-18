@@ -1,3 +1,17 @@
+/**
+ * Thread.gs — Per-thread and per-message processing, and the inbox search query.
+ *
+ * processThread() is the bridge between a run (Inbox.gs) and a verdict
+ * (Verdict.gs): it walks the messages, calls analyzeMessage(), and hands the
+ * spam ones to Disposition.gs.
+ *
+ * isBulkEmail() sits here rather than in Signals.gs for historical reasons —
+ * it is a detection helper, called only by Signal 1a.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 /**
  * Process a single Gmail thread and return detection statistics.

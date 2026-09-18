@@ -1,4 +1,17 @@
-
+/**
+ * Debug.gs — Manual diagnostic: why was this message flagged?
+ *
+ * Run debugWhyFlagged('search query') from the editor. Prints every signal by
+ * ITERATING the returned object — the list was hand-maintained twice and drifted
+ * twice, most recently omitting callbackPhishing so Rule 9 verdicts printed
+ * SPAM with every listed signal false.
+ *
+ * Not on the delete path; this tool only reads.
+ *
+ * Apps Script concatenates every .gs file in sources.json into ONE global
+ * scope. These are not modules: nothing is imported, and every function here
+ * is a global visible to all other files.
+ */
 
 // =============================================================================
 // Debug Tools

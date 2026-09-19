@@ -14,20 +14,6 @@
  */
 
 /**
- * Capture a spam event into the in-memory log buffer.
- *
- * Must be called BEFORE markAsSpam() — getRawContent() is unavailable after
- * the message is permanently deleted via batchDelete(). The raw MIME content
- * is held in memory until flushSpamLog() writes it to Drive at end of run.
- *
- * Non-blocking: any error is caught and logged; the caller's deletion flow
- * is unaffected if this function fails.
- *
- * @param {GmailMessage} message - The spam message to capture.
- * @param {Object|null}  signals - Signal object from collectSignals(), or null.
- * @param {string}       logType - 'SPAM_DETECTED', 'PHISHING_DETECTED', or 'FALSE_NEGATIVE'.
- */
-/**
  * Make an attacker-controlled value safe to hand to Range.setValues().
  *
  * setValues() EVALUATES formulas — this code relies on that for the
@@ -62,6 +48,31 @@ function escapeSheetCell(value)
   return /^[=+\-@\t\r]/.test(text) ? "'" + text : text;
 }
 
+/**
+ * Capture a spam event: write the EML to Drive now, buffer the Sheets row.
+ *
+ * MUST be called BEFORE the message is deleted — getRawContent() is unavailable
+ * afterwards — and the Drive write happens synchronously here rather than at
+ * flush time, because the caller deletes the message next. An earlier version
+ * only buffered, which made the real order "delete, then archive" and lost the
+ * copy entirely if the execution ended in between.
+ *
+ * The return value is the invariant disposeDetectedMessage() enforces: no
+ * archive, no permanent delete.
+ *
+ * @param {GmailMessage} message - The message being logged.
+ * @param {Object|null} signals - From collectSignals(); null when the row is
+ *   not the result of our own detection (e.g. GMAIL_SPAM_EXPIRED).
+ * @param {string} logType - Row type, e.g. 'SPAM_DETECTED', 'FALSE_NEGATIVE',
+ *   'GMAIL_SPAM_CONFIRMED'.
+ * @param {{rawContent?: string, skipArchive?: boolean}} [options]
+ *   rawContent: used instead of fetching, when the caller already has it.
+ *   skipArchive: log the row but write no Drive copy — for mail being KEPT,
+ *   which also skips the getRawContent() read entirely.
+ * @return {boolean} true when the message is safe to delete: either archived
+ *   to Drive, or deliberately not archived via skipArchive. false means the
+ *   archive failed and the caller must not delete.
+ */
 function accumulateLogEntry(message, signals, logType, options)
 {
   // rawContent: used when the caller supplies it, so the message is not fetched
@@ -230,16 +241,6 @@ function archiveRawEml(messageId, rawContent, logType)
 }
 
 /**
- * Write all pending log entries to Drive (EML files) and Sheets (rows).
- *
- * Called once at the end of processInbox(), after all deletions are complete.
- * Batches all Sheets rows into a single setValues() call. Drive writes are
- * sequential (one file per entry) since Drive has no batch creation API.
- *
- * Non-blocking: errors are caught and logged; spam detection is unaffected.
- * The finally block always clears _pendingLogEntries to prevent memory growth.
- */
-/**
  * Write last-run health to a 'Health' tab: ONE row, overwritten each time.
  *
  * console.error/console.log were supposed to carry this, and they do not reach
@@ -263,6 +264,9 @@ function archiveRawEml(messageId, rawContent, logType)
  * Throttled: a quiet run rewrites at most every HEALTH_INTERVAL_MS, so the
  * common case costs no Sheets call at all. Anything eventful (work done, an
  * error, an audit finding) always writes immediately.
+ * @param {{processed: number, spam: number, errors: number,
+ *          auditFindings: number, runError: (Error|string|null)}} stats
+ *   Counters for the run being reported. runError set means the run threw.
  */
 function writeHealthRow(stats)
 {
@@ -364,6 +368,9 @@ function writeHealthRow(stats)
  *
  * ONE file, renamed in place — the id is kept in Script Properties so this
  * never accumulates copies. Its content stays empty; only the name matters.
+ * @param {Properties} props - Script Properties, passed in so this shares the
+ *   caller's handle rather than re-fetching it.
+ * @param {string} status - One of 'OK', 'ERRORS', 'AUDIT_FINDINGS', 'THREW'.
  */
 function updateHealthMarker(props, status)
 {
@@ -443,6 +450,8 @@ function queueAuditRow(logType, detail)
  *
  * Deliberately non-throwing: an audit that breaks the run it audits is worse
  * than the bug it reports.
+ * @return {number} Count of invariant violations found. Non-zero sets the run
+ *   status to AUDIT_FINDINGS on the Health tab.
  */
 function auditRunIntegrity()
 {

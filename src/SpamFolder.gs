@@ -15,23 +15,6 @@
  */
 
 /**
- * Safety-net cleanup of spam THIS DETECTOR condemned.
- *
- * Primary deletion happens in markAsSpam() by known message ID. This function
- * exists for one edge case:
- *   - Messages where the immediate delete in markAsSpam() failed
- *
- * Scoped by the CONFIG.purgeLabel tag that markAsSpam() applies before it
- * deletes. It deliberately does NOT clear pre-existing or Gmail-classified
- * spam any more: doing so permanently destroyed mail this script never
- * evaluated, unarchived and unlogged, within minutes of Gmail misfiling it.
- * Gmail purges its own Spam at 30 days, so the folder still drains on its own.
- *
- * Uses batch deletion in pages of 100 with rate limiting between batches.
- * Caps at MAX_ITERATIONS (10 batches = ~1000 messages) to prevent runaway
- * loops if something goes wrong with the API.
- */
-/**
  * Re-judge mail GMAIL classified as spam, deleting only after a grace period.
  *
  * Gmail intercepts this mail before it reaches the inbox, so the detector's own
@@ -52,6 +35,9 @@
  *
  * Every branch either deletes the message or marks the thread reviewed, so no
  * message is ever re-fetched cycle after cycle. See markReviewed().
+ * @param {boolean} forceFullReview - Drop the "already reviewed" exclusion and
+ *   re-judge the whole folder. Set on a version change, so an improved rule is
+ *   applied to spam the previous logic already looked at and dismissed.
  */
 function reviewGmailSpam(forceFullReview)
 {

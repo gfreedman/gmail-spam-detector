@@ -19,23 +19,6 @@
 // =============================================================================
 
 /**
- * Mark a message as spam, report it to Gmail, and permanently delete it.
- *
- * Two-step process:
- *   1. modify() — adds SPAM label, removes INBOX label (trains Gmail's filters)
- *   2. batchDelete() — permanently deletes by known message ID (no query needed)
- *
- * Falls back to GmailApp.moveToSpam() if the Advanced Gmail Service is
- * unavailable (e.g., not enabled in the project). Has a second fallback
- * layer if the primary API call fails entirely.
- *
- * Note: batchDelete() is used even for single messages because the Advanced
- * Gmail Service does NOT expose a single-message delete() method.
- *
- * @param {GmailMessage} message - The spam message to report and delete.
- * @param {GmailThread} thread  - The thread containing the message (for fallback).
- */
-/**
  * Dispose of a message that has been judged spam, choosing destroy vs
  * quarantine based on which rule fired.
  *
@@ -376,6 +359,26 @@ function getLabelId(name)
   return null;
 }
 
+/**
+ * Mark a message as spam, report it to Gmail, and permanently delete it.
+ *
+ * Two-step process:
+ *   1. modify() — adds SPAM label, removes INBOX label (trains Gmail's filters)
+ *   2. batchDelete() — permanently deletes by known message ID (no query needed)
+ *
+ * Falls back to GmailApp.moveToSpam() if the Advanced Gmail Service is
+ * unavailable (e.g., not enabled in the project). Has a second fallback
+ * layer if the primary API call fails entirely.
+ *
+ * Note: batchDelete() is used even for single messages because the Advanced
+ * Gmail Service does NOT expose a single-message delete() method.
+ *
+ * @param {GmailMessage} message - The spam message to report and delete.
+ * @param {GmailThread} thread  - The thread containing the message (for fallback).
+ *
+ * @return {void} Failures are logged and swallowed; destroySpam() is the
+ *   safety net for an immediate delete that did not land.
+ */
 function markAsSpam(message, thread)
 {
   const subject = sanitizeForLog(message.getSubject());

@@ -221,6 +221,26 @@ function deleteMessagePermanently(message, thread)
   }
 }
 
+/**
+ * Safety-net cleanup of spam THIS DETECTOR condemned.
+ *
+ * Primary deletion happens in markAsSpam() by known message ID. This function
+ * exists for one edge case:
+ *   - Messages where the immediate delete in markAsSpam() failed
+ *
+ * Scoped by the CONFIG.purgeLabel tag that markAsSpam() applies before it
+ * deletes. It deliberately does NOT clear pre-existing or Gmail-classified
+ * spam any more: doing so permanently destroyed mail this script never
+ * evaluated, unarchived and unlogged, within minutes of Gmail misfiling it.
+ * Gmail purges its own Spam at 30 days, so the folder still drains on its own.
+ *
+ * Uses batch deletion in pages of 100 with rate limiting between batches.
+ * Caps at MAX_ITERATIONS (10 batches = ~1000 messages) to prevent runaway
+ * loops if something goes wrong with the API.
+ *
+ * @return {void} Errors are logged, never thrown — this is a safety net and
+ *   must not be able to abort the run it is cleaning up after.
+ */
 function destroySpam()
 {
   // Guard: Gmail Advanced Service must be enabled in the project

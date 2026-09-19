@@ -221,6 +221,7 @@ function runPeriodicMaintenance()
  *
  * collectSignals() is run on each false negative so the Sheets row captures WHY
  * the script missed it. The user fills in "False Negative Notes" manually later.
+ * @return {number} How many messages were re-judged as spam and actioned.
  */
 function checkFalseNegatives()
 {

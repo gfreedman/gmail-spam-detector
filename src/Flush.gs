@@ -17,6 +17,20 @@
  * is a global visible to all other files.
  */
 
+/**
+ * Write all pending log entries to Drive (EML files) and Sheets (rows).
+ *
+ * Called once at the end of processInbox(), after all deletions are complete.
+ * Batches all Sheets rows into a single setValues() call. Drive writes are
+ * sequential (one file per entry) since Drive has no batch creation API.
+ *
+ * Non-blocking: errors are caught and logged; spam detection is unaffected.
+ * The finally block always clears _pendingLogEntries to prevent memory growth.
+ *
+ * @return {void} Errors are logged, never thrown: a failed flush must not
+ *   abort the run, and the Drive copies were already written synchronously by
+ *   accumulateLogEntry().
+ */
 function flushSpamLog()
 {
   if (_pendingLogEntries.length === 0) return;

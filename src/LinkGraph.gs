@@ -167,6 +167,9 @@ function addressMatchesDomain(address, domain)
  *
  * @param {string} host - Lowercase host from extractUrlHost().
  * @return {boolean}
+ * @param {string} host - Host the link actually points at, lowercased.
+ * @param {string} senderHost - Host of the sender address, lowercased. A
+ *   wrapper on the sender's OWN domain is not a redirect worth flagging.
  */
 function isLinkWrapperHost(host, senderHost)
 {
@@ -221,6 +224,10 @@ function isLinkWrapperHost(host, senderHost)
  * @param {string} html - Decoded HTML body from message.getBody().
  * @return {Array<Object>} At most LIMITS.maxAnchorsScanned objects with
  *                         `href` and `text` string properties.
+ * @param {string} html - The document being scanned.
+ * @param {number} startIdx - Index of the '<' that opens the tag.
+ * @param {number} limit - Hard stop; scanning never runs past it, so a tag that
+ *   is never closed costs bounded work rather than the rest of the document.
  */
 function findTagEnd(html, startIdx, limit)
 {
@@ -291,6 +298,23 @@ function extractAttributeValues(fragment, namePattern)
   return out;
 }
 
+/**
+ * Pull every anchor in the HTML out as a {href, text} pair.
+ *
+ * Hand-written rather than regex-per-anchor because the input is attacker
+ * controlled: a crafted body can make a naive /<a[^>]*>(.*?)<\/a>/g backtrack
+ * quadratically. This walks the string once, bounded twice over — by
+ * LIMITS.maxAnchorsScanned on the number of anchors and by
+ * LIMITS.maxAnchorTagChars / maxAnchorTextChars on each one — so a hostile
+ * body costs a predictable amount of work rather than a timeout.
+ *
+ * That bounding is why hasBrandMismatchedCta() can safely be handed the
+ * UNTRUNCATED body: the cost ceiling lives here, not in the caller.
+ *
+ * @param {string} html - Raw message HTML. May be empty, malformed, or hostile.
+ * @return {Array<{href: string, text: string}>} Anchors in document order,
+ *   href and text both entity-decoded. Empty when there are none.
+ */
 function extractAnchors(html)
 {
   const out = [];

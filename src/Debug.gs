@@ -28,6 +28,8 @@
  *   debugWhyFlagged('subject:your order')
  *
  * @param {string} [searchTerm='from:linkedin'] - Gmail search query to find the email.
+ * @param {string} searchTerm - Gmail search query selecting the message to
+ *   explain, e.g. 'subject:invoice'. Only the first match is examined.
  */
 function debugWhyFlagged(searchTerm)
 {

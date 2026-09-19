@@ -427,7 +427,14 @@ function queueAuditRow(logType, detail)
 /**
  * Verify, in production, that the detector actually did what it believes it did.
  *
- * Runs at the end of every processInbox(). Costs no Gmail API calls — it reads
+ * Runs as the last statement of processInbox()'s TRY block, so it covers every
+ * run that completes — a run that throws earlier skips it. That is deliberate:
+ * the invariants here compare what the run recorded against what it did, and
+ * both tallies are incomplete if the run aborted partway. Contrast
+ * logRunHeartbeat(), which is in `finally` precisely so a failed run still
+ * reports.
+ *
+ * Costs no Gmail API calls — it reads
  * only tallies already accumulated during the run.
  *
  * Two invariants, both chosen because their violation has actually shipped here

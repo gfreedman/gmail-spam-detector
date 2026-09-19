@@ -91,10 +91,18 @@ function collectSignals(message)
   // messages that have no text/plain part.
   const plainBody = message.getPlainBody();
 
-  // getBody() returns the decoded, charset-normalized HTML. It is NOT an extra
-  // API round trip: shouldProcessMessage() already calls it on every message
-  // for the size check, so the GmailMessage has it cached. Only
-  // getRawContent() costs a separate fetch (format=raw vs format=full).
+  // getBody() returns the decoded, charset-normalized HTML.
+  //
+  // This is free ONLY on the inbox path. shouldProcessMessage() calls getBody()
+  // for its size check, so the GmailMessage has it cached — but that guard is
+  // called from exactly one place, Thread.gs, and four other paths reach
+  // collectSignals() without it: cleanseInbox(), checkFalseNegatives(),
+  // recheckRecentSpamChecked() and reviewGmailSpam(). On those, this IS an
+  // extra round trip, and CONFIG.maxEmailSizeBytes is not enforced either — so
+  // the Spam-folder review will happily pull a 25MB message.
+  //
+  // getRawContent() costs a separate fetch (format=raw vs format=full) on
+  // every path, guarded or not.
   const rawHtml = message.getBody();
   const html = sanitizeInput(rawHtml);
 

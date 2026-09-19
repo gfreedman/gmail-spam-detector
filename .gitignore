@@ -32,6 +32,11 @@ Thumbs.db
 # an excluded directory, so this has to exclude the CONTENTS, not the dir.
 .claude/*
 !.claude/skills/
+# ...but ONLY the root one. '.claude/*' has a middle separator, so git anchors
+# it to the repo root — unlike the bare '.claude/' it replaced, which matched at
+# any depth. A stray tests/spam_examples/.claude/ was left visible by that, and
+# was only hidden by a machine-local global ignore.
+*/**/.claude/
 
 # Clasp credentials (contains script ID)
 .clasp.json

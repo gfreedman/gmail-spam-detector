@@ -1274,7 +1274,7 @@ console.log('\n=== checkFalseNegatives: unarchivable is refused, once, visibly =
   const before = ctx.calls.filter(c => c.op === 'batchDelete').length;
   ctx.GmailApp.search = () => [];   // label swapped, so the search no longer matches
   ctx.checkFalseNegatives();
-  check('a second cycle does no further work', 
+  check('a second cycle does no further work',
         ctx.calls.filter(c => c.op === 'batchDelete').length === before);
 }
 

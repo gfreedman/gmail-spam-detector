@@ -111,15 +111,17 @@ The script now runs every 10 minutes, automatically detecting spam, reporting it
 
 Disposition depends on which rule fired, and the difference matters.
 
-**Rules 1–6 — permanently deleted:**
+**Rules 1–6 and 8 — permanently deleted:**
 1. **Archive first** — the raw message is written to Drive (`Spam Intelligence/Detected/`) *before* anything is destroyed. A message that can't be archived is held for review instead of deleted.
 2. **Report as spam** — trains Gmail's own filters
 3. **Delete forever** — `batchDelete` bypasses Trash, so the Drive copy is the only copy
 
-**Rule 7 — quarantined, never deleted:**
-Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely. Rule 7 reads the link graph rather than sender reputation, and a legitimate sender can reproduce that pattern by accident, so permanent deletion is the wrong default.
+**Rules 7 and 9 — quarantined, never deleted:**
+Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely. Rule 7 reads the link graph rather than sender reputation, and Rule 9 reads a callback invoice's anatomy; a legitimate sender can reproduce either pattern by accident, so permanent deletion is the wrong default.
 
 **Mail Gmail filed as spam is deleted only after a grace period.** Gmail intercepts that mail before your inbox, so the detector's rules never judged it — and Gmail's own false-positive classes (first contact from a new correspondent, 2FA from a small service, an invoice on a cheap relay) are exactly what no whitelist can enumerate in advance. So `reviewGmailSpam()` lets it age `CONFIG.gmailSpamGraceDays` (default **7**) first, which is your recovery window: the folder is visible, searchable, and one "Not spam" click from undoing Gmail's mistake. After that Gmail's verdict stands and the message is archived, logged and deleted. Whitelisted senders are never deleted at any age, and nothing is ever moved back to your inbox.
+
+The exception is mail our own signals **corroborate**: one strong signal (a blacklisted sender, service impersonation, a brand-mismatched link, a machine-generated free-mail address, a callback invoice, an empty subject with an attachment) or two weak ones (clickbait, fear, marketing format, a suspicious From name). That is deleted on the next run instead of waiting. A single weak hit is not enough — that is vocabulary, and vocabulary is what Gmail's false positives share with spam. Mail that is *not* corroborated is copied to Drive (`Spam Intelligence/Spam Folder/<messageId>.eml`) so a miss can be diagnosed; those copies expire after the grace period plus a week, and none are written if that folder is shared.
 
 Mail already reviewed is normally skipped, so the folder is not re-fetched every cycle. But "reviewed" is a fact about *the logic that did the reviewing*, not about the message — so a `SCRIPT_VERSION` change re-reviews the whole folder once, and an improved rule gets applied to spam the previous logic dismissed. (It did not, before v6.54.0: six messages sat through two releases meant to remove them.)
 
@@ -128,7 +130,7 @@ Mail already reviewed is normally skipped, so the folder is not re-fetched every
 | Label | Meaning | Action needed |
 |---|---|---|
 | `SpamChecked` | Evaluated; don't re-process | None — bookkeeping |
-| `Phishing` | Rule 7 quarantine, archived not deleted | Review occasionally |
+| `Phishing` | Rule 7 / Rule 9 quarantine, archived not deleted | Review occasionally |
 | `SuspectedSpam` | Flagged but **not** deleted — cleanse mode, a message too large to evaluate, one that couldn't be archived, or mail a newly deployed pattern re-flagged after you'd already kept it | Review; this is the "we weren't sure" pile |
 | `SpamDetectorPurge` | Internal marker so the sweep only touches our own verdicts | None — machinery |
 | `SpamMissed` | **You** apply this to spam that got through; it's logged and deleted on the next run — **unless the sender is whitelisted or the Drive archive is unreachable**, in which case it's refused and moved to `SuspectedSpam` | Apply it manually |
@@ -212,6 +214,31 @@ Bank Account, Government Hiding, Blood Thinner
 - **Quarantines rather than deletes** — archived out of the inbox and labelled
   `Phishing`, never moved to Spam and never deleted, so it stays in All Mail
 
+**9. Machine-Generated Free-Mail Sender (Technical Signal)**
+- A consumer free-mail domain with a local part no human would choose
+  (`raju47326yu@gmail.com`). Never decisive alone — real people have digits in
+  their address — but it corroborates Gmail's own spam verdict
+
+**10. Callback-Phishing Anatomy (Content Signal)**
+- A free-mail sender, a brand it provably is not, billing language and a phone
+  number — all four. The payload is a number to call, so there is no link to
+  inspect. Quarantines rather than deletes
+
+**11. Forged Sender Headers (Technical Signal)**
+- A Date header that is not a date (an unfilled template variable), or a
+  sender domain with random capitalisation (`ktKCtzuMO.us`) — tells from a
+  campaign's own tooling that survive subject and body rotation
+
+**12. Your Address Used As Your Name (Content Signal)**
+- The subject contains the recipient's own address local part
+  ("geoff.c.freedman, Claim Your Free…") — a list that has only your address
+
+**13. Survey-Scam Disclaimer (Content Signal)**
+- A footer disclaiming the brand the email impersonates ("not affiliated with
+  MyChart … makes no claim")
+
+Signals 11–13 add to the clickbait count, so they reach deletion through Rule 4.
+
 ### Decision Rules
 
 **Conservative approach - requires multiple signals:**
@@ -239,9 +266,9 @@ if (serviceImpersonation) { return SPAM; }
 
 // Cleanup boundary: destroySpam() sweeps ONLY messages this detector
 // condemned (tagged by markAsSpam() before it deletes). Mail Gmail's own
-// classifier filed is left alone and purged by Gmail at 30 days, so Gmail's
-// false positives stay recoverable. Gmail purges its own Spam at 30 days,
-// manually if you want it cleared sooner.
+// classifier filed is handled separately by reviewGmailSpam() — see
+// "What Happens To Detected Mail" — so Gmail's false positives keep their
+// grace period.
 
 // RULE 7: CTA names a document brand the destination does not control → phishing
 // (no bulk gate, same reasoning; trackers and aligned hosts already exempted)
@@ -249,6 +276,13 @@ if (serviceImpersonation) { return SPAM; }
 // Spam and never deleted, because it is the one rule with an irreducible
 // false-positive class. Rules 1-6 delete permanently.
 if (brandMismatchedCta) { return SPAM; }
+
+// RULE 8: Machine-generated free-mail sender + 2+ spam behaviors → spam
+if (freeMailRandomLocal && spamBehaviorCount >= 2) { return SPAM; }
+
+// RULE 9: Free-mail sender invoicing as a brand it does not control, with a
+// phone number as the payload → callback phishing. QUARANTINES, like Rule 7.
+if (callbackPhishing) { return SPAM; }
 
 return NOT_SPAM;
 ```
@@ -356,16 +390,22 @@ addToWhitelist('domain.com');
 │   └── appsscript.json          # Apps Script manifest (scopes, runtime)
 ├── README.md
 ├── CHANGELOG.md                 # Release history (was the .gs header comment)
+├── CLAUDE.md                    # Working rules for AI-assisted changes
+├── .claude/skills/deploy-change/  # Verification procedure for deploy-path changes
 ├── LICENSE
 ├── docs/
 │   ├── index.html               # Published GitHub Pages site
 │   ├── BACKLOG.md               # Deferred work, with why-it-can-wait rationale
+│   ├── SPAM_LOGGING_PLAN.md     # Design record for the Drive/Sheets log
 │   └── EXPORTING_EMAILS.md      # How to export .eml files from Gmail
 ├── scripts/
+│   ├── sources.js / sources.py  # The one reader of sources.json (Node / Python)
 │   ├── patch_version.js         # Stamps @version + SCRIPT_VERSION at deploy
+│   ├── prod_health.py           # Is prod running, and on which version?
 │   └── validate.py              # Repo consistency checks (runs in CI)
 ├── tests/
 │   ├── test_spam_detector.py    # Detection corpus + edge cases (Python)
+│   ├── parity_signals.js        # Bridge: runs the shipped JS for the parity phase
 │   ├── test_disposition.js      # Quarantine-vs-delete routing (Node)
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
@@ -426,7 +466,7 @@ See **[docs/EXPORTING_EMAILS.md](docs/EXPORTING_EMAILS.md)** for step-by-step in
 ## 📈 Future Enhancements
 
 - Detect new clickbait evolution
-- Machine learning (when dataset > 1000 examples)
+- An LLM second opinion on ambiguous mail — quarantine-only, never delete — under evaluation
 - Multi-platform support (Outlook, Yahoo)
 
 ## 🤝 Contributing

@@ -910,6 +910,21 @@
         <div class="card-body">Fires only on all four of: a free-mail sender, a named brand it provably is not (Norton, McAfee, PayPal, Geek Squad&hellip;), billing language, and a phone number. Four conditions because no single one is rare &mdash; real people invoice from Gmail, and real invoices carry phone numbers. It is the combination with an impersonated brand that has no innocent reading.</div>
       </div>
       <div class="card">
+        <span class="card-icon">🧾</span>
+        <div class="card-title">Forged sender headers</div>
+        <div class="card-body">Two tells from a campaign's own tooling: a Date header that is not a date (<code>_smtpDate . 646048175</code> &mdash; an unfilled template variable), or a sender domain with random capitalisation (<code>ktKCtzuMO.us</code>). CamelCase brands are spared: real words always contain a lowercase run of four or more letters; random case never does.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">📛</span>
+        <div class="card-title">Your address as your name</div>
+        <div class="card-body">"geoff.c.freedman, Claim Your Free Medicare Kit." A list that holds only your address greets you with its local part; anyone who knows you uses your name. Matched against the recipient's own address from the To: header, never a generic pattern &mdash; so "Node.js, Deno and Bun" does not trip it.</div>
+      </div>
+      <div class="card">
+        <span class="card-icon">🎭</span>
+        <div class="card-title">Survey-scam disclaimer</div>
+        <div class="card-body">Reward-survey scams impersonate a brand, then disclaim it in the footer for legal cover: "not affiliated with MyChart &hellip; makes no claim." A real brand never disclaims itself, so the disclaimer is the fingerprint, and it survives the sender and subject rotation the campaign relies on.</div>
+      </div>
+      <div class="card">
         <span class="card-icon">🔍</span>
         <div class="card-title">Suspicious From display name</div>
         <div class="card-body">Flags display names longer than 50 characters (keyword stuffing) or containing bullet separators (•). Legitimate senders use plain names. Spam mills stuff headlines into the From field: "Breaking • Banks Closing • Act Now".</div>

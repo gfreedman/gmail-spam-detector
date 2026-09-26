@@ -19,18 +19,21 @@
  * Execution flow:
  *   1. processInbox() — scan inbox, analyze each email, flag spam
  *   2. markAsSpam()   — report to Gmail (trains filters) + immediately delete by ID
- *      quarantineAsPhishing() — Rule 7 only: report + label, NO delete
+ *      quarantineAsPhishing() — Rules 7 and 9: report + label, NO delete
  *   3. destroySpam()  — safety-net sweep of this detector's own verdicts
- *   5. auditRunIntegrity() — verifies the run did what it believes it did;
- *      writes AUDIT_* rows to the Sheet when an invariant is violated
- *   4. reviewGmailSpam() — deletes Gmail-classified spam after a grace period
- *      (CONFIG.gmailSpamGraceDays); whitelisted senders are never deleted.
+ *   4. reviewGmailSpam() — deletes Gmail-classified spam at once when a strong
+ *      signal (or two weak ones) corroborates it, otherwise after a grace
+ *      period (CONFIG.gmailSpamGraceDays); whitelisted senders are never
+ *      deleted. Uncorroborated mail is copied to Drive so it can be read.
  *      A version change re-reviews the whole folder, so an improved rule is
  *      applied to spam the previous logic already dismissed.
+ *   5. auditRunIntegrity() — verifies the run did what it believes it did;
+ *      writes AUDIT_* rows to the Sheet when an invariant is violated
  *   6. writeSpamFolderSnapshot() — publishes the current Spam folder, and what
  *      this detector intends to do with each message, to the "Spam Folder" tab.
  *      The folder is invisible to API clients (SPAM is excluded from search by
  *      default), so this script is the only thing that can report it.
+ *      sweepSpamFolderCopies() then expires old Drive copies.
  *
  * Decision logic (9 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam

@@ -1,12 +1,15 @@
 # =============================================================================
 # CI/CD Pipeline — Gmail Spam Detector
 #
-# Four-stage pipeline: Test → Deploy → Validate → Tag
-#   1. test:     Lint JS syntax, run Python detection tests, validate README stats
-#   2. deploy:   Push the .gs sources in sources.json to Apps Script via clasp
-#   3. validate: Read deployed script back via Apps Script REST API and confirm
-#                the expected @version tag is present in the live source
-#   4. tag:      Auto-create git tag if commit message contains a version number
+# Five jobs: Test → Deploy → Validate → (Verify-prod ‖ Tag)
+#   1. test:        Lint JS syntax, run Python detection tests, validate README stats
+#   2. deploy:      Push the .gs sources in sources.json to Apps Script via clasp
+#   3. validate:    Read deployed script back via Apps Script REST API and confirm
+#                   the expected @version tag is present in the live source
+#   4. verify-prod: Poll the prod health marker until a run on the new version
+#                   reports healthy — validate proves the code is LIVE, this
+#                   proves it still RUNS
+#   5. tag:         Auto-create git tag if commit message contains a version number
 #
 # Each stage requires the previous to pass (needs:). If tests fail, nothing
 # deploys. If deploy or validation fails, no release is created.

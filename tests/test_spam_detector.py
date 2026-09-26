@@ -1030,7 +1030,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     Run the detection logic against a single email's fields.
 
     Mirrors the analyzeMessage() function in the .gs source. Collects signals
-    from multiple pattern categories, then applies the 8-rule decision logic.
+    from multiple pattern categories, then applies the 9-rule decision logic.
 
     All patterns and constants used here are loaded from the .gs source at
     import time — any change to the source is automatically reflected.
@@ -1039,11 +1039,14 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         1. Check sender against blacklisted domains
         2. Inspect From display name for suspicious formatting
         3. Count clickbait pattern matches in subject + from
-        4. Check body for high-confidence crypto scam terms (airdrop, wallet drainer)
+        4. Add body patterns (crypto, fear, survey-scam disclaimer, Unicode) and
+           the header tells (forged Date/random-case domain, address-as-name)
+           to the clickbait count
         5. Check for fear-mongering language
         6. Check for marketing sender format
-        7. Check for empty subject + attachment (payload delivery scam)
-        8. Apply 7-rule decision logic (rules evaluated in priority order)
+        7. Check for empty subject + attachment, service impersonation, the
+           link graph, the free-mail sender shape and callback phishing
+        8. Apply the 9-rule decision logic (rules evaluated in priority order)
 
     Args:
         subject:        Decoded email subject line.
@@ -1052,6 +1055,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         body:           Plain-text body for body-only pattern checks.
         has_attachment: Whether the message has one or more attachments.
         html:           Raw HTML body, for the link-graph (brand-CTA) signal.
+        raw:            Full RFC 822 text, for the header tells (Signals 2f/2g).
 
     Returns:
         Tuple of (signals, is_spam, rule) where:
@@ -1260,9 +1264,9 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         signals['brand_mismatched_cta'] = True
         signals['matched_patterns'].append('brand_mismatched_cta')
 
-    # ── Decision Logic (8 rules, evaluated in priority order) ──────────────
+    # ── Decision Logic (9 rules, evaluated in priority order) ──────────────
     #
-    # The rules cascade from most-specific (Rule 1) to broadest (Rule 5).
+    # The rules cascade in priority order, Rule 1 first.
     # Only one rule can fire per email. This matches the .gs source exactly.
     is_spam = False
     rule = ''

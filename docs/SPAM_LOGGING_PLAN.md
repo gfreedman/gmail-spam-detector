@@ -8,15 +8,20 @@ and still the reference. It is *not* a plan for future work — everything in
 **Release scope:** Logging only — EML archive + Google Sheets log
 **Design written:** 2026-05-03 · **Facts refreshed:** 2026-09-16 (v6.47.0)
 
-> **Changes since this was written.** The schema is unchanged, but disposition
-> is not. Three things to know when reading the sections below:
-> - **Log Type** now also carries `PHISHING_DETECTED` (Rules 6 and 7).
-> - **Rule Triggered** now spans `Rule 1`–`Rule 7`.
-> - **Disposition is no longer unconditional deletion.** Rule 7 quarantines
->   (archived + `Phishing` label, never deleted), and the raw EML is written to
->   Drive *before* any permanent delete — a message that cannot be archived is
->   held for review instead. See the "What Happens To Detected Mail" section of
->   the README for the current behaviour.
+> **Changes since this was written** (refreshed v6.67.0). The schema is
+> unchanged, but disposition is not. What to know when reading the sections
+> below:
+> - **Log Type** also carries `PHISHING_DETECTED`, the Gmail Spam-folder types
+>   `GMAIL_SPAM_CONFIRMED` / `GMAIL_SPAM_CORROBORATED` / `GMAIL_SPAM_EXPIRED`,
+>   and the run-audit types `AUDIT_LOG_GAP` / `AUDIT_SPAM_NOT_ACTIONED`.
+> - **Rule Triggered** spans `Rule 1`–`Rule 9`.
+> - **Disposition is no longer unconditional deletion.** Rules 7 and 9
+>   quarantine (archived + `Phishing` label, never deleted), and the raw EML is
+>   written to Drive *before* any permanent delete — a message that cannot be
+>   archived is held for review instead. See the "What Happens To Detected
+>   Mail" section of the README for the current behaviour.
+> - **Drive has a third folder**, `Spam Folder/`, holding copies of Gmail-spam
+>   the detector could not corroborate (v6.65.0), expired after grace + 7 days.
 
 ---
 

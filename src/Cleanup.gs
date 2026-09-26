@@ -5,8 +5,8 @@
  * it is scoped by CONFIG.purgeLabel so it can never touch Gmail's own spam.
  *
  * hasCorroboratingSignal() lives here and is load-bearing: it is the gate on
- * deleteMessagePermanently() for Spam-folder mail, where ONE signal is enough
- * because Gmail has already judged the message.
+ * deleteMessagePermanently() for Spam-folder mail, where ONE strong signal (or
+ * two weak points) is enough because Gmail has already judged the message.
  *
  * Apps Script concatenates every .gs file in sources.json into ONE global
  * scope. These are not modules: nothing is imported, and every function here
@@ -60,7 +60,27 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * Used ONLY for mail already sitting in the Spam folder, where Gmail has
  * already judged the message. That verdict is evidence, and our own rules
  * require two or more behaviours precisely because on inbox mail they have no
- * prior to lean on. Here they do, so ONE corroborating signal is enough.
+ * prior to lean on. Here they do — so the bar is lower, but not "any one hit".
+ *
+ * STRONG signals corroborate alone: each is a structural fact about the sender
+ * or payload (a blacklisted domain, a cloud-share subject from a non-service
+ * sender, a CTA whose destination the named brand does not own, a
+ * machine-generated free-mail address, a callback invoice, an empty subject
+ * carrying an attachment).
+ *
+ * WEAK signals — clickbait, fear, marketing format, suspicious From name — are
+ * vocabulary, and vocabulary is exactly what Gmail's own false positives share
+ * with spam. Until v6.66.0 one of them was enough, which meant a misfiled
+ * newsletter matching a single pattern skipped the 7-day grace period and was
+ * permanently deleted the same run. Two independent reviews of v6.66.0 flagged
+ * it. Now they need two points between them (clickbaitCount counts per
+ * pattern). The cost, measured on the Raw Log at the time: of 3 corroborated
+ * deletions ever, 2 ("Storage 100% Full", FEAR only) would instead have waited
+ * out the grace period and been deleted then. Nothing kept would be deleted.
+ *
+ * Invariant, tested exhaustively: anything makeVerdict() would delete from the
+ * inbox also corroborates here. emptySubjectWithAttachment was missing from the
+ * one-signal list, so Rule 5 mail was the one conviction this did not honour.
  *
  * This is the gap that left raju47326yu@gmail.com in the folder: no inbox rule
  * fires on a direct-send free-mail address, and gmail.com obviously cannot be
@@ -71,21 +91,27 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * actually wants is bulk-routed, so it corroborates nothing.
  *
  * @param {Object|null} signals - From collectSignals(); null means whitelisted.
- * @return {boolean} true if at least one independent signal fired.
+ * @return {boolean} true if a strong signal, or two weak points, fired.
  */
 function hasCorroboratingSignal(signals)
 {
   if (!signals) return false;
 
-  return signals.blacklistedSender ||
-         signals.clickbaitCount >= 1 ||
-         signals.fearMongering ||
-         signals.marketingFormat ||
-         signals.suspiciousFromName ||
-         signals.serviceImpersonation ||
-         signals.brandMismatchedCta ||
-         signals.freeMailRandomLocal ||
-         signals.callbackPhishing;
+  if (signals.blacklistedSender ||
+      signals.serviceImpersonation ||
+      signals.brandMismatchedCta ||
+      signals.freeMailRandomLocal ||
+      signals.callbackPhishing ||
+      signals.emptySubjectWithAttachment)
+  {
+    return true;
+  }
+
+  const weakPoints = (signals.clickbaitCount || 0) +
+                     (signals.fearMongering      ? 1 : 0) +
+                     (signals.marketingFormat    ? 1 : 0) +
+                     (signals.suspiciousFromName ? 1 : 0);
+  return weakPoints >= 2;
 }
 
 /**

@@ -1614,13 +1614,29 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
         live.join(',') === BOOLS.slice().sort().join(','),
         'live=' + live.join(',') + ' swept=' + BOOLS.slice().sort().join(','));
 
-  let combos = 0, disagreements = [];
+  const STRONG = ['blacklistedSender', 'serviceImpersonation', 'brandMismatchedCta',
+                  'freeMailRandomLocal', 'callbackPhishing', 'emptySubjectWithAttachment'];
+  let combos = 0, disagreements = [], uncorroborated = [], offSpec = [];
   for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
     for (let cb = 0; cb <= 4; cb++) {
       const sig = { clickbaitCount: cb };
       for (let i = 0; i < BOOLS.length; i++) sig[BOOLS[i]] = !!(mask & (1 << i));
       const isSpam = ctx.makeVerdict(sig) === true;
       const rule   = ctx.getRuleFromSignals(sig).rule;
+      const corroborated = ctx.hasCorroboratingSignal(sig) === true;
+      // Anything the inbox would delete, the Spam folder must not make wait.
+      if (isSpam && !corroborated && uncorroborated.length < 5) {
+        uncorroborated.push('rule=' + rule + ' fired=' +
+          BOOLS.filter(k => sig[k]).concat(cb ? ['clickbait=' + cb] : []).join('+'));
+      }
+      // The spec, stated independently: a strong signal, or 2+ weak points.
+      const weak = cb + (sig.fearMongering ? 1 : 0) + (sig.marketingFormat ? 1 : 0) +
+                   (sig.suspiciousFromName ? 1 : 0);
+      const expected = STRONG.some(k => sig[k]) || weak >= 2;
+      if (corroborated !== expected && offSpec.length < 5) {
+        offSpec.push('expected=' + expected + ' fired=' +
+          BOOLS.filter(k => sig[k]).concat(cb ? ['clickbait=' + cb] : []).join('+'));
+      }
       combos++;
       if (isSpam !== (rule !== 'NONE') && disagreements.length < 5) {
         disagreements.push('rule=' + rule + ' isSpam=' + isSpam + ' fired=' +
@@ -1631,6 +1647,36 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
   check('makeVerdict agrees with getRuleFromSignals on all ' + combos +
         ' signal combinations', disagreements.length === 0,
         disagreements.join(' | '));
+  check('every inbox conviction also corroborates a Gmail spam verdict (' +
+        combos + ' combinations)', uncorroborated.length === 0,
+        uncorroborated.join(' | '));
+  check('corroboration = a strong signal or 2+ weak points, on all ' + combos +
+        ' combinations', offSpec.length === 0, offSpec.join(' | '));
+}
+
+console.log('\n=== ONE weak signal no longer skips the Spam-folder grace period ===');
+{
+  // "Storage 100% Full", FEAR only: was deleted the same run pre-v6.66.0.
+  const m = blacklistMessage('mFEAR1');
+  m.getFrom = () => 'Alerts <alert-3400@example-alerts.com>';
+  m.getSubject = () => 'Weekly digest';
+  m.getRawContent = () => 'Received: from x\r\n\r\nhi';
+  m.getBody = () => '<p>hi</p>';
+  const thread = fakeThread([m]);
+  const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  ctx.collectSignals = () => ({ clickbaitCount: 0, fearMongering: true });
+  ctx.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? [thread] : []);
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.reviewGmailSpam();
+  check('a single weak signal does NOT delete from the Spam folder',
+        ctx.calls.filter(c => c.op === 'batchDelete').length === 0,
+        JSON.stringify(ctx.calls.filter(c => c.op === 'batchDelete')));
+  check('it is marked reviewed and left for the grace period',
+        thread.__labels.indexOf('SpamChecked') !== -1, JSON.stringify(thread.__labels));
+  check('two weak points DO corroborate',
+        ctx.hasCorroboratingSignal({ clickbaitCount: 1, fearMongering: true }) === true);
+  check('one weak point does not',
+        ctx.hasCorroboratingSignal({ clickbaitCount: 1 }) === false);
 }
 
 console.log('\n' + '='.repeat(70));

@@ -48,7 +48,9 @@ function reviewGmailSpam(forceFullReview)
   //
   // Gmail already judged these. That verdict is evidence our inbox rules never
   // get to lean on, which is why they demand two or more behaviours. Here one
-  // independent signal is enough — and that is what closes the gap that left
+  // STRONG signal, or two weak points, is enough (see hasCorroboratingSignal()
+  // for why a single weak one stopped being enough in v6.66.0) — and a strong
+  // signal is what closes the gap that left
   // raju47326yu@gmail.com sitting in the folder: no inbox rule fires on a
   // direct-send free-mail address, and gmail.com cannot be blacklisted, but
   // "machine-generated local part" plus "Gmail flagged it" is a confident call.

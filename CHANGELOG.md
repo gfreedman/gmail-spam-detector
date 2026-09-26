@@ -20,6 +20,39 @@ detail plus the diffs.
 
 ---
 
+## v6.67.0
+
+**One weak signal no longer skips the Spam-folder grace period.**
+
+`hasCorroboratingSignal()` gates immediate permanent deletion of mail Gmail
+already put in Spam. Until now any one signal was enough — including a single
+clickbait, fear, marketing-format or From-name hit. Those are vocabulary, and
+vocabulary is what Gmail's own false positives share with spam: a misfiled
+newsletter matching one pattern was deleted the same run instead of sitting in
+Spam for the 7 days in which the user can click "Not spam". Both independent
+reviews of v6.66.0 flagged it.
+
+Now: any STRONG signal still corroborates alone (blacklisted sender, service
+impersonation, brand-mismatched CTA, machine-generated free-mail address,
+callback phishing, empty subject + attachment); weak signals need two points
+between them, with `clickbaitCount` counting per pattern.
+
+Measured on the Raw Log before changing it: of the 3 `GMAIL_SPAM_CORROBORATED`
+deletions ever, `raju47326yu@gmail.com` (strong) is unchanged, and two
+"Storage 100% Full" scams (FEAR only) would have waited out the grace period
+and been deleted then. Nothing that was kept would now be deleted.
+
+Also closes a gap the new invariant found: `emptySubjectWithAttachment` was
+never in the corroboration list, so Rule 5 — which deletes on its own in the
+inbox — was the one conviction the Spam folder did not honour.
+
+Two exhaustive checks over all 5,120 signal combinations pin it: every inbox
+conviction corroborates, and corroboration equals "a strong signal or 2+ weak
+points" stated independently. Restoring the old one-signal rule, or dropping
+Rule 5 from the strong list, each turns them red.
+
+---
+
 ## v6.66.0
 
 **A MyChart reward-survey scam and a stock-promo mailer scored zero on every signal.**

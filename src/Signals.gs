@@ -492,8 +492,9 @@ function collectSignals(message)
   // Deliberately NOT part of any inbox rule on its own — plenty of real people
   // have digits in their address, and a false positive here would delete mail
   // from a person. It exists to CORROBORATE an existing spam verdict: in the
-  // Spam folder, where Gmail has already judged the message, one independent
-  // signal is enough. See reviewGmailSpam().
+  // Spam folder, where Gmail has already judged the message, this signal alone
+  // is enough — it is one of the STRONG signals in hasCorroboratingSignal().
+  // See reviewGmailSpam().
   try
   {
     if (atIdx > 0)

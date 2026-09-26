@@ -28,6 +28,9 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 8. **Service impersonation** (a cloud-share subject from a non-service sender)
 9. **Link-graph anomalies** (a CTA naming a brand its destination doesn't own)
 10. **Machine-generated free-mail addresses** (throwaway accounts like `raju47326yu@gmail.com`)
+11. **Forged sender headers** (a Date header that isn't a date; a random-case domain like `ktKCtzuMO.us`)
+12. **Your address used as your name** ("geoff.c.freedman, Claim Your Free…")
+13. **Survey-scam disclaimers** (a footer disclaiming the very brand it impersonates)
 
 **Detection Logic — 9 rules, first match wins:**
 - Bulk email + blacklisted sender = SPAM

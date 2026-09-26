@@ -1,8 +1,8 @@
 /**
  * Signals.gs — Signal collection: the whitelist gate, field extraction, 11 detections.
  *
- * ONE function, deliberately long. Fourteen try/catch blocks write eleven signal
- * keys (four of them accumulate into clickbaitCount), and every block is wrapped
+ * ONE function, deliberately long. Seventeen try/catch blocks write eleven signal
+ * keys (seven of them accumulate into clickbaitCount), and every block is wrapped
  * individually because a single throw used to discard eight of eleven signals.
  *
  * That structure is load-bearing, not accidental: code INSIDE a block degrades

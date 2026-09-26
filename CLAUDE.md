@@ -80,7 +80,7 @@ python3 scripts/validate.py             # README stats + version consistency
 ```
 
 The Python suite parses the **concatenation** of every manifest file at import
-time — patterns are never duplicated. Phase 7 runs all 81 fixtures through the
+time — patterns are never duplicated. Phase 7 runs every fixture through the
 shipped JS *and* the Python mirror and fails on any disagreement.
 
 ## Local environment

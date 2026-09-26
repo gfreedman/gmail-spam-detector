@@ -5,6 +5,9 @@
  * the cap exists to stop quadratic backtracking on a hostile body, not for
  * tidiness. Everything that reads a message field goes through here first.
  *
+ * Also the raw-header helpers behind Signals 2f/2g — getRawHeader() and
+ * hasRandomCaseLabel() — which read the RFC 822 text getRawContent() returns.
+ *
  * Apps Script concatenates every .gs file in sources.json into ONE global
  * scope. These are not modules: nothing is imported, and every function here
  * is a global visible to all other files.

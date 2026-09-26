@@ -109,7 +109,7 @@ and a fix applied to `SpamDetector.gs` and not to the mirror passed CI silently
 suites were the previous mitigation and had the same flaw one level up: a human
 had to remember both copies.
 
-Phase 7 now runs all 81 fixtures through the shipped JavaScript *and* the Python
+Phase 7 now runs every fixture through the shipped JavaScript *and* the Python
 mirror and fails on any disagreement, plus fails when a signal exists in the
 `.gs` with no Python counterpart. Both failure paths were verified by
 deliberately introducing each fault. It extends itself: new fixtures and new

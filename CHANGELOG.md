@@ -20,6 +20,36 @@ detail plus the diffs.
 
 ---
 
+## v6.65.0
+
+**Spam the detector could not corroborate is now copied to Drive, so it can be read.**
+
+A MyChart "Free Medicare Kit" scam from a random-string `.us` domain sat in the
+Spam folder scoring zero on every signal — a known detection gap that could not
+be diagnosed. The Gmail connector refuses SPAM outright, even fetching by thread
+id ("The caller does not have permission"), and no local token has a Gmail
+scope. The Spam Folder tab carried sender and subject, not the message; the only
+route to the body and headers was the user downloading it by hand.
+
+`reviewGmailSpam()` Phase 1 now writes every `AWAITING_GRACE` message to
+`<SPAM_LOG_FOLDER_ID>/Spam Folder/<messageId>.eml` via `archiveSpamFolderCopy()`.
+The filename is the tab's `MessageId` column, so a row maps to its file with no
+lookup. Whitelisted mail is not copied (legitimate mail has no business in
+Drive); corroborated mail is already archived under `Detected/` before deletion.
+
+Existence is checked before `getRawContent()`, so the forced full re-review on a
+version change costs one Drive query per already-copied message rather than a
+second raw read and a duplicate file. The copy never throws and has no bearing on
+any delete decision. Four injected faults (no existence check, whitelisted
+copied, wrong name, never called) and a fifth (rethrow — caught only by a tally
+assertion, because the per-thread catch otherwise masks it) each turn a
+`test_disposition.js` check red.
+
+This release's version change is itself the backfill: it forces a full
+re-review, which copies the mail already sitting in the folder.
+
+---
+
 ## v6.64.0
 
 **The parity net could pass while asserting nothing.**

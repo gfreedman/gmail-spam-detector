@@ -112,6 +112,7 @@ function makeCtx(opts) {
       getFolderById: () => ({
         createFile: () => ({ getUrl: () => 'https://drive/x', getId: () => 'f1' }),
         getFoldersByName: () => ({ hasNext: () => false }),
+        getFilesByName: () => ({ hasNext: () => false }),
         createFolder() { return this; }
       })
     }
@@ -551,6 +552,94 @@ console.log('\n=== every non-deleting branch marks the thread reviewed ===');
         !ctx.calls.some(c => c.op === 'batchDelete'));
   check('undeletable message is marked reviewed',
         tFb.__labels.indexOf('SpamChecked') !== -1, JSON.stringify(tFb.__labels));
+}
+
+console.log('\n=== uncorroborated Spam-folder mail is copied to Drive, readably ===');
+{
+  // The Gmail connector refuses SPAM even by thread id, so this copy is the
+  // only way to read a zero-signal miss (the MyChart Medicare-kit scam).
+  // Returns a DriveApp stub recording every file operation, plus the set of
+  // filenames that already exist.
+  function recordingDrive(existing, created) {
+    const folder = {
+      getFoldersByName: n => ({ hasNext: () => false }),
+      createFolder(n) { created.push({ op: 'createFolder', name: n }); return folder; },
+      getFilesByName: n => ({ hasNext: () => existing.indexOf(n) !== -1 }),
+      createFile(blob) { created.push({ op: 'createFile', name: blob.name,
+                                        content: blob.content, type: blob.type });
+                         return { getUrl: () => 'https://drive/x' }; }
+    };
+    return { getFolderById: () => folder };
+  }
+  function scamMessage(id, from) {
+    const m = blacklistMessage(id);
+    m.getFrom = () => from;
+    m.getSubject = () => 'geoff, Claim Your Free Medicare Kit';
+    m.__raw = 'Received: from x\r\nSubject: kit\r\n\r\nclaim now';
+    m.__rawReads = 0;
+    m.getRawContent = () => { m.__rawReads++; return m.__raw; };
+    m.getBody = () => '<p>hi</p>';
+    return m;
+  }
+  function run(msg, drive, forced) {
+    const thread = fakeThread([msg]);
+    const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    ctx.DriveApp = drive;
+    ctx.__logged = [];
+    ctx.Logger = { log: m => ctx.__logged.push(String(m)) };
+    ctx.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? [thread] : []);
+    ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+    ctx.reviewGmailSpam(!!forced);
+    return { ctx, thread };
+  }
+
+  // (a) the copy is written, under the MessageId the Sheet row carries
+  let created = [];
+  const scam = scamMessage('mMEDKIT', 'MyChart-Rewards <fcyajgki@ktkctzumo.us>');
+  let r = run(scam, recordingDrive([], created));
+  const files = created.filter(c => c.op === 'createFile');
+  check('uncorroborated spam is copied to Drive exactly once', files.length === 1,
+        JSON.stringify(created));
+  check('copy is named <messageId>.eml, matching the Sheet\'s MessageId column',
+        files.length === 1 && files[0].name === 'mMEDKIT.eml', JSON.stringify(files));
+  check('copy holds the full raw RFC 822 message',
+        files.length === 1 && files[0].content === scam.__raw &&
+        files[0].type === 'message/rfc822', JSON.stringify(files));
+  check('copy lands in the "Spam Folder" subfolder',
+        created.some(c => c.op === 'createFolder' && c.name === 'Spam Folder'),
+        JSON.stringify(created));
+  check('copying does not delete it (still awaiting grace)',
+        r.ctx.calls.filter(c => c.op === 'batchDelete').length === 0);
+
+  // (b) the forced re-review on a version change must not re-read or duplicate
+  created = [];
+  const again = scamMessage('mMEDKIT', 'MyChart-Rewards <fcyajgki@ktkctzumo.us>');
+  r = run(again, recordingDrive(['mMEDKIT.eml'], created), true);
+  check('an already-copied message is not copied again',
+        created.filter(c => c.op === 'createFile').length === 0, JSON.stringify(created));
+  check('an already-copied message costs no extra getRawContent()',
+        again.__rawReads === 1, 'reads=' + again.__rawReads + ' (collectSignals reads once)');
+
+  // (c) whitelisted mail is legitimate — it never goes to Drive
+  created = [];
+  const wl = scamMessage('mWLCOPY', 'LinkedIn <jobalerts-noreply@linkedin.com>');
+  run(wl, recordingDrive([], created));
+  check('whitelisted Spam-folder mail is NOT copied',
+        created.filter(c => c.op === 'createFile').length === 0, JSON.stringify(created));
+
+  // (d) a broken Drive must not change what happens to the message
+  const broken = scamMessage('mDRIVEDOWN', 'MyChart-Rewards <fcyajgki@ktkctzumo.us>');
+  r = run(broken, { getFolderById: () => { throw new Error('Drive down'); } });
+  check('a Drive failure deletes nothing',
+        r.ctx.calls.filter(c => c.op === 'batchDelete').length === 0);
+  check('a Drive failure still marks the thread reviewed',
+        r.thread.__labels.indexOf('SpamChecked') !== -1, JSON.stringify(r.thread.__labels));
+  // The per-thread catch would ALSO mark it reviewed and delete nothing, so the
+  // two checks above cannot tell a contained failure from an escaped one. This
+  // can: an escaped throw skips the tally and misreports the run.
+  check('a Drive failure is contained: the message is still tallied as awaiting grace',
+        r.ctx.__logged.some(l => l.indexOf('1 awaiting grace period') !== -1),
+        JSON.stringify(r.ctx.__logged));
 }
 
 console.log('\n=== logging: every reviewed message produces a row ===');

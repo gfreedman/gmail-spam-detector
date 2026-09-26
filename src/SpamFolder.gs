@@ -5,7 +5,8 @@
  * reviewGmailSpam() deletes only what an independent signal corroborates, then
  * ages the rest out after CONFIG.gmailSpamGraceDays. writeSpamFolderSnapshot()
  * publishes the folder to a Sheet tab, because the Gmail API hides SPAM from
- * search and this script is the only thing that can see it.
+ * search and this script is the only thing that can see it. For the same
+ * reason archiveSpamFolderCopy() puts each uncorroborated message in Drive.
  *
  * Distinct from Cleanup.gs, which sweeps mail THIS detector condemned.
  *
@@ -135,6 +136,7 @@ function reviewGmailSpam(forceFullReview)
             // Gmail's word alone. Marked so it is judged once, then left for
             // phase 2 to remove after CONFIG.gmailSpamGraceDays.
             recordSpamFolderVerdict(message, signals, 'AWAITING_GRACE');
+            archiveSpamFolderCopy(message);
             markReviewed(thread);
             waiting++;
             continue;
@@ -231,6 +233,56 @@ function reviewGmailSpam(forceFullReview)
   catch (error)
   {
     logError('reviewGmailSpam phase 2 failed: ' + error.toString());
+  }
+}
+
+/**
+ * Copy a Spam-folder message we could NOT corroborate to Drive, so it can be read.
+ *
+ * WHY THIS EXISTS. An uncorroborated message is exactly the one worth reading —
+ * it is spam our signals scored zero on, i.e. a detection gap — and it is the
+ * one nothing outside Apps Script can open. The Gmail connector refuses SPAM
+ * even by thread id ("The caller does not have permission"), and no local token
+ * carries a Gmail scope. The MyChart "Free Medicare Kit" scam sat in Spam for
+ * days as a known miss that could not be diagnosed without the user downloading
+ * it by hand. This script is the only reader, so it publishes the copy.
+ *
+ * Lands in <SPAM_LOG_FOLDER_ID>/Spam Folder/<messageId>.eml. The name is the
+ * MessageId column of the "Spam Folder" tab, so a row maps to its file with no
+ * lookup table.
+ *
+ * Only AWAITING_GRACE mail is copied. Whitelisted mail is legitimate and has no
+ * business in Drive (the same reasoning as accumulateLogEntry()'s skipArchive);
+ * corroborated mail is already archived under Detected/ before its delete.
+ *
+ * Existence is checked BEFORE getRawContent(), so the forced full re-review on
+ * a version change — which re-judges messages already copied — costs one Drive
+ * query per message, not a second raw read and a duplicate file.
+ *
+ * Never throws, and has no bearing on any delete decision: this copy is for
+ * diagnosis, not the archive invariant.
+ *
+ * @param {GmailMessage} message
+ */
+function archiveSpamFolderCopy(message)
+{
+  try
+  {
+    const folderId = PropertiesService.getScriptProperties()
+                       .getProperty('SPAM_LOG_FOLDER_ID');
+    if (!folderId) return;
+
+    const subfolder = getOrCreateLogSubfolder(
+      DriveApp.getFolderById(folderId), ['Spam Folder']);
+    const filename = message.getId() + '.eml';
+    if (subfolder.getFilesByName(filename).hasNext()) return;
+
+    subfolder.createFile(
+      Utilities.newBlob(message.getRawContent(), 'message/rfc822', filename));
+  }
+  catch (e)
+  {
+    logError('Spam-folder copy failed (non-fatal): ' + e.toString());
   }
 }
 

@@ -457,6 +457,7 @@ def _load_gs_constants(source):
         'CLICKBAIT_PATTERNS':           _load_regex_array(source, 'CLICKBAIT_PATTERNS'),
         'BODY_CRYPTO_PATTERNS':         _load_regex_array(source, 'BODY_CRYPTO_PATTERNS'),
         'BODY_FEAR_PATTERNS':           _load_regex_array(source, 'BODY_FEAR_PATTERNS'),
+        'BODY_SURVEY_SCAM_PATTERNS':    _load_regex_array(source, 'BODY_SURVEY_SCAM_PATTERNS'),
         'BODY_UNICODE_PATTERNS':        _load_regex_array(source, 'BODY_UNICODE_PATTERNS'),
         'FEAR_PATTERNS':                _load_regex_array(source, 'FEAR_PATTERNS'),
         'MARKETING_PATTERNS':           _load_regex_array(source, 'MARKETING_PATTERNS'),
@@ -466,6 +467,7 @@ def _load_gs_constants(source):
         'LINK_WRAPPER_DOMAINS':         _load_string_array(source, 'LINK_WRAPPER_DOMAINS'),
         'TRACKER_LABELS':               _load_string_array(source, 'TRACKER_LABELS'),
         'CTA_VERB_PATTERN':             _load_single_regex(source, 'CTA_VERB_PATTERN'),
+        'RFC5322_DATE_PATTERN':         _load_single_regex(source, 'RFC5322_DATE_PATTERN'),
         'FREE_MAIL_DOMAINS':            _load_string_array(source, 'FREE_MAIL_DOMAINS'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
@@ -509,6 +511,7 @@ except Exception as _e:
 CLICKBAIT_PATTERNS              = _gs['CLICKBAIT_PATTERNS']
 BODY_CRYPTO_PATTERNS            = _gs['BODY_CRYPTO_PATTERNS']
 BODY_FEAR_PATTERNS              = _gs['BODY_FEAR_PATTERNS']
+BODY_SURVEY_SCAM_PATTERNS       = _gs['BODY_SURVEY_SCAM_PATTERNS']
 BODY_UNICODE_PATTERNS           = _gs['BODY_UNICODE_PATTERNS']
 FEAR_PATTERNS                   = _gs['FEAR_PATTERNS']
 MARKETING_PATTERNS              = _gs['MARKETING_PATTERNS']
@@ -519,6 +522,7 @@ BRAND_CTA_DOMAINS               = _gs['BRAND_CTA_DOMAINS']
 LINK_WRAPPER_DOMAINS            = _gs['LINK_WRAPPER_DOMAINS']
 TRACKER_LABELS                  = _gs['TRACKER_LABELS']
 CTA_VERB_PATTERN                = _gs['CTA_VERB_PATTERN']
+RFC5322_DATE_PATTERN            = _gs['RFC5322_DATE_PATTERN']
 FREE_MAIL_DOMAINS               = _gs['FREE_MAIL_DOMAINS']
 RANDOM_LOCAL_PART_PATTERNS      = _gs['RANDOM_LOCAL_PART_PATTERNS']
 IMPERSONATED_SUPPORT_BRANDS     = _gs['IMPERSONATED_SUPPORT_BRANDS']
@@ -901,6 +905,7 @@ class ParsedEmail(NamedTuple):
     body: str
     has_attachment: bool
     html: str
+    raw: str    # full RFC 822 text — mirrors getRawContent(); Signals 2f/2g read headers
 
 
 def parse_eml(filepath):
@@ -986,10 +991,41 @@ def parse_eml(filepath):
         body = re.sub(r'<[^>]+>', ' ', html)
         body = re.sub(r'\s+', ' ', body).strip()
 
-    return ParsedEmail(subject, from_field, has_amazon_ses, body, has_attachment, html)
+    return ParsedEmail(subject, from_field, has_amazon_ses, body, has_attachment, html, content)
 
 
-def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=False, html=''):
+def _raw_header(raw, name):
+    """Mirror of getRawHeader() in the .gs source: first occurrence, header
+    block only, folded lines unfolded, trimmed, capped at 200 chars."""
+    raw = (raw or '').replace('\r\n', '\n')
+    end = raw.find('\n\n')
+    headers = re.sub(r'\n[ \t]+', ' ', raw if end == -1 else raw[:end])
+    prefix = name.lower() + ':'
+    for line in headers.split('\n'):
+        if line.lower().startswith(prefix):
+            return line[len(prefix):].strip()[:200]
+    return None
+
+
+def _has_random_case_label(domain):
+    """Mirror of hasRandomCaseLabel() in the .gs source."""
+    for label in (domain or '').split('.'):
+        letters = re.sub(r'[^A-Za-z]', '', label)
+        upper = lower = switches = run = max_run = 0
+        for j, ch in enumerate(letters):
+            is_upper = 'A' <= ch <= 'Z'
+            if is_upper:
+                upper += 1; run = 0
+            else:
+                lower += 1; run += 1; max_run = max(max_run, run)
+            if j > 0 and is_upper != ('A' <= letters[j - 1] <= 'Z'):
+                switches += 1
+        if upper >= 3 and lower >= 3 and switches >= 3 and max_run <= 3:
+            return True
+    return False
+
+
+def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=False, html='', raw=''):
     """
     Run the detection logic against a single email's fields.
 
@@ -1104,6 +1140,30 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         if pattern.search(body):
             signals['clickbait_count'] += 1
             signals['matched_patterns'].append(f'body_fear[{i}]')
+
+    # ── Signal: Reward-survey scam disclaimer in body ──────────────────────
+    # Mirrors Signal 2e: one template, so +1 at most — break after first match.
+    for i, pattern in enumerate(BODY_SURVEY_SCAM_PATTERNS):
+        if pattern.search(body):
+            signals['clickbait_count'] += 1
+            signals['matched_patterns'].append(f'body_survey_scam[{i}]')
+            break
+
+    # ── Signal: Forged sender headers (mirrors Signal 2f) ──────────────────
+    # +1 at most: a Date header that is not a date, or a random-case domain.
+    date_header = _raw_header(raw, 'Date')
+    from_domain = re.search(r'@([A-Za-z0-9.-]+)[^@]*$', from_field or '')
+    if ((date_header is not None and not RFC5322_DATE_PATTERN.search(date_header)) or
+            (from_domain and _has_random_case_label(from_domain.group(1)))):
+        signals['clickbait_count'] += 1
+        signals['matched_patterns'].append('forged_sender_headers')
+
+    # ── Signal: Recipient address used as a name (mirrors Signal 2g) ───────
+    to_local = re.search(r'([A-Za-z0-9._%+-]+)@', _raw_header(raw, 'To') or '')
+    if (to_local and len(to_local.group(1)) >= 5 and
+            to_local.group(1).lower() in (subject or '').lower()):
+        signals['clickbait_count'] += 1
+        signals['matched_patterns'].append('recipient_address_as_name')
 
     # ── Signal: Unicode obfuscation in body ────────────────────────────────
     # Cyrillic/Greek/fullwidth/math-alphanumeric characters hidden in body

@@ -113,8 +113,12 @@ function makeCtx(opts) {
         createFile: () => ({ getUrl: () => 'https://drive/x', getId: () => 'f1' }),
         getFoldersByName: () => ({ hasNext: () => false }),
         getFilesByName: () => ({ hasNext: () => false }),
+        getSharingAccess: () => 'PRIVATE',
+        getEditors: () => [],
+        getViewers: () => [],
         createFolder() { return this; }
-      })
+      }),
+      Access: { PRIVATE: 'PRIVATE', ANYONE_WITH_LINK: 'ANYONE_WITH_LINK' }
     }
   };
   vm.createContext(ctx);
@@ -560,21 +564,27 @@ console.log('\n=== uncorroborated Spam-folder mail is copied to Drive, readably 
   // only way to read a zero-signal miss (the MyChart Medicare-kit scam).
   // Returns a DriveApp stub recording every file operation, plus the set of
   // filenames that already exist.
-  function recordingDrive(existing, created) {
+  function recordingDrive(existing, created, sharing) {
     const folder = {
       getFoldersByName: n => ({ hasNext: () => false }),
       createFolder(n) { created.push({ op: 'createFolder', name: n }); return folder; },
       getFilesByName: n => ({ hasNext: () => existing.indexOf(n) !== -1 }),
+      getSharingAccess: () => sharing || 'PRIVATE',
+      getEditors: () => [], getViewers: () => [],
       createFile(blob) { created.push({ op: 'createFile', name: blob.name,
                                         content: blob.content, type: blob.type });
                          return { getUrl: () => 'https://drive/x' }; }
     };
-    return { getFolderById: () => folder };
+    return { getFolderById: () => folder,
+             Access: { PRIVATE: 'PRIVATE' } };
   }
   function scamMessage(id, from) {
     const m = blacklistMessage(id);
     m.getFrom = () => from;
-    m.getSubject = () => 'geoff, Claim Your Free Medicare Kit';
+    // Neutral on purpose: this block tests the COPY, so the message must
+    // score zero and land in AWAITING_GRACE. (A MyChart-scam fixture stopped
+    // doing that the moment v6.66.0 learned to catch it.)
+    m.getSubject = () => 'Following up on our chat';
     m.__raw = 'Received: from x\r\nSubject: kit\r\n\r\nclaim now';
     m.__rawReads = 0;
     m.getRawContent = () => { m.__rawReads++; return m.__raw; };
@@ -595,7 +605,7 @@ console.log('\n=== uncorroborated Spam-folder mail is copied to Drive, readably 
 
   // (a) the copy is written, under the MessageId the Sheet row carries
   let created = [];
-  const scam = scamMessage('mMEDKIT', 'MyChart-Rewards <fcyajgki@ktkctzumo.us>');
+  const scam = scamMessage('mMEDKIT', 'Someone <hello@unknown-sender.com>');
   let r = run(scam, recordingDrive([], created));
   const files = created.filter(c => c.op === 'createFile');
   check('uncorroborated spam is copied to Drive exactly once', files.length === 1,
@@ -613,7 +623,7 @@ console.log('\n=== uncorroborated Spam-folder mail is copied to Drive, readably 
 
   // (b) the forced re-review on a version change must not re-read or duplicate
   created = [];
-  const again = scamMessage('mMEDKIT', 'MyChart-Rewards <fcyajgki@ktkctzumo.us>');
+  const again = scamMessage('mMEDKIT', 'Someone <hello@unknown-sender.com>');
   r = run(again, recordingDrive(['mMEDKIT.eml'], created), true);
   check('an already-copied message is not copied again',
         created.filter(c => c.op === 'createFile').length === 0, JSON.stringify(created));
@@ -628,7 +638,7 @@ console.log('\n=== uncorroborated Spam-folder mail is copied to Drive, readably 
         created.filter(c => c.op === 'createFile').length === 0, JSON.stringify(created));
 
   // (d) a broken Drive must not change what happens to the message
-  const broken = scamMessage('mDRIVEDOWN', 'MyChart-Rewards <fcyajgki@ktkctzumo.us>');
+  const broken = scamMessage('mDRIVEDOWN', 'Someone <hello@unknown-sender.com>');
   r = run(broken, { getFolderById: () => { throw new Error('Drive down'); } });
   check('a Drive failure deletes nothing',
         r.ctx.calls.filter(c => c.op === 'batchDelete').length === 0);
@@ -640,6 +650,76 @@ console.log('\n=== uncorroborated Spam-folder mail is copied to Drive, readably 
   check('a Drive failure is contained: the message is still tallied as awaiting grace',
         r.ctx.__logged.some(l => l.indexOf('1 awaiting grace period') !== -1),
         JSON.stringify(r.ctx.__logged));
+}
+
+console.log('\n=== Spam-folder copies: one folder lookup per run, and they expire ===');
+{
+  // (e) two messages, one subfolder resolution
+  let lookups = 0;
+  const folder = {
+    getFoldersByName: () => { lookups++; return { hasNext: () => false }; },
+    createFolder() { return folder; },
+    getFilesByName: () => ({ hasNext: () => false }),
+    getSharingAccess: () => 'PRIVATE', getEditors: () => [], getViewers: () => [],
+    createFile: () => ({})
+  };
+  const msgs = ['mC1', 'mC2'].map(id => {
+    const m = blacklistMessage(id);
+    m.getFrom = () => 'Someone <hello@unknown-sender.com>';
+    m.getSubject = () => 'Following up';
+    m.getRawContent = () => 'Received: from x\r\n\r\nhi';
+    m.getBody = () => '<p>hi</p>';
+    return fakeThread([m]);
+  });
+  const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  ctx.DriveApp = { getFolderById: () => folder, Access: { PRIVATE: 'PRIVATE' } };
+  ctx.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? msgs : []);
+  ctx.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctx.reviewGmailSpam();
+  check('the copy subfolder is resolved once per run, not once per message',
+        lookups === 1, 'lookups=' + lookups);
+
+  // (e2) a shared folder gets NO copies — some of this mail is legitimate
+  let createdShared = 0;
+  const shared = Object.assign({}, folder, {
+    getSharingAccess: () => 'ANYONE_WITH_LINK',
+    createFile: () => { createdShared++; return {}; } });
+  shared.createFolder = () => shared;
+  const ctxS = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  ctxS.DriveApp = { getFolderById: () => shared, Access: { PRIVATE: 'PRIVATE' } };
+  ctxS.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? msgs : []);
+  ctxS.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+  ctxS.reviewGmailSpam();
+  check('nothing is copied into a link-shared folder', createdShared === 0,
+        'created=' + createdShared);
+
+  // (f) the sweep trashes expired copies and keeps fresh ones
+  const DAY = 24 * 60 * 60 * 1000;
+  const grace = vm.runInContext('CONFIG.gmailSpamGraceDays', ctx);
+  const mk = (name, ageDays) => ({ name, trashed: false, getName: () => name,
+    getDateCreated: () => new Date(Date.now() - ageDays * DAY),
+    setTrashed(v) { this.trashed = v; } });
+  const old   = mk('1a0c1d658eef5562.eml', grace + 8);
+  const fresh = mk('1a0d835568e9ef25.eml', grace + 6);
+  const users = mk('my notes.eml',         grace + 30);   // not ours
+  const list = [old, fresh, users];
+  const sub = { getFiles: () => { let i = 0;
+    return { hasNext: () => i < list.length, next: () => list[i++] }; } };
+  ctx.DriveApp = { getFolderById: () => ({
+    getFoldersByName: n => { let done = n !== 'Spam Folder';
+      return { hasNext: () => !done, next: () => { done = true; return sub; } }; } }) };
+  sub.isTrashed = () => false;
+  ctx.sweepSpamFolderCopies();
+  check('a copy older than grace+7 days is trashed', old.trashed === true);
+  check('a copy younger than grace+7 days is kept', fresh.trashed === false);
+  check('a file that is not one of our <messageId>.eml copies is never trashed',
+        users.trashed === false);
+
+  // (g) a broken Drive must not throw out of maintenance
+  ctx.DriveApp = { getFolderById: () => { throw new Error('Drive down'); } };
+  let threw = false;
+  try { ctx.sweepSpamFolderCopies(); } catch (e) { threw = true; }
+  check('sweepSpamFolderCopies never throws', !threw);
 }
 
 console.log('\n=== logging: every reviewed message produces a row ===');

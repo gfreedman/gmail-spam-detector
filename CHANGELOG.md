@@ -20,6 +20,62 @@ detail plus the diffs.
 
 ---
 
+## v6.66.0
+
+**A MyChart reward-survey scam and a stock-promo mailer scored zero on every signal.**
+
+Three messages sat in Gmail's Spam folder awaiting the 7-day grace period
+because no signal corroborated Gmail. They were read from a manual download
+(v6.65.0's Drive copies landed minutes later) and are now fixtures.
+
+- Two MyChart "Free Medicare Kit" survey scams from throwaway `.us` domains.
+  Non-bulk, so only Rule 4 (3+ clickbait) can act. Three new signals, each +1,
+  each on a feature the campaign cannot rotate cheaply:
+  - **2e, survey-scam disclaimer** (`BODY_SURVEY_SCAM_PATTERNS`): the footer
+    disclaims the brand it impersonates — "not affiliated with MyChart ...
+    makes no claim". A real brand never disclaims itself.
+  - **2f, forged sender headers**: a Date header that is not a date
+    (`_smtpDate . 646048175` — an unfilled template variable), or a sender
+    domain with random capitalisation (`ktKCtzuMO.us`). Checked against all 84
+    fixtures: only the two scams trip it. The case check first flagged
+    `F.FinanceInsiderPro.com`, so it requires every lowercase run to be <= 3
+    letters — CamelCase is made of words; random case is not.
+  - **2g, recipient address as name**: the subject contains the recipient's
+    own local part from `To:` ("geoff.c.freedman, ..."). Also newly fires on
+    the existing OpenClaw fixture.
+- "What really happened in Beijing?": `globalaxisintel.com` blacklisted (Rule 1).
+
+**What review removed.** A phishing-specialist and a security review of the
+first draft killed four subject patterns before release. `what really
+happened` and `claim your free` matched NYT, Platformer, Starbucks, Epic and
+Audible mail and added no detection. A generic "dotted-token, comma" greeting
+matched "Node.js, Deno and Bun" and "3.5, the new release" — hence 2g matches
+the recipient's own address instead. A `Brand-Rewards` display-name pattern
+matched "Black Friday Mega-Deals". This matters most in the Spam folder, where
+one signal means immediate deletion rather than a 7-day grace period.
+
+Each new signal was disabled in turn and its fixtures went red; a JS-only
+change to 2g failed Phase 7 parity on 5 fixtures. No ham fixture fires any of
+the three.
+
+**v6.65.0 follow-ups from review** (no blocker found; majors addressed):
+
+- `sweepSpamFolderCopies()` trashes Spam-folder copies older than
+  `gmailSpamGraceDays + 7` days — `AWAITING_GRACE` is where Gmail's own false
+  positives land, so v6.65.0 put some legitimate mail in Drive with no expiry.
+  It trashes only `<16-hex>.eml` names, visits every folder of that name,
+  skips trashed folders, and survives a per-file failure.
+- No copy is written if the `Spam Folder` subfolder is link-shared or has any
+  editor or viewer: files inherit sharing.
+- The subfolder is resolved once per `reviewGmailSpam()` call, not per message.
+- Correction: v6.65.0's version change was not a general backfill — the forced
+  re-review is capped at `REVIEW_LIMIT` (20). The folder held 10, so it was.
+
+Trashed rather than permanently deleted: permanent deletion needs the Drive
+advanced service, which would change `appsscript.json` (the deploy path).
+
+---
+
 ## v6.65.0
 
 **Spam the detector could not corroborate is now copied to Drive, so it can be read.**

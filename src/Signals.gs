@@ -317,6 +317,75 @@ function collectSignals(message)
     logError('Signal 2d threw and was skipped: ' + signalError.toString());
   }
 
+  // ── Signal 2e: Reward-survey scam disclaimer in body ────────────────────
+  // A brand-impersonating survey scam disclaims the brand in its footer. One
+  // template, so +1 at most: break after the first match.
+  try
+  {
+    for (let i = 0; i < BODY_SURVEY_SCAM_PATTERNS.length; i++)
+    {
+      if (BODY_SURVEY_SCAM_PATTERNS[i].test(body))
+      {
+        signals.clickbaitCount++;
+        break;
+      }
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 2e threw and was skipped: ' + signalError.toString());
+  }
+
+  // ── Signal 2f: Forged sender headers ────────────────────────────────────
+  // Two tells of a campaign's own tooling, +1 at most (one behaviour): a Date
+  // header that is not a date (an unfilled template variable), or a sender
+  // domain generated with random capitalisation. Header-level, so they survive
+  // the subject/body/landing-page rotation a campaign relies on.
+  try
+  {
+    const dateHeader = getRawHeader(rawContent, 'Date');
+    const fromDomainMatch = from.match(/@([A-Za-z0-9.-]+)[^@]*$/);
+    if ((dateHeader !== null && !RFC5322_DATE_PATTERN.test(dateHeader)) ||
+        (fromDomainMatch && hasRandomCaseLabel(fromDomainMatch[1])))
+    {
+      signals.clickbaitCount++;
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 2f threw and was skipped: ' + signalError.toString());
+  }
+
+  // ── Signal 2g: Recipient address used as a name ─────────────────────────
+  // "geoff.c.freedman, Claim Your Free Medicare Kit". A list that holds only
+  // the address greets with its local part; a sender who knows the person uses
+  // a name. Matched against the recipient's OWN local part (from To:), never a
+  // generic "dotted token," pattern — that matched "Node.js, Deno and Bun" and
+  // "3.5, the new release". Min 5 chars so "info" / "me" cannot match prose.
+  try
+  {
+    const toHeader = getRawHeader(rawContent, 'To') || '';
+    const toLocal = toHeader.match(/([A-Za-z0-9._%+-]+)@/);
+    if (toLocal && toLocal[1].length >= 5 &&
+        subject.toLowerCase().indexOf(toLocal[1].toLowerCase()) !== -1)
+    {
+      signals.clickbaitCount++;
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 2g threw and was skipped: ' + signalError.toString());
+  }
+
   // ── Signal 3: Fear-mongering detection ──────────────────────────────────
   // Boolean signal — we only need to know if fear is present, not how many
   // patterns match. First match short-circuits the loop.

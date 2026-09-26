@@ -88,3 +88,68 @@ function decodeHtmlEntities(str)
     .replace(/&gt;/gi,   '>')
     .replace(/&amp;/gi,  '&');
 }
+
+/**
+ * Read one header's value from raw RFC 822 content.
+ *
+ * Only the header block (up to the first blank line) is searched, so a body
+ * line reading "Date: ..." can never be mistaken for the header. Folded
+ * continuation lines are unfolded first. Returns the FIRST occurrence.
+ *
+ * Mirrored by _raw_header() in tests/test_spam_detector.py; Phase 7 parity
+ * fails if the two disagree.
+ *
+ * @param {string} rawContent - Full RFC 822 message.
+ * @param {string} name - Header name, matched case-insensitively.
+ * @return {string|null} The trimmed value (max 200 chars), or null if absent.
+ */
+function getRawHeader(rawContent, name)
+{
+  const raw = String(rawContent || '').replace(/\r\n/g, '\n');
+  const end = raw.indexOf('\n\n');
+  const headers = (end === -1 ? raw : raw.substring(0, end)).replace(/\n[ \t]+/g, ' ');
+  const lines = headers.split('\n');
+  const prefix = name.toLowerCase() + ':';
+  for (let i = 0; i < lines.length; i++)
+  {
+    if (lines[i].toLowerCase().indexOf(prefix) === 0)
+    {
+      return lines[i].substring(prefix.length).trim().substring(0, 200);
+    }
+  }
+  return null;
+}
+
+/**
+ * Does any label of this domain have randomised capitalisation?
+ *
+ * "ktKCtzuMO", "bKnPcRBpO": throwaway domains generated per send. Domains are
+ * case-insensitive, so a real sender writes them lower-case — or CamelCase
+ * ("FinanceInsiderPro"), which this must NOT match. The discriminator is the
+ * lowercase run: CamelCase is made of words, so it always contains a run of
+ * 4+ lowercase letters; random case never does. All three conditions:
+ *   >= 3 upper, >= 3 lower, >= 3 case switches, longest lowercase run <= 3.
+ *
+ * Mirrored by _has_random_case_label() in tests/test_spam_detector.py.
+ *
+ * @param {string} domain
+ * @return {boolean}
+ */
+function hasRandomCaseLabel(domain)
+{
+  const labels = String(domain || '').split('.');
+  for (let i = 0; i < labels.length; i++)
+  {
+    const letters = labels[i].replace(/[^A-Za-z]/g, '');
+    let upper = 0, lower = 0, switches = 0, run = 0, maxRun = 0;
+    for (let j = 0; j < letters.length; j++)
+    {
+      const isUpper = letters[j] >= 'A' && letters[j] <= 'Z';
+      if (isUpper) { upper++; run = 0; }
+      else { lower++; run++; if (run > maxRun) maxRun = run; }
+      if (j > 0 && isUpper !== (letters[j - 1] >= 'A' && letters[j - 1] <= 'Z')) switches++;
+    }
+    if (upper >= 3 && lower >= 3 && switches >= 3 && maxRun <= 3) return true;
+  }
+  return false;
+}

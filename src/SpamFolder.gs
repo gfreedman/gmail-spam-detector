@@ -94,6 +94,7 @@ function reviewGmailSpam(forceFullReview)
               (forceFullReview ? ' (full re-review: detection logic changed)' : ''));
       const allMessages = GmailApp.getMessagesForThreads(threads);
       let deleted = 0, kept = 0, waiting = 0;
+      const copyFolder = {};   // archiveSpamFolderCopy() resolves it once per call
 
       for (let i = 0; i < threads.length; i++)
       {
@@ -136,7 +137,7 @@ function reviewGmailSpam(forceFullReview)
             // Gmail's word alone. Marked so it is judged once, then left for
             // phase 2 to remove after CONFIG.gmailSpamGraceDays.
             recordSpamFolderVerdict(message, signals, 'AWAITING_GRACE');
-            archiveSpamFolderCopy(message);
+            archiveSpamFolderCopy(message, copyFolder);
             markReviewed(thread);
             waiting++;
             continue;
@@ -257,24 +258,54 @@ function reviewGmailSpam(forceFullReview)
  *
  * Existence is checked BEFORE getRawContent(), so the forced full re-review on
  * a version change — which re-judges messages already copied — costs one Drive
- * query per message, not a second raw read and a duplicate file.
+ * query per message, not a second raw read and a duplicate file. The first copy
+ * of a message DOES read the raw content a second time (collectSignals() already
+ * read it) — the same accepted double read documented in accumulateLogEntry().
+ *
+ * getFilesByName() also matches trashed files, so a copy the user (or
+ * sweepSpamFolderCopies()) trashed is never re-created. Intended.
+ *
+ * Only messages[0] of a thread is copied, consistent with the review itself.
  *
  * Never throws, and has no bearing on any delete decision: this copy is for
  * diagnosis, not the archive invariant.
  *
  * @param {GmailMessage} message
+ * @param {Object} cache - One object per reviewGmailSpam() call. The subfolder
+ *   is resolved once and stored on it: resolving per message cost four Drive
+ *   calls each, and on the very first run a second getFoldersByName() could
+ *   race Drive's listing lag and create a duplicate "Spam Folder".
  */
-function archiveSpamFolderCopy(message)
+function archiveSpamFolderCopy(message, cache)
 {
   try
   {
-    const folderId = PropertiesService.getScriptProperties()
-                       .getProperty('SPAM_LOG_FOLDER_ID');
-    if (!folderId) return;
+    if (!cache.folder)
+    {
+      const folderId = PropertiesService.getScriptProperties()
+                         .getProperty('SPAM_LOG_FOLDER_ID');
+      if (!folderId) return;
+      cache.folder = getOrCreateLogSubfolder(
+        DriveApp.getFolderById(folderId), ['Spam Folder']);
 
-    const subfolder = getOrCreateLogSubfolder(
-      DriveApp.getFolderById(folderId), ['Spam Folder']);
-    const filename = message.getId() + '.eml';
+      // Some of this mail is legitimate (Gmail's own false positives land in
+      // AWAITING_GRACE), so a copy must not become readable to anyone else.
+      // Files inherit the folder's sharing, so refuse to write into a folder
+      // that is link-shared or has any editor or viewer. getEditors() /
+      // getViewers() exclude the owner.
+      cache.private =
+        cache.folder.getSharingAccess() === DriveApp.Access.PRIVATE &&
+        cache.folder.getEditors().length === 0 &&
+        cache.folder.getViewers().length === 0;
+      if (!cache.private)
+      {
+        logError('"Spam Folder" in the log folder is shared — NOT copying ' +
+                 'Spam-folder mail to Drive. Unshare it to re-enable.');
+      }
+    }
+    if (!cache.private) return;
+    const subfolder = cache.folder;
+    const filename  = message.getId() + '.eml';
     if (subfolder.getFilesByName(filename).hasNext()) return;
 
     subfolder.createFile(
@@ -283,6 +314,71 @@ function archiveSpamFolderCopy(message)
   catch (e)
   {
     logError('Spam-folder copy failed (non-fatal): ' + e.toString());
+  }
+}
+
+/**
+ * Trash Spam-folder copies once they can no longer be needed.
+ *
+ * An AWAITING_GRACE message is where Gmail's false positives land too — real
+ * mail fires no spam signals — so archiveSpamFolderCopy() puts some legitimate
+ * mail (a bank statement, a reset link) into Drive. Kept forever, that copy
+ * outlives the user clicking "Not spam", Phase 2's delete and Gmail's own purge.
+ *
+ * gmailSpamGraceDays + 7 days after the copy was made, every message has either
+ * been deleted (and Detected/ holds the archive the Raw Log links to) or rescued
+ * (so it is legitimate mail that has no business in Drive). Either way the copy
+ * has done its job. Trashed, not deleted: Drive's 30-day trash is a last resort.
+ *
+ * Bounded by folder size — a handful of files a day — and never throws.
+ */
+function sweepSpamFolderCopies()
+{
+  try
+  {
+    const folderId = PropertiesService.getScriptProperties()
+                       .getProperty('SPAM_LOG_FOLDER_ID');
+    if (!folderId) return;
+
+    const cutoff  = Date.now() - (CONFIG.gmailSpamGraceDays + 7) * 24 * 60 * 60 * 1000;
+    const found   = DriveApp.getFolderById(folderId).getFoldersByName('Spam Folder');
+    let   trashed = 0;
+
+    // EVERY folder of that name, not the first: a Drive listing race can have
+    // created a duplicate, and its copies would otherwise never expire.
+    while (found.hasNext())
+    {
+      const folder = found.next();
+      if (folder.isTrashed()) continue;
+
+      const files = folder.getFiles();
+      while (files.hasNext())
+      {
+        // Per file: one file that cannot be trashed (owned by someone else,
+        // say) must not stop every later sweep at the same place.
+        try
+        {
+          const file = files.next();
+          // Only our own copies — <16-hex messageId>.eml. Anything else a
+          // person put in this folder is not ours to trash.
+          if (!/^[0-9a-f]{16}\.eml$/.test(file.getName())) continue;
+          if (file.getDateCreated().getTime() < cutoff)
+          {
+            file.setTrashed(true);
+            trashed++;
+          }
+        }
+        catch (fileError)
+        {
+          logError('Could not sweep a Spam-folder copy (skipped): ' + fileError.toString());
+        }
+      }
+    }
+    if (trashed > 0) logInfo('Trashed ' + trashed + ' expired Spam-folder copies');
+  }
+  catch (e)
+  {
+    logError('sweepSpamFolderCopies failed (non-fatal): ' + e.toString());
   }
 }
 

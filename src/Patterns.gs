@@ -46,6 +46,43 @@ const BODY_FEAR_PATTERNS = Object.freeze([
 ]);
 
 /**
+ * Body-only reward-survey scam disclaimers (v6.66.0).
+ *
+ * The "free kit for completing a survey" scam impersonates a brand (MyChart,
+ * Costco, a carrier) and then disclaims it in the footer, for legal cover:
+ * "This website is not affiliated with MyChart ... makes no claim about
+ * trademark rights" / "Participation ... does not guarantee any prize". A real
+ * brand never disclaims itself, so the disclaimer IS the fingerprint — and it
+ * survives the sender, subject and landing-page rotation the campaign relies on.
+ *
+ * One match → +1 clickbaitCount, break after the first: every pattern here
+ * detects the same template, so counting them independently would inflate
+ * the score (same reasoning as BODY_UNICODE_PATTERNS).
+ * @const {Array<RegExp>}
+ */
+const BODY_SURVEY_SCAM_PATTERNS = Object.freeze([
+  /\bnot\s+affiliated\s+with\b[\s\S]{0,120}?\bmakes?\s+no\s+claim\b/i,
+  /\bdoes\s+not\s+guarantee\s+(?:any|a)\s+(?:prize|reward|gift)\b/i
+]);
+
+/**
+ * A well-formed RFC 5322 Date header value (v6.66.0, Signal 2f).
+ *
+ * Every real mail server writes this; a spam mailer with an unfilled template
+ * variable does not. The MyChart survey scam sent "_smtpDate . 646048175" and
+ * "Sun, 20 Sep 2026 16:38:48 +0200 . 646048175" — a bug in the campaign's own
+ * tooling, invisible to it, and present in every wave. All 84 fixtures' Date
+ * headers were checked against this: only the two scams fail it.
+ *
+ * Deliberately lenient where real servers vary (optional weekday, 1-digit
+ * hour, optional seconds, named or numeric zone, a trailing "(UTC)" comment)
+ * and strict only about garbage. Linear: every repeat is bounded or separated
+ * by a required character, and the input is capped at 200 chars.
+ * @const {RegExp}
+ */
+const RFC5322_DATE_PATTERN = /^(?:[A-Za-z]{3},\s*)?\d{1,2}\s+[A-Za-z]{3}\s+\d{2,4}\s+\d{1,2}:\d{2}(?::\d{2})?\s*(?:[+-]\d{4}|[A-Za-z]{1,5})?(?:\s*\([^)]*\))?\s*$/;
+
+/**
  * Unicode obfuscation patterns checked against the email body.
  * Mirrors the four Unicode ranges in CLICKBAIT_PATTERNS (subject+from coverage) —
  * update both constants if extending. Separate body check is needed because

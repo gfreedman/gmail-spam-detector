@@ -192,6 +192,10 @@ function runPeriodicMaintenance()
   // and no getRawContent(); see the function header.
   writeSpamFolderSnapshot();
 
+  // Copies archiveSpamFolderCopy() made can include legitimate mail Gmail
+  // misfiled; they must not outlive their purpose. One folder listing.
+  sweepSpamFolderCopies();
+
   // Expensive, and NOT time-sensitive. recheckRecentSpamChecked() re-evaluates
   // recent mail against the CURRENT patterns, so between deploys it keeps
   // computing the same answer at ~2 reads per message. Its real trigger is a

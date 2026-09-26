@@ -451,6 +451,11 @@ rediscovers them as bugs.
 - **Footer-disclaimer-as-evasion-marker.** Every legitimate financial sender
   carries "not investment advice" boilerplate. Treating legitimacy markers as
   suspicion is how filters get inverted, and it's trivially removable.
+  *Not contradicted by v6.66.0's Signal 2e*, which is a different mechanism:
+  it matches a footer that disclaims **the brand the email itself impersonates**
+  ("not affiliated with MyChart ... makes no claim"). A legitimate sender never
+  disclaims its own brand, so that is not a legitimacy marker being inverted.
+  Generic "not investment advice" boilerplate remains out of scope.
 - **Ticker/brand display-name mismatch.** Needs a brand→domain mapping that
   doesn't exist offline, with unbounded false-positive exposure on every company
   whose sending domain differs from its corporate domain — which is most of them.

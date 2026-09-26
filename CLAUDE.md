@@ -85,7 +85,8 @@ shipped JS *and* the Python mirror and fails on any disagreement.
 
 ## Local environment
 
-- Use `python3`, not `python`. The `venv/` in the repo is broken (stale path).
+- Use `python3`, not `python`. There is no venv — the suites need only the
+  standard library (the broken `venv/` was deleted 2026-09-26).
 - **zsh does not word-split unquoted variables.** `cat $FILES` passes one
   argument; `cat` with no valid arg reads stdin and hangs. Pass lists literally.
 - `grep -oP` is GNU-only — fine in CI (Ubuntu), not on macOS. Use `grep -oE`.

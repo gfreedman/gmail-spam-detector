@@ -115,6 +115,7 @@ function hasCorroboratingSignal(signals)
       signals.freeMailRandomLocal ||
       (signals.callbackPhishing && !signals._callbackLooseOnly) ||
       signals.selfNamedSender ||
+      signals.calendarLure ||
       signals.emptySubjectWithAttachment)
   {
     return true;

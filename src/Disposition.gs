@@ -52,8 +52,10 @@ function disposeDetectedMessage(message, thread, signals, archived)
   // for an unknown disposition must be the recoverable branch. Unreachable
   // today (both callers gate on verdict.isSpam), which is exactly when this
   // kind of default goes unnoticed until it isn't.
+  // Rule 10 (calendar voicemail lure) added v6.71.0 at the user's explicit
+  // request to delete rather than quarantine; Rules 7 and 9 still quarantine.
   const DESTRUCTIVE_RULES = ['Rule 1', 'Rule 2', 'Rule 3', 'Rule 4', 'Rule 5',
-                             'Rule 6', 'Rule 8'];
+                             'Rule 6', 'Rule 8', 'Rule 10'];
 
   if (DESTRUCTIVE_RULES.indexOf(rule) !== -1)
   {

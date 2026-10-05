@@ -1,7 +1,7 @@
 /**
- * Signals.gs — Signal collection: the whitelist gate, field extraction, 12 detections.
+ * Signals.gs — Signal collection: the whitelist gate, field extraction, 13 detections.
  *
- * ONE function, deliberately long. Eighteen try/catch blocks write twelve signal
+ * ONE function, deliberately long. Nineteen try/catch blocks write thirteen signal
  * keys (seven of them accumulate into clickbaitCount), and every block is wrapped
  * individually because a single throw once discarded eight of eleven signals.
  *
@@ -145,7 +145,8 @@ function collectSignals(message)
     brandMismatchedCta: false,         // CTA names a document brand, links elsewhere (phishing)
     freeMailRandomLocal: false,        // free-mail sender with a machine-generated local part
     callbackPhishing: false,           // fake brand invoice from free mail, payload is a phone number
-    selfNamedSender: false             // free-mail sender using the recipient's own name, not their address
+    selfNamedSender: false,            // free-mail sender using the recipient's own name, not their address
+    calendarLure: false                // unknown-sender calendar invite: "voicemail" lure + off-domain payload
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -713,6 +714,64 @@ function collectSignals(message)
     // rest still run, and signalsSkipped makes the gap visible.
     signalsSkipped++;
     logError('Signal 9 threw and was skipped: ' + signalError.toString());
+  }
+
+  // ── Signal 11: Voicemail lure in an unknown-sender calendar invite ──────
+  //
+  // "New Voice Message Notification Received", 2026-09-30: a REAL Google
+  // Calendar invite sent from a compromised Workspace account
+  // (lakeviewmillworks.com, valid SPF/DKIM), whose description said "A voice
+  // message was recently recorded in your inbox. Listen to voicemail" — the
+  // link wrapped by Calendar in google.com/url and pointing at the typosquat
+  // strykertraiilers.com. Gmail spam-filed it; we scored it zero.
+  //
+  // Calendar invites are trusted by design: they land on the calendar and
+  // carry a real sender. So detect the anatomy, all four required:
+  //   1. a real invite        — a text/calendar MIME part
+  //   2. an unknown organiser — Google's OWN subject marker, "Invitation from
+  //      an unknown sender:", meaning the user has never interacted with them
+  //   3. a message-waiting lure IN THE EVENT TITLE — CALENDAR_LURE_PATTERNS
+  //      (voicemail, voice/audio message, fax) on the subject after the marker
+  //   4. a payload            — a link whose real destination (after
+  //      unwrapping google.com/url) is neither the sender's domain nor a
+  //      CALENDAR_SAFE_LINK_DOMAINS host
+  // A new contact inviting you to a meeting has 1 and 2 and a Zoom/Meet link;
+  // it is the voicemail pretext plus a link to an unrelated site that has no
+  // innocent reading. Rule 10 DELETES (the user's explicit call, 2026-10-04),
+  // archived to Drive first like every delete; it is also a STRONG corroborator.
+  //
+  // The draft also accepted a PHONE NUMBER as the payload and matched the lure
+  // anywhere in the body. Review showed both delete ordinary invites: every
+  // Meet and Zoom invite carries dial-in numbers, and a recruiter writing "if
+  // I miss you I'll leave a voicemail" is not a lure. Removed before shipping.
+  try
+  {
+    const marker = subject.match(/^invitation from an unknown sender:(.*)$/i);
+    if (marker &&
+        /content-type:[ \t]*text\/calendar/i.test(rawContent) &&
+        CALENDAR_LURE_PATTERNS.some(function(p) { return p.test(marker[1]); }))
+    {
+      const senderHost = atIdx > 0 ? senderAddress.substring(atIdx + 1) : '';
+      const offDomainLink = extractAnchors(rawHtml).some(function(a) {
+        const host = extractUrlHost(unwrapGoogleRedirect(a.href));
+        return host !== '' &&
+          !(senderHost && hostMatchesDomain(host, senderHost)) &&
+          !CALENDAR_SAFE_LINK_DOMAINS.some(function(d) { return hostMatchesDomain(host, d); });
+      });
+      if (offDomainLink)
+      {
+        signals.calendarLure = true;
+        logDebug('Calendar voicemail lure from unknown organiser ' +
+                 sanitizeForLog(senderAddress));
+      }
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 11 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 7: Brand-mismatched call-to-action ───────────────────────────

@@ -1,0 +1,40 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Return-Path: <3pL0aZw0KDdQq1mt0-yf5x0lx.n.u0yylunlB2wj2mmj.dlfn@calendar-server.bounces.google.com>
+Received: from mail-sor-f73.google.com (mail-sor-f73.google.com. [209.85.220.73])
+        by mx.google.com with SMTPS id 4fb4d7f45d1cf-6ae2c41b7a1sor812777a12.4
+        for <geoff.c.freedman@gmail.com>;
+        Mon, 05 Oct 2026 10:15:40 -0700 (PDT)
+From: Priya Shah <priya@kelownaphones.example>
+To: geoff.c.freedman@gmail.com
+Subject: Invitation from an unknown sender: Voicemail system setup walkthrough @ Fri Oct 9, 2026 2pm - 2:30pm (PDT) (geoff.c.freedman@gmail.com)
+Date: Mon, 05 Oct 2026 17:15:39 +0000
+Message-ID: <calendar-8c2e1f0b-1d4a-4c6e-b0f2-6a9d3e7c5b21@google.com>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="cal1"
+
+--cal1
+Content-Type: text/html; charset="UTF-8"
+
+<!-- Link set copied from the user's real unknown-sender Meet invite
+     (calendar., meet., tel.meet, calendly.com, support., www.google.com),
+     names and tokens replaced. The dial-in block is what v6.71.0's draft
+     would have deleted: a phone number counted as a payload. -->
+<p>Thanks for signing up with Kelowna Phones. Let's walk through your new
+voicemail setup and call forwarding.</p>
+<p><a href="https://www.google.com/url?q=https%3A%2F%2Fcalendly.com%2Fkelownaphones%2Fsetup&amp;sa=D&amp;source=calendar">Reschedule</a></p>
+<p><a href="https://meet.google.com/xyz-abcd-efg?hs=224">Join with Google Meet</a></p>
+<p>Join by phone<br>(US) +1 650-555-0134<br>PIN: 123 456 789#</p>
+<p><a href="https://tel.meet/xyz-abcd-efg?pin=1234567890&amp;hs=0">More phone numbers</a></p>
+<p><a href="https://www.google.com/url?q=https%3A%2F%2Fkelownaphones.example%2Fsetup&amp;sa=D&amp;source=calendar">Setup guide</a></p>
+<p><a href="https://calendar.google.com/calendar/event?action=VIEW&amp;eid=x">View all event details</a></p>
+<p><a href="https://support.google.com/calendar/answer/37135#forwarding">Learn more</a></p>
+--cal1
+Content-Type: text/calendar; charset="UTF-8"; method=REQUEST
+
+BEGIN:VCALENDAR
+METHOD:REQUEST
+BEGIN:VEVENT
+SUMMARY:Voicemail system setup walkthrough
+END:VEVENT
+END:VCALENDAR
+--cal1--

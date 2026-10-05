@@ -90,6 +90,37 @@ function extractUrlHost(href)
 }
 
 /**
+ * The real destination of a Google redirect link (www.google.com/url?q=...),
+ * or the href unchanged. Google Calendar wraps every link in an event
+ * description this way, so a payload otherwise reads as google.com.
+ *
+ * @param {string} href - entity-decoded href.
+ * @return {string}
+ */
+function unwrapGoogleRedirect(href)
+{
+  // Google Calendar rewrites every link in an event description as
+  // https://www.google.com/url?q=<real destination>&sa=D&source=calendar...
+  // so without unwrapping, every payload link looks like google.com.
+  // Only the www.google.com/url form is unwrapped; anything malformed returns
+  // the href unchanged (fails toward "google.com", i.e. toward not firing).
+  // Mirrored by _unwrap_google_redirect() in tests/test_spam_detector.py.
+  const s = String(href || '');
+  // The FIRST q= wins (lazy, &-delimited — still linear): a greedy match took
+  // the last, so "?q=https://evil/&x=1&q=https://www.google.com/" read as google.
+  const m = s.match(/^https?:\/\/(?:www\.)?google\.com\/url\?(?:[^#&]*&)*?q=([^&#]*)/i);
+  if (!m) return s;
+  try
+  {
+    return decodeURIComponent(m[1].replace(/\+/g, ' '));
+  }
+  catch (e)
+  {
+    return s;
+  }
+}
+
+/**
  * True if `host` is exactly `domain` or a subdomain of it.
  *
  * Exact-or-dot-suffix is the only correct comparison:

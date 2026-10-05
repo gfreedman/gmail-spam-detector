@@ -32,6 +32,7 @@ from email import policy
 from email.header import decode_header
 from email.parser import HeaderParser
 import unicodedata
+import urllib.parse
 from pathlib import Path
 from typing import NamedTuple
 
@@ -474,6 +475,8 @@ def _load_gs_constants(source):
         'THROWAWAY_TENANT_DOMAINS':     _load_string_array(source, 'THROWAWAY_TENANT_DOMAINS'),
         'TOLL_FREE_DIGIT_RUN':          _load_single_regex(source, 'TOLL_FREE_DIGIT_RUN'),
         'CALLBACK_PHONE_PATTERN':       _load_single_regex(source, 'CALLBACK_PHONE_PATTERN'),
+        'CALENDAR_LURE_PATTERNS':       _load_regex_array(source, 'CALENDAR_LURE_PATTERNS'),
+        'CALENDAR_SAFE_LINK_DOMAINS':   _load_string_array(source, 'CALENDAR_SAFE_LINK_DOMAINS'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
             source, 'IMPERSONATED_SUPPORT_BRANDS', allow_spaces=True),
@@ -535,6 +538,8 @@ RANDOM_LOCAL_PART_PATTERNS      = _gs['RANDOM_LOCAL_PART_PATTERNS']
 IMPERSONATED_SUPPORT_BRANDS     = _gs['IMPERSONATED_SUPPORT_BRANDS']
 BILLING_LANGUAGE_PATTERNS       = _gs['BILLING_LANGUAGE_PATTERNS']
 CALLBACK_PHONE_PATTERN          = _gs['CALLBACK_PHONE_PATTERN']
+CALENDAR_LURE_PATTERNS          = _gs['CALENDAR_LURE_PATTERNS']
+CALENDAR_SAFE_LINK_DOMAINS      = _gs['CALENDAR_SAFE_LINK_DOMAINS']
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -762,6 +767,23 @@ def _is_link_wrapper_host(host, sender_host=''):
     parent = host[len(first) + 1:]
     return bool(parent) and (_host_matches_domain(parent, sender_host) or
                              _host_matches_domain(sender_host, parent))
+
+
+def _unwrap_google_redirect(href):
+    """Mirror of unwrapGoogleRedirect(): the q= destination of a
+    www.google.com/url link, decoded like decodeURIComponent (malformed ->
+    the href unchanged), else the href itself."""
+    s = href or ''
+    m = re.match(r'https?://(?:www\.)?google\.com/url\?(?:[^#&]*&)*?q=([^&#]*)', s, re.I)
+    if not m:
+        return s
+    q = m.group(1).replace('+', ' ')
+    if re.search(r'%(?![0-9A-Fa-f]{2})', q):
+        return s            # decodeURIComponent throws on a malformed escape
+    try:
+        return urllib.parse.unquote(q, errors='strict')
+    except UnicodeDecodeError:
+        return s            # ...and on invalid UTF-8
 
 
 def _extract_anchors(html):
@@ -1152,6 +1174,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'free_mail_random_local': False,
                     'callback_phishing': False,
                     'self_named_sender': False,
+                    'calendar_lure': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -1168,6 +1191,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'free_mail_random_local': False,
         'callback_phishing': False,
         'self_named_sender': False,
+        'calendar_lure': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1371,6 +1395,26 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             signals['callback_phishing'] = True
             signals['matched_patterns'].append('callback_phishing')
 
+    # ── Signal: Voicemail lure in an unknown-sender calendar invite ────────
+    # Mirrors Signal 11: real invite (text/calendar part) + Google's "Invitation
+    # from an unknown sender:" marker + a lure IN THE TITLE + an off-domain
+    # link (after unwrapping google.com/url). No phone-number payload.
+    _marker = re.match(r'invitation from an unknown sender:(.*)$', subject or '', re.I | re.S)
+    if (_marker and
+            re.search(r'content-type:[ \t]*text/calendar', raw or '', re.I) and
+            any(p.search(_marker.group(1)) for p in CALENDAR_LURE_PATTERNS)):
+        _sh = sender_address[_at + 1:] if _at > 0 else ''
+        _off = False
+        for _a in _extract_anchors(html):
+            _h = _extract_url_host(_unwrap_google_redirect(_a['href']))
+            if (_h and not (_sh and _host_matches_domain(_h, _sh)) and
+                    not any(_host_matches_domain(_h, d) for d in CALENDAR_SAFE_LINK_DOMAINS)):
+                _off = True
+                break
+        if _off:
+            signals['calendar_lure'] = True
+            signals['matched_patterns'].append('calendar_lure')
+
     # ── Signal: Brand-mismatched CTA phishing ──────────────────────────────
     # A button naming DocuSign/Adobe Sign/SharePoint whose href the brand does
     # not control. The only signal that reads the LINK GRAPH rather than
@@ -1465,6 +1509,12 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         elif signals['callback_phishing']:
             is_spam = True
             rule = 'RULE 9: Callback phishing'
+
+        # Rule 10: Voicemail lure in an unknown-sender calendar invite. DELETES
+        #   in production (in DESTRUCTIVE_RULES, v6.71.0).
+        elif signals['calendar_lure']:
+            is_spam = True
+            rule = 'RULE 10: Calendar voicemail lure'
 
     return signals, is_spam, rule
 
@@ -2062,7 +2112,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 12
+    EXPECTED_SIGNAL_COUNT = 13
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '

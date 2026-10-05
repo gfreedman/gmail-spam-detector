@@ -20,6 +20,66 @@ detail plus the diffs.
 
 ---
 
+## v6.71.0
+
+**New Signal 11 / Rule 10: voicemail lures in unknown-sender calendar invites.
+Rule 10 deletes.**
+
+The 2026-09-30 "New Voice Message Notification Received" was a real Google
+Calendar invite from a compromised Workspace account
+(`ken.roberts@lakeviewmillworks.com`, valid SPF/DKIM). "Listen to voicemail"
+was wrapped by Calendar in `google.com/url` and pointed at the typosquat
+`strykertraiilers.com`. Gmail spam-filed it, but we scored it zero, so it sat
+waiting for the 7-day grace period. I initially recommended against building a
+rule. The user overruled that, correctly: it is phishing, and they want it
+deleted.
+
+All four conditions are required:
+1. A real invite: a `text/calendar` MIME part.
+2. Google's own "Invitation from an unknown sender:" subject marker, meaning
+   the user has never interacted with this organiser.
+3. A message-waiting pretext **in the event title** (`CALENDAR_LURE_PATTERNS`:
+   voice-mail, voice/audio message, note, memo or recording, fax message or
+   document).
+4. A payload: an anchor whose destination, after `unwrapGoogleRedirect()`
+   (the first `q=` wins), is neither the sender's domain nor a
+   `CALENDAR_SAFE_LINK_DOMAINS` host. That list covers Calendar's own Google
+   hosts (`calendar.`, `meet.`, `support.`, `www.`), `tel.meet`, Zoom, Teams,
+   Webex, GoToMeeting and Calendly. Docs, Sites and Drive are deliberately not
+   on it.
+
+Rule 10 is in `DESTRUCTIVE_RULES` at the user's explicit request; like every
+delete, it archives to Drive first. Signal 11 is also a STRONG corroborator, so
+the phish still in Spam is deleted on the first run after deploy.
+
+An independent review of the draft found it would **delete ordinary
+invites**, and both flaws were fixed before shipping:
+- **Phone numbers counted as a payload.** Every Meet and Zoom invite carries
+  dial-in numbers.
+- **The lure matched anywhere in the description.** A recruiter writing "if I
+  miss you I'll leave a voicemail" would have qualified.
+
+Also from the review: Meet's `tel.meet` and Calendly links were confirmed in
+the user's real invites and are now safe-listed. `google.com` is no longer
+wholly safe. The lure wording now covers hyphenated and "audio message"
+forms.
+
+Tests:
+- 23 JS assertions: the delete path, and each guard (no calendar part, known
+  organiser, the lure only in the description, a phone number, Zoom, Meet,
+  `tel.meet`, Calendly, Teams personal meetings, the sender's own domain, a
+  payload on Google Sites, a doubled `q=`, a malformed redirect). Each guard
+  fails when removed.
+- New fixtures: the real phish, and a legitimate unknown-sender invite titled
+  "Voicemail system setup walkthrough". It carries the real Meet invite's link
+  set (including `tel.meet`, Calendly and a dial-in block), and the draft
+  would have deleted it.
+- The exhaustive cascade sweep is now 20,480 combinations.
+- Two of the user's real unknown-sender invites (Biorender, PBC AGM) score
+  zero in both implementations.
+
+---
+
 ## v6.70.0
 
 **Every Google Calendar invite scored a spam point. It no longer does.**

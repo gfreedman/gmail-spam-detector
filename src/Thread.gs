@@ -91,7 +91,7 @@ function processThread(thread, messages)
         // this is the log-TYPE half of the v6.38.1 bug.
         const detectionLogType = verdict.signals &&
           (verdict.signals.serviceImpersonation || verdict.signals.brandMismatchedCta ||
-           verdict.signals.callbackPhishing)
+           verdict.signals.callbackPhishing || verdict.signals.calendarLure)
           ? 'PHISHING_DETECTED' : 'SPAM_DETECTED';
         // Capture whether the raw message actually reached Drive — the
         // destructive branch is gated on it.

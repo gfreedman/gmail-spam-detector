@@ -1600,6 +1600,90 @@ console.log('\n=== v6.69.0: the gaps v6.68.0 named (loose name, encoding, phones
         sig({ phone: 'ref order #8775551234' }).callbackPhishing === false);
 }
 
+console.log('\n=== Signal 11 / Rule 10: voicemail lure in an unknown-sender calendar invite ===');
+{
+  // Shape of the 2026-09-30 phish: a real Google Calendar invite from a
+  // compromised Workspace account, "Listen to voicemail" wrapped by Calendar
+  // in google.com/url and pointing at the typosquat strykertraiilers.com.
+  const PAYLOAD = 'https://www.google.com/url?q=https%3A%2F%2Fstrykertraiilers.com&amp;sa=D&amp;source=calendar';
+  function invite(o) {
+    o = Object.assign({
+      subject: 'Invitation from an unknown sender: New Voice Message Notification Received @ Wed Sep 30, 2026 (geoff.c.freedman@gmail.com)',
+      from: 'Ken Roberts <ken.roberts@lakeviewmillworks.com>',
+      body: 'NEW Voice Message Notification. A voice message was recently recorded in your inbox. Listen to voicemail',
+      href: PAYLOAD,
+      calendar: true
+    }, o);
+    const m = blacklistMessage('mCAL');
+    m.getFrom = () => o.from;
+    m.getSubject = () => o.subject;
+    m.getPlainBody = () => o.body;
+    const html = '<p>' + o.body + '</p><a href="' + o.href + '">Listen to voicemail</a>' +
+                 '<a href="https://calendar.google.com/calendar/event?action=VIEW">View</a>';
+    m.getBody = () => html;
+    m.getRawContent = () => 'To: geoff.c.freedman@gmail.com\r\n' +
+      'Content-Type: multipart/mixed; boundary="b"\r\n\r\n--b\r\n' +
+      'Content-Type: text/html\r\n\r\n' + html + '\r\n--b\r\n' +
+      (o.calendar ? 'Content-Type: text/calendar; charset="UTF-8"; method=REQUEST\r\n\r\nBEGIN:VCALENDAR\r\n--b--' : '--b--');
+    return m;
+  }
+  const lure = (o) => makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } })
+                        .collectSignals(invite(o)).calendarLure === true;
+
+  const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  const sig = ctx.collectSignals(invite());
+  check('the real phish shape fires Signal 11', sig.calendarLure === true, JSON.stringify(sig));
+  check('...is judged spam under Rule 10',
+        ctx.makeVerdict(sig) === true && ctx.getRuleFromSignals(sig).rule === 'Rule 10',
+        ctx.getRuleFromSignals(sig).rule);
+  check('...corroborates a Gmail spam verdict (dies on the next Spam review)',
+        ctx.hasCorroboratingSignal(sig) === true);
+  check('...appears as CALENDAR_LURE in the log', ctx.buildSignalsCsv(sig).indexOf('CALENDAR_LURE') !== -1);
+  {
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m = invite();
+    const th = fakeThread([m], c.calls);
+    c.disposeDetectedMessage(m, th, c.collectSignals(m), true);
+    check('Rule 10 PERMANENTLY DELETES (user\'s explicit call)',
+          c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c.calls.map(x => x.op)));
+  }
+
+  // Each guard closes an innocent reading.
+  check('no text/calendar part (not a real invite) -> no fire', lure({ calendar: false }) === false);
+  check('a KNOWN organiser ("Invitation:", no unknown-sender marker) -> no fire',
+        lure({ subject: 'Invitation: New Voice Message Notification @ Wed Sep 30, 2026' }) === false);
+  check('no voicemail/fax lure in the TITLE (a normal new-contact invite) -> no fire',
+        lure({ subject: 'Invitation from an unknown sender: Intro call @ Wed Sep 30, 2026' }) === false);
+  check('"voicemail" only in the description (recruiter: "I\'ll leave a voicemail") -> no fire',
+        lure({ subject: 'Invitation from an unknown sender: Phone screen @ Wed Sep 30, 2026',
+               body: 'I\'ll call you; if I miss you I\'ll leave a voicemail.' }) === false);
+  check('hyphenated "Voice-Mail" in the title still fires',
+        lure({ subject: 'Invitation from an unknown sender: New Voice-Mail waiting' }) === true);
+  check('"Audio Message" in the title fires',
+        lure({ subject: 'Invitation from an unknown sender: Audio Message for you' }) === true);
+  check('payload is a Zoom link -> no fire', lure({ href: 'https://us02web.zoom.us/j/123456789' }) === false);
+  check('payload is a Google Meet link -> no fire', lure({ href: 'https://meet.google.com/abc-defg-hij' }) === false);
+  check('payload is the sender\'s own domain -> no fire',
+        lure({ href: 'https://www.google.com/url?q=https%3A%2F%2Flakeviewmillworks.com%2Fvm' }) === false);
+  check('an UNWRAPPED off-domain link also fires', lure({ href: 'https://strykertraiilers.com/vm' }) === true);
+  check('a phone number is NOT a payload (every Meet/Zoom invite has dial-in numbers)',
+        lure({ href: 'mailto:x@y.z', body: 'Join by phone (US) +1 650-555-0134 PIN: 123 456' }) === false);
+  check('Meet dial-in link (tel.meet) -> no fire', lure({ href: 'https://tel.meet/abc-defg-hij?pin=123' }) === false);
+  check('Calendly link -> no fire', lure({ href: 'https://calendly.com/someone/30min' }) === false);
+  check('Teams personal meeting (teams.live.com) -> no fire',
+        lure({ href: 'https://teams.live.com/meet/9876543210' }) === false);
+  check('a payload hosted on Google Sites/Docs STILL fires (not all of google.com is safe)',
+        lure({ href: 'https://www.google.com/url?q=https%3A%2F%2Fsites.google.com%2Fview%2Fvm' }) === true);
+  check('the FIRST q= wins in a google.com/url link',
+        ctx.unwrapGoogleRedirect('https://www.google.com/url?q=https://evil.example/&x=1&q=https://www.google.com/') ===
+        'https://evil.example/');
+  check('a malformed google.com/url escape does not throw, and counts as google',
+        lure({ href: 'https://www.google.com/url?q=%E0%A4%A' }) === false);
+  check('unwrapGoogleRedirect decodes the destination',
+        ctx.unwrapGoogleRedirect('https://www.google.com/url?q=https%3A%2F%2Fx.example%2Fa&sa=D') ===
+        'https://x.example/a');
+}
+
 console.log('\n=== Signal 2g: the full address in a subject is not a name ===');
 {
   // Google Calendar appends the attendee's address to every invite subject.
@@ -1875,7 +1959,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 // corpus fires Rule 1 in 51 of 59 convictions and never fires Rules 3 or 6.
 //
 // The signal space is small enough to check completely, so check it completely:
-// 11 booleans x clickbaitCount 0..4 = 10240 combinations, in well under a second.
+// 12 booleans x clickbaitCount 0..4 = 20480 combinations, in well under a second.
 {
   console.log('\n=== the two rule cascades must agree (exhaustive) ===');
   const ctx = makeCtx();
@@ -1883,7 +1967,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
                  'marketingFormat', 'suspiciousFromName',
                  'emptySubjectWithAttachment', 'serviceImpersonation',
                  'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',
-                 'selfNamedSender'];
+                 'selfNamedSender', 'calendarLure'];
 
   // Guard the guard: if collectSignals() grows a signal this list does not
   // know about, the sweep below silently stops being exhaustive.
@@ -1895,7 +1979,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 
   const STRONG = ['blacklistedSender', 'serviceImpersonation', 'brandMismatchedCta',
                   'freeMailRandomLocal', 'callbackPhishing', 'emptySubjectWithAttachment',
-                  'selfNamedSender'];
+                  'selfNamedSender', 'calendarLure'];
   let combos = 0, disagreements = [], uncorroborated = [], offSpec = [];
   for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
     for (let cb = 0; cb <= 4; cb++) {

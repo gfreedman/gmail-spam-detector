@@ -6,10 +6,10 @@
  * is the catch-all: anything thrown below it returns unevaluated:'error' so the
  * message is retried rather than silently marked clean.
  *
- * NOTE: the same nine rules are implemented a second time as
+ * NOTE: the same ten rules are implemented a second time as
  * getRuleFromSignals() in Flush.gs, which is what the destroy-vs-quarantine
  * decision actually reads. The two are pinned to each other by an exhaustive
- * 10,240-combination test in tests/test_disposition.js.
+ * 20,480-combination test in tests/test_disposition.js.
  *
  * Apps Script concatenates every .gs file in sources.json into ONE global
  * scope. These are not modules: nothing is imported, and every function here
@@ -134,6 +134,15 @@ function makeVerdict(signals)
     return true;
   }
 
+  // Rule 10: Voicemail lure in an unknown-sender calendar invite (v6.71.0).
+  // DELETES — see Signal 11 for the four required conditions.
+  if (signals.calendarLure)
+  {
+    logInfo('PHISHING DETECTED: Calendar invite from an unknown organiser with ' +
+            'a voicemail/fax lure in the title and an off-domain link');
+    return true;
+  }
+
   // No rule triggered — email is not spam
   logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
            ', blacklist=' + signals.blacklistedSender +
@@ -146,7 +155,8 @@ function makeVerdict(signals)
            ', brandMismatchedCta=' + signals.brandMismatchedCta +
            ', freeMailRandomLocal=' + signals.freeMailRandomLocal +
            ', callbackPhishing=' + signals.callbackPhishing +
-           ', selfNamedSender=' + signals.selfNamedSender);
+           ', selfNamedSender=' + signals.selfNamedSender +
+           ', calendarLure=' + signals.calendarLure);
   return false;
 }
 

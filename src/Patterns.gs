@@ -376,6 +376,42 @@ const FREE_MAIL_DOMAINS = Object.freeze([
 ]);
 
 /**
+ * Lure wording for Signal 11: a "message waiting" pretext in a calendar
+ * invite's EVENT TITLE (the subject after Google's marker), never the
+ * description — vendors and recruiters mention voicemail in passing. Only
+ * ever read for mail that is ALSO a real calendar invite carrying Google's own
+ * "Invitation from an unknown sender" marker and an off-domain link.
+ *
+ * Added v6.71.0 after "New Voice Message Notification Received" arrived as a
+ * Google Calendar invite from a compromised Workspace account, its "Listen to
+ * voicemail" link wrapped in google.com/url and pointing at the typosquat
+ * strykertraiilers.com.
+ * @const {Array<RegExp>}
+ */
+const CALENDAR_LURE_PATTERNS = Object.freeze([
+  /\bvoice[- ]?mails?\b/i,
+  /\bvoice[- ]?(?:message|note|memo|recording)s?\b/i,
+  /\baudio (?:message|recording)s?\b/i,
+  /\bfax(?:ed)? (?:message|document)s?\b/i
+]);
+
+/**
+ * Link destinations that are NOT a payload in a calendar invite: the parts of
+ * Google that Calendar's own template links (NOT all of google.com — Docs,
+ * Sites, Drive and Forms host phishing pages too), schema.org markup, and the
+ * meeting and booking services an organiser legitimately links. Taken from the
+ * user's real invites: a Meet invite links calendar., meet., support.,
+ * www.google.com, tel.meet (dial-in numbers) and calendly.com.
+ * @const {Array<string>}
+ */
+const CALENDAR_SAFE_LINK_DOMAINS = Object.freeze([
+  'calendar.google.com', 'meet.google.com', 'support.google.com', 'www.google.com',
+  'tel.meet', 'schema.org',
+  'zoom.us', 'zoom.com', 'zoomgov.com', 'teams.microsoft.com', 'teams.live.com',
+  'webex.com', 'gotomeeting.com', 'calendly.com'
+]);
+
+/**
  * Free-to-create tenant domains that callback scams send from. Unlike
  * FREE_MAIL_DOMAINS these are NOT used by Signal 8: a Microsoft 365 tenant's
  * default domain (contoso123.onmicrosoft.com) routinely has machine-looking

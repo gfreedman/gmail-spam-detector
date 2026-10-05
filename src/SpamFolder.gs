@@ -436,6 +436,7 @@ function describeSignals(signals)
                                             ? 'callback-phishing (name only — waits)'
                                             : 'callback-phishing');
   if (signals.selfNamedSender)            fired.push('self-named-sender');
+  if (signals.calendarLure)               fired.push('calendar-voicemail-lure');
 
   // Parenthesised and last, deliberately. Bulk routing corroborates nothing on
   // its own — hasCorroboratingSignal() excludes it because virtually every

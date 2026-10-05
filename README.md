@@ -42,13 +42,14 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - CTA names a document brand its destination doesn't control = PHISHING (quarantined, not deleted)
 - Free-mail sender with a machine-generated address + 2 spam behaviours = SPAM
 - Free-mail sender invoicing as a brand it doesn't control, with a phone number to call = PHISHING (quarantined, not deleted)
+- Calendar invite from an unknown organiser with a voicemail/fax lure in the title and an off-domain link = PHISHING
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
 
 ## 📊 Results
 
-- ✅ **100% detection** on 57/57 spam + 7/7 scam (.eml files)
-- ✅ **0% false positives** on 25/25 legitimate emails
+- ✅ **100% detection** on 57/57 spam + 8/8 scam (.eml files)
+- ✅ **0% false positives** on 26/26 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
 - ✅ **CI asks prod whether it is healthy after every deploy** — the `verify-prod` job confirms the trigger is running, the live version matches the commit, and the last run was clean.
@@ -255,6 +256,15 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
   with the middle initial dropped — fills only the callback brand slot, never
   the Spam-folder deletion
 
+**15. Calendar Voicemail Lure (Structural + Content Signal)**
+- A real calendar invite (`text/calendar` part) carrying Google's own
+  "Invitation from an unknown sender:" marker, a voicemail/fax pretext in the
+  event title, and a link whose real destination (after unwrapping Calendar's
+  `google.com/url` wrapper) is neither the sender's domain nor a meeting or
+  booking service
+- Deletes (Rule 10). Built after a compromised Workspace account sent "New
+  Voice Message Notification" pointing at a typosquat domain
+
 ### Decision Rules
 
 **Conservative approach - requires multiple signals:**
@@ -300,6 +310,10 @@ if (freeMailRandomLocal && spamBehaviorCount >= 2) { return SPAM; }
 // the recipient's own name), with a phone number as the payload → callback
 // phishing. QUARANTINES, like Rule 7.
 if (callbackPhishing) { return SPAM; }
+
+// RULE 10: Unknown-sender calendar invite + voicemail/fax lure in the title +
+// off-domain link → calendar phishing. DELETES.
+if (calendarLure) { return SPAM; }
 
 return NOT_SPAM;
 ```
@@ -427,8 +441,8 @@ addToWhitelist('domain.com');
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
 │   ├── spam_examples/           # Real spam .eml files (57)
-│   ├── scam_examples/           # Scam .eml files (7)
-│   └── ham_examples/            # Legitimate .eml files (25)
+│   ├── scam_examples/           # Scam .eml files (8)
+│   └── ham_examples/            # Legitimate .eml files (26)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

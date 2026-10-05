@@ -6,7 +6,7 @@
  * rather than a boolean — and it is what disposeDetectedMessage() reads to
  * decide whether a message is destroyed or quarantined.
  *
- * Rule order is the contract between the two. An exhaustive 10,240-combination
+ * Rule order is the contract between the two. An exhaustive 20,480-combination
  * test in tests/test_disposition.js now enforces it; before that it was a
  * comment.
  *
@@ -226,6 +226,11 @@ function getRuleFromSignals(signals)
     return { rule: 'Rule 9', description: 'Callback phishing (free-mail sender invoicing as a brand it does not control, payload is a phone number)' };
   }
 
+  if (signals.calendarLure)
+  {
+    return { rule: 'Rule 10', description: 'Calendar voicemail lure (unknown-sender invite, voicemail/fax pretext in the title, off-domain link)' };
+  }
+
   return { rule: 'NONE', description: 'No rule triggered' };
 }
 
@@ -254,6 +259,7 @@ function buildSignalsCsv(signals)
   if (signals.callbackPhishing)           parts.push('CALLBACK_PHISHING');
   if (signals.selfNamedSender)            parts.push('SELF_NAMED_SENDER');
   if (signals._callbackLooseOnly)         parts.push('CALLBACK_NAME_ONLY');
+  if (signals.calendarLure)               parts.push('CALENDAR_LURE');
   // Surfaced in the Sheet so a degraded verdict is visible in the log, not
   // just in an execution transcript nobody reads.
   if (signals._degraded)                  parts.push('DEGRADED');

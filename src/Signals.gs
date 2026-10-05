@@ -529,7 +529,7 @@ function collectSignals(message)
     logError('Signal 8 threw and was skipped: ' + signalError.toString());
   }
 
-  // ── Signal 10: Free-mail sender using the recipient's own name ──────────
+  // ── Signal 10: Free-mail (or throwaway tenant) sender using the recipient's own name
   //
   // Runs BEFORE Signal 9, which reads it.
   //
@@ -543,8 +543,9 @@ function collectSignals(message)
   // is exactly what IMPERSONATED_SUPPORT_BRANDS failed to keep up with.
   //
   // Requirements, each closing an innocent reading:
-  //   - free-mail sender: services that send you a copy of your own action
-  //     ("Geoff C Freedman <noreply@forms.example>") use their own domain
+  //   - free-mail or throwaway-tenant sender (isThrowawayHost): services that
+  //     send you a copy of your own action ("Geoff C Freedman
+  //     <noreply@forms.example>") use their own domain
   //   - the sender is not one of the recipient's mailboxes. Compared in
   //     Gmail's canonical form (dots, +tag, googlemail) against To, Cc and
   //     Delivered-To — the last is the account that received it, so the
@@ -573,7 +574,8 @@ function collectSignals(message)
   //
   // selfNamedLoose (v6.69.0) is the same test with the exact-name requirement
   // relaxed: every 2+ character word of the From name appears among the
-  // recipient's name words OR the words of the To / Delivered-To local parts
+  // recipient's name words OR the local-part words of the recipient's OWN
+  // mailbox — Delivered-To, plus any To entry that is that mailbox
   // ("geoff.c.freedman@"). That reaches a To with no display name at all —
   // Bcc, undisclosed-recipients, a bare address — and "Geoff Freedman" with
   // the middle initial dropped. It is looser, so it feeds ONLY Signal 9's
@@ -737,6 +739,9 @@ function collectSignals(message)
   // "not spam" verdict here was reached with less evidence than intended and
   // must not be treated as a clean bill of health. See processThread().
   signals._degraded = signalsSkipped > 0;
+  // Meta, set by Signal 9 when its hit rests only on the loose name match.
+  // Defaulted here so it is always present, like _degraded.
+  if (signals._callbackLooseOnly !== true) signals._callbackLooseOnly = false;
 
   return signals;
 }

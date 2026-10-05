@@ -198,10 +198,13 @@ const IMPERSONATED_SUPPORT_BRANDS = Object.freeze([
  * Linear — no nested quantifiers, so it is not a ReDoS risk on the 64KB
  * scan window. Requires a separator between groups, so it does not match a
  * bare 10-digit run such as an order number.
+ *
+ * One line, and [0-9] rather than \d (identical in JS), so the Python harness
+ * loads it with _load_single_regex() instead of keeping a hand-copied
+ * duplicate — Python's \d would also match Arabic-Indic digits.
  * @const {RegExp}
  */
-const CALLBACK_PHONE_PATTERN =
-  /(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}/;
+const CALLBACK_PHONE_PATTERN = /(?:\+?1[\s.\-]?)?\(?[0-9]{3}\)?[\s.\-][0-9]{3}[\s.\-][0-9]{4}/;
 
 /**
  * A toll-free number written as one digit run: 18005550134, or what

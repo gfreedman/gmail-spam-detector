@@ -473,6 +473,7 @@ def _load_gs_constants(source):
         'FREE_MAIL_DOMAINS':            _load_string_array(source, 'FREE_MAIL_DOMAINS'),
         'THROWAWAY_TENANT_DOMAINS':     _load_string_array(source, 'THROWAWAY_TENANT_DOMAINS'),
         'TOLL_FREE_DIGIT_RUN':          _load_single_regex(source, 'TOLL_FREE_DIGIT_RUN'),
+        'CALLBACK_PHONE_PATTERN':       _load_single_regex(source, 'CALLBACK_PHONE_PATTERN'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
             source, 'IMPERSONATED_SUPPORT_BRANDS', allow_spaces=True),
@@ -533,13 +534,7 @@ TOLL_FREE_DIGIT_RUN             = _gs['TOLL_FREE_DIGIT_RUN']
 RANDOM_LOCAL_PART_PATTERNS      = _gs['RANDOM_LOCAL_PART_PATTERNS']
 IMPERSONATED_SUPPORT_BRANDS     = _gs['IMPERSONATED_SUPPORT_BRANDS']
 BILLING_LANGUAGE_PATTERNS       = _gs['BILLING_LANGUAGE_PATTERNS']
-# Single regex rather than an array, so it is mirrored by value. Kept here
-# beside the arrays it is used with; the .gs source CALLBACK_PHONE_PATTERN is
-# the original and the two must stay identical.
-# re.ASCII: JS \d is ASCII-only; without it Python's \d also matches
-# Arabic-Indic and Devanagari digits, which NFKC does not fold.
-CALLBACK_PHONE_PATTERN          = re.compile(
-    r'(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}', re.ASCII)
+CALLBACK_PHONE_PATTERN          = _gs['CALLBACK_PHONE_PATTERN']
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -1317,8 +1312,10 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Names from the DECODED From/To; two words of 2+ chars; sender not one of
     # the recipient's mailboxes (canonical form, To/Cc/Delivered-To); no 3+
     # letter name word in the sender's local part. _self_named_loose (every
-    # name word among the To name / To and Delivered-To local-part words)
-    # feeds only the callback block, never corroboration.
+    # name word among the To name / the local-part words of the recipient's own
+    # mailbox) feeds only the callback block. Whether a loose-only callback
+    # corroborates (_callbackLooseOnly) is JS-only meta, pinned by
+    # test_disposition.js — this mirror does not model corroboration.
     _host = sender_address[_at + 1:] if _at > 0 else ''
     _is_throwaway = _at > 0 and (
         any(_host_matches_domain(_host, d) for d in FREE_MAIL_DOMAINS) or

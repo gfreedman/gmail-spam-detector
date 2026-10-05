@@ -136,12 +136,13 @@ function getRawHeader(rawContent, name)
  * Whitespace is split on an explicit [ \t] class, never \s: JS and Python
  * disagree on what \s covers (\x1c-\x1f, \x85), and this must not.
  *
- * Reads the RAW header value, so an RFC 2047 encoded-word name stays encoded
- * and fails closed (it has no spaces, so it never reaches two words).
+ * Expects a DECODED header value (Signal 10 passes getFrom()/getTo()). Fed a
+ * raw RFC 2047 encoded-word name it fails closed: no spaces, so it never
+ * reaches two words — which is why v6.69.0 stopped feeding it raw headers.
  *
  * Mirrored by _header_display_name() in tests/test_spam_detector.py.
  *
- * @param {string|null} headerValue - e.g. getRawHeader(raw, 'From').
+ * @param {string|null} headerValue - e.g. message.getFrom().
  * @return {string} Normalised display name, or '' if there is none.
  */
 function headerDisplayName(headerValue)
@@ -195,9 +196,9 @@ function canonicalMailbox(address)
  * a regex scan. The v6.69.0 review measured the obvious regex
  * ([A-Za-z0-9._%+-]+@...) at 10-34 s on a 100 KB To header with no '@' —
  * quadratic backtracking on a value the sender controls. Splitting on one
- * character class is linear. Not truncated either: cutting the header could
- * drop the user's own address from the not-yourself guard, which fails toward
- * firing.
+ * character class is linear. Not truncated here beyond the caller's
+ * sanitizeInput() 100 KB cap: cutting the header shorter could drop the
+ * user's own address from the not-yourself guard, which fails toward firing.
  *
  * Mirrored by _header_addresses() in tests/test_spam_detector.py.
  *

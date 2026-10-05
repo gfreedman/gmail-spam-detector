@@ -249,7 +249,7 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
 - A template tell that survives brand rotation: the callback campaign swapped
   Norton for "Google Workspace" and the brand list missed it; this did not
 - Convicts nothing in the inbox alone. It corroborates Gmail's own spam verdict
-  and fills Signal 10's brand slot (so Rule 9 still quarantines)
+  and fills the callback check's brand slot (so Rule 9 still quarantines)
 - Reads the decoded names, so an encoded name doesn't hide it. A looser form —
   your name matched against your *address* (Bcc, undisclosed recipients) or
   with the middle initial dropped — fills only the callback brand slot, never

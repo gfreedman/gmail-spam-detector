@@ -123,7 +123,6 @@ function collectSignals(message)
   // has to outlive both.
   const textToCheck = subject + ' ' + from;   // Signals 2 and 3
   const atIdx       = senderAddress.lastIndexOf('@');
-  let   isFreeMail  = false;                  // set by Signal 8
   let   isThrowawayHost = false;              // free mail OR a throwaway tenant; set by 8, read by 9 and 10
   let   selfNamedLoose  = false;              // set by Signal 10, read ONLY by Signal 9 — see Signal 10
 
@@ -504,7 +503,7 @@ function collectSignals(message)
     {
       const localPart   = senderAddress.substring(0, atIdx);
       const senderHost  = senderAddress.substring(atIdx + 1);
-      isFreeMail        = FREE_MAIL_DOMAINS.some(function(d) {
+      const isFreeMail  = FREE_MAIL_DOMAINS.some(function(d) {
         return hostMatchesDomain(senderHost, d);
       });
       isThrowawayHost   = isFreeMail || THROWAWAY_TENANT_DOMAINS.some(function(d) {

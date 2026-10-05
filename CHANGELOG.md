@@ -75,7 +75,8 @@ pinned by tests that fail on the old code:
 Also from the review: the toll-free run now treats letters and `#` as part of
 the surrounding token, so `order #8775551234` and an id inside a URL are not
 phone numbers. And the Python `CALLBACK_PHONE_PATTERN` uses `re.ASCII` to match
-JS `\d`.
+JS `\d`. (Superseded after release, with no version bump: the `.gs` pattern now
+uses `[0-9]` and Python loads it from source, so there is no hand copy left.)
 
 Each path has a test that was verified to fail when the path is removed
 (fault-injected). One new scam fixture combines a bare To, a dropped middle

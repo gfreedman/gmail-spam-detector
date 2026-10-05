@@ -99,9 +99,6 @@ function extractUrlHost(href)
  */
 function unwrapGoogleRedirect(href)
 {
-  // Google Calendar rewrites every link in an event description as
-  // https://www.google.com/url?q=<real destination>&sa=D&source=calendar...
-  // so without unwrapping, every payload link looks like google.com.
   // Only the www.google.com/url form is unwrapped; anything malformed returns
   // the href unchanged (fails toward "google.com", i.e. toward not firing).
   // Mirrored by _unwrap_google_redirect() in tests/test_spam_detector.py.

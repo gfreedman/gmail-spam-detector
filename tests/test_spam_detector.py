@@ -1401,7 +1401,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # link (after unwrapping google.com/url). No phone-number payload.
     _marker = re.match(r'invitation from an unknown sender:(.*)$', subject or '', re.I | re.S)
     if (_marker and
-            re.search(r'content-type:[ \t]*text/calendar', raw or '', re.I) and
+            re.search(r'^content-type:[ \t]*text/calendar', raw or '', re.I | re.M) and
             any(p.search(_marker.group(1)) for p in CALENDAR_LURE_PATTERNS)):
         _sh = sender_address[_at + 1:] if _at > 0 else ''
         _off = False

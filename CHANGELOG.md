@@ -20,6 +20,43 @@ detail plus the diffs.
 
 ---
 
+## v6.72.0
+
+**Deploys show progress and an ETA. Signal 11 matching is tightened.**
+
+v6.71.0 confirmed working in prod: the "New Voice Message Notification" phish
+was deleted from Spam at 02:58 UTC on 2026-10-05 under Rule 10
+(`CALENDAR_LURE`).
+
+Deploy progress, at the user's request: a 5-15 minute pipeline that prints
+nothing reads as hung.
+- **Each job prints one progress line** to its log and the run's summary page,
+  e.g. `[███░░] 3/5 · validate ✓`.
+- **`verify-prod` prints a line on every poll**, e.g. `[████░] 4/5 · validate ✓
+  · verify-prod waiting for 10-min trigger (attempt 2/20) · ~6m left`. The ETA
+  comes from the health marker's last-run time, not the loop counter, because
+  the wait is the 10-minute trigger.
+- **`prod_health.py`** prints `Next run due ~HH:MM UTC (in Nm)`.
+- **New `scripts/watch_deploy.py`** follows a run from a terminal in the same
+  format. Job ETAs are medians of recent successful runs; `verify-prod` uses
+  the trigger clock.
+- The `verify-prod` loop now captures output with `if out=$(...)`, so `bash -e`
+  does not exit on the first unhealthy attempt. Simulated offline with a fake
+  `prod_health.py`: unhealthy with an ETA, then no marker, then healthy.
+- The stale comment saying the marker updates "~1 min" after a deploy is fixed
+  (it is every 10 minutes).
+
+Signal 11 nits:
+- **The title match now spans newlines** in JS (`[\s\S]*`), matching
+  Python's `re.S`. This was a confirmed parity gap.
+- **The `text/calendar` test is line-anchored**, so it means a MIME part
+  header, not the words anywhere in a body.
+- Two new tests, each verified to fail when its fix is reverted.
+- Constants moved, one duplicated comment removed, and one key comment
+  corrected.
+
+---
+
 ## v6.71.0
 
 **New Signal 11 / Rule 10: voicemail lures in unknown-sender calendar invites.

@@ -376,6 +376,39 @@ const FREE_MAIL_DOMAINS = Object.freeze([
 ]);
 
 /**
+ * Free-to-create tenant domains that callback scams send from. Unlike
+ * FREE_MAIL_DOMAINS these are NOT used by Signal 8: a Microsoft 365 tenant's
+ * default domain (contoso123.onmicrosoft.com) routinely has machine-looking
+ * names, so "machine-generated sender" would mean nothing there. They count
+ * only for Signals 9 and 10, where the sender is impersonating a brand or the
+ * recipient — something a real tenant has no reason to do.
+ * @const {Array<string>}
+ */
+const THROWAWAY_TENANT_DOMAINS = Object.freeze([
+  'onmicrosoft.com'
+]);
+
+/**
+ * Local parts that look machine-generated rather than chosen by a person.
+ *
+ * Two shapes, both deliberately narrow:
+ *   letters, 3+ digits, THEN MORE LETTERS  -> raju47326yu, amit83920xk
+ *   5+ consecutive digits                  -> pooja1029384, mailer99281
+ *
+ * The trailing-letters requirement is what makes the first safe: "john1985"
+ * and "clark.kent1938" are how humans write a birth year and do NOT match.
+ * Measured against 42 realistic personal and service addresses (jane.doe,
+ * mike_92, tom99, jd1990, no-reply, jobalerts-noreply, dse_NA3...) with zero
+ * matches, and 6/6 on spam-shaped ones.
+ *
+ * @const {Array<RegExp>}
+ */
+const RANDOM_LOCAL_PART_PATTERNS = Object.freeze([
+  /^[a-z]{2,}\d{3,}[a-z]{1,6}$/i,
+  /^[a-z.\-_]*\d{5,}[a-z.\-_]*$/i
+]);
+
+/**
  * Lure wording for Signal 11: a "message waiting" pretext in a calendar
  * invite's EVENT TITLE (the subject after Google's marker), never the
  * description — vendors and recruiters mention voicemail in passing. Only
@@ -409,39 +442,6 @@ const CALENDAR_SAFE_LINK_DOMAINS = Object.freeze([
   'tel.meet', 'schema.org',
   'zoom.us', 'zoom.com', 'zoomgov.com', 'teams.microsoft.com', 'teams.live.com',
   'webex.com', 'gotomeeting.com', 'calendly.com'
-]);
-
-/**
- * Free-to-create tenant domains that callback scams send from. Unlike
- * FREE_MAIL_DOMAINS these are NOT used by Signal 8: a Microsoft 365 tenant's
- * default domain (contoso123.onmicrosoft.com) routinely has machine-looking
- * names, so "machine-generated sender" would mean nothing there. They count
- * only for Signals 9 and 10, where the sender is impersonating a brand or the
- * recipient — something a real tenant has no reason to do.
- * @const {Array<string>}
- */
-const THROWAWAY_TENANT_DOMAINS = Object.freeze([
-  'onmicrosoft.com'
-]);
-
-/**
- * Local parts that look machine-generated rather than chosen by a person.
- *
- * Two shapes, both deliberately narrow:
- *   letters, 3+ digits, THEN MORE LETTERS  -> raju47326yu, amit83920xk
- *   5+ consecutive digits                  -> pooja1029384, mailer99281
- *
- * The trailing-letters requirement is what makes the first safe: "john1985"
- * and "clark.kent1938" are how humans write a birth year and do NOT match.
- * Measured against 42 realistic personal and service addresses (jane.doe,
- * mike_92, tom99, jd1990, no-reply, jobalerts-noreply, dse_NA3...) with zero
- * matches, and 6/6 on spam-shaped ones.
- *
- * @const {Array<RegExp>}
- */
-const RANDOM_LOCAL_PART_PATTERNS = Object.freeze([
-  /^[a-z]{2,}\d{3,}[a-z]{1,6}$/i,
-  /^[a-z.\-_]*\d{5,}[a-z.\-_]*$/i
 ]);
 
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

@@ -1650,6 +1650,10 @@ console.log('\n=== Signal 11 / Rule 10: voicemail lure in an unknown-sender cale
 
   // Each guard closes an innocent reading.
   check('no text/calendar part (not a real invite) -> no fire', lure({ calendar: false }) === false);
+  check('"content-type: text/calendar" in body text is not a MIME part -> no fire',
+        lure({ calendar: false, body: 'Listen to voicemail. see content-type: text/calendar' }) === false);
+  check('a title continuing past a newline still matches (parity with Python re.S)',
+        lure({ subject: 'Invitation from an unknown sender: x\nNew Voicemail waiting' }) === true);
   check('a KNOWN organiser ("Invitation:", no unknown-sender marker) -> no fire',
         lure({ subject: 'Invitation: New Voice Message Notification @ Wed Sep 30, 2026' }) === false);
   check('no voicemail/fax lure in the TITLE (a normal new-contact invite) -> no fire',

@@ -146,7 +146,7 @@ function collectSignals(message)
     freeMailRandomLocal: false,        // free-mail sender with a machine-generated local part
     callbackPhishing: false,           // fake brand invoice from free mail, payload is a phone number
     selfNamedSender: false,            // free-mail sender using the recipient's own name, not their address
-    calendarLure: false                // unknown-sender calendar invite: "voicemail" lure + off-domain payload
+    calendarLure: false                // unknown-sender calendar invite: voicemail lure in the title + off-domain link
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -746,9 +746,12 @@ function collectSignals(message)
   // I miss you I'll leave a voicemail" is not a lure. Removed before shipping.
   try
   {
-    const marker = subject.match(/^invitation from an unknown sender:(.*)$/i);
+    // [\s\S] not '.': Python's mirror uses re.S, and '.' stops at a newline.
+    // The text/calendar test is line-anchored so it means a MIME part header,
+    // not those words anywhere in a body.
+    const marker = subject.match(/^invitation from an unknown sender:([\s\S]*)$/i);
     if (marker &&
-        /content-type:[ \t]*text\/calendar/i.test(rawContent) &&
+        /^content-type:[ \t]*text\/calendar/im.test(rawContent) &&
         CALENDAR_LURE_PATTERNS.some(function(p) { return p.test(marker[1]); }))
     {
       const senderHost = atIdx > 0 ? senderAddress.substring(atIdx + 1) : '';

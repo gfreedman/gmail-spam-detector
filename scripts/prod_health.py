@@ -129,8 +129,22 @@ def main():
                   % ', '.join(f['name'] for f in extra[:3]))
         print(); print('\033[91m1 check(s) FAILED\033[0m'); return 1
 
-    print('\nMarker: status=%s version=%s at=%s\n'
+    print('\nMarker: status=%s version=%s at=%s'
           % (marker['status'], marker['ver'], marker['ts']))
+    # When the next trigger run is due: the marker is rewritten every 10 min,
+    # so a fresh deploy is visible no sooner than this. CI's verify-prod loop
+    # reads the "(in Nm)" part for its progress line.
+    try:
+        last = datetime.datetime.fromisoformat(marker['ts'].replace('Z', '+00:00'))
+        now  = datetime.datetime.now(datetime.timezone.utc)
+        due  = last + datetime.timedelta(minutes=10)
+        while due < now:
+            due += datetime.timedelta(minutes=10)
+        mins = -(-int((due - now).total_seconds()) // 60)
+        print('Next run due ~%s UTC (in %dm)' % (due.strftime('%H:%M'), mins))
+    except ValueError:
+        pass
+    print()
 
     # 1. liveness
     try:

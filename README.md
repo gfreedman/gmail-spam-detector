@@ -47,7 +47,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 ## 📊 Results
 
-- ✅ **100% detection** on 57/57 spam + 6/6 scam (.eml files)
+- ✅ **100% detection** on 57/57 spam + 7/7 scam (.eml files)
 - ✅ **0% false positives** on 24/24 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
@@ -220,9 +220,12 @@ Bank Account, Government Hiding, Blood Thinner
   their address — but it corroborates Gmail's own spam verdict
 
 **10. Callback-Phishing Anatomy (Content Signal)**
-- A free-mail sender, a brand it provably is not (or your own name — see 14),
-  billing language and a phone number — all four. The payload is a number to
-  call, so there is no link to inspect. Quarantines rather than deletes
+- A free-mail (or throwaway `*.onmicrosoft.com`) sender, a brand it provably
+  is not (or your own name — see 14), billing language and a phone number —
+  all four. The payload is a number to call, so there is no link to inspect.
+  Quarantines rather than deletes
+- The phone check sees through `1-8OO-…`, full-width digits and
+  digit-by-digit spacing
 
 **11. Forged Sender Headers (Technical Signal)**
 - A Date header that is not a date (an unfilled template variable), or a
@@ -247,6 +250,10 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
   Norton for "Google Workspace" and the brand list missed it; this did not
 - Convicts nothing in the inbox alone. It corroborates Gmail's own spam verdict
   and fills Signal 10's brand slot (so Rule 9 still quarantines)
+- Reads the decoded names, so an encoded name doesn't hide it. A looser form —
+  your name matched against your *address* (Bcc, undisclosed recipients) or
+  with the middle initial dropped — fills only the callback brand slot, never
+  the Spam-folder deletion
 
 ### Decision Rules
 
@@ -420,7 +427,7 @@ addToWhitelist('domain.com');
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
 │   ├── spam_examples/           # Real spam .eml files (57)
-│   ├── scam_examples/           # Scam .eml files (6)
+│   ├── scam_examples/           # Scam .eml files (7)
 │   └── ham_examples/            # Legitimate .eml files (24)
 └── .github/workflows/           # CI/CD pipeline
 ```

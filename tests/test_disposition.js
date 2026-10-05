@@ -136,6 +136,7 @@ function phishMessage(id) {
     getFrom: () => 'Capital B <info@cptlbnews.press>',
     getPlainBody: () => 'Capital B policy brief',
     getBody: () => html,
+    getTo: () => '',
     getRawContent: () => 'X-SES-Outgoing: 1\r\nPrecedence: bulk\r\n\r\n' + html,
     getAttachments: () => [],
     getDate: () => new Date('2026-09-16T15:25:41Z'),
@@ -156,6 +157,7 @@ function blacklistMessage(id) {
     getFrom: () => 'FinRiseX <team@your.finrisex.com>',
     getPlainBody: () => 'body',
     getBody: () => '<p>body</p>',
+    getTo: () => '',
     getRawContent: () => 'X-SES-Outgoing: 1\r\n\r\nbody',
     getAttachments: () => [],
     getDate: () => new Date('2026-09-16T15:25:41Z'),
@@ -1369,6 +1371,7 @@ console.log('\n=== Signal 10: free-mail sender using the recipient\'s own name =
     const body = WS_BODY.replace(/Google Workspace/g, o.brand);
     const m = blacklistMessage(id);
     m.getFrom = () => o.from;
+    m.getTo = () => (o.to === null ? '' : o.to);
     m.getSubject = () => 'Thank You for Your purchase #54123650';
     m.getPlainBody = () => body;
     m.getBody = () => '<pre>' + body + '</pre>';
@@ -1462,6 +1465,139 @@ console.log('\n=== Signal 10: free-mail sender using the recipient\'s own name =
         fires({ from: 'Geoff C Freedman <geoff@icloud.com>' }) === false);
   check('...nor freedman.g@yahoo.com',
         fires({ from: 'Geoff C Freedman <freedman.g@yahoo.com>' }) === false);
+}
+
+console.log('\n=== v6.69.0: the gaps v6.68.0 named (loose name, encoding, phones, domains) ===');
+{
+  // Reuses the Signal 10 message shape. Brand 'Zorblax Cloud' is NOT on the
+  // list, so Signal 9 can only fire through the recipient's-name slot.
+  const BODY = (phone) => ['Order No: #54123650', 'Zorblax Cloud Plan Confirmation',
+                           'Amount: $293.00', 'Payment Method: Bank Card',
+                           'Customer Support ' + phone].join('\n');
+  function msg(o) {
+    o = Object.assign({ from: 'Geoff C Freedman <allbashashaik170@gmail.com>',
+                        to: 'Geoff C Freedman <geoff.c.freedman@gmail.com>',
+                        extra: 'Delivered-To: geoff.c.freedman@gmail.com\r\n',
+                        phone: '+1 (582) 245-0306', rawFrom: null, rawTo: null }, o);
+    const m = blacklistMessage('mGAP');
+    const body = BODY(o.phone);
+    m.getFrom = () => o.from;
+    m.getTo = () => o.to;
+    m.getSubject = () => 'Thank You for Your purchase #54123650';
+    m.getPlainBody = () => body;
+    m.getBody = () => '<pre>' + body + '</pre>';
+    m.getRawContent = () => 'Received: from [10.200.0.178]\r\n' +
+      'From: ' + (o.rawFrom || o.from) + '\r\n' +
+      (o.to ? 'To: ' + (o.rawTo || o.to) + '\r\n' : '') + o.extra + '\r\n' + body;
+    return m;
+  }
+  const sig = (o) => makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } })
+                       .collectSignals(msg(o || {}));
+
+  // ── Loose name match: Signal 9 only, never the STRONG corroborator ──
+  const bcc = sig({ to: 'undisclosed-recipients:;' });
+  check('Bcc / undisclosed To: name matches the Delivered-To local part -> callback',
+        bcc.callbackPhishing === true, JSON.stringify(bcc));
+  check('...but that loose match is NOT selfNamedSender (no Spam-folder deletion)',
+        bcc.selfNamedSender === false);
+  check('bare To address -> callback via its local part',
+        sig({ to: 'geoff.c.freedman@gmail.com' }).callbackPhishing === true);
+  const dropped = sig({ from: 'Geoff Freedman <allbashashaik170@gmail.com>' });
+  check('middle initial dropped ("Geoff Freedman") -> callback, loose only',
+        dropped.callbackPhishing === true && dropped.selfNamedSender === false,
+        JSON.stringify(dropped));
+  check('a stranger\'s name, bare To -> no callback',
+        sig({ from: 'Ann Smith <allbashashaik170@gmail.com>',
+              to: 'undisclosed-recipients:;' }).callbackPhishing === false);
+  check('one shared word is not enough ("Geoff Smith") -> no callback',
+        sig({ from: 'Geoff Smith <allbashashaik170@gmail.com>' }).callbackPhishing === false);
+  check('loose match still honours "not yourself" (your +tag alias, bare To)',
+        sig({ from: 'Geoff Freedman <gcf77@gmail.com>', to: 'gcf77+r@gmail.com',
+              extra: 'Delivered-To: gcf77+r@gmail.com\r\n' }).callbackPhishing === false);
+  check('loose match still honours "name in sender address" (geoff@icloud.com)',
+        sig({ from: 'Geoff Freedman <geoff@icloud.com>',
+              to: 'undisclosed-recipients:;' }).callbackPhishing === false);
+  check('Signal 9 still needs a phone number on the loose path',
+        sig({ to: 'undisclosed-recipients:;', phone: 'via our help centre' })
+          .callbackPhishing === false);
+
+  // ── Encoded names: decoded getFrom/getTo are read, not the raw header ──
+  const enc = sig({ rawFrom: '=?utf-8?B?R2VvZmYgQyBGcmVlZG1hbg==?= <allbashashaik170@gmail.com>' });
+  check('RFC 2047-encoded From name in the raw header still matches',
+        enc.selfNamedSender === true, JSON.stringify(enc));
+  const encTo = sig({ rawTo: '=?utf-8?B?R2VvZmYgQyBGcmVlZG1hbg==?= <geoff.c.freedman@gmail.com>' });
+  check('RFC 2047-encoded To name in the raw header still matches',
+        encTo.selfNamedSender === true, JSON.stringify(encTo));
+
+  // ── Phone disguises ──
+  check('"1-8OO-555-0134" (letter O for zero) -> callback',
+        sig({ phone: '1-8OO-555-0134' }).callbackPhishing === true);
+  check('full-width digits "+１ (５８２) ２４５-０３０６" -> callback',
+        sig({ phone: '+１ (５８２) ２４５-０３０６' }).callbackPhishing === true);
+  check('spaced toll-free "1 8 0 0 5 5 5 0 1 3 4" -> callback',
+        sig({ phone: '1 8 0 0 5 5 5 0 1 3 4' }).callbackPhishing === true);
+  check('spaced NON-toll-free digits are not taken as a phone number',
+        sig({ phone: '6 0 4 5 5 5 0 1 3 4' }).callbackPhishing === false);
+
+  const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  check('deobfuscatePhoneText leaves ordinary words alone',
+        ctx.deobfuscatePhoneText('call us about your 200 orders today') ===
+        'call us about your 200 orders today',
+        ctx.deobfuscatePhoneText('call us about your 200 orders today'));
+  check('deobfuscatePhoneText: "8oo" -> "800", "1 8 0 0" -> "1800"',
+        ctx.deobfuscatePhoneText('1-8oo-555 and 1 8 0 0') === '1-800-555 and 1800',
+        ctx.deobfuscatePhoneText('1-8oo-555 and 1 8 0 0'));
+
+  // ── Domains ──
+  const ms = sig({ from: 'Norton Billing <x7k2qa9@billingdesk42.onmicrosoft.com>',
+                   to: 'undisclosed-recipients:;' });
+  check('a *.onmicrosoft.com tenant is a callback sender for Signal 9',
+        sig({ from: 'Geoff C Freedman <x7k2qa9@billingdesk42.onmicrosoft.com>' })
+          .callbackPhishing === true);
+  check('...but NOT for Signal 8 (machine-looking tenant names are normal)',
+        ms.freeMailRandomLocal === false, JSON.stringify(ms));
+  check('a regional free-mail sender (yahoo.ca) now counts',
+        sig({ from: 'Geoff C Freedman <allbashashaik170@yahoo.ca>' })
+          .selfNamedSender === true);
+  check('a corporate sender with your name and a bare To -> no callback',
+        sig({ from: 'Geoff Freedman <billing@zorblax.example>',
+              to: 'undisclosed-recipients:;' }).callbackPhishing === false);
+
+  // ── A loose-only callback quarantines but does NOT skip the grace period ──
+  // The draft said so in a comment while callbackPhishing (STRONG) carried the
+  // loose match straight into hasCorroboratingSignal(). Pin it.
+  check('loose-only callback is marked _callbackLooseOnly',
+        bcc._callbackLooseOnly === true, JSON.stringify(bcc));
+  check('...and does NOT corroborate a Gmail spam verdict',
+        ctx.hasCorroboratingSignal(bcc) === false);
+  check('...while still reaching Rule 9 (inbox quarantine)',
+        ctx.getRuleFromSignals(bcc).rule === 'Rule 9');
+  check('...and is visible in the log as CALLBACK_NAME_ONLY',
+        ctx.buildSignalsCsv(bcc).indexOf('CALLBACK_NAME_ONLY') !== -1);
+  const exact = sig();
+  check('an exact-name callback still corroborates',
+        exact._callbackLooseOnly === false && ctx.hasCorroboratingSignal(exact) === true);
+  // The review's case: a freelancer cc'ing her own work address must not
+  // match herself through another recipient's local part.
+  check('"Mary Jones" cc\'ing mary.jones@company.com does not match herself',
+        sig({ from: 'Mary Jones <mj.design@gmail.com>',
+              to: 'Geoff C Freedman <geoff.c.freedman@gmail.com>, mary.jones@company.com' })
+          .callbackPhishing === false);
+
+  // ── Linear time on attacker-sized input (both were quadratic in the draft) ──
+  let t0 = Date.now();
+  ctx.deobfuscatePhoneText('1' + 'o'.repeat(65535));
+  const oMs = Date.now() - t0;
+  check('deobfuscatePhoneText on "1" + 64K o\'s is linear (' + oMs + ' ms < 500)', oMs < 500);
+  t0 = Date.now();
+  const bigTo = sig({ to: 'a'.repeat(100000) });
+  const toMs = Date.now() - t0;
+  check('a 100 KB To header with no @ is linear (' + toMs + ' ms < 1000)',
+        toMs < 1000 && bigTo.selfNamedSender === false);
+  check('a toll-free run inside a URL id is not a phone number',
+        sig({ phone: 'see https://x.example/?id=a8445550123b' }).callbackPhishing === false);
+  check('"order #8775551234" is not a phone number',
+        sig({ phone: 'ref order #8775551234' }).callbackPhishing === false);
 }
 
 console.log('\n=== checkFalseNegatives: SpamMissed cannot destroy whitelisted mail ===');

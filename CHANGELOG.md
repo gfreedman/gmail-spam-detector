@@ -20,6 +20,71 @@ detail plus the diffs.
 
 ---
 
+## v6.69.0
+
+**Close the four callback-scam gaps v6.68.0 named.**
+
+v6.68.0 caught the "Google Workspace" scam (confirmed in prod: deleted from Spam
+at 02:08 UTC on 2026-10-05 as `CALLBACK_PHISHING,SELF_NAMED_SENDER`) and listed
+four ways the same campaign could still slip past. All four are closed here.
+Every new path is limited to Rule 9's quarantine, except the regional free-mail
+domains, which are equivalent to Gmail.
+
+- **Bcc, undisclosed recipients, bare To, dropped middle initial.** Signal 10
+  needed a To display name identical to the From name. New `selfNamedLoose`
+  instead requires every 2+ character From-name word to appear among the To
+  name or the words of the To / Delivered-To local parts (`geoff.c.freedman@`).
+  It is looser, so it fills **only** Signal 9's brand slot. A Signal 9 hit
+  that rests on it alone is marked `_callbackLooseOnly`, and
+  `hasCorroboratingSignal()` refuses to count it. The result is an inbox
+  quarantine; it never triggers Spam-folder deletion. Local-part words come
+  only from the recipient's own mailbox (Delivered-To, plus the To entry that
+  is that mailbox). All the not-yourself guards still apply.
+- **Encoded names.** The names are now read from the decoded `getFrom()` /
+  `getTo()` instead of the raw headers. Previously an RFC 2047 encoded-word
+  name had no spaces and failed closed, so one line of tooling evaded the
+  check. The Python mirror decodes To the same way (`_decoded_to`), and the
+  parity bridge stubs `getTo()` from it.
+- **Disguised phone numbers.** `deobfuscatePhoneText()` applies NFKC
+  (full-width digits), turns an `o` touching a digit into `0` (`1-8OO-…`) and
+  joins single spaced digits. `TOLL_FREE_DIGIT_RUN` accepts the joined run only
+  when it has a toll-free prefix, since the separator requirement was the
+  guard against order numbers. Only Signal 9's phone check reads it.
+- **Sender domains.** Added hotmail.ca/.fr, live.ca/.co.uk, outlook.fr,
+  yahoo.ca/.fr/.co.in, rocketmail.com, gmx.de, web.de and mail.ru to
+  `FREE_MAIL_DOMAINS`. These also feed Signal 8, under the same criteria as
+  Gmail. qq.com and 163.com are deliberately excluded because their addresses
+  are numeric by design, which Signal 8 would read as machine-generated.
+  `onmicrosoft.com` goes in a new `THROWAWAY_TENANT_DOMAINS` that only Signals
+  9 and 10 read, since machine-looking tenant names are normal there.
+
+An independent review of the draft found three must-fixes, all fixed and
+pinned by tests that fail on the old code:
+- **Quadratic loop.** The first `o`-to-`0` loop took one pass per `o`, so a
+  gmail.com sender could submit `1` followed by 64K `o`s. It measured 10.5 s
+  in the test suite and would take minutes in Apps Script, stalling every
+  run. It is now a single linear pass (3 ms).
+- **Uncapped To with quadratic regexes.** Reading To from `getTo()` dropped the
+  200-character cap, and the address regexes backtracked quadratically on it:
+  20.7 s on 100 KB. Addresses are now found by splitting on one character
+  class (2 ms). The header is deliberately not truncated, because cutting it
+  could drop the user's own address from the not-yourself guard.
+- **The loose match reached deletion.** `callbackPhishing` is itself a STRONG
+  corroborator, so the draft's claim that the loose match was quarantine-only
+  was false. Fixed with `_callbackLooseOnly`, as above.
+Also from the review: the toll-free run now treats letters and `#` as part of
+the surrounding token, so `order #8775551234` and an id inside a URL are not
+phone numbers. And the Python `CALLBACK_PHONE_PATTERN` uses `re.ASCII` to match
+JS `\d`.
+
+Each path has a test that was verified to fail when the path is removed
+(fault-injected). One new scam fixture combines a bare To, a dropped middle
+initial, an encoded From name, `outlook.fr` and `1-8OO-4O2-7731`, so the Python
+mirror is compared against the JS on it. The user's real 2021 self-forward from
+a second Gmail account still does not fire.
+
+---
+
 ## v6.68.0
 
 **The callback-scam campaign swapped brands and scored zero. Detect the

@@ -30,6 +30,8 @@ import time
 import email
 from email import policy
 from email.header import decode_header
+from email.parser import HeaderParser
+import unicodedata
 from pathlib import Path
 from typing import NamedTuple
 
@@ -469,6 +471,8 @@ def _load_gs_constants(source):
         'CTA_VERB_PATTERN':             _load_single_regex(source, 'CTA_VERB_PATTERN'),
         'RFC5322_DATE_PATTERN':         _load_single_regex(source, 'RFC5322_DATE_PATTERN'),
         'FREE_MAIL_DOMAINS':            _load_string_array(source, 'FREE_MAIL_DOMAINS'),
+        'THROWAWAY_TENANT_DOMAINS':     _load_string_array(source, 'THROWAWAY_TENANT_DOMAINS'),
+        'TOLL_FREE_DIGIT_RUN':          _load_single_regex(source, 'TOLL_FREE_DIGIT_RUN'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
             source, 'IMPERSONATED_SUPPORT_BRANDS', allow_spaces=True),
@@ -524,14 +528,18 @@ TRACKER_LABELS                  = _gs['TRACKER_LABELS']
 CTA_VERB_PATTERN                = _gs['CTA_VERB_PATTERN']
 RFC5322_DATE_PATTERN            = _gs['RFC5322_DATE_PATTERN']
 FREE_MAIL_DOMAINS               = _gs['FREE_MAIL_DOMAINS']
+THROWAWAY_TENANT_DOMAINS        = _gs['THROWAWAY_TENANT_DOMAINS']
+TOLL_FREE_DIGIT_RUN             = _gs['TOLL_FREE_DIGIT_RUN']
 RANDOM_LOCAL_PART_PATTERNS      = _gs['RANDOM_LOCAL_PART_PATTERNS']
 IMPERSONATED_SUPPORT_BRANDS     = _gs['IMPERSONATED_SUPPORT_BRANDS']
 BILLING_LANGUAGE_PATTERNS       = _gs['BILLING_LANGUAGE_PATTERNS']
 # Single regex rather than an array, so it is mirrored by value. Kept here
 # beside the arrays it is used with; the .gs source CALLBACK_PHONE_PATTERN is
 # the original and the two must stay identical.
+# re.ASCII: JS \d is ASCII-only; without it Python's \d also matches
+# Arabic-Indic and Devanagari digits, which NFKC does not fold.
 CALLBACK_PHONE_PATTERN          = re.compile(
-    r'(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}')
+    r'(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}', re.ASCII)
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -1037,10 +1045,41 @@ def _canonical_mailbox(address):
     return local + '@' + domain
 
 
+def _header_addresses(value):
+    """Mirror of headerAddresses(): split on one character class (linear),
+    keep tokens with an '@' after the first character, lowercased."""
+    return [t.lower() for t in re.split(r'[\s,;<>"():]+', value or '') if t.find('@') > 0]
+
+
+def _local_part_words(addresses):
+    """Mirror of localPartWords(): letter-only words of each local part."""
+    words = []
+    for a in addresses:
+        words.extend(w for w in re.split(r'[^a-z]+', a[:a.rfind('@')]) if w)
+    return words
+
+
+def _deobfuscate_phone_text(text):
+    """Mirror of deobfuscatePhoneText(): NFKC, re-capped; in each run of
+    [0-9o] that holds a digit, o -> 0 (one linear pass); single spaced digits
+    joined into one run."""
+    t = unicodedata.normalize('NFKC', text or '')[:MAX_RAW_SCAN_CHARS]
+    t = ''.join(p.replace('o', '0') if re.search(r'[0-9]', p) else p
+                for p in re.split(r'([^0-9o]+)', t))
+    return re.sub(r'(?<![0-9])([0-9]) (?=[0-9](?![0-9]))', r'\g<1>', t)
+
+
+def _decoded_to(raw):
+    """The To header as Gmail's getTo() returns it: unfolded and RFC 2047
+    decoded. Feeds both the Python mirror and the JS bridge's getTo() stub, so
+    the two always see the same value."""
+    hdr = HeaderParser(policy=policy.compat32).parsestr(raw or '', headersonly=True).get('To')
+    return decode_email_header(re.sub(r'\r?\n[ \t]+', ' ', str(hdr))) if hdr else ''
+
+
 def _header_mailboxes(value):
     """Mirror of headerMailboxes(): every address in a header, canonicalised."""
-    return [_canonical_mailbox(a) for a in
-            re.findall(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+', value or '')]
+    return [_canonical_mailbox(a) for a in _header_addresses(value)]
 
 
 def _has_random_case_label(domain):
@@ -1275,25 +1314,40 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
 
     # ── Signal: Free-mail sender using the recipient's own name ────────────
     # Mirrors Signal 10. Runs before the callback block, which reads it.
-    # Two words of 2+ chars; sender not one of the recipient's mailboxes
-    # (canonical form, To/Cc/Delivered-To); no 3+ letter name word in the
-    # sender's local part.
-    _is_free_mail = _at > 0 and any(_host_matches_domain(
-        sender_address[_at + 1:], d) for d in FREE_MAIL_DOMAINS)
-    if _is_free_mail:
-        _from_name = _header_display_name(_raw_header(raw, 'From'))
-        _to_header = _raw_header(raw, 'To') or ''
-        _words = _from_name.split(' ')
+    # Names from the DECODED From/To; two words of 2+ chars; sender not one of
+    # the recipient's mailboxes (canonical form, To/Cc/Delivered-To); no 3+
+    # letter name word in the sender's local part. _self_named_loose (every
+    # name word among the To name / To and Delivered-To local-part words)
+    # feeds only the callback block, never corroboration.
+    _host = sender_address[_at + 1:] if _at > 0 else ''
+    _is_throwaway = _at > 0 and (
+        any(_host_matches_domain(_host, d) for d in FREE_MAIL_DOMAINS) or
+        any(_host_matches_domain(_host, d) for d in THROWAWAY_TENANT_DOMAINS))
+    _self_named_loose = False
+    if _is_throwaway:
+        _from_name = _header_display_name(RFC2822_QUOTED_NAME.sub(r'\1\2', from_field))
+        _to_header = _decoded_to(raw)[:MAX_INPUT_CHARS]   # sanitizeInput() cap
+        _delivered_to = _raw_header(raw, 'Delivered-To')
+        _words = [w for w in _from_name.split(' ') if len(w) >= 2]
         _own = (_header_mailboxes(_to_header) +
                 _header_mailboxes(_raw_header(raw, 'Cc')) +
-                _header_mailboxes(_raw_header(raw, 'Delivered-To')))
+                _header_mailboxes(_delivered_to))
         _sender_local = sender_address[:_at]
-        if (len([w for w in _words if len(w) >= 2]) >= 2 and
-                _from_name == _header_display_name(_to_header) and
+        if (len(_words) >= 2 and
                 _canonical_mailbox(sender_address) not in _own and
                 not any(len(w) >= 3 and w in _sender_local for w in _words)):
-            signals['self_named_sender'] = True
-            signals['matched_patterns'].append('self_named_sender')
+            _to_name = _header_display_name(_to_header)
+            if _from_name == _to_name:
+                signals['self_named_sender'] = True
+                signals['matched_patterns'].append('self_named_sender')
+            # Local-part words from the recipient's OWN mailbox only.
+            _delivered = _header_addresses(_delivered_to)
+            _delivered_canon = [_canonical_mailbox(a) for a in _delivered]
+            _own_to = [a for a in _header_addresses(_to_header)
+                       if _canonical_mailbox(a) in _delivered_canon]
+            _recipient_words = _to_name.split(' ') + _local_part_words(_delivered + _own_to)
+            _self_named_loose = (signals['self_named_sender'] or
+                                 all(w in _recipient_words for w in _words))
 
     # ── Signal: Callback phishing (the payload is a phone number) ──────────
     # Mirrors Signal 9. Four conditions, all required: a free-mail sender, an
@@ -1306,11 +1360,12 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # suite proves the shipped JS behaviour; this proves it does not fire on
     # legitimate mail. Keep the two in step — Option B covers the pattern
     # CONSTANTS above, not this logic.
-    if _is_free_mail:
+    if _is_throwaway:
         _scan = (subject + ' ' + body)[:MAX_RAW_SCAN_CHARS].lower()
+        _phone = _deobfuscate_phone_text(_scan)
         if (any(b in _scan for b in IMPERSONATED_SUPPORT_BRANDS) or
-                signals['self_named_sender']) and \
-           CALLBACK_PHONE_PATTERN.search(_scan) and \
+                _self_named_loose) and \
+           (CALLBACK_PHONE_PATTERN.search(_phone) or TOLL_FREE_DIGIT_RUN.search(_phone)) and \
            any(p.search(_scan) for p in BILLING_LANGUAGE_PATTERNS):
             signals['callback_phishing'] = True
             signals['matched_patterns'].append('callback_phishing')
@@ -1957,6 +2012,7 @@ def run_parity_tests():
                 'file': key,
                 'subject': pe.subject,
                 'from': pe.from_field,
+                'to': _decoded_to(raw),
                 'plainBody': pe.body,
                 'html': pe.html,
                 'raw': raw,

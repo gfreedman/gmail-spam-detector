@@ -25,7 +25,7 @@
  * new signal is automatically compared.
  *
  * Usage:  node tests/parity_signals.js <input.json>
- *   input:  [{file, subject, from, plainBody, html, raw, hasAttachment}, ...]
+ *   input:  [{file, subject, from, to, plainBody, html, raw, hasAttachment}, ...]
  *   output: {signalKeys: [...], results: {file: {...}}}
  */
 'use strict';
@@ -66,6 +66,7 @@ function stub(c) {
     getId:         () => c.file,
     getSubject:    () => c.subject || '',
     getFrom:       () => c.from || '',
+    getTo:         () => c.to || '',   // decoded, as Gmail's getTo() returns it
     getPlainBody:  () => c.plainBody || '',
     getBody:       () => c.html || '',
     getRawContent: () => c.raw || '',

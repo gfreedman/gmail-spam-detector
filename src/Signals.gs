@@ -123,7 +123,9 @@ function collectSignals(message)
   // has to outlive both.
   const textToCheck = subject + ' ' + from;   // Signals 2 and 3
   const atIdx       = senderAddress.lastIndexOf('@');
-  let   isFreeMail  = false;                  // set by Signal 8, read by Signals 9 and 10
+  let   isFreeMail  = false;                  // set by Signal 8
+  let   isThrowawayHost = false;              // free mail OR a throwaway tenant; set by 8, read by 9 and 10
+  let   selfNamedLoose  = false;              // set by Signal 10, read ONLY by Signal 9 — see Signal 10
 
   // Counts signals that threw and were skipped. A verdict reached with fewer
   // signals than intended is not a trustworthy "clean" — see _degraded below.
@@ -505,6 +507,9 @@ function collectSignals(message)
       isFreeMail        = FREE_MAIL_DOMAINS.some(function(d) {
         return hostMatchesDomain(senderHost, d);
       });
+      isThrowawayHost   = isFreeMail || THROWAWAY_TENANT_DOMAINS.some(function(d) {
+        return hostMatchesDomain(senderHost, d);
+      });
 
       if (isFreeMail && RANDOM_LOCAL_PART_PATTERNS.some(function(p) {
         return p.test(localPart);
@@ -561,27 +566,62 @@ function collectSignals(message)
   // own: it is a STRONG corroborator in the Spam folder (Gmail has already
   // judged the message), and it fills Signal 9's brand slot, where Rule 9
   // quarantines rather than deletes.
+  //
+  // Names come from the DECODED headers (getFrom/getTo), not the raw text: an
+  // RFC 2047 encoded-word name ("=?utf-8?B?R2VvZmYg...?=") otherwise had no
+  // spaces, never reached two words, and evaded this for one line of tooling.
+  //
+  // selfNamedLoose (v6.69.0) is the same test with the exact-name requirement
+  // relaxed: every 2+ character word of the From name appears among the
+  // recipient's name words OR the words of the To / Delivered-To local parts
+  // ("geoff.c.freedman@"). That reaches a To with no display name at all —
+  // Bcc, undisclosed-recipients, a bare address — and "Geoff Freedman" with
+  // the middle initial dropped. It is looser, so it feeds ONLY Signal 9's
+  // brand slot, and a Signal 9 hit that rests on it alone is marked
+  // _callbackLooseOnly so hasCorroboratingSignal() does not count it: inbox
+  // quarantine, never Spam-folder deletion. (The first draft claimed this
+  // without the marker; the review showed callbackPhishing is itself STRONG,
+  // so the loose match reached deletion through it.) All the not-yourself
+  // guards still apply.
   try
   {
-    if (isFreeMail)
+    if (isThrowawayHost)
     {
-      const fromName = headerDisplayName(getRawHeader(rawContent, 'From'));
-      const toHeader = getRawHeader(rawContent, 'To') || '';
-      const nameWords = fromName.split(' ');
+      const fromName = headerDisplayName(fromRaw.replace(RFC2822_QUOTED_NAME, '$1$2'));
+      const toHeader = sanitizeInput(message.getTo());
+      const deliveredTo = getRawHeader(rawContent, 'Delivered-To');
+      const nameWords = fromName.split(' ').filter(function(w) { return w.length >= 2; });
       const ownMailboxes = headerMailboxes(toHeader)
         .concat(headerMailboxes(getRawHeader(rawContent, 'Cc')))
-        .concat(headerMailboxes(getRawHeader(rawContent, 'Delivered-To')));
+        .concat(headerMailboxes(deliveredTo));
       const senderLocal = senderAddress.substring(0, atIdx);
-      if (nameWords.filter(function(w) { return w.length >= 2; }).length >= 2 &&
-          fromName === headerDisplayName(toHeader) &&
+      if (nameWords.length >= 2 &&
           ownMailboxes.indexOf(canonicalMailbox(senderAddress)) === -1 &&
           !nameWords.some(function(w) {
             return w.length >= 3 && senderLocal.indexOf(w) !== -1;
           }))
       {
-        signals.selfNamedSender = true;
-        logDebug('Free-mail sender using the recipient\'s own name: ' +
-                 sanitizeForLog(senderAddress));
+        const toName = headerDisplayName(toHeader);
+        if (fromName === toName)
+        {
+          signals.selfNamedSender = true;
+          logDebug('Free-mail sender using the recipient\'s own name: ' +
+                   sanitizeForLog(senderAddress));
+        }
+        // Local-part words from the RECIPIENT'S OWN mailbox only: Delivered-To
+        // and any To entry that is the same mailbox. Taking every To entry let
+        // "Mary Jones <mj.design@gmail.com>" cc'ing mary.jones@company.com match
+        // herself (v6.69.0 review).
+        const delivered = headerAddresses(deliveredTo);
+        const deliveredCanon = delivered.map(canonicalMailbox);
+        const ownTo = headerAddresses(toHeader).filter(function(a) {
+          return deliveredCanon.indexOf(canonicalMailbox(a)) !== -1;
+        });
+        const recipientWords = toName.split(' ')
+          .concat(localPartWords(delivered.concat(ownTo)));
+        selfNamedLoose = signals.selfNamedSender || nameWords.every(function(w) {
+          return recipientWords.indexOf(w) !== -1;
+        });
       }
     }
   }
@@ -609,11 +649,14 @@ function collectSignals(message)
   //
   // So detect the anatomy rather than the wording. All four must hold:
   //   1. free-mail sender          — a real brand never bills from gmail.com
+  //      (or a throwaway *.onmicrosoft.com tenant, v6.69.0)
   //   2. names an impersonated brand — claims to be someone it provably isn't
-  //      OR uses the recipient's own name (Signal 10). The brand list alone
-  //      missed the 2026-09-30 "Google Workspace" wave of the same campaign.
+  //      OR uses the recipient's own name (Signal 10, loose form). The brand
+  //      list alone missed the 2026-09-30 "Google Workspace" wave.
   //   3. billing language           — asserts money is moving
-  //   4. a phone number             — the actual payload
+  //   4. a phone number             — the actual payload, matched after
+  //      deobfuscatePhoneText() so "8OO", full-width digits and digit-by-digit
+  //      spacing do not hide it (v6.69.0)
   //
   // A four-way conjunction because no single part is rare. Real people do send
   // invoices from Gmail, and real invoices carry phone numbers; it is the
@@ -627,21 +670,25 @@ function collectSignals(message)
   // hasCorroboratingSignal() where Gmail has already judged the message.
   try
   {
-    if (isFreeMail)
+    if (isThrowawayHost)
     {
       const scanText = (subject + ' ' + body)
         .substring(0, LIMITS.maxRawScanChars)
         .toLowerCase();
+      const phoneText = deobfuscatePhoneText(scanText);
 
       const impersonated = IMPERSONATED_SUPPORT_BRANDS.filter(function(b) {
         return scanText.indexOf(b) !== -1;
       });
 
-      if ((impersonated.length > 0 || signals.selfNamedSender) &&
-          CALLBACK_PHONE_PATTERN.test(scanText) &&
+      if ((impersonated.length > 0 || selfNamedLoose) &&
+          (CALLBACK_PHONE_PATTERN.test(phoneText) || TOLL_FREE_DIGIT_RUN.test(phoneText)) &&
           BILLING_LANGUAGE_PATTERNS.some(function(p) { return p.test(scanText); }))
       {
         signals.callbackPhishing = true;
+        // Meta: true when the ONLY impersonation evidence is the loose name
+        // match. hasCorroboratingSignal() refuses to delete on that alone.
+        signals._callbackLooseOnly = impersonated.length === 0 && !signals.selfNamedSender;
         logDebug('Callback phishing: free-mail sender invoicing as "' +
                  (impersonated[0] || 'the recipient') + '" with a phone number');
       }

@@ -191,6 +191,77 @@ function canonicalMailbox(address)
 }
 
 /**
+ * Every address in a header value, lower-cased, by TOKENISING rather than by
+ * a regex scan. The v6.69.0 review measured the obvious regex
+ * ([A-Za-z0-9._%+-]+@...) at 10-34 s on a 100 KB To header with no '@' —
+ * quadratic backtracking on a value the sender controls. Splitting on one
+ * character class is linear. Not truncated either: cutting the header could
+ * drop the user's own address from the not-yourself guard, which fails toward
+ * firing.
+ *
+ * Mirrored by _header_addresses() in tests/test_spam_detector.py.
+ *
+ * @param {string|null} headerValue
+ * @return {Array<string>}
+ */
+function headerAddresses(headerValue)
+{
+  return String(headerValue || '').split(/[\s,;<>"():]+/)
+    .filter(function(t) { return t.indexOf('@') > 0; })
+    .map(function(t) { return t.toLowerCase(); });
+}
+
+/**
+ * The letter-only words of each address's local part: "geoff.c.freedman@x,
+ * gcf77@y" -> ['geoff', 'c', 'freedman', 'gcf']. Raw, not canonical — the
+ * canonical Gmail form drops the dots that separate the words.
+ *
+ * Mirrored by _local_part_words() in tests/test_spam_detector.py.
+ *
+ * @param {Array<string>} addresses - from headerAddresses().
+ * @return {Array<string>}
+ */
+function localPartWords(addresses)
+{
+  const words = [];
+  addresses.forEach(function(a) {
+    a.substring(0, a.lastIndexOf('@')).split(/[^a-z]+/)
+      .forEach(function(w) { if (w) words.push(w); });
+  });
+  return words;
+}
+
+/**
+ * Undo the cheap ways a callback scam hides its phone number from a filter,
+ * so CALLBACK_PHONE_PATTERN can see it. Expects LOWERCASED text.
+ *
+ *   full-width or other compatibility digits  -> ASCII   (NFKC)
+ *   "8oo-555-0134", "1-8oo"                    -> zeros   ('o' touching a digit)
+ *   "1 8 0 0 5 5 5 0 1 3 4"                    -> one run (single digits, spaced)
+ *
+ * Only Signal 9 reads the result; it never reaches brand or billing matching.
+ *
+ * Mirrored by _deobfuscate_phone_text() in tests/test_spam_detector.py.
+ *
+ * @param {string} text
+ * @return {string}
+ */
+function deobfuscatePhoneText(text)
+{
+  // NFKC can expand text up to 18x (U+FDFA), so cap again after it.
+  const t = String(text || '').normalize('NFKC').substring(0, LIMITS.maxRawScanChars);
+  // Linear by construction: split into runs of [0-9o] and everything else,
+  // and zero the o's only in runs that hold a digit. The v6.69.0 draft looped
+  // "o next to a digit" until stable — one more 'o' per pass, so '1' + 64K
+  // 'o's took 64K passes (5.6 s locally, minutes in Apps Script) from any
+  // gmail.com sender. Same result, one pass.
+  return t.split(/([^0-9o]+)/)
+    .map(function(part) { return /[0-9]/.test(part) ? part.replace(/o/g, '0') : part; })
+    .join('')
+    .replace(/(?<![0-9])([0-9]) (?=[0-9](?![0-9]))/g, '$1');
+}
+
+/**
  * Every mailbox named in a header value, canonicalised.
  *
  * Mirrored by _header_mailboxes() in tests/test_spam_detector.py.
@@ -200,8 +271,7 @@ function canonicalMailbox(address)
  */
 function headerMailboxes(headerValue)
 {
-  return (String(headerValue || '').match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/g) || [])
-    .map(canonicalMailbox);
+  return headerAddresses(headerValue).map(canonicalMailbox);
 }
 
 /**

@@ -253,6 +253,7 @@ function buildSignalsCsv(signals)
   if (signals.freeMailRandomLocal)        parts.push('FREEMAIL_RANDOM_LOCAL');
   if (signals.callbackPhishing)           parts.push('CALLBACK_PHISHING');
   if (signals.selfNamedSender)            parts.push('SELF_NAMED_SENDER');
+  if (signals._callbackLooseOnly)         parts.push('CALLBACK_NAME_ONLY');
   // Surfaced in the Sheet so a degraded verdict is visible in the log, not
   // just in an execution transcript nobody reads.
   if (signals._degraded)                  parts.push('DEGRADED');

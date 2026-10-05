@@ -68,6 +68,13 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * machine-generated free-mail address, a callback invoice, an empty subject
  * carrying an attachment, a free-mail sender using the recipient's own name).
  *
+ * callbackPhishing does NOT corroborate when _callbackLooseOnly is set (v6.69.0):
+ * that hit rests on a loose name match (the recipient's address words, a
+ * dropped middle initial) that is good enough to quarantine and not good
+ * enough to skip the grace period. Such mail still waits, and the exhaustive
+ * "every inbox conviction corroborates" invariant deliberately excludes it —
+ * Rule 9 quarantines in the inbox, it does not delete.
+ *
  * selfNamedSender (v6.68.0) is the only one of these with no inbox rule of its
  * own — its residual false positive is the recipient's own second free-mail
  * account under the same name. Here that would also need Gmail to have filed
@@ -106,7 +113,7 @@ function hasCorroboratingSignal(signals)
       signals.serviceImpersonation ||
       signals.brandMismatchedCta ||
       signals.freeMailRandomLocal ||
-      signals.callbackPhishing ||
+      (signals.callbackPhishing && !signals._callbackLooseOnly) ||
       signals.selfNamedSender ||
       signals.emptySubjectWithAttachment)
   {

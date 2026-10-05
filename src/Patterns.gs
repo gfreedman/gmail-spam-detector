@@ -204,6 +204,18 @@ const CALLBACK_PHONE_PATTERN =
   /(?:\+?1[\s.\-]?)?\(?\d{3}\)?[\s.\-]\d{3}[\s.\-]\d{4}/;
 
 /**
+ * A toll-free number written as one digit run: 18005550134, or what
+ * deobfuscatePhoneText() leaves of "1 8 0 0 5 5 5 0 1 3 4". The separator
+ * requirement of CALLBACK_PHONE_PATTERN exists so an order number cannot pass
+ * for a phone number; a toll-free prefix is the stand-in for it here, and the
+ * rest of Signal 9's conjunction still has to hold. Letters and '#' count as
+ * part of the token on either side, so "order #8775551234" and an id inside a
+ * URL ("id=a8445550123b") are not read as a phone number.
+ * @const {RegExp}
+ */
+const TOLL_FREE_DIGIT_RUN = /(?<![0-9a-z#])1?8(?:00|33|44|55|66|77|88)[0-9]{7}(?![0-9a-z])/;
+
+/**
  * Billing language. A fake invoice has to state what is being charged.
  * @const {Array<RegExp>}
  */
@@ -350,7 +362,27 @@ const FREE_MAIL_DOMAINS = Object.freeze([
   'gmail.com', 'googlemail.com', 'yahoo.com', 'yahoo.co.uk', 'ymail.com',
   'hotmail.com', 'hotmail.co.uk', 'outlook.com', 'live.com', 'msn.com',
   'aol.com', 'proton.me', 'protonmail.com', 'icloud.com', 'me.com',
-  'mail.com', 'gmx.com', 'gmx.net', 'zoho.com', 'yandex.com'
+  'mail.com', 'gmx.com', 'gmx.net', 'zoho.com', 'yandex.com',
+  // Regional variants, added v6.69.0 (the v6.68.0 phishing review listed them
+  // as callback-scam senders this list did not recognise). qq.com and 163.com
+  // were deliberately left out: their addresses are numeric BY DESIGN, so
+  // Signal 8 would call every one machine-generated — a STRONG corroborator.
+  'hotmail.ca', 'hotmail.fr', 'live.ca', 'live.co.uk', 'outlook.fr',
+  'yahoo.ca', 'yahoo.fr', 'yahoo.co.in', 'rocketmail.com',
+  'gmx.de', 'web.de', 'mail.ru'
+]);
+
+/**
+ * Free-to-create tenant domains that callback scams send from. Unlike
+ * FREE_MAIL_DOMAINS these are NOT used by Signal 8: a Microsoft 365 tenant's
+ * default domain (contoso123.onmicrosoft.com) routinely has machine-looking
+ * names, so "machine-generated sender" would mean nothing there. They count
+ * only for Signals 9 and 10, where the sender is impersonating a brand or the
+ * recipient — something a real tenant has no reason to do.
+ * @const {Array<string>}
+ */
+const THROWAWAY_TENANT_DOMAINS = Object.freeze([
+  'onmicrosoft.com'
 ]);
 
 /**

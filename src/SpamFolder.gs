@@ -432,7 +432,9 @@ function describeSignals(signals)
   if (signals.serviceImpersonation)       fired.push('service-impersonation');
   if (signals.brandMismatchedCta)         fired.push('brand-cta');
   if (signals.freeMailRandomLocal)        fired.push('freemail-random');
-  if (signals.callbackPhishing)           fired.push('callback-phishing');
+  if (signals.callbackPhishing)           fired.push(signals._callbackLooseOnly
+                                            ? 'callback-phishing (name only — waits)'
+                                            : 'callback-phishing');
   if (signals.selfNamedSender)            fired.push('self-named-sender');
 
   // Parenthesised and last, deliberately. Bulk routing corroborates nothing on

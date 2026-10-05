@@ -168,14 +168,28 @@ const IMPERSONATION_SUBJECT_PATTERNS = Object.freeze([
  * creates urgency about money the recipient believes they already spend.
  *
  * Matched as plain substrings against lowercased subject+body, so keep entries
- * lowercase. A brand here can never be the free-mail sender's own domain, so
- * naming one from a gmail.com address is always a misrepresentation.
+ * lowercase. No brand here bills from a consumer free-mail address, so naming
+ * one from a gmail.com address is always a misrepresentation — including the
+ * Google products: gmail.com is Google's domain, but Google Workspace never
+ * invoices from a personal @gmail.com account.
+ *
+ * The Google/Microsoft subscription and antivirus entries were added in v6.68.0
+ * after the 2026-09-30 "Thank You for Your purchase #54123650" miss: the same
+ * campaign as the Norton scam (free-mail sender, your own name as the display
+ * name, two support numbers) swapped Norton for a $293 "Google Workspace" plan
+ * and scored zero on everything because this list did not name it. A phishing
+ * review dropped 'google one' (it matches "Google one-time code") and kept
+ * venmo/zelle/ebay out: real person-to-person invoices name those. A list will
+ * always trail the campaign by one brand — Signal 10 (selfNamedSender) is the
+ * structural backstop that does not depend on it.
  * @const {Array<string>}
  */
 const IMPERSONATED_SUPPORT_BRANDS = Object.freeze([
   'norton', 'mcafee', 'geek squad', 'best buy', 'paypal', 'lifelock',
   'windows defender', 'microsoft defender', 'applecare', 'apple care',
-  'amazon prime', 'coinbase', 'quickbooks', 'avast', 'malwarebytes'
+  'amazon prime', 'coinbase', 'quickbooks', 'avast', 'malwarebytes',
+  'google workspace', 'microsoft 365', 'office 365',
+  'bitdefender', 'kaspersky', 'webroot', 'totalav', 'trend micro'
 ]);
 
 /**

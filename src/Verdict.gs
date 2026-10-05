@@ -9,7 +9,7 @@
  * NOTE: the same nine rules are implemented a second time as
  * getRuleFromSignals() in Flush.gs, which is what the destroy-vs-quarantine
  * decision actually reads. The two are pinned to each other by an exhaustive
- * 5,120-combination test in tests/test_disposition.js.
+ * 10,240-combination test in tests/test_disposition.js.
  *
  * Apps Script concatenates every .gs file in sources.json into ONE global
  * scope. These are not modules: nothing is imported, and every function here
@@ -145,7 +145,8 @@ function makeVerdict(signals)
            ', serviceImpersonation=' + signals.serviceImpersonation +
            ', brandMismatchedCta=' + signals.brandMismatchedCta +
            ', freeMailRandomLocal=' + signals.freeMailRandomLocal +
-           ', callbackPhishing=' + signals.callbackPhishing);
+           ', callbackPhishing=' + signals.callbackPhishing +
+           ', selfNamedSender=' + signals.selfNamedSender);
   return false;
 }
 

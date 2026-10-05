@@ -47,8 +47,8 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 ## 📊 Results
 
-- ✅ **100% detection** on 57/57 spam + 5/5 scam (.eml files)
-- ✅ **0% false positives** on 22/22 legitimate emails
+- ✅ **100% detection** on 57/57 spam + 6/6 scam (.eml files)
+- ✅ **0% false positives** on 24/24 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
 - ✅ **CI asks prod whether it is healthy after every deploy** — the `verify-prod` job confirms the trigger is running, the live version matches the commit, and the last run was clean.
@@ -121,7 +121,7 @@ Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely
 
 **Mail Gmail filed as spam is deleted only after a grace period.** Gmail intercepts that mail before your inbox, so the detector's rules never judged it — and Gmail's own false-positive classes (first contact from a new correspondent, 2FA from a small service, an invoice on a cheap relay) are exactly what no whitelist can enumerate in advance. So `reviewGmailSpam()` lets it age `CONFIG.gmailSpamGraceDays` (default **7**) first, which is your recovery window: the folder is visible, searchable, and one "Not spam" click from undoing Gmail's mistake. After that Gmail's verdict stands and the message is archived, logged and deleted. Whitelisted senders are never deleted at any age, and nothing is ever moved back to your inbox.
 
-The exception is mail our own signals **corroborate**: one strong signal (a blacklisted sender, service impersonation, a brand-mismatched link, a machine-generated free-mail address, a callback invoice, an empty subject with an attachment) or two weak ones (clickbait, fear, marketing format, a suspicious From name). That is deleted on the next run instead of waiting. A single weak hit is not enough — that is vocabulary, and vocabulary is what Gmail's false positives share with spam. Mail that is *not* corroborated is copied to Drive (`Spam Intelligence/Spam Folder/<messageId>.eml`) so a miss can be diagnosed; those copies expire after the grace period plus a week, and none are written if that folder is shared.
+The exception is mail our own signals **corroborate**: one strong signal (a blacklisted sender, service impersonation, a brand-mismatched link, a machine-generated free-mail address, a callback invoice, an empty subject with an attachment, a free-mail sender using your own name) or two weak ones (clickbait, fear, marketing format, a suspicious From name). That is deleted on the next run instead of waiting. A single weak hit is not enough — that is vocabulary, and vocabulary is what Gmail's false positives share with spam. Mail that is *not* corroborated is copied to Drive (`Spam Intelligence/Spam Folder/<messageId>.eml`) so a miss can be diagnosed; those copies expire after the grace period plus a week, and none are written if that folder is shared.
 
 Mail already reviewed is normally skipped, so the folder is not re-fetched every cycle. But "reviewed" is a fact about *the logic that did the reviewing*, not about the message — so a `SCRIPT_VERSION` change re-reviews the whole folder once, and an improved rule gets applied to spam the previous logic dismissed. (It did not, before v6.54.0: six messages sat through two releases meant to remove them.)
 
@@ -220,9 +220,9 @@ Bank Account, Government Hiding, Blood Thinner
   their address — but it corroborates Gmail's own spam verdict
 
 **10. Callback-Phishing Anatomy (Content Signal)**
-- A free-mail sender, a brand it provably is not, billing language and a phone
-  number — all four. The payload is a number to call, so there is no link to
-  inspect. Quarantines rather than deletes
+- A free-mail sender, a brand it provably is not (or your own name — see 14),
+  billing language and a phone number — all four. The payload is a number to
+  call, so there is no link to inspect. Quarantines rather than deletes
 
 **11. Forged Sender Headers (Technical Signal)**
 - A Date header that is not a date (an unfilled template variable), or a
@@ -238,6 +238,15 @@ Bank Account, Government Hiding, Blood Thinner
   MyChart … makes no claim")
 
 Signals 11–13 add to the clickbait count, so they reach deletion through Rule 4.
+
+**14. Your Name, A Stranger's Free-Mail Address (Technical Signal)**
+- `From: Geoff C Freedman <allbashashaik170@gmail.com>` to
+  `Geoff C Freedman <geoff.c.freedman@gmail.com>` — a free-mail sender whose
+  display name (2+ words) is the recipient's own, from an address not in To:
+- A template tell that survives brand rotation: the callback campaign swapped
+  Norton for "Google Workspace" and the brand list missed it; this did not
+- Convicts nothing in the inbox alone. It corroborates Gmail's own spam verdict
+  and fills Signal 10's brand slot (so Rule 9 still quarantines)
 
 ### Decision Rules
 
@@ -280,8 +289,9 @@ if (brandMismatchedCta) { return SPAM; }
 // RULE 8: Machine-generated free-mail sender + 2+ spam behaviors → spam
 if (freeMailRandomLocal && spamBehaviorCount >= 2) { return SPAM; }
 
-// RULE 9: Free-mail sender invoicing as a brand it does not control, with a
-// phone number as the payload → callback phishing. QUARANTINES, like Rule 7.
+// RULE 9: Free-mail sender invoicing as a brand it does not control (or using
+// the recipient's own name), with a phone number as the payload → callback
+// phishing. QUARANTINES, like Rule 7.
 if (callbackPhishing) { return SPAM; }
 
 return NOT_SPAM;
@@ -410,8 +420,8 @@ addToWhitelist('domain.com');
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
 │   ├── spam_examples/           # Real spam .eml files (57)
-│   ├── scam_examples/           # Scam .eml files (5)
-│   └── ham_examples/            # Legitimate .eml files (22)
+│   ├── scam_examples/           # Scam .eml files (6)
+│   └── ham_examples/            # Legitimate .eml files (24)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

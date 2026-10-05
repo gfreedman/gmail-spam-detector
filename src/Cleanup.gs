@@ -66,7 +66,12 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * or payload (a blacklisted domain, a cloud-share subject from a non-service
  * sender, a CTA whose destination the named brand does not own, a
  * machine-generated free-mail address, a callback invoice, an empty subject
- * carrying an attachment).
+ * carrying an attachment, a free-mail sender using the recipient's own name).
+ *
+ * selfNamedSender (v6.68.0) is the only one of these with no inbox rule of its
+ * own — its residual false positive is the recipient's own second free-mail
+ * account under the same name. Here that would also need Gmail to have filed
+ * the user's own mail as spam, and it would still be archived to Drive first.
  *
  * WEAK signals — clickbait, fear, marketing format, suspicious From name — are
  * vocabulary, and vocabulary is exactly what Gmail's own false positives share
@@ -102,6 +107,7 @@ function hasCorroboratingSignal(signals)
       signals.brandMismatchedCta ||
       signals.freeMailRandomLocal ||
       signals.callbackPhishing ||
+      signals.selfNamedSender ||
       signals.emptySubjectWithAttachment)
   {
     return true;

@@ -1342,6 +1342,128 @@ console.log('\n=== Signal 9: callback phishing (the raju47326yu Norton scam) ===
         }) === false);
 }
 
+console.log('\n=== Signal 10: free-mail sender using the recipient\'s own name ===');
+{
+  // The 2026-09-30 miss: the Norton campaign again, with the brand swapped for
+  // "Google Workspace" — which IMPERSONATED_SUPPORT_BRANDS did not name, so it
+  // scored zero on everything. The self-spoofed display name did not rotate.
+  const WS_BODY = [
+    'Order No: #54123650',
+    'Google Workspace Plan Confirmation',
+    'Hey Geoff C Freedman,',
+    'Amount: $293.00',
+    'Payment Method: Bank Card',
+    'Customer Support Contact Details',
+    '+1 (582) 245-0306'
+  ].join('\n');
+
+  // `brand` lets a test swap in a name the brand list does not hold, so the
+  // self-name path is proven on its own rather than riding on the list.
+  function selfNamedMessage(id, opts) {
+    const o = Object.assign({
+      from: 'Geoff C Freedman <allbashashaik170@gmail.com>',
+      to:   'Geoff C Freedman <geoff.c.freedman@gmail.com>',
+      brand: 'Zorblax Cloud',
+      extra: ''               // further raw header lines, e.g. 'Cc: ...\r\n'
+    }, opts || {});
+    const body = WS_BODY.replace(/Google Workspace/g, o.brand);
+    const m = blacklistMessage(id);
+    m.getFrom = () => o.from;
+    m.getSubject = () => 'Thank You for Your purchase #54123650';
+    m.getPlainBody = () => body;
+    m.getBody = () => '<pre>' + body + '</pre>';
+    m.getRawContent = () => 'Received: from [10.200.0.178]\r\n' +
+      'From: ' + o.from + '\r\n' +
+      (o.to === null ? '' : 'To: ' + o.to + '\r\n') + o.extra + '\r\n' + body;
+    return m;
+  }
+  const sigOf = (opts) => {
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    return c.collectSignals(selfNamedMessage('mSN', opts));
+  };
+
+  const ctx = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+  const sig = sigOf();
+  check('Signal 10 fires: your name, a stranger\'s gmail address',
+        !!sig && sig.selfNamedSender === true, JSON.stringify(sig));
+  check('it fills Signal 9\'s brand slot for a brand NOT on the list',
+        sig.callbackPhishing === true, JSON.stringify(sig));
+  check('which reaches Rule 9 (quarantine, never delete)',
+        ctx.getRuleFromSignals(sig).rule === 'Rule 9',
+        ctx.getRuleFromSignals(sig).rule);
+  check('the real "Google Workspace" brand fires Signal 9 via the list too',
+        sigOf({ brand: 'Google Workspace',
+                from: 'Someone Else <allbashashaik170@gmail.com>' })
+          .callbackPhishing === true);
+
+  // Alone it convicts nothing in the inbox, but corroborates in Spam.
+  const alone = { clickbaitCount: 0, selfNamedSender: true };
+  check('selfNamedSender alone is NOT an inbox conviction',
+        ctx.makeVerdict(alone) === false &&
+        ctx.getRuleFromSignals(alone).rule === 'NONE');
+  check('selfNamedSender alone corroborates a Gmail spam verdict',
+        ctx.hasCorroboratingSignal(alone) === true);
+  check('SELF_NAMED_SENDER appears in the signals CSV',
+        ctx.buildSignalsCsv(alone).indexOf('SELF_NAMED_SENDER') !== -1);
+
+  // Each guard removes one innocent reading; each must hold on its own.
+  const fires = (opts) => sigOf(opts).selfNamedSender === true;
+  check('mailing yourself (sender address in To:) -> no fire',
+        fires({ from: 'Geoff C Freedman <geoff.c.freedman@gmail.com>' }) === false);
+  check('reply-all that includes the sender in To: -> no fire',
+        fires({ to: 'Geoff C Freedman <geoff.c.freedman@gmail.com>, ' +
+                    'Ann <allbashashaik170@gmail.com>' }) === false);
+  check('a service copying you your own action (not free mail) -> no fire',
+        fires({ from: 'Geoff C Freedman <noreply@forms.example.com>' }) === false);
+  check('a one-word name ("Geoff" from another Geoff) -> no fire',
+        fires({ from: 'Geoff <allbashashaik170@gmail.com>',
+                to:   'Geoff <geoff.c.freedman@gmail.com>' }) === false);
+  check('a different name -> no fire',
+        fires({ from: 'Ann Smith <allbashashaik170@gmail.com>' }) === false);
+  check('To: has no display name -> no fire',
+        fires({ to: 'geoff.c.freedman@gmail.com' }) === false);
+  check('no To: header at all -> no fire',
+        fires({ to: null }) === false);
+  check('quotes, case and spacing do not defeat it',
+        fires({ from: '"geoff  c FREEDMAN" <allbashashaik170@gmail.com>' }) === true);
+  check('reordered with punctuation ("Freedman, Geoff C.") still fires',
+        fires({ from: '"Freedman, Geoff C." <allbashashaik170@gmail.com>' }) === true);
+  check('a zero-width space inside the name does not defeat it',
+        fires({ from: 'Geo\u200Bff C Freedman <allbashashaik170@gmail.com>' }) === true);
+  check('neither header has a name (\'\' === \'\') -> no fire',
+        fires({ from: 'allbashashaik170@gmail.com',
+                to:   'geoff.c.freedman@gmail.com' }) === false);
+  check('punctuation-only name (". .") -> no fire',
+        fires({ from: '". ." <allbashashaik170@gmail.com>',
+                to:   '". ." <geoff.c.freedman@gmail.com>' }) === false);
+
+  // Mailing yourself, as Gmail sees "yourself". Both v6.68.0 reviews found
+  // the first draft compared raw text, so each of these fired.
+  const ME = 'Geoff C Freedman <geoff.c.freedman@gmail.com>';
+  check('yourself -> your own +tag address -> no fire',
+        fires({ from: ME, to: 'Geoff C Freedman <geoff.c.freedman+receipts@gmail.com>' }) === false);
+  check('yourself -> your own address without dots -> no fire',
+        fires({ from: ME, to: 'Geoff C Freedman <geoffcfreedman@gmail.com>' }) === false);
+  check('yourself from @googlemail.com -> no fire',
+        fires({ from: 'Geoff C Freedman <geoff.c.freedman@googlemail.com>' }) === false);
+  check('mixed-case To address of yourself -> no fire',
+        fires({ from: ME, to: 'Geoff C Freedman <Geoff.C.Freedman@Gmail.com>' }) === false);
+  // Sender's local part deliberately shares no word with the name, so the
+  // Delivered-To exclusion is the ONLY guard standing between it and a fire.
+  check('sender is the receiving account (Delivered-To) -> no fire',
+        fires({ from: 'Geoff C Freedman <g.c.f.77@gmail.com>',
+                to: 'Geoff C Freedman <list-copy@example.com>',
+                extra: 'Delivered-To: gcf77+inbox@gmail.com\r\n' }) === false);
+  check('sender is in Cc -> no fire',
+        fires({ extra: 'Cc: allbashashaik170@gmail.com\r\n' }) === false);
+  check('a scam Delivered-To you still fires (it is not the sender)',
+        fires({ extra: 'Delivered-To: geoff.c.freedman@gmail.com\r\n' }) === true);
+  check('your own second free-mail account (name in address) -> no fire',
+        fires({ from: 'Geoff C Freedman <geoff@icloud.com>' }) === false);
+  check('...nor freedman.g@yahoo.com',
+        fires({ from: 'Geoff C Freedman <freedman.g@yahoo.com>' }) === false);
+}
+
 console.log('\n=== checkFalseNegatives: SpamMissed cannot destroy whitelisted mail ===');
 {
   // This path deletes on explicit human instruction, which is sound for one
@@ -1597,14 +1719,15 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 // corpus fires Rule 1 in 51 of 59 convictions and never fires Rules 3 or 6.
 //
 // The signal space is small enough to check completely, so check it completely:
-// 10 booleans x clickbaitCount 0..4 = 5120 combinations, in well under a second.
+// 11 booleans x clickbaitCount 0..4 = 10240 combinations, in well under a second.
 {
   console.log('\n=== the two rule cascades must agree (exhaustive) ===');
   const ctx = makeCtx();
   const BOOLS = ['bulkEmailService', 'blacklistedSender', 'fearMongering',
                  'marketingFormat', 'suspiciousFromName',
                  'emptySubjectWithAttachment', 'serviceImpersonation',
-                 'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing'];
+                 'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',
+                 'selfNamedSender'];
 
   // Guard the guard: if collectSignals() grows a signal this list does not
   // know about, the sweep below silently stops being exhaustive.
@@ -1615,7 +1738,8 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
         'live=' + live.join(',') + ' swept=' + BOOLS.slice().sort().join(','));
 
   const STRONG = ['blacklistedSender', 'serviceImpersonation', 'brandMismatchedCta',
-                  'freeMailRandomLocal', 'callbackPhishing', 'emptySubjectWithAttachment'];
+                  'freeMailRandomLocal', 'callbackPhishing', 'emptySubjectWithAttachment',
+                  'selfNamedSender'];
   let combos = 0, disagreements = [], uncorroborated = [], offSpec = [];
   for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
     for (let cb = 0; cb <= 4; cb++) {

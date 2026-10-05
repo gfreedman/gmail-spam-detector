@@ -20,6 +20,57 @@ detail plus the diffs.
 
 ---
 
+## v6.68.0
+
+**The callback-scam campaign swapped brands and scored zero. Detect the
+self-spoof instead of chasing the brand list.**
+
+The 2026-09-30 miss, "Thank You for Your purchase #54123650": a fake $293
+"Google Workspace" invoice from `allbashashaik170@gmail.com`, two support phone
+numbers, no links. Gmail filed it as spam; we scored it zero on all eleven
+signals, so it sat in the 7-day grace period instead of being deleted. It is the
+same campaign as the 2026-09-17 Norton scam. Signal 9 needs free mail + an
+impersonated brand + billing language + a phone number, and three of the four
+held. `IMPERSONATED_SUPPORT_BRANDS` did not name Google Workspace.
+
+Two changes:
+
+- **Brand list.** Added `google workspace`, `microsoft 365`, `office 365`,
+  `bitdefender`, `kaspersky`, `webroot`, `totalav`, `trend micro`. The phishing
+  review dropped `google one` (it matches "Google one-time code") and kept
+  venmo/zelle/ebay out, because real person-to-person invoices name them.
+- **Signal 10, `selfNamedSender`.** Both scams set the From display name to the
+  recipient's own name (`Geoff C Freedman <allbashashaik170@gmail.com>` to
+  `Geoff C Freedman <geoff.c.freedman@gmail.com>`). That comes from the
+  campaign's template and does not rotate with the brand. It fires when the sender is free mail and the From and To
+  display names match as word sets (case, order, quotes, dots, commas and
+  zero-width characters ignored, at least two words of 2+ characters). Three
+  more conditions must hold. The sender must not be one of the recipient's
+  mailboxes in To, Cc or Delivered-To, compared in Gmail's canonical form
+  (dots, `+tag`, googlemail). And no 3+ letter word of the name may appear in
+  the sender's local part, which excludes `geoff@icloud.com`.
+  It convicts nothing in the inbox alone. It is a STRONG Spam-folder
+  corroborator, and it fills Signal 9's brand slot (Rule 9 still quarantines).
+
+Two independent reviews (phishing, security) were run before shipping. Both
+found the same must-fix in the first draft: it compared addresses as raw text,
+so mail to yourself at a `+receipts`, dotless or googlemail address fired.
+Fixed, with tests that each fail when their guard is removed (fault-injected).
+New fixtures: the missed scam (`scam_examples/`), and two near-miss hams (a
+receipt forwarded to your own alias, one from your own iCloud account) so the
+Python mirror's guards are compared against the JS on real files.
+
+Checked against the user's own mail: their other accounts (work domains) are
+not free mail, and a real 2021 self-forward from a second Gmail account does
+not fire (bare To, different name spelling).
+
+Known gaps, not addressed here: a To with no display name (Bcc,
+undisclosed-recipients) never fires; RFC 2047-encoded names fail closed; the
+phone pattern misses obfuscated digits; `FREE_MAIL_DOMAINS` lacks several
+regional domains and `onmicrosoft.com`.
+
+---
+
 ## v6.67.0
 
 **One weak signal no longer skips the Spam-folder grace period.**

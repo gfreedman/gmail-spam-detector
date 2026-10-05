@@ -1007,6 +1007,42 @@ def _raw_header(raw, name):
     return None
 
 
+def _header_display_name(value):
+    """Mirror of headerDisplayName() in the .gs source: text before the first
+    '<', format characters removed, quotes/dots/commas to spaces, lowercased,
+    split on [ \\t] (never \\s — JS and Python disagree on it), words sorted.
+    '' when the header has no angle-bracketed address."""
+    value = value or ''
+    lt = value.find('<')
+    if lt == -1:
+        return ''
+    name = re.sub('[\u00AD\u200B-\u200F\u2060\uFEFF]', '', value[:lt])
+    name = re.sub(r'[".,]', ' ', name).lower()
+    return ' '.join(sorted(w for w in re.split(r'[ \t]+', name) if w))
+
+
+def _canonical_mailbox(address):
+    """Mirror of canonicalMailbox(): lowercase, drop +tag; for gmail.com and
+    googlemail.com also drop dots and fold the domain to gmail.com."""
+    addr = (address or '').lower()
+    at = addr.rfind('@')
+    if at <= 0:
+        return addr
+    local, domain = addr[:at], addr[at + 1:]
+    plus = local.find('+')
+    if plus > 0:
+        local = local[:plus]
+    if domain in ('gmail.com', 'googlemail.com'):
+        local, domain = local.replace('.', ''), 'gmail.com'
+    return local + '@' + domain
+
+
+def _header_mailboxes(value):
+    """Mirror of headerMailboxes(): every address in a header, canonicalised."""
+    return [_canonical_mailbox(a) for a in
+            re.findall(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+', value or '')]
+
+
 def _has_random_case_label(domain):
     """Mirror of hasRandomCaseLabel() in the .gs source."""
     for label in (domain or '').split('.'):
@@ -1080,8 +1116,8 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'service_impersonation': False,
                     'brand_mismatched_cta': False,
                     'free_mail_random_local': False,
-        'callback_phishing': False,
                     'callback_phishing': False,
+                    'self_named_sender': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -1097,6 +1133,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'brand_mismatched_cta': False,
         'free_mail_random_local': False,
         'callback_phishing': False,
+        'self_named_sender': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1236,9 +1273,32 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             signals['free_mail_random_local'] = True
             signals['matched_patterns'].append('free_mail_random_local')
 
+    # ── Signal: Free-mail sender using the recipient's own name ────────────
+    # Mirrors Signal 10. Runs before the callback block, which reads it.
+    # Two words of 2+ chars; sender not one of the recipient's mailboxes
+    # (canonical form, To/Cc/Delivered-To); no 3+ letter name word in the
+    # sender's local part.
+    _is_free_mail = _at > 0 and any(_host_matches_domain(
+        sender_address[_at + 1:], d) for d in FREE_MAIL_DOMAINS)
+    if _is_free_mail:
+        _from_name = _header_display_name(_raw_header(raw, 'From'))
+        _to_header = _raw_header(raw, 'To') or ''
+        _words = _from_name.split(' ')
+        _own = (_header_mailboxes(_to_header) +
+                _header_mailboxes(_raw_header(raw, 'Cc')) +
+                _header_mailboxes(_raw_header(raw, 'Delivered-To')))
+        _sender_local = sender_address[:_at]
+        if (len([w for w in _words if len(w) >= 2]) >= 2 and
+                _from_name == _header_display_name(_to_header) and
+                _canonical_mailbox(sender_address) not in _own and
+                not any(len(w) >= 3 and w in _sender_local for w in _words)):
+            signals['self_named_sender'] = True
+            signals['matched_patterns'].append('self_named_sender')
+
     # ── Signal: Callback phishing (the payload is a phone number) ──────────
     # Mirrors Signal 9. Four conditions, all required: a free-mail sender, an
-    # impersonated brand, billing language, and a phone number. The class it
+    # impersonated brand (or the recipient's own name, Signal 10), billing
+    # language, and a phone number. The class it
     # closes carries no links and no urgency vocabulary, so every other signal
     # scores it zero — see the raju47326yu Norton scam of 2026-09-17.
     #
@@ -1246,10 +1306,10 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # suite proves the shipped JS behaviour; this proves it does not fire on
     # legitimate mail. Keep the two in step — Option B covers the pattern
     # CONSTANTS above, not this logic.
-    if _at > 0 and any(_host_matches_domain(
-            sender_address[_at + 1:], d) for d in FREE_MAIL_DOMAINS):
+    if _is_free_mail:
         _scan = (subject + ' ' + body)[:MAX_RAW_SCAN_CHARS].lower()
-        if any(b in _scan for b in IMPERSONATED_SUPPORT_BRANDS) and \
+        if (any(b in _scan for b in IMPERSONATED_SUPPORT_BRANDS) or
+                signals['self_named_sender']) and \
            CALLBACK_PHONE_PATTERN.search(_scan) and \
            any(p.search(_scan) for p in BILLING_LANGUAGE_PATTERNS):
             signals['callback_phishing'] = True
@@ -1945,7 +2005,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 11
+    EXPECTED_SIGNAL_COUNT = 12
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '

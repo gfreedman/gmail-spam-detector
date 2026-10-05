@@ -1,9 +1,9 @@
 /**
- * Signals.gs — Signal collection: the whitelist gate, field extraction, 11 detections.
+ * Signals.gs — Signal collection: the whitelist gate, field extraction, 12 detections.
  *
- * ONE function, deliberately long. Seventeen try/catch blocks write eleven signal
+ * ONE function, deliberately long. Eighteen try/catch blocks write twelve signal
  * keys (seven of them accumulate into clickbaitCount), and every block is wrapped
- * individually because a single throw used to discard eight of eleven signals.
+ * individually because a single throw once discarded eight of eleven signals.
  *
  * That structure is load-bearing, not accidental: code INSIDE a block degrades
  * one signal; code OUTSIDE one propagates to analyzeMessage()'s catch-all and
@@ -123,7 +123,7 @@ function collectSignals(message)
   // has to outlive both.
   const textToCheck = subject + ' ' + from;   // Signals 2 and 3
   const atIdx       = senderAddress.lastIndexOf('@');
-  let   isFreeMail  = false;                  // set by Signal 8, read by Signal 9
+  let   isFreeMail  = false;                  // set by Signal 8, read by Signals 9 and 10
 
   // Counts signals that threw and were skipped. A verdict reached with fewer
   // signals than intended is not a trustworthy "clean" — see _degraded below.
@@ -143,7 +143,8 @@ function collectSignals(message)
     serviceImpersonation: false,       // Cloud service subject from non-service sender (phishing)
     brandMismatchedCta: false,         // CTA names a document brand, links elsewhere (phishing)
     freeMailRandomLocal: false,        // free-mail sender with a machine-generated local part
-    callbackPhishing: false            // fake brand invoice from free mail, payload is a phone number
+    callbackPhishing: false,           // fake brand invoice from free mail, payload is a phone number
+    selfNamedSender: false             // free-mail sender using the recipient's own name, not their address
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -523,6 +524,75 @@ function collectSignals(message)
     logError('Signal 8 threw and was skipped: ' + signalError.toString());
   }
 
+  // ── Signal 10: Free-mail sender using the recipient's own name ──────────
+  //
+  // Runs BEFORE Signal 9, which reads it.
+  //
+  //   From: Geoff C Freedman <allbashashaik170@gmail.com>
+  //   To:   Geoff C Freedman <geoff.c.freedman@gmail.com>
+  //
+  // Both callback scams that got past us (Norton, 2026-09-17; "Google
+  // Workspace", 2026-09-30) set the From display name to the recipient's own
+  // name. It is a structural tell from the campaign's tooling: it costs them
+  // nothing to keep and does not rotate with the brand they impersonate, which
+  // is exactly what IMPERSONATED_SUPPORT_BRANDS failed to keep up with.
+  //
+  // Requirements, each closing an innocent reading:
+  //   - free-mail sender: services that send you a copy of your own action
+  //     ("Geoff C Freedman <noreply@forms.example>") use their own domain
+  //   - the sender is not one of the recipient's mailboxes. Compared in
+  //     Gmail's canonical form (dots, +tag, googlemail) against To, Cc and
+  //     Delivered-To — the last is the account that received it, so the
+  //     user's own address is excluded even when To names someone else. Two
+  //     independent reviews of v6.68.0 caught the first draft comparing raw
+  //     text: mail to yourself at a +receipts address fired.
+  //   - two or more words of 2+ characters: "Geoff" from a different Geoff is
+  //     a coincidence; "Geoff C Freedman" from a stranger's mailbox is not.
+  //     This is ALSO what stops two absent names ('' === '') from matching:
+  //     removing it made every bare-address message with no To: name fire.
+  //   - no word of the name (3+ letters) appears in the sender's local part.
+  //     The user's own second account is geoff@icloud.com or
+  //     freedman.g@yahoo.com; the scams were allbashashaik170@ and raju47326yu@.
+  //     A campaign that reads your name off your address could close this
+  //     gap, but then the address is no longer a throwaway it can rotate.
+  //
+  // The residual false positive is the recipient's OWN second free-mail
+  // account under the same name. So this convicts nothing in the inbox on its
+  // own: it is a STRONG corroborator in the Spam folder (Gmail has already
+  // judged the message), and it fills Signal 9's brand slot, where Rule 9
+  // quarantines rather than deletes.
+  try
+  {
+    if (isFreeMail)
+    {
+      const fromName = headerDisplayName(getRawHeader(rawContent, 'From'));
+      const toHeader = getRawHeader(rawContent, 'To') || '';
+      const nameWords = fromName.split(' ');
+      const ownMailboxes = headerMailboxes(toHeader)
+        .concat(headerMailboxes(getRawHeader(rawContent, 'Cc')))
+        .concat(headerMailboxes(getRawHeader(rawContent, 'Delivered-To')));
+      const senderLocal = senderAddress.substring(0, atIdx);
+      if (nameWords.filter(function(w) { return w.length >= 2; }).length >= 2 &&
+          fromName === headerDisplayName(toHeader) &&
+          ownMailboxes.indexOf(canonicalMailbox(senderAddress)) === -1 &&
+          !nameWords.some(function(w) {
+            return w.length >= 3 && senderLocal.indexOf(w) !== -1;
+          }))
+      {
+        signals.selfNamedSender = true;
+        logDebug('Free-mail sender using the recipient\'s own name: ' +
+                 sanitizeForLog(senderAddress));
+      }
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 10 threw and was skipped: ' + signalError.toString());
+  }
+
   // ── Signal 9: Callback phishing (the payload is a phone number) ─────────
   //
   // Closes the class that got raju47326yu@gmail.com past every other signal.
@@ -540,6 +610,8 @@ function collectSignals(message)
   // So detect the anatomy rather than the wording. All four must hold:
   //   1. free-mail sender          — a real brand never bills from gmail.com
   //   2. names an impersonated brand — claims to be someone it provably isn't
+  //      OR uses the recipient's own name (Signal 10). The brand list alone
+  //      missed the 2026-09-30 "Google Workspace" wave of the same campaign.
   //   3. billing language           — asserts money is moving
   //   4. a phone number             — the actual payload
   //
@@ -565,13 +637,13 @@ function collectSignals(message)
         return scanText.indexOf(b) !== -1;
       });
 
-      if (impersonated.length > 0 &&
+      if ((impersonated.length > 0 || signals.selfNamedSender) &&
           CALLBACK_PHONE_PATTERN.test(scanText) &&
           BILLING_LANGUAGE_PATTERNS.some(function(p) { return p.test(scanText); }))
       {
         signals.callbackPhishing = true;
         logDebug('Callback phishing: free-mail sender invoicing as "' +
-                 impersonated[0] + '" with a phone number');
+                 (impersonated[0] || 'the recipient') + '" with a phone number');
       }
     }
   }

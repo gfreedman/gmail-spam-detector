@@ -124,6 +124,87 @@ function getRawHeader(rawContent, name)
 }
 
 /**
+ * The display name of an address header, normalised for comparison.
+ *
+ * '"Freedman,  Geoff C." <a@b.com>' -> 'c freedman geoff'. Takes everything
+ * before the first '<' (so a header whose FIRST mailbox is a bare address
+ * yields junk that matches nothing), drops quotes, dots, commas and invisible
+ * format characters, case-folds, and SORTS the words — so "Freedman, Geoff C"
+ * and "Geoff C. Freedman" compare equal, and a zero-width space cannot split
+ * a name to dodge the match. A header with no '<' has no display name: ''.
+ *
+ * Whitespace is split on an explicit [ \t] class, never \s: JS and Python
+ * disagree on what \s covers (\x1c-\x1f, \x85), and this must not.
+ *
+ * Reads the RAW header value, so an RFC 2047 encoded-word name stays encoded
+ * and fails closed (it has no spaces, so it never reaches two words).
+ *
+ * Mirrored by _header_display_name() in tests/test_spam_detector.py.
+ *
+ * @param {string|null} headerValue - e.g. getRawHeader(raw, 'From').
+ * @return {string} Normalised display name, or '' if there is none.
+ */
+function headerDisplayName(headerValue)
+{
+  const value = String(headerValue || '');
+  const lt = value.indexOf('<');
+  if (lt === -1) return '';
+  return value.substring(0, lt)
+    .replace(/[\u00AD\u200B-\u200F\u2060\uFEFF]/g, '')
+    .replace(/[".,]/g, ' ')
+    .toLowerCase()
+    .split(/[ \t]+/)
+    .filter(function(w) { return w !== ''; })
+    .sort()
+    .join(' ');
+}
+
+/**
+ * One mailbox, in the form Gmail itself treats as identical.
+ *
+ * Lower-cased, '+tag' dropped; for gmail.com and googlemail.com the dots in
+ * the local part are dropped too and the domain is folded to gmail.com, since
+ * Gmail delivers geoff.c.freedman+receipts@googlemail.com and
+ * geoffcfreedman@gmail.com to the same inbox. Comparing raw text instead let
+ * the user's own mail to a +tag address count as a stranger using their name.
+ *
+ * Mirrored by _canonical_mailbox() in tests/test_spam_detector.py.
+ *
+ * @param {string} address
+ * @return {string}
+ */
+function canonicalMailbox(address)
+{
+  const addr = String(address || '').toLowerCase();
+  const at = addr.lastIndexOf('@');
+  if (at <= 0) return addr;
+  let local = addr.substring(0, at);
+  let domain = addr.substring(at + 1);
+  const plus = local.indexOf('+');
+  if (plus > 0) local = local.substring(0, plus);
+  if (domain === 'gmail.com' || domain === 'googlemail.com')
+  {
+    local = local.replace(/\./g, '');
+    domain = 'gmail.com';
+  }
+  return local + '@' + domain;
+}
+
+/**
+ * Every mailbox named in a header value, canonicalised.
+ *
+ * Mirrored by _header_mailboxes() in tests/test_spam_detector.py.
+ *
+ * @param {string|null} headerValue
+ * @return {Array<string>}
+ */
+function headerMailboxes(headerValue)
+{
+  return (String(headerValue || '').match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/g) || [])
+    .map(canonicalMailbox);
+}
+
+/**
  * Does any label of this domain have randomised capitalisation?
  *
  * "ktKCtzuMO", "bKnPcRBpO": throwaway domains generated per send. Domains are

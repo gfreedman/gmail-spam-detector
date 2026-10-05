@@ -433,6 +433,7 @@ function describeSignals(signals)
   if (signals.brandMismatchedCta)         fired.push('brand-cta');
   if (signals.freeMailRandomLocal)        fired.push('freemail-random');
   if (signals.callbackPhishing)           fired.push('callback-phishing');
+  if (signals.selfNamedSender)            fired.push('self-named-sender');
 
   // Parenthesised and last, deliberately. Bulk routing corroborates nothing on
   // its own — hasCorroboratingSignal() excludes it because virtually every

@@ -1,0 +1,317 @@
+Delivered-To: geoff.c.freedman@gmail.com
+Received: by 2002:a05:7326:e60d:10b0:213:5a48:9aa3 with SMTP id fq13-n1csp399488rdc;
+        Wed, 30 Sep 2026 06:30:20 -0700 (PDT)
+X-Received: by 2002:a05:6402:3210:b0:6a9:9c65:f244 with SMTP id 4fb4d7f45d1cf-6ae19961a07mr1152447a12.36.1790775020252;
+        Wed, 30 Sep 2026 06:30:20 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1790775020; cv=none;
+        d=google.com; s=arc-20260327;
+        b=DQePzVzSJnQIUwtH1B9DERFnEfmBAdTXsLZCjQXUZbWvRKCiYBRkLrP7U8ZmBQClmJ
+         tyzkbdbakXGeFtXTth8uq9u3O0xYDoR2JzcKd1AzXcJyEPGHv8j/qWZBJjDLRiAeRkh6
+         tbI8YbxuK2WUTFinneYd2g7mN7WiNm7wkcxAnLV862o6bYGhEfsnE8SUPSEr5K8a8w3M
+         9jxip1w+dZswPn+bbuV3bl3L1qbQnu7e05u1zQQfylgaL9zF9uKBkjTOMXoXnygqhuGK
+         /DaDUkasSKwxvfvk4r8eRP/mNdh+FW3ZOqUUQqU8DCChliN3q/DpShjOMkGHJynI3Z5o
+         xwJQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=priority:importance:subject:from:to:mime-version:date:message-id
+         :dkim-signature;
+        bh=iakZzZwRKcAYMC5JyOmuQvY5yC1MypZ2I39APf+oQuU=;
+        fh=H4eO5KDlyIzVbmMlHRC51z+gNSFMrMBmiEd3rY/XCfI=;
+        b=s4X5M0HcnIKDQ5LMmVr07w9JMykg/VfR9bJlp7chTDvhqxjAhE9FXmldP0k1/jEDFy
+         Xv1alj2S4F/q5HTXClg2QlxKf4+m2/1iqswi9ZHUz4/V+MuzK07x8u2wb1O40XF0c394
+         pHCCPvjWHBg9d+5kw/RCg6iojtUe/wM5VbNpHZbOEeJxHnDM+nYU/aG+eNaoXBBrtcLl
+         ZZx79g6U/F/78mMwg5VVINeor9WFSMXfb+0XWbI9hX/oSdtR3WsuqUPR4wjtyIAoOx4K
+         joyVEyZc8nno5x44Xi5ZFGt41gmgpS181hRApBvmRvEaIiUQd3BkUgV55zKr0kzQBl89
+         TJkQ==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20251104 header.b=I4L3mSJD;
+       spf=pass (google.com: domain of allbashashaik170@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=allbashashaik170@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com;
+       dara=pass header.i=@gmail.com
+Return-Path: <allbashashaik170@gmail.com>
+Received: from mail-sor-f41.google.com (mail-sor-f41.google.com. [209.85.220.41])
+        by mx.google.com with SMTPS id 4fb4d7f45d1cf-6ae14b6a47dsor618880a12.12.2026.09.30.06.30.20
+        for <geoff.c.freedman@gmail.com>
+        (Google Transport Security);
+        Wed, 30 Sep 2026 06:30:20 -0700 (PDT)
+Received-SPF: pass (google.com: domain of allbashashaik170@gmail.com designates 209.85.220.41 as permitted sender) client-ip=209.85.220.41;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@gmail.com header.s=20251104 header.b=I4L3mSJD;
+       spf=pass (google.com: domain of allbashashaik170@gmail.com designates 209.85.220.41 as permitted sender) smtp.mailfrom=allbashashaik170@gmail.com;
+       dmarc=pass (p=NONE sp=QUARANTINE dis=NONE) header.from=gmail.com;
+       dara=pass header.i=@gmail.com
+DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=gmail.com; s=20251104; t=1790775020; x=1791379820; dara=google.com;
+        h=priority:importance:subject:from:to:mime-version:content-type:date
+         :message-id:from:to:cc:subject:date:message-id:reply-to:content-type;
+        bh=iakZzZwRKcAYMC5JyOmuQvY5yC1MypZ2I39APf+oQuU=;
+        b=I4L3mSJD8FsTHeBfrE9E28r/kBJcmMHDd0nOOfsvdIFvU58v8a83hKllhYpyiMehuC
+         m5QH03YIrLfq5+xEPmxVjICXrWgg5bwF+RENPCAzgw1OVNm0bWWtu4XZHhnScyOJ1I6Y
+         UhTeE5P5s5n5IcN0G0G/QwxBdMavWtR8ihIR6TjvL59UO/MtUNXD/H/g2ezqAhajFiBa
+         iwmdSlmoZb2+a9ppYvEM7LrZNz9o+6pXbY7Yy9/iF65mBCjjzjv2Gl6KDRcgETQTp8Ul
+         GV8AHiG9ve/pM6PSbfoSm8muVMyA5F5U3s23OYKhhobln3PZPHdooNjVMKVN8w6Rl0Ze
+         sbrA==
+X-Google-DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+        d=1e100.net; s=20260707; t=1790775020; x=1791379820;
+        h=priority:importance:subject:from:to:mime-version:content-type:date
+         :message-id:x-gm-gg:x-gm-message-state:from:to:cc:subject:date
+         :message-id:reply-to:content-type;
+        bh=iakZzZwRKcAYMC5JyOmuQvY5yC1MypZ2I39APf+oQuU=;
+        b=fjyaegV7z4YzlvGh2T8BlvjFPxI3RlX9z7iHwQwzeKsXghPJsC2UGwvrJy2g8zedoo
+         XRKRaeGd6VBVbLf3IiBdLkM74QOs04uzKoYtjYFMMovWEjtZyj/Vvz/2Nu9UK+jxkkHQ
+         Z6nc5MzqUEpQhr7DQ3MFN5EGJcZKnmDqg4t2drJadStN8KCajxURzM3ud0EhlFz3xyKq
+         AMfWZ8XmWnV7dJCY3FTskBW+mkQSu7GeNjWesGQlfff+52buLTT9GyXOw7HpWFG6BFDF
+         GMR1tDfUBagFMhengpUrrao2TgASdl5ZEGlHNxQHs4JxtlSkEasfDGoSRbLPl1cVlglT
+         6BEA==
+X-Gm-Message-State: AFq9FYI5vimXnpxJKqgVDQwQqN4Mokfogur+EAoWCqzt8dPk8HpKz5nL
+	RGGU5pt80HFvViqjdAakdMXw8jHzy6nIUGvM5OsTRGgG54rfiKWGW+HcZOlgbP4141Q6P5Z+
+X-Gm-Gg: AYBFou36BE8xqa+X5rFbSrjBWKDyVVP3dTmvcUpnZ2e9usASwyW5+ojON8UWIFWS6Nr
+	BKELCv0yDuml1wl1iFMtCszdpxSEmubIKtcll8Vhr+tHxaaZK6YBf10/ZK/e9saKqeQ4LhlDvGY
+	Spgg14kZ5PrGPsy3nH0KnhnAo+Ve5iqMy1XS29UXBgIYqN9jTFDGcd2X3GhUJ9lWlJ6QczylkGl
+	PFaJHp1djprWUXBEHPanLFNRzV/8zvUrrY93YJHiZueTNjBaq5pXMmvGVQQSrxfNn4UUzlzOqng
+	3phcWNRJGJBRTvxVh6EVnnQJ0pwoa6OTv07C04R4anFmyCRs6JYcrqNgxKwmTdQDelqoY9ekPU9
+	39yEu7UnPfaIJ5cT3ttCihPt5ClMrubwsEjtS6gCCVUSYwCc6WKafxueDIvvkLGBsYEwNHn0DF1
+	1cku7E1LI4P1D418w/4jszw4iKp2kZj+7WuOKd5afeuoJtAa/Ei/pvqQpG1NykRsvlz+0tzbFtD
+	KEQeuj5jTmyzXxJq4Y1r+/2MOjKs1kHeL4=
+X-Received: by 2002:a05:6402:1f90:b0:6ac:73f8:2e4f with SMTP id 4fb4d7f45d1cf-6ae19952069mr933980a12.29.1790775019449;
+        Wed, 30 Sep 2026 06:30:19 -0700 (PDT)
+Return-Path: <allbashashaik170@gmail.com>
+Received: from [10.200.0.178] ([43.166.168.153])
+        by smtp.gmail.com with ESMTPSA id 4fb4d7f45d1cf-6ae1539574asm792944a12.10.2026.09.30.06.30.18
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 30 Sep 2026 06:30:19 -0700 (PDT)
+Message-ID: <6abd0eeb.fb30dff4.1a67a5.4959@mx.google.com>
+Date: Wed, 30 Sep 2026 06:30:19 -0700 (PDT)
+Content-Type: multipart/mixed; boundary="===============7429463359936178202=="
+MIME-Version: 1.0
+to: Geoff C Freedman <geoff.c.freedman@gmail.com>
+from: Geoff C Freedman <allbashashaik170@gmail.com>
+subject: Thank You for Your purchase #54123650
+Importance: normal
+Priority: normal
+
+--===============7429463359936178202==
+Content-Type: text/html; charset="us-ascii"
+MIME-Version: 1.0
+Content-Transfer-Encoding: 7bit
+
+<!DOCTYPE html>
+<html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en">
+
+<head>
+	<title></title>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0"><!--[if mso]>
+<xml><w:WordDocument xmlns:w="urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyReadingMail/></w:WordDocument>
+<o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml>
+<![endif]--><!--[if !mso]><!--><!--<![endif]-->
+	<style>
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			padding: 0;
+		}
+
+		a[x-apple-data-detectors] {
+			color: inherit !important;
+			text-decoration: inherit !important;
+		}
+
+		#MessageViewBody a {
+			color: inherit;
+			text-decoration: none;
+		}
+
+		p {
+			line-height: inherit
+		}
+
+		.desktop_hide,
+		.desktop_hide table {
+			mso-hide: all;
+			display: none;
+			max-height: 0px;
+			overflow: hidden;
+		}
+
+		.image_block img+div {
+			display: none;
+		}
+
+		sup,
+		sub {
+			font-size: 75%;
+			line-height: 0;
+		}
+
+		@media (max-width: 620px) {
+			.row-content {
+				width: 100% !important;
+			}
+
+			.stack .column {
+				width: 100% !important;
+				display: block;
+			}
+
+			.mobile_hide {
+				min-height: 0;
+				max-height: 0;
+				max-width: 0;
+				display: none;
+				overflow: hidden;
+				font-size: 0;
+			}
+
+			.desktop_hide,
+			.desktop_hide table {
+				display: table !important;
+				max-height: none !important;
+			}
+		}
+	</style><!--[if mso ]><style>sup, sub { font-size: 100% !important; } sup { mso-text-raise:10% } sub { mso-text-raise:-10% }</style> <![endif]-->
+</head>
+
+<body class="body" style="margin: 0; padding: 0; -webkit-text-size-adjust: none; text-size-adjust: none; background-color: #ffffff;">
+	<table class="nl-container" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #ffffff;">
+		<tbody>
+			<tr>
+				<td>
+					<table class="row row-1" align="center" width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+						<tbody>
+							<tr>
+								<td>
+									<table class="row-content stack" align="center" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; color: #000000; width: 600px; margin: 0 auto;" width="600">
+										<tbody>
+											<tr>
+												<td class="column column-1" width="100%" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; font-weight: 400; text-align: left; vertical-align: top; width: 100%;">
+													<table width="100%" border="0" cellpadding="0" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+														<tr>
+															<td class="col-pad" style="padding-bottom:5px;padding-top:5px;">
+																<table class="heading_block block-1" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+																	<tr>
+																		<td class="pad" style="width:100%;" align="center">
+																			<h1 style="margin: 0; color: #7747FF; direction: ltr; font-family: Georgia, Times, 'Times New Roman', serif; font-size: 40px; font-weight: 700; letter-spacing: normal; line-height: 1.2; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 48px;"><span class="tinyMce-placeholder" style="word-break: break-word;"><span style="word-break: break-word; color: #4285f4;">G</span><span style="word-break: break-word; color: #ea4335;">o</span><span style="word-break: break-word; color: #fbbc05;">o</span><span style="word-break: break-word; color: #4285f4;">g</span><span style="word-break: break-word; color: #34a853;">l</span><span style="word-break: break-word; color: #ea4335;">e</span></span></h1>
+																		</td>
+																	</tr>
+																</table>
+																<table class="paragraph_block block-2" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+																	<tr>
+																		<td class="pad">
+																			<div style="color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:19px;">
+																				<p style="margin: 0;"><strong>Order No: #54123650</strong></p>
+																			</div>
+																		</td>
+																	</tr>
+																</table>
+																<table class="heading_block block-3" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+																	<tr>
+																		<td class="pad" style="width:100%;" align="center">
+																			<h4 style="margin: 0; color: #555555; direction: ltr; font-family: Georgia, Times, 'Times New Roman', serif; font-size: 14px; font-weight: 700; letter-spacing: normal; line-height: 1.2; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 17px;"><span class="tinyMce-placeholder" style="word-break: break-word;">Google Workspace Plan Confirmation</span></h4>
+																		</td>
+																	</tr>
+																</table>
+																<table class="paragraph_block block-4" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+																	<tr>
+																		<td class="pad">
+																			<div style="color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:19px;">
+																				<p style="margin: 0;">Hey Geoff C Freedman,</p>
+																			</div>
+																		</td>
+																	</tr>
+																</table>
+																<table class="paragraph_block block-5" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+																	<tr>
+																		<td class="pad">
+																			<div style="color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:19px;">
+																				<p style="margin: 0;">Thank you for choosing Google Workspace.</p>
+																			</div>
+																		</td>
+																	</tr>
+																</table>
+																<table class="paragraph_block block-6" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+																	<tr>
+																		<td class="pad">
+																			<div style="color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:19px;">
+																				<p style="margin: 0;">This message provides a summary of your Google Workspace subscription, including your selected plan, billing details, and available services.</p>
+																			</div>
+																		</td>
+																	</tr>
+																</table>
+																<table class="paragraph_block block-7" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+																	<tr>
+																		<td class="pad">
+																			<div style="color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:19px;">
+																				<p style="margin: 0;"><strong>Subscription Details</strong><br>Product: Google Workspace<br>Plan: Business Work Plan<br>Subscription Id: 46K22YKQJON358<br>Users: 15<br>Billing Cycle: 1 Year<br>Subscription Date: Wednesday, September 30, 2026<br>Amount: $293.00<br>Payment Method: Bank Card<br>Status: Active</p>
+																			</div>
+																		</td>
+																	</tr>
+																</table>
+																<table class="paragraph_block block-8" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+																	<tr>
+																		<td class="pad">
+																			<div style="color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:19px;">
+																				<p style="margin: 0;"><strong>Included Services</strong><br>Gmail, Google Drive, Google Meet, Google Calendar, Google Chat, Docs, Sheets, Slides, Forms, Sites, and eligible Gemini features may be available depending on your Workspace edition.</p>
+																			</div>
+																		</td>
+																	</tr>
+																</table>
+																<table class="paragraph_block block-9" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+																	<tr>
+																		<td class="pad">
+																			<div style="color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:19px;">
+																				<p style="margin: 0;">Please retain this message for your records. You can review your subscription and billing information through your authorized Google Workspace administration or billing interface.</p>
+																			</div>
+																		</td>
+																	</tr>
+																</table>
+																<table class="paragraph_block block-10" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+																	<tr>
+																		<td class="pad">
+																			<div style="color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:19px;">
+																				<p style="margin: 0;">This is an automated message. Please do not reply to this email.</p>
+																			</div>
+																		</td>
+																	</tr>
+																</table>
+																<table class="paragraph_block block-11" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+																	<tr>
+																		<td class="pad">
+																			<div style="color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:16px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:19px;">
+																				<p style="margin: 0;">Customer Support Contact Details<br>+1 (582) 245-0306<br>+1 (812) 552-1516</p>
+																			</div>
+																		</td>
+																	</tr>
+																</table>
+																<table class="paragraph_block block-12" width="100%" border="0" cellpadding="10" cellspacing="0" role="presentation" style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;">
+																	<tr>
+																		<td class="pad">
+																			<div style="color:#101112;direction:ltr;font-family:Arial, Helvetica, sans-serif;font-size:10px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:center;mso-line-height-alt:12px;">
+																				<p style="margin: 0;">(c) 2026 Google Workspace. All rights reserved.</p>
+																			</div>
+																		</td>
+																	</tr>
+																</table>
+															</td>
+														</tr>
+													</table>
+												</td>
+											</tr>
+										</tbody>
+									</table>
+								</td>
+							</tr>
+						</tbody>
+					</table>
+				</td>
+			</tr>
+		</tbody>
+	</table><!-- End -->
+</body>
+
+</html>
+--===============7429463359936178202==--

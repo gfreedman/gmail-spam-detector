@@ -6,7 +6,7 @@
  * rather than a boolean — and it is what disposeDetectedMessage() reads to
  * decide whether a message is destroyed or quarantined.
  *
- * Rule order is the contract between the two. An exhaustive 5,120-combination
+ * Rule order is the contract between the two. An exhaustive 10,240-combination
  * test in tests/test_disposition.js now enforces it; before that it was a
  * comment.
  *
@@ -252,6 +252,7 @@ function buildSignalsCsv(signals)
   if (signals.brandMismatchedCta)         parts.push('BRAND_MISMATCH_CTA');
   if (signals.freeMailRandomLocal)        parts.push('FREEMAIL_RANDOM_LOCAL');
   if (signals.callbackPhishing)           parts.push('CALLBACK_PHISHING');
+  if (signals.selfNamedSender)            parts.push('SELF_NAMED_SENDER');
   // Surfaced in the Sheet so a degraded verdict is visible in the log, not
   // just in an execution transcript nobody reads.
   if (signals._degraded)                  parts.push('DEGRADED');

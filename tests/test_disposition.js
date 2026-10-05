@@ -1600,6 +1600,26 @@ console.log('\n=== v6.69.0: the gaps v6.68.0 named (loose name, encoding, phones
         sig({ phone: 'ref order #8775551234' }).callbackPhishing === false);
 }
 
+console.log('\n=== Signal 2g: the full address in a subject is not a name ===');
+{
+  // Google Calendar appends the attendee's address to every invite subject.
+  // Until v6.70.0 that scored Signal 2g on all ~200 of the user's invites.
+  const subjOf = (subject) => {
+    const m = blacklistMessage('m2g');
+    m.getFrom = () => 'Anita Rao <anita@productbc.example>';
+    m.getSubject = () => subject;
+    m.getRawContent = () => 'To: geoff.c.freedman@gmail.com\r\n\r\nhi';
+    return makeCtx().collectSignals(m).clickbaitCount;
+  };
+  check('a calendar invite ending "(geoff.c.freedman@gmail.com)" scores 0',
+        subjOf('Invitation: Quarterly planning @ Thu Oct 8, 2026 10am - 11am (PDT) ' +
+               '(geoff.c.freedman@gmail.com)') === 0);
+  check('"geoff.c.freedman, Claim Your Free Medicare Kit" still scores',
+        subjOf('geoff.c.freedman, Claim Your Free Medicare Kit') >= 1);
+  check('address AND bare local part: the bare one still scores',
+        subjOf('geoff.c.freedman, your kit (geoff.c.freedman@gmail.com)') >= 1);
+}
+
 console.log('\n=== checkFalseNegatives: SpamMissed cannot destroy whitelisted mail ===');
 {
   // This path deletes on explicit human instruction, which is sound for one

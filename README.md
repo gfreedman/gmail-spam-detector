@@ -48,7 +48,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 ## 📊 Results
 
 - ✅ **100% detection** on 57/57 spam + 7/7 scam (.eml files)
-- ✅ **0% false positives** on 24/24 legitimate emails
+- ✅ **0% false positives** on 25/25 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
 - ✅ **CI asks prod whether it is healthy after every deploy** — the `verify-prod` job confirms the trigger is running, the live version matches the commit, and the last run was clean.
@@ -428,7 +428,7 @@ addToWhitelist('domain.com');
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
 │   ├── spam_examples/           # Real spam .eml files (57)
 │   ├── scam_examples/           # Scam .eml files (7)
-│   └── ham_examples/            # Legitimate .eml files (24)
+│   └── ham_examples/            # Legitimate .eml files (25)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

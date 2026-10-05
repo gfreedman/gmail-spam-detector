@@ -370,14 +370,26 @@ function collectSignals(message)
   // a name. Matched against the recipient's OWN local part (from To:), never a
   // generic "dotted token," pattern — that matched "Node.js, Deno and Bun" and
   // "3.5, the new release". Min 5 chars so "info" / "me" cannot match prose.
+  //
+  // The FULL address is removed from the subject first: it is an address, not
+  // the local part used as a name. Google Calendar appends it to every invite
+  // ("Invitation: Board Onsite @ Sat Oct 19 (geoff.c.freedman@gmail.com)"), so
+  // until v6.70.0 every calendar invite the user received — ~200 in the
+  // mailbox — scored a weak spam point, one hit short of skipping the
+  // Spam-folder grace period.
   try
   {
     const toHeader = getRawHeader(rawContent, 'To') || '';
-    const toLocal = toHeader.match(/([A-Za-z0-9._%+-]+)@/);
-    if (toLocal && toLocal[1].length >= 5 &&
-        subject.toLowerCase().indexOf(toLocal[1].toLowerCase()) !== -1)
+    const toAddr = toHeader.match(/([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+)/);
+    if (toAddr && toAddr[1].length >= 5)
     {
-      signals.clickbaitCount++;
+      const local = toAddr[1].toLowerCase();
+      const subjectSansAddress = subject.toLowerCase()
+        .split(local + '@' + toAddr[2].toLowerCase()).join(' ');
+      if (subjectSansAddress.indexOf(local) !== -1)
+      {
+        signals.clickbaitCount++;
+      }
     }
   }
   catch (signalError)

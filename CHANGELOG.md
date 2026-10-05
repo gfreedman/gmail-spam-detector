@@ -20,6 +20,37 @@ detail plus the diffs.
 
 ---
 
+## v6.70.0
+
+**Every Google Calendar invite scored a spam point. It no longer does.**
+
+Signal 2g ("recipient address used as a name", v6.66.0) adds one weak point
+when the subject contains the recipient's own local part. The target is
+`geoff.c.freedman, Claim Your Free Medicare Kit`. But Google Calendar appends
+the attendee's full address to every invite subject: `Invitation: Board Onsite
+@ Sat Oct 19, 2024 9am - 12:30pm (PDT) (geoff.c.freedman@gmail.com)`. So all
+~200 invites in the user's mailbox scored one point.
+
+- **Inbox:** harmless, because non-bulk mail needs 3+ points.
+- **Spam folder:** a legitimate invite that Gmail misfiled was one weak hit
+  away from the two weak points that skip the 7-day grace period and delete
+  it immediately.
+
+Found while diagnosing the "New Voice Message" calendar-invite phish in Spam,
+whose only point was this one.
+
+The fix removes the full address from the subject before looking for the local
+part, because an address is not a name used as a greeting. A subject carrying
+both still scores. JS tests pin all three cases, and a new calendar-invite ham
+fixture makes Phase 7 parity fail if either implementation reverts (both
+fault-injected).
+
+No independent review this time: the change only narrows a weak signal. The
+only detection given up is a spammer using the full address as the greeting
+instead of the local part.
+
+---
+
 ## v6.69.0
 
 **Close the four callback-scam gaps v6.68.0 named.**

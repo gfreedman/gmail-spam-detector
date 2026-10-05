@@ -1234,10 +1234,14 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         signals['matched_patterns'].append('forged_sender_headers')
 
     # ── Signal: Recipient address used as a name (mirrors Signal 2g) ───────
-    to_local = re.search(r'([A-Za-z0-9._%+-]+)@', _raw_header(raw, 'To') or '')
-    if (to_local and len(to_local.group(1)) >= 5 and
-            to_local.group(1).lower() in (subject or '').lower()):
-        signals['clickbait_count'] += 1
+    # The full address is removed first — Google Calendar appends it to every
+    # invite subject, and an address is not the local part used as a name.
+    to_addr = re.search(r'([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+)', _raw_header(raw, 'To') or '')
+    if to_addr and len(to_addr.group(1)) >= 5:
+        _local = to_addr.group(1).lower()
+        _subj = (subject or '').lower().replace(_local + '@' + to_addr.group(2).lower(), ' ')
+        if _local in _subj:
+            signals['clickbait_count'] += 1
         signals['matched_patterns'].append('recipient_address_as_name')
 
     # ── Signal: Unicode obfuscation in body ────────────────────────────────

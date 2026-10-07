@@ -31,6 +31,7 @@ from datetime import datetime, timezone
 WORKFLOW = 'deploy.yml'
 JOB_ORDER = ['test', 'deploy', 'validate', 'verify-prod', 'tag']
 TRIGGER_PERIOD_S = 600          # the Apps Script trigger runs every 10 minutes
+TRIGGER_GRACE_S = 180          # a due run's marker can land this long after the due time
 POLL_S = 15
 HEARTBEAT_S = 120
 HISTORY_RUNS = 6
@@ -75,7 +76,11 @@ def next_trigger_at():
         last = parse_ts(m.group(1))
         now = datetime.now(timezone.utc)
         due = last.timestamp() + TRIGGER_PERIOD_S
-        while due < now.timestamp():          # missed a beat: next slot
+        # The run starts AT the due time and its marker lands a minute or two
+        # later, so a due time just passed means "any moment", not "next slot".
+        # Rolling forward immediately showed "~11m left" seconds before the
+        # run finished. Only past the grace window is it a missed beat.
+        while due + TRIGGER_GRACE_S < now.timestamp():
             due += TRIGGER_PERIOD_S
         return due
     except Exception:
@@ -139,7 +144,9 @@ def main():
         parts += [n + ' running' + (' (waiting for 10-min trigger)' if n == 'verify-prod' else '')
                   for n in running]
         if run['status'] != 'completed':
-            parts.append(f'~{fmt_dur(remaining)} left')
+            # remaining <= 0 only when the trigger is due or overdue (within
+            # the grace window) and nothing else is left to run.
+            parts.append(f'~{fmt_dur(remaining)} left' if remaining > 0 else 'any moment')
         line = ' · '.join([head] + parts)
 
         if line.split('~')[0] != (last_line or '').split('~')[0] or now - last_print >= HEARTBEAT_S:

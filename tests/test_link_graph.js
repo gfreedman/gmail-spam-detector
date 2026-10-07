@@ -216,6 +216,53 @@ check('out-of-range codepoint does not throw',
       ctx.decodeHtmlEntities('a&#1114112;b'), 'ab');
 check('soft hyphen removed', ctx.decodeHtmlEntities('Docu&shy;Sign'), 'DocuSign');
 
+console.log('\n=== Linear angle-bracket scanners (v6.74.0) ===');
+{
+  // The regexes these replaced, kept here as the specification. Each retried
+  // from every '<' (or every character), so one From header or HTML body of
+  // 100 KB stalled a run for 4-8 s.
+  const spec = {
+    extractEmailAddress: function(from) {
+      if (!from) return '';
+      const a = from.match(/<([^>]+)>/); if (a) return a[1].trim().toLowerCase();
+      const c = from.match(/([^\s<>()]+@[^\s<>()]+)/); if (c) return c[1].trim().toLowerCase();
+      return from.trim().toLowerCase();
+    },
+    stripTrailingAngle: function(s) { return s.replace(/<[^>]*>$/, ''); },
+    stripAngles: function(s) { return s.replace(/<[^>]*>/g, ''); },
+    stripHtmlTags: function(s) { return s.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(); }
+  };
+  // Seeded, so a failure reproduces. Alphabet dense in the characters the
+  // scanners branch on.
+  let seed = 12345;
+  const rand = function(n) { seed = (seed * 1103515245 + 12345) % 2147483648; return seed % n; };
+  const alpha = ['<', '>', '@', ' ', '(', ')', '"', '\t', 'a', 'B', '.', '\n', ' ', ' ', 'x@y'];
+  const names = Object.keys(spec);
+  const mismatches = {};
+  names.forEach(function(n) { mismatches[n] = 0; });
+  for (let it = 0; it < 50000; it++)
+  {
+    let s = '';
+    const len = rand(24);
+    for (let i = 0; i < len; i++) s += alpha[rand(alpha.length)];
+    names.forEach(function(n) { if (ctx[n](s) !== spec[n](s)) mismatches[n]++; });
+  }
+  names.forEach(function(n) {
+    check(n + ' matches the regex it replaced on 50,000 fuzzed inputs', mismatches[n], 0);
+  });
+
+  const N = 100000;
+  const hostile = { "100 KB of '<'": '<'.repeat(N), '100 KB of letters': 'a'.repeat(N),
+                    "'<' then 100 KB of letters": '<' + 'a'.repeat(N), "'<>' x 50,000": '<>'.repeat(N / 2) };
+  names.forEach(function(n) {
+    Object.keys(hostile).forEach(function(k) {
+      const t0 = Date.now();
+      ctx[n](hostile[k]);
+      check(n + ' on ' + k + ' completes under 250ms', (Date.now() - t0) < 250, true);
+    });
+  });
+}
+
 console.log('\n' + '='.repeat(70));
 console.log(failures === 0
   ? '✅ LINK-GRAPH TESTS PASSED (' + passed + ' assertions)'

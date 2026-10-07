@@ -101,7 +101,7 @@ function accumulateLogEntry(message, signals, logType, options)
   {
     const from            = sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2');
     const emailAddress    = extractEmailAddress(from);
-    const fromDisplayName = from.replace(/<[^>]*>$/, '').trim();
+    const fromDisplayName = stripTrailingAngle(from).trim();
 
     const domainMatch  = emailAddress.match(/@(.+)$/);
     const sendingDomain = domainMatch ? domainMatch[1] : emailAddress;

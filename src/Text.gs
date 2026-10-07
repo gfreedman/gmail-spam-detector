@@ -42,15 +42,17 @@ function sanitizeInput(input)
  * email). Without this, body pattern checks (e.g. BODY_CRYPTO_PATTERNS) would
  * silently never fire on HTML-only messages.
  *
- * The regex /<[^>]+>/ has no nested quantifiers — it is O(n) on input length
- * and safe against ReDoS. Input is also pre-truncated by sanitizeInput().
+ * Tags go through replaceAngles(), not /<[^>]+>/g. That regex was documented
+ * here as "O(n), safe against ReDoS" — no nested quantifiers — but it retries
+ * from every '<', and an HTML body of 100 KB of '<' (the sanitizeInput() cap)
+ * took 4.4 s (v6.74.0). Same output.
  *
  * @param {string} html - Raw HTML string.
  * @return {string}       Plain text with tags removed and whitespace collapsed.
  */
 function stripHtmlTags(html)
 {
-  return html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  return replaceAngles(html, ' ', 1).replace(/\s+/g, ' ').trim();
 }
 
 /**

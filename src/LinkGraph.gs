@@ -533,9 +533,17 @@ function extractEmailAddress(from)
 {
   if (!from) return '';
 
+  // Both lookups are linear scans, not the regexes they replace (v6.74.0).
+  // /<([^>]+)>/ and /([^\s<>()]+@[^\s<>()]+)/ retried from every start
+  // position, so one sender-controlled From header stalled the run: measured
+  // 4.4 s for 100 KB of '<' and 8.0 s for 100 KB of letters, on every path,
+  // before the whitelist check. Same results — fuzzed against the old
+  // regexes when replaced.
+
   // Angle-bracket form first: "Display Name <addr@host>". Most common.
-  const angled = from.match(/<([^>]+)>/);
-  if (angled) return angled[1].trim().toLowerCase();
+  // The first '<' whose next '>' is not immediately after it.
+  const angled = firstAngleContent(from);
+  if (angled !== null) return angled.trim().toLowerCase();
 
   // RFC 2822 also permits the comment form: "addr@host (Display Name)".
   // Returning the whole string here made addressMatchesDomain() derive a host
@@ -543,10 +551,102 @@ function extractEmailAddress(from)
   // a WHITELISTED sender using this form failed the whitelist check. That was
   // harmless while the consequence was "stays in the Spam folder"; it becomes
   // data loss the moment any path deletes on a failed whitelist match.
-  const commented = from.match(/([^\s<>()]+@[^\s<>()]+)/);
-  if (commented) return commented[1].trim().toLowerCase();
+  //
+  // The first run of non-separator characters with an '@' that has at least
+  // one character on each side; the regex matched exactly that whole run.
+  const tokens = from.split(/[\s<>()]+/);
+  for (let i = 0; i < tokens.length; i++)
+  {
+    const at = tokens[i].indexOf('@', 1);
+    if (at !== -1 && at < tokens[i].length - 1) return tokens[i].trim().toLowerCase();
+  }
 
   return from.trim().toLowerCase();
+}
+
+/**
+ * The text between the first '<' and its next '>', skipping an empty '<>' —
+ * what /<([^>]+)>/ captures. null when there is none. Linear: each '<' is
+ * visited once, and indexOf never rescans past the '>' it found.
+ *
+ * @param {string} text
+ * @return {string|null}
+ */
+function firstAngleContent(text)
+{
+  let lt = text.indexOf('<');
+  while (lt !== -1)
+  {
+    const gt = text.indexOf('>', lt + 1);
+    if (gt === -1) return null;          // no '>' after this '<', so none after any later one
+    if (gt > lt + 1) return text.substring(lt + 1, gt);
+    lt = text.indexOf('<', lt + 1);      // '<>' — empty, try the next '<'
+  }
+  return null;
+}
+
+/**
+ * text.replace(/<[^>]*>$/, '') — drop a trailing "<addr>" — in linear time.
+ * The regex retried from every '<', which is quadratic on a From header of
+ * 100 KB of '<' (4.4 s measured). The match starts at the first '<' after the
+ * last '>' that is not the final character.
+ *
+ * @param {string} text
+ * @return {string}
+ */
+function stripTrailingAngle(text)
+{
+  const end = text.length - 1;
+  if (end < 0 || text[end] !== '>') return text;
+  const lt = text.indexOf('<', text.lastIndexOf('>', end - 1) + 1);
+  return (lt !== -1 && lt < end) ? text.substring(0, lt) : text;
+}
+
+/**
+ * text.replace(/<[^>]*>/g, '') — drop every "<...>" — in linear time. Same
+ * quadratic retry as stripTrailingAngle() when a '<' has no closing '>'.
+ *
+ * @param {string} text
+ * @return {string}
+ */
+function stripAngles(text)
+{
+  return replaceAngles(text, '', 0);
+}
+
+/**
+ * Replace each "<...>" with `replacement`, scanning left to right, in linear
+ * time. minInner 0 is /<[^>]*>/g; minInner 1 is /<[^>]+>/g, where an empty
+ * "<>" is left alone. Both regexes retry from every '<', so a '<' with no
+ * closing '>' rescans to the end of the text each time: 100 KB of '<' took
+ * 4.4 s in Apps Script's V8.
+ *
+ * @param {string} text
+ * @param {string} replacement
+ * @param {number} minInner - 0 or 1: fewest characters allowed between < and >.
+ * @return {string}
+ */
+function replaceAngles(text, replacement, minInner)
+{
+  let out = '';
+  let pos = 0;
+  let lt = text.indexOf('<');
+  while (lt !== -1)
+  {
+    const gt = text.indexOf('>', lt + 1);
+    if (gt === -1) break;                // no '>' after this '<', so none after any later one
+    if (gt - lt - 1 >= minInner)
+    {
+      out += text.substring(pos, lt) + replacement;
+      pos = gt + 1;
+      lt = text.indexOf('<', pos);
+    }
+    else
+    {
+      lt = text.indexOf('<', lt + 1);    // '<>' under minInner 1 — not a tag
+    }
+  }
+  return out + text.substring(pos);
 }
 
 /**

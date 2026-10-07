@@ -205,7 +205,7 @@ function collectSignals(message)
   // headlines into display names ("Breaking • Banks Closing • Alert").
   try
   {
-    const fromDisplayName = from.replace(/<[^>]*>$/, '').trim(); // quotes already stripped above
+    const fromDisplayName = stripTrailingAngle(from).trim(); // quotes already stripped above
     if (fromDisplayName.includes('•') ||     // Bullet separator — never used by legitimate senders
         fromDisplayName.length > LIMITS.maxDisplayNameLength) // Excessive length — keyword stuffing
     {

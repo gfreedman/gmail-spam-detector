@@ -20,6 +20,37 @@ detail plus the diffs.
 
 ---
 
+## v6.74.0
+
+**One crafted email can no longer stall a run for seconds.**
+
+v6.73.0 confirmed working in prod: the "Storage 100% Full" phish was deleted
+from Spam at 01:58 UTC on 2026-10-07, on the first run after the deploy.
+
+The v6.73.0 security review measured `extractEmailAddress()` at 12.9 s on a
+100 KB From header. That function runs on every message, on all five paths,
+before the whitelist check. Five regexes over sender-controlled text retried
+from every start position, which is quadratic. Measured on 100 KB inputs
+before the fix:
+- `extractEmailAddress()` comment-form lookup `/([^\s<>()]+@[^\s<>()]+)/`:
+  8.0 s on 100 KB of letters.
+- Its angle-bracket lookup `/<([^>]+)>/`: 4.4 s on 100 KB of `<`.
+- The display-name strips in `Intelligence.gs` (`/<[^>]*>$/`) and
+  `SpamFolder.gs` (`/<[^>]*>/g`): 4.4 s each.
+- `stripHtmlTags()` (`/<[^>]+>/g`): 4.4 s on an HTML body of 100 KB of `<`.
+  Its comment called it "O(n) and safe against ReDoS". It was wrong: having
+  no nested quantifiers does not stop a regex from retrying at every `<`.
+
+All five are now linear scans: `firstAngleContent()`, `stripTrailingAngle()`,
+`stripAngles()` and `replaceAngles()` in `LinkGraph.gs`. The worst
+adversarial input now takes 2 ms. Output is unchanged. Each scan was fuzzed
+against the regex it replaced on 1.2 million inputs with zero mismatches.
+`test_link_graph.js` keeps a seeded 50,000-input version of that comparison,
+plus 250 ms bounds on the hostile inputs. Both were fault-injected: putting
+the old regex back fails the bound, and a one-character change to a scanner
+fails the comparison. `Signals.gs` Signal 1c uses the same helper (it was
+bounded by the 500-character From cap, now consistent).
+
 ## v6.73.0
 
 **A cloud-storage phish in Spam is deleted now instead of after 7 days.**

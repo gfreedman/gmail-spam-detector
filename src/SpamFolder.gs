@@ -580,7 +580,7 @@ function writeSpamFolderSnapshot()
           verdict,
           escapeSheetCell(signalText),
           escapeSheetCell(extractEmailAddress(from)),
-          escapeSheetCell(from.replace(/<[^>]*>/g, '').trim()),
+          escapeSheetCell(stripAngles(from).trim()),
           escapeSheetCell(message.getSubject() || '(no subject)'),
           whitelisted ? 'YES' : 'no',
           reviewed    ? 'YES' : 'no',

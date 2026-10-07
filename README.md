@@ -442,7 +442,8 @@ addToWhitelist('domain.com');
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
 │   ├── spam_examples/           # Real spam .eml files (57)
 │   ├── scam_examples/           # Scam .eml files (8)
-│   └── ham_examples/            # Legitimate .eml files (26)
+│   ├── ham_examples/            # Legitimate .eml files (26)
+│   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (1)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

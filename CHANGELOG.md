@@ -20,6 +20,34 @@ detail plus the diffs.
 
 ---
 
+## v6.73.0
+
+**A cloud-storage phish in Spam is deleted now instead of after 7 days.**
+
+"🔔 Action Required: Storage 100% Full" (2026-10-06): a fake "payment failed
+for your Cloud storage renewal" page on `storage.googleapis.com`, sent as
+`geoff.c.freedman <alert-4419@plisc.ivz>` with a forged `To: me@aol.com`.
+Gmail filed it in Spam, but the detector found one weak point (subject fear),
+so it was not corroborated and waited out the grace period. Two structural
+tells, both campaign tooling, each +1 inside an existing signal:
+- **Signal 2f** also scores a random-case `Content-Transfer-Encoding` token in
+  any MIME part (`AYKgrrCx0z`), judged by `hasRandomCaseLabel()`. Broken but
+  innocent tokens (`utf-8`, `7-bit`) do not score.
+- **Signal 2g** also scores a From display name that is the recipient's own
+  local part (`geoff.c.freedman`). The match is against Delivered-To only,
+  which also survives this phish's forged To. Review caught the first draft
+  matching every To address, so `jsmith <jsmith1987@yahoo.com>` writing to
+  `jsmith@work.com` would have scored. `@domain` and `+tag` are cut from the
+  name first. The whole name must match, dots removed. A name with a space
+  never matches, since a real name is Signal 10's job. The user's own
+  mailboxes are excluded. No message in the mailbox outside Spam carries this
+  display name from another address.
+
+Neither convicts in the inbox (non-bulk mail still needs 3 points). New
+`tests/spam_folder_examples/` holds Gmail-flagged mail that must corroborate,
+not convict. It is part of Phase 7 parity, which was fault-injected and went
+red on this fixture.
+
 ## v6.72.0
 
 **Deploys show progress and an ETA. Signal 11 matching is tightened.**

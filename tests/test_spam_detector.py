@@ -1249,23 +1249,64 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             break
 
     # ── Signal: Forged sender headers (mirrors Signal 2f) ──────────────────
-    # +1 at most: a Date header that is not a date, or a random-case domain.
+    # +1 at most: a Date header that is not a date, a random-case domain, or a
+    # random-case Content-Transfer-Encoding token in any MIME part.
     date_header = _raw_header(raw, 'Date')
     from_domain = re.search(r'@([A-Za-z0-9.-]+)[^@]*$', from_field or '')
+    # Only the top header block and blocks opening right after a "--boundary"
+    # line; skipped for mail from the recipient's own mailbox.
+    _random_encoding = False
+    _own_enc = (_header_mailboxes(_raw_header(raw, 'Delivered-To')) +
+                _header_mailboxes(_raw_header(raw, 'To')))
+    if _canonical_mailbox(sender_address) not in _own_enc:
+        _in_headers = True
+        _prefix = 'content-transfer-encoding:'
+        for _line in (raw or '')[:MAX_RAW_SCAN_CHARS].replace('\r\n', '\n').split('\n'):
+            if _line == '':
+                _in_headers = False
+                continue
+            if _line[:2] == '--':
+                _in_headers = True
+                continue
+            if _in_headers and _line[:len(_prefix)].lower() == _prefix:
+                _token = re.split(r'[ \t;(]', re.sub(r'^[ \t]+', '', _line[len(_prefix):]))[0]
+                if _has_random_case_label(_token):
+                    _random_encoding = True
+                    break
     if ((date_header is not None and not RFC5322_DATE_PATTERN.search(date_header)) or
-            (from_domain and _has_random_case_label(from_domain.group(1)))):
+            (from_domain and _has_random_case_label(from_domain.group(1))) or
+            _random_encoding):
         signals['clickbait_count'] += 1
         signals['matched_patterns'].append('forged_sender_headers')
 
     # ── Signal: Recipient address used as a name (mirrors Signal 2g) ───────
     # The full address is removed first — Google Calendar appends it to every
     # invite subject, and an address is not the local part used as a name.
-    to_addr = re.search(r'([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+)', _raw_header(raw, 'To') or '')
+    # Also the From display name, whole, dots removed (a space never matches), equal to the
+    # recipient's local part (Delivered-To only; To feeds the not-yourself
+    # guard) after cutting @domain and +tag, from a sender who is not one
+    # of the recipient's own mailboxes. +1 at most across both fields.
+    _to_header = _raw_header(raw, 'To') or ''
+    to_addr = re.search(r'([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+)', _to_header)
+    _address_as_name = False
     if to_addr and len(to_addr.group(1)) >= 5:
         _local = to_addr.group(1).lower()
         _subj = (subject or '').lower().replace(_local + '@' + to_addr.group(2).lower(), ' ')
-        if _local in _subj:
-            signals['clickbait_count'] += 1
+        _address_as_name = _local in _subj
+    if not _address_as_name:
+        _lt = from_field.find('<')
+        _from_name = '' if _lt == -1 else re.sub(
+            '[\u00AD\u200B-\u200F\u2060\uFEFF"]', '', from_field[:_lt]).strip(' \t').lower()
+        _from_name = _from_name.split('@')[0].split('+')[0].replace('.', '')
+        _delivered = _header_mailboxes(_raw_header(raw, 'Delivered-To'))
+        _own = _delivered + _header_mailboxes(_to_header)
+        _sender_local_flat = sender_address[:sender_address.rfind('@')].replace('.', '')
+        _address_as_name = (len(_from_name) >= 5 and
+                            _canonical_mailbox(sender_address) not in _own and
+                            _from_name not in _sender_local_flat and
+                            any(m[:m.rfind('@')].replace('.', '') == _from_name for m in _delivered))
+    if _address_as_name:
+        signals['clickbait_count'] += 1
         signals['matched_patterns'].append('recipient_address_as_name')
 
     # ── Signal: Unicode obfuscation in body ────────────────────────────────
@@ -2046,7 +2087,7 @@ def run_parity_tests():
     # Build the shared input set from the same parse_eml the rest of the suite
     # uses, so both implementations see byte-identical inputs.
     cases, parsed_by_file = [], {}
-    for folder in ('spam_examples', 'scam_examples', 'ham_examples'):
+    for folder in ('spam_examples', 'scam_examples', 'ham_examples', 'spam_folder_examples'):
         d = Path(__file__).parent / folder
         if not d.exists():
             continue
@@ -2560,6 +2601,88 @@ def run_edge_case_tests():
           'double-decoding hands the attacker a free layer of indirection')
     check('out-of-range codepoint does not raise',
           _decode_html_entities('a&#1114112;b') == 'ab')
+
+    # ── spam_folder_examples/: Gmail already flagged these ─────────────────
+    # They need not convict in the inbox; they must CORROBORATE, so the
+    # Spam-folder review deletes them now instead of after the grace period.
+    # Mirrors hasCorroboratingSignal() in Cleanup.gs (test_disposition.js pins
+    # the JS function itself).
+    def _corroborates(sig):
+        strong = (sig['blacklisted_sender'] or sig['service_impersonation'] or
+                  sig['brand_mismatched_cta'] or sig['free_mail_random_local'] or
+                  sig['callback_phishing'] or sig['self_named_sender'] or
+                  sig['calendar_lure'] or sig['empty_subject_with_attachment'])
+        weak = (sig['clickbait_count'] + sig['fear_mongering'] +
+                sig['marketing_format'] + sig['suspicious_from_name'])
+        return strong or weak >= 2
+    sf_dir = Path(__file__).parent / 'spam_folder_examples'
+    for f in sorted(sf_dir.glob('*.eml')):
+        sig, _, _ = analyze_email(*parse_eml(f))
+        check(f'Spam-folder fixture corroborates: {f.name[:50]}', _corroborates(sig),
+              f'weak points {sig["clickbait_count"]} clickbait + fear={sig["fear_mongering"]}; '
+              'it would sit out the 7-day grace period')
+
+    # ── Signal 2f: random-case Content-Transfer-Encoding (v6.73.0) ─────────
+    def _cte_raw(token):
+        return ('From: A <a@example.com>\nTo: x@example.org\nDate: Tue, 06 Oct 2026 03:16:44 +0000\n'
+                'Content-Type: multipart/mixed; boundary=b\n\n--b\nContent-Type: text/html\n'
+                'Content-Transfer-Encoding: ' + token + '\n\nhi\n--b--\n')
+    # Security review: another message's headers (forwarded .eml, bounce) sit
+    # after a part's blank line, and mail from yourself is skipped.
+    _fwd = ('From: A <a@example.com>\nTo: x@example.org\nDate: Tue, 06 Oct 2026 03:16:44 +0000\n'
+            'Content-Type: multipart/mixed; boundary=b\n\n--b\nContent-Type: message/rfc822\n\n'
+            'From: z@q.ivz\nContent-Transfer-Encoding: AYKgrrCx0z\n\nhi\n--b--\n')
+    sig, _, _ = analyze_email('Fwd: hello', 'A <a@example.com>', False, raw=_fwd)
+    check('2f ignores an encoding token inside a forwarded message',
+          'forged_sender_headers' not in sig['matched_patterns'])
+    _self = _cte_raw('AYKgrrCx0z').replace('To: x@example.org', 'To: a@example.com')
+    sig, _, _ = analyze_email('hello', 'A <a@example.com>', False, raw=_self)
+    check('2f skips mail from the recipient\'s own mailbox',
+          'forged_sender_headers' not in sig['matched_patterns'])
+    for token, expect in [('AYKgrrCx0z', True), ('base64', False), ('BASE64', False),
+                          ('Quoted-Printable', False), ('7bit', False), ('8Bit', False),
+                          ('7-bit', False), ('utf-8', False), ('x-uuencode', False),
+                          ('binary', False)]:
+        sig, _, _ = analyze_email('hello', 'A <a@example.com>', False, raw=_cte_raw(token))
+        check(f'2f encoding token {token!r} -> {expect}',
+              ('forged_sender_headers' in sig['matched_patterns']) == expect,
+              'broken-but-innocent tokens must not score; random case must')
+
+    # ── Signal 2g: recipient's local part as the From display name ─────────
+    def _name_raw(frm, to='me@aol.com', delivered='geoffcfreedman@gmail.com'):
+        return (f'Delivered-To: {delivered}\nFrom: {frm}\nTo: {to}\n'
+                'Date: Tue, 06 Oct 2026 03:16:44 +0000\n\nhi\n')
+    for frm, delivered, expect, why in [
+        ('geoff.c.freedman <alert-4419@plisc.ivz>', 'geoffcfreedman@gmail.com', True,
+         'the 2026-10-06 phish: To forged, recipient from Delivered-To'),
+        ('"geoff.c.freedman" <a@x.ivz>', 'geoff.c.freedman@gmail.com', True,
+         'quoted, dotted Delivered-To'),
+        ('geoff.c.freedman <geoff.c.freedman+notes@gmail.com>', 'geoffcfreedman@gmail.com', False,
+         'mail to yourself from an unnamed client'),
+        ('geoff.c.freedman updates <a@x.ivz>', 'geoffcfreedman@gmail.com', False,
+         'whole name must equal the local part, never contain it'),
+        ('Geoff C Freedman <a@x.ivz>', 'geoffcfreedman@gmail.com', False,
+         'a real name with spaces is Signal 10, not an address used as a name'),
+        ('GEOFF.C.FREEDMAN <a@x.ivz>', 'geoffcfreedman@gmail.com', True, 'case-folded'),
+        ('Joe <a@x.ivz>', 'joe@example.com', False, 'under 5 characters'),
+        ('alice.smith <a@x.ivz>', 'geoffcfreedman@gmail.com', False, 'someone else'),
+        ('geoff.c.freedman@gmail.com <a@x.ivz>', 'geoffcfreedman@gmail.com', True,
+         'the full address as the name is the same tell'),
+        ('geoffcfreedman+alert <a@x.ivz>', 'geoffcfreedman@gmail.com', True, '+tag cut'),
+        ('geoff.c.freedman <geoff.c.freedman.work@gmail.com>', 'geoffcfreedman@gmail.com', False,
+         'the user\'s own second account carries the name in its local part'),
+    ]:
+        sig, _, _ = analyze_email('hello', frm, False, raw=_name_raw(frm, delivered=delivered))
+        check(f'2g display name {frm!r} -> {expect}',
+              ('recipient_address_as_name' in sig['matched_patterns']) == expect, why)
+    # Review finding: a no-name webmail account writing to the same person's
+    # work address. The name equals a To local part, not the recipient's.
+    frm = 'jsmith <jsmith1987@yahoo.com>'
+    sig, _, _ = analyze_email('hello', frm, False, raw=_name_raw(
+        frm, to='geoffcfreedman@gmail.com, jsmith@work.com'))
+    check('2g ignores a name matching some OTHER To recipient',
+          'recipient_address_as_name' not in sig['matched_patterns'],
+          'only the mailbox that received it (Delivered-To) counts')
 
     print()
     print(f'Edge case results: {passed} passed, {failed} failed')

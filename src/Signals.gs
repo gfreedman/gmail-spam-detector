@@ -343,16 +343,55 @@ function collectSignals(message)
   }
 
   // ── Signal 2f: Forged sender headers ────────────────────────────────────
-  // Two tells of a campaign's own tooling, +1 at most (one behaviour): a Date
-  // header that is not a date (an unfilled template variable), or a sender
-  // domain generated with random capitalisation. Header-level, so they survive
-  // the subject/body/landing-page rotation a campaign relies on.
+  // Three tells of a campaign's own tooling, +1 at most (one behaviour): a Date
+  // header that is not a date (an unfilled template variable), a sender
+  // domain generated with random capitalisation, or (v6.73.0) a random-case
+  // Content-Transfer-Encoding token in any MIME part. Header-level, so they
+  // survive the subject/body/landing-page rotation a campaign relies on.
+  //
+  // The encoding token: RFC 2045 allows 7bit/8bit/binary/quoted-printable/
+  // base64 and x- extensions. "Content-Transfer-Encoding: AYKgrrCx0z" (the
+  // 2026-10-06 "Storage 100% Full" phish) is a per-send random string, there
+  // to confuse content scanners; no mail software writes one. Judged by
+  // hasRandomCaseLabel(), not an allowlist of valid values — real senders do
+  // write broken-but-innocent tokens ("utf-8", "7-bit"), and those must not
+  // score.
+  //
+  // Only header blocks this message's own tooling wrote are read: the top
+  // block, and a block opening right after a "--boundary" line. A forwarded
+  // .eml, a bounce or quoted text carries another message's headers after a
+  // part's blank line, and the user forwarding a phish to themselves must not
+  // score (v6.73.0 security review). Mail from the recipient's own mailbox is
+  // skipped for the same reason. Lines are split on \n only and tokens end at
+  // [ \t;(] — never \s or the m flag, which JS and Python read differently.
   try
   {
     const dateHeader = getRawHeader(rawContent, 'Date');
     const fromDomainMatch = from.match(/@([A-Za-z0-9.-]+)[^@]*$/);
+    let randomEncoding = false;
+    const ownForEncoding = headerMailboxes(getRawHeader(rawContent, 'Delivered-To'))
+      .concat(headerMailboxes(getRawHeader(rawContent, 'To')));
+    if (ownForEncoding.indexOf(canonicalMailbox(senderAddress)) === -1)
+    {
+      const lines = String(rawContent || '').substring(0, LIMITS.maxRawScanChars)
+        .replace(/\r\n/g, '\n').split('\n');
+      const prefix = 'content-transfer-encoding:';
+      let inHeaders = true;
+      for (let i = 0; i < lines.length && !randomEncoding; i++)
+      {
+        const line = lines[i];
+        if (line === '') { inHeaders = false; continue; }
+        if (line.substring(0, 2) === '--') { inHeaders = true; continue; }
+        if (inHeaders && line.substring(0, prefix.length).toLowerCase() === prefix)
+        {
+          const token = line.substring(prefix.length).replace(/^[ \t]+/, '').split(/[ \t;(]/)[0];
+          randomEncoding = hasRandomCaseLabel(token);
+        }
+      }
+    }
     if ((dateHeader !== null && !RFC5322_DATE_PATTERN.test(dateHeader)) ||
-        (fromDomainMatch && hasRandomCaseLabel(fromDomainMatch[1])))
+        (fromDomainMatch && hasRandomCaseLabel(fromDomainMatch[1])) ||
+        randomEncoding)
     {
       signals.clickbaitCount++;
     }
@@ -378,19 +417,56 @@ function collectSignals(message)
   // until v6.70.0 every calendar invite the user received — ~200 in the
   // mailbox — scored a weak spam point, one hit short of skipping the
   // Spam-folder grace period.
+  //
+  // v6.73.0 adds the same tell in the From DISPLAY NAME:
+  //   From: geoff.c.freedman <alert-4419@plisc.ivz>
+  // (the 2026-10-06 "Storage 100% Full" phish, which forged To: me@aol.com, so
+  // the recipient is read from Delivered-To, the mailbox that received it).
+  // Matched against Delivered-To ONLY, never every To address: the v6.73.0
+  // review showed "jsmith <jsmith1987@yahoo.com>" writing to jsmith@work.com
+  // (a webmail account with no name set) would otherwise score. To still
+  // feeds the not-yourself guard. "@domain" and "+tag" are cut from the name
+  // first, so "geoff.c.freedman@gmail.com" as a name is the same tell. The
+  // WHOLE display name, dots removed, must equal the local part — never a
+  // substring. A name with a space never matches: "Geoff C Freedman" is a
+  // real name, Signal 10's business, and the user's own second account may
+  // carry it. The sender must also not be one of the
+  // recipient's own mailboxes (mail to yourself from an unnamed client). Still
+  // +1 at most: one behaviour, whichever field carries it.
   try
   {
     const toHeader = getRawHeader(rawContent, 'To') || '';
     const toAddr = toHeader.match(/([A-Za-z0-9._%+-]+)@([A-Za-z0-9.-]+)/);
+    let addressAsName = false;
     if (toAddr && toAddr[1].length >= 5)
     {
       const local = toAddr[1].toLowerCase();
       const subjectSansAddress = subject.toLowerCase()
         .split(local + '@' + toAddr[2].toLowerCase()).join(' ');
-      if (subjectSansAddress.indexOf(local) !== -1)
-      {
-        signals.clickbaitCount++;
-      }
+      addressAsName = subjectSansAddress.indexOf(local) !== -1;
+    }
+    if (!addressAsName)
+    {
+      const lt = fromRaw.indexOf('<');
+      const fromName = lt === -1 ? '' : fromRaw.substring(0, lt)
+        .replace(/[\u00AD\u200B-\u200F\u2060\uFEFF"]/g, '')
+        .replace(/^[ \t]+|[ \t]+$/g, '').toLowerCase()
+        .split('@')[0].split('+')[0].split('.').join('');
+      const delivered = headerMailboxes(getRawHeader(rawContent, 'Delivered-To'));
+      const own = delivered.concat(headerMailboxes(toHeader));
+      // The user's own second account ("geoff.c.freedman.work@gmail.com")
+      // carries the name in its local part; the phish's alert-4419@ does not.
+      const senderLocalFlat = senderAddress.substring(0, atIdx).split('.').join('');
+      addressAsName = fromName.length >= 5 &&
+        own.indexOf(canonicalMailbox(senderAddress)) === -1 &&
+        senderLocalFlat.indexOf(fromName) === -1 &&
+        delivered.some(function(m) {
+          return m.substring(0, m.lastIndexOf('@')).replace(/\./g, '') === fromName;
+        });
+    }
+    if (addressAsName)
+    {
+      signals.clickbaitCount++;
     }
   }
   catch (signalError)

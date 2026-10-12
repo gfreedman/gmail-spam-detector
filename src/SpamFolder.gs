@@ -428,6 +428,7 @@ function describeSignals(signals)
   if (signals.fearMongering)              fired.push('fear');
   if (signals.marketingFormat)            fired.push('marketing-format');
   if (signals.suspiciousFromName)         fired.push('from-name');
+  if (signals.headlineFromName)           fired.push('headline-from-name');
   if (signals.emptySubjectWithAttachment) fired.push('empty-subject+attachment');
   if (signals.serviceImpersonation)       fired.push('service-impersonation');
   if (signals.brandMismatchedCta)         fired.push('brand-cta');

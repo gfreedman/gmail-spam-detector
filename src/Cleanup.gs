@@ -99,6 +99,17 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * blacklisted — but "free-mail sender with a machine-generated local part"
  * plus "Gmail already flagged it" is a confident call.
  *
+ * headlineFromName (v6.75.0) is a weak point with no inbox rule at all — two
+ * ham fixtures share the "<headline> - <brand>" shape. It shares ONE point
+ * with suspiciousFromName, so the two shape tests cannot add up on their own.
+ * The From name can still supply both points: clickbait and fear scan
+ * subject + From, so "Heart Attack Warning - Health Daily" with an empty
+ * subject corroborates from the display name alone. Accepted (security
+ * review, v6.75.0): the cost is a misfiled message losing its grace window,
+ * not mail that was never going to be deleted.
+ * It closed "Stop Eating Fruit This Way - (Smart Fund Insiders)", FEAR plus a
+ * 50-character name that Signal 1c's >50 cap missed by one.
+ *
  * Deliberately excludes bulkEmailService: virtually every newsletter the user
  * actually wants is bulk-routed, so it corroborates nothing.
  *
@@ -124,7 +135,7 @@ function hasCorroboratingSignal(signals)
   const weakPoints = (signals.clickbaitCount || 0) +
                      (signals.fearMongering      ? 1 : 0) +
                      (signals.marketingFormat    ? 1 : 0) +
-                     (signals.suspiciousFromName ? 1 : 0);
+                     (signals.suspiciousFromName || signals.headlineFromName ? 1 : 0);
   return weakPoints >= 2;
 }
 

@@ -444,4 +444,17 @@ const CALENDAR_SAFE_LINK_DOMAINS = Object.freeze([
   'webex.com', 'gotomeeting.com', 'calendly.com'
 ]);
 
+/**
+ * Separator characters that split a From display name into "<headline> -
+ * <brand>" for Signal 12 (headlineFromName). Signal 12 requires a space on
+ * both sides, so hyphenated words ("Pre-IPO", "Jean-Luc") never split; the
+ * spaces are added there because the test harness's string-array parser
+ * rejects entries containing whitespace. The bullet is absent on purpose:
+ * Signal 1c already scores it, and the From name earns one weak point at most.
+ * @const {Array<string>}
+ */
+const HEADLINE_NAME_SEPARATORS = Object.freeze([
+  '-', '|', '–', '—'
+]);
+
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

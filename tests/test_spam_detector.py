@@ -477,6 +477,7 @@ def _load_gs_constants(source):
         'CALLBACK_PHONE_PATTERN':       _load_single_regex(source, 'CALLBACK_PHONE_PATTERN'),
         'CALENDAR_LURE_PATTERNS':       _load_regex_array(source, 'CALENDAR_LURE_PATTERNS'),
         'CALENDAR_SAFE_LINK_DOMAINS':   _load_string_array(source, 'CALENDAR_SAFE_LINK_DOMAINS'),
+        'HEADLINE_NAME_SEPARATORS':     _load_string_array(source, 'HEADLINE_NAME_SEPARATORS'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
             source, 'IMPERSONATED_SUPPORT_BRANDS', allow_spaces=True),
@@ -540,6 +541,7 @@ BILLING_LANGUAGE_PATTERNS       = _gs['BILLING_LANGUAGE_PATTERNS']
 CALLBACK_PHONE_PATTERN          = _gs['CALLBACK_PHONE_PATTERN']
 CALENDAR_LURE_PATTERNS          = _gs['CALENDAR_LURE_PATTERNS']
 CALENDAR_SAFE_LINK_DOMAINS      = _gs['CALENDAR_SAFE_LINK_DOMAINS']
+HEADLINE_NAME_SEPARATORS        = _gs['HEADLINE_NAME_SEPARATORS']
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -1175,6 +1177,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'callback_phishing': False,
                     'self_named_sender': False,
                     'calendar_lure': False,
+                    'headline_from_name': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -1192,6 +1195,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'callback_phishing': False,
         'self_named_sender': False,
         'calendar_lure': False,
+        'headline_from_name': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1215,6 +1219,18 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     if '•' in display_name or len(display_name) > MAX_DISPLAY_NAME_LENGTH:
         signals['suspicious_from_name'] = True
         signals['matched_patterns'].append('suspicious_from')
+
+    # ── Signal 12: Headline-then-brand From display name (v6.75.0) ─────────
+    # "Stop Eating Fruit This Way - (Smart Fund Insiders)". Corroboration only:
+    # no rule reads it. Mirrors Signal 12 in Signals.gs.
+    _seps = [(display_name.find(f' {ch} '), f' {ch} ') for ch in HEADLINE_NAME_SEPARATORS]
+    _seps = [t for t in _seps if t[0] != -1]
+    if _seps:
+        _at, _sep = min(_seps, key=lambda t: t[0])
+        if (len(display_name[:_at].split()) >= 2 and
+                display_name[_at + len(_sep):].strip() != ''):
+            signals['headline_from_name'] = True
+            signals['matched_patterns'].append('headline_from_name')
 
     # ── Signal: Clickbait pattern count ────────────────────────────────────
     # Each matching pattern increments the counter independently — this allows
@@ -2153,7 +2169,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 13
+    EXPECTED_SIGNAL_COUNT = 14
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '
@@ -2613,7 +2629,8 @@ def run_edge_case_tests():
                   sig['callback_phishing'] or sig['self_named_sender'] or
                   sig['calendar_lure'] or sig['empty_subject_with_attachment'])
         weak = (sig['clickbait_count'] + sig['fear_mongering'] +
-                sig['marketing_format'] + sig['suspicious_from_name'])
+                sig['marketing_format'] +
+                (sig['suspicious_from_name'] or sig['headline_from_name']))
         return strong or weak >= 2
     sf_dir = Path(__file__).parent / 'spam_folder_examples'
     for f in sorted(sf_dir.glob('*.eml')):

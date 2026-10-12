@@ -252,6 +252,7 @@ function buildSignalsCsv(signals)
   if (signals.fearMongering)              parts.push('FEAR');
   if (signals.marketingFormat)            parts.push('MARKETING');
   if (signals.suspiciousFromName)         parts.push('SUSPICIOUS_FROM');
+  if (signals.headlineFromName)           parts.push('HEADLINE_FROM');
   if (signals.emptySubjectWithAttachment) parts.push('EMPTY_SUBJECT_ATTACHMENT');
   if (signals.serviceImpersonation)       parts.push('SERVICE_IMPERSONATION');
   if (signals.brandMismatchedCta)         parts.push('BRAND_MISMATCH_CTA');

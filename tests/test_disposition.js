@@ -1963,7 +1963,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 // corpus fires Rule 1 in 51 of 59 convictions and never fires Rules 3 or 6.
 //
 // The signal space is small enough to check completely, so check it completely:
-// 12 booleans x clickbaitCount 0..4 = 20480 combinations, in well under a second.
+// 13 booleans x clickbaitCount 0..4 = 40960 combinations, in well under a second.
 {
   console.log('\n=== the two rule cascades must agree (exhaustive) ===');
   const ctx = makeCtx();
@@ -1971,7 +1971,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
                  'marketingFormat', 'suspiciousFromName',
                  'emptySubjectWithAttachment', 'serviceImpersonation',
                  'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',
-                 'selfNamedSender', 'calendarLure'];
+                 'selfNamedSender', 'calendarLure', 'headlineFromName'];
 
   // Guard the guard: if collectSignals() grows a signal this list does not
   // know about, the sweep below silently stops being exhaustive.
@@ -1999,7 +1999,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
       }
       // The spec, stated independently: a strong signal, or 2+ weak points.
       const weak = cb + (sig.fearMongering ? 1 : 0) + (sig.marketingFormat ? 1 : 0) +
-                   (sig.suspiciousFromName ? 1 : 0);
+                   (sig.suspiciousFromName || sig.headlineFromName ? 1 : 0);
       const expected = STRONG.some(k => sig[k]) || weak >= 2;
       if (corroborated !== expected && offSpec.length < 5) {
         offSpec.push('expected=' + expected + ' fired=' +
@@ -2045,6 +2045,58 @@ console.log('\n=== ONE weak signal no longer skips the Spam-folder grace period 
         ctx.hasCorroboratingSignal({ clickbaitCount: 1, fearMongering: true }) === true);
   check('one weak point does not',
         ctx.hasCorroboratingSignal({ clickbaitCount: 1 }) === false);
+}
+
+console.log('\n=== Signal 12: headline-then-brand From name (corroboration only) ===');
+{
+  const ctx = makeCtx();
+  const nameOf = (display) => {
+    const m = phishMessage('mH12');
+    m.getFrom = () => display + ' <daily@read.example-mill.com>';
+    m.getSubject = () => 'Weekly digest';
+    m.getRawContent = () => 'Received: from x\r\n\r\nhi';
+    m.getBody = () => '<p>hi</p>';
+    return ctx.collectSignals(m);
+  };
+  const fires = (d) => nameOf(d).headlineFromName === true;
+  check('the real miss fires Signal 12',
+        fires('"Stop Eating Fruit This Way - (Smart Fund Insiders)"'));
+  check('a pipe separator fires', fires('Imminent Heart Attack | FinRiseX Publishing'));
+  check('an en dash separator fires', fires('Grocery Store Mistake \u2013 Frontier Capital'));
+  check('a one-word headline does not fire', !fires('URGENT - James Dutton'));
+  check('a hyphenated word is not a separator', !fires('Pre-IPO Round Closes'));
+  check('a plain brand name does not fire', !fires('Stripe'));
+  check('nothing after the separator does not fire', !fires('Stop Eating Fruit -'));
+  check('the address alone does not fire', !fires(''));
+
+  // From is cut to LIMITS.maxFromChars before Signal 12 sees it, so a
+  // 100 KB header is bounded by the truncation, not by the scan. Both inputs
+  // reach the word split ('a ' x N before the separator), which ' -' x N
+  // would not: its first match has an empty headline.
+  const t0 = Date.now();
+  nameOf('a '.repeat(50000) + '- x');
+  check('a 100 KB From header is bounded by maxFromChars (< 1 s)',
+        Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
+
+  const alone = { clickbaitCount: 0, headlineFromName: true };
+  check('headlineFromName alone is NOT an inbox conviction',
+        ctx.makeVerdict(alone) === false &&
+        ctx.getRuleFromSignals(alone).rule === 'NONE');
+  const bulkPlusTwo = { clickbaitCount: 0, bulkEmailService: true,
+                        headlineFromName: true, fearMongering: true };
+  check('headlineFromName never counts as an inbox behaviour (bulk + fear + it)',
+        ctx.makeVerdict(bulkPlusTwo) === false &&
+        ctx.getRuleFromSignals(bulkPlusTwo).rule === 'NONE');
+  check('headlineFromName alone does not corroborate',
+        ctx.hasCorroboratingSignal(alone) === false);
+  check('headlineFromName + fear corroborates (the real miss)',
+        ctx.hasCorroboratingSignal({ clickbaitCount: 0, headlineFromName: true,
+                                     fearMongering: true }) === true);
+  check('the From name scores ONE point even when 1c and 12 both fire',
+        ctx.hasCorroboratingSignal({ clickbaitCount: 0, headlineFromName: true,
+                                     suspiciousFromName: true }) === false);
+  check('HEADLINE_FROM appears in the signals CSV',
+        ctx.buildSignalsCsv(alone).indexOf('HEADLINE_FROM') !== -1);
 }
 
 console.log('\n' + '='.repeat(70));

@@ -146,7 +146,8 @@ function collectSignals(message)
     freeMailRandomLocal: false,        // free-mail sender with a machine-generated local part
     callbackPhishing: false,           // fake brand invoice from free mail, payload is a phone number
     selfNamedSender: false,            // free-mail sender using the recipient's own name, not their address
-    calendarLure: false                // unknown-sender calendar invite: voicemail lure in the title + off-domain link
+    calendarLure: false,               // unknown-sender calendar invite: voicemail lure in the title + off-domain link
+    headlineFromName: false            // display name is "<headline> - <brand>"; Spam-folder corroboration only
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -224,6 +225,48 @@ function collectSignals(message)
     // rest still run, and signalsSkipped makes the gap visible.
     signalsSkipped++;
     logError('Signal 1c threw and was skipped: ' + signalError.toString());
+  }
+
+  // ── Signal 12: Headline-then-brand From display name ───────────────────
+  // "Stop Eating Fruit This Way - (Smart Fund Insiders)". The spam mills in the
+  // Raw Log put a teaser headline in the display name and the brand after a
+  // separator; 633 of 704 logged detections (90%) have this shape. It reached
+  // the Spam folder from a fresh domain at exactly 50 characters — one short
+  // of Signal 1c's length cap — with FEAR as its only other signal, so it sat
+  // out the 7-day grace period.
+  //
+  // CORROBORATION ONLY, never an inbox conviction: two of the 26 ham fixtures
+  // have the same shape ("The LINE Austin - P6 Up 'n go Pay", a Toast receipt),
+  // and so does any "Jane Doe - Acme Realty". It is not in makeVerdict() or
+  // getRuleFromSignals(); hasCorroboratingSignal() counts it as the From
+  // name's ONE weak point, shared with suspiciousFromName, so a name that
+  // trips both still scores one. It deletes nothing unless Gmail already
+  // filed the message as spam AND a second weak signal fired — which may come
+  // from the same display name, since clickbait and fear scan it too.
+  //
+  // indexOf scans only — linear on a sender-controlled string.
+  try
+  {
+    const displayName = stripTrailingAngle(from).trim();
+    let sepAt = -1, sepLen = 0;
+    HEADLINE_NAME_SEPARATORS.forEach(function(ch) {
+      const i = displayName.indexOf(' ' + ch + ' ');
+      if (i !== -1 && (sepAt === -1 || i < sepAt)) { sepAt = i; sepLen = ch.length + 2; }
+    });
+    if (sepAt !== -1 &&
+        displayName.substring(0, sepAt).trim().split(/\s+/).length >= 2 &&
+        displayName.substring(sepAt + sepLen).trim() !== '')
+    {
+      signals.headlineFromName = true;
+      logDebug('Headline-then-brand From name: ' + sanitizeForLog(displayName));
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 12 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 2: Clickbait / sensationalism patterns ───────────────────────

@@ -20,6 +20,51 @@ detail plus the diffs.
 
 ---
 
+## v6.75.0
+
+**A headline stuffed into the From name now corroborates a Gmail spam verdict.**
+
+v6.74.0 confirmed working in prod (status OK, 6.74.0 live).
+
+"Heart Doctor Says THIS “Healthy” Fruit Has as Much Sugar As a Candy Bar",
+From "Stop Eating Fruit This Way - (Smart Fund Insiders)"
+<daily@read.smartfundinsiders.com>, reached the Spam folder on 2026-10-11 and
+sat in AWAITING_GRACE. It is the campaign caught on 2026-09-18 from
+bondlyst.com and on 2026-05-04 from frontiercapitalreport.com — both times
+only by the blacklist. On a fresh domain it scored FEAR and nothing else: one
+weak point, two needed. Signal 1c flags a From name over 50 characters; this
+one is exactly 50.
+
+New **Signal 12, `headlineFromName`**: the display name is "<headline> <sep>
+<brand>" — a space-delimited `-`, `|`, en dash or em dash, at least two words
+before it and something after it. 633 of the 704 detections in the Raw Log
+(90%) have that shape.
+
+It is **corroboration only**. Two of the 26 ham fixtures have the same shape
+(a Toast receipt, "The LINE Austin - P6 Up 'n go Pay"), so no inbox rule reads
+it — makeVerdict() and getRuleFromSignals() are unchanged, and the exhaustive
+sweep (now 13 booleans, 40,960 combinations) pins that. In
+hasCorroboratingSignal() it shares the From name's single weak point with
+suspiciousFromName, so a name tripping both still scores one. Measured on the
+corpus: ham corroborating 1/26 before and after (neither receipt has a second
+weak signal); spam and scam 65/65 before and after.
+
+Fault-injected: signal disabled in JS (26 parity failures + 4 disposition
+failures), dropped from JS corroboration, double-counted with 1c, dropped from
+the Python mirror (the new fixture fails), and wired into an inbox rule (the
+cascades disagree). Each went red; each file restored byte-identical.
+
+Security review: the From name can still supply both weak points on its own
+(clickbait and fear scan subject + From), so "Heart Attack Warning - Health
+Daily" with an empty subject corroborates from the display name alone.
+Accepted and documented in hasCorroboratingSignal(): the cost is a misfiled
+message losing its grace window. Known, accepted mirror divergence: U+0085,
+U+001C and U+FEFF split or trim differently in JS and Python; Phase 7 parity
+flags it if a fixture ever contains them.
+
+New fixture `tests/spam_folder_examples/Heart Doctor Says THIS Healthy Fruit
+Has as Much Sugar As a Candy Bar.eml`.
+
 ## v6.74.0
 
 **One crafted email can no longer stall a run for seconds.**

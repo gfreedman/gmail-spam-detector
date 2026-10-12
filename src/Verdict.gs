@@ -156,7 +156,8 @@ function makeVerdict(signals)
            ', freeMailRandomLocal=' + signals.freeMailRandomLocal +
            ', callbackPhishing=' + signals.callbackPhishing +
            ', selfNamedSender=' + signals.selfNamedSender +
-           ', calendarLure=' + signals.calendarLure);
+           ', calendarLure=' + signals.calendarLure +
+           ', headlineFromName=' + signals.headlineFromName);
   return false;
 }
 

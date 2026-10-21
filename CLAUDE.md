@@ -67,6 +67,13 @@ Run `/deploy-change` (`.claude/skills/deploy-change/`). Short version:
 3. **Prove the guard fails.** A check that has never gone red proves nothing.
    Inject the fault, watch it fail, restore, verify with `cmp`.
 
+## Watching a deploy
+
+After every push, stream `python3 -u scripts/watch_deploy.py <run-id>` through
+Monitor so the `[███░░] 3/5` bar shows each change. Never pipe it (`| tail`
+buffers until exit and the bar disappears) and never run it as a plain
+background job (its output is only a file).
+
 ## Testing
 
 Five suites, all must pass:

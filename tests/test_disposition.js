@@ -2130,6 +2130,15 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
   check('fewer than 40 letters does not fire', !fires({ body: 'SEE ATTACHED' }));
   check('no attachment does not fire', !fires({ attach: false }));
   check('a link in the body does not fire', !fires({ body: SHOUT + ' HTTP://EXAMPLE.COM' }));
+  check('a www. link in the body does not fire', !fires({ body: SHOUT + ' WWW.EXAMPLE.COM' }));
+  // Boundaries: 40 letters / 70% upper / 1500 chars are inclusive.
+  const pad = (n) => 'A'.repeat(n);
+  check('exactly 40 letters fires', fires({ body: pad(40) }));
+  check('39 letters does not fire', !fires({ body: pad(39) }));
+  check('exactly 70% upper fires', fires({ body: pad(28) + 'a'.repeat(12) }));
+  check('just under 70% upper does not fire', !fires({ body: pad(27) + 'a'.repeat(13) }));
+  check('exactly 1500 chars fires', fires({ body: pad(1500) }));
+  check('1501 chars does not fire', !fires({ body: pad(1501) }));
   check('a long body (> attachmentNoteMaxChars) does not fire',
         !fires({ body: SHOUT + ' ' + 'A'.repeat(1600) }));
   check('we are in To (not Bcc) does not fire',
@@ -2155,8 +2164,9 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
         ctx.describeSignals(alone).indexOf('attachment-payload-scam') !== -1);
 
   const t0 = Date.now();
-  note({ body: 'A'.repeat(90000) });
-  check('a 90 KB body is rejected by length before any scan (< 1 s)', Date.now() - t0 < 1000);
+  const big = note({ body: 'A'.repeat(90000) });
+  check('a 90 KB body does not fire and stays fast (< 1 s)',
+        big.attachmentPayloadScam === false && Date.now() - t0 < 1000);
 }
 
 console.log('\n' + '='.repeat(70));

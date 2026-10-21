@@ -1,7 +1,7 @@
 /**
  * Signals.gs — Signal collection: the whitelist gate, field extraction, 14 detections.
  *
- * ONE function, deliberately long. Nineteen try/catch blocks write thirteen signal
+ * ONE function, deliberately long. Twenty-one try/catch blocks write fifteen signal
  * keys (seven of them accumulate into clickbaitCount), and every block is wrapped
  * individually because a single throw once discarded eight of eleven signals.
  *
@@ -917,7 +917,8 @@ function collectSignals(message)
   // CORROBORATION ONLY, a STRONG point in hasCorroboratingSignal(): not in
   // makeVerdict() or getRuleFromSignals(), so it can never delete from the
   // inbox. A shouted note from someone's own Gmail account is still a person,
-  // and Gmail's Spam verdict is what licenses the deletion. Linear scans only.
+  // and Gmail's Spam verdict is what licenses the deletion. Linear scans only;
+  // the 1500-char cap is checked before any of them.
   try
   {
     if (atIdx > 0 &&
@@ -926,10 +927,13 @@ function collectSignals(message)
         }) &&
         body.length <= LIMITS.attachmentNoteMaxChars &&
         body.toLowerCase().indexOf('http') === -1 &&
-        body.toLowerCase().indexOf('www.') === -1 &&
-        message.getAttachments().length > 0)
+        body.toLowerCase().indexOf('www.') === -1)
     {
       const delivered = headerMailboxes(getRawHeader(rawContent, 'Delivered-To'));
+      // getRawHeader() caps a value at 200 chars, so a Cc list that long can
+      // hide us past the cut and the signal fires toward a false positive — the
+      // accepted direction (see getRawHeader), and the reason this stays
+      // corroboration-only.
       const named = headerMailboxes(sanitizeInput(message.getTo()))
         .concat(headerMailboxes(getRawHeader(rawContent, 'Cc')));
       let letters = 0, upper = 0;
@@ -944,7 +948,10 @@ function collectSignals(message)
       }
       if (delivered.length > 0 &&
           !delivered.some(function(m) { return named.indexOf(m) !== -1; }) &&
-          letters >= 40 && upper >= letters * 0.7)
+          letters >= 40 && upper >= letters * 0.7 &&
+          // Last: getAttachments() is the one expensive call, and every cheaper
+          // gate above has already passed.
+          message.getAttachments().length > 0)
       {
         signals.attachmentPayloadScam = true;
         logDebug('Bcc\'d ALL-CAPS free-mail note with an attachment: ' +

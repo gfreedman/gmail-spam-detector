@@ -1478,8 +1478,9 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Mirrors Signal 13 in Signals.gs. Corroboration only: no rule reads it.
     # has_attachment here means "a part with a filename"; JS getAttachments()
     # also counts inline images. Harmless: the Bcc and ALL-CAPS gates decide.
-    # Length is UTF-16 units, trimmed, like JS body.length: len() counts code
-    # points, which differs for astral characters.
+    # Length is UTF-16 units, like JS body.length: len() counts code points,
+    # which differs for astral characters. Trimmed because the plain-body path
+    # trims; JS does not trim the HTML-stripped fallback (off by whitespace only).
     _body16 = len(body.strip().encode('utf-16-le', 'surrogatepass')) // 2
     if (_at > 0 and has_attachment and
             any(_host_matches_domain(sender_address[_at + 1:], d) for d in FREE_MAIL_DOMAINS) and

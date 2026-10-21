@@ -20,6 +20,21 @@ detail plus the diffs.
 
 ---
 
+## v6.76.0
+
+**`sharpedgelab.com` is blacklisted.**
+
+"Jim Rogers and Robert Kiyosaki just made the same call", From "D. Lewis from
+SEL" <your@reports.sharpedgelab.com>, reached the Spam folder on 2026-10-20
+and sat in AWAITING_GRACE: a gold-and-silver stock promo ("Robert is revealing
+ONE stock ... 3X to 5X") sent through SES/Iterable. Only `bulk` fired; the
+subject is a name-drop, not a clickbait pattern, and the domain was unknown.
+
+The domain is a spam mill with no legitimate use, so it joins
+`DEFAULT_DOMAINS.suspicious`: bulk + blacklist is Rule 1. No rule or signal
+changed. `getBlacklist()` merges the list from source, so it is live on the
+next trigger. Fixture added to `tests/spam_examples/` (58).
+
 ## v6.75.0
 
 **A headline stuffed into the From name now corroborates a Gmail spam verdict.**

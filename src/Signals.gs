@@ -1,7 +1,7 @@
 /**
- * Signals.gs — Signal collection: the whitelist gate, field extraction, 13 detections.
+ * Signals.gs — Signal collection: the whitelist gate, field extraction, 14 detections.
  *
- * ONE function, deliberately long. Nineteen try/catch blocks write thirteen signal
+ * ONE function, deliberately long. Twenty-one try/catch blocks write fifteen signal
  * keys (seven of them accumulate into clickbaitCount), and every block is wrapped
  * individually because a single throw once discarded eight of eleven signals.
  *
@@ -147,7 +147,8 @@ function collectSignals(message)
     callbackPhishing: false,           // fake brand invoice from free mail, payload is a phone number
     selfNamedSender: false,            // free-mail sender using the recipient's own name, not their address
     calendarLure: false,               // unknown-sender calendar invite: voicemail lure in the title + off-domain link
-    headlineFromName: false            // display name is "<headline> - <brand>"; Spam-folder corroboration only
+    headlineFromName: false,           // display name is "<headline> - <brand>"; Spam-folder corroboration only
+    attachmentPayloadScam: false       // Bcc'd free-mail ALL-CAPS note whose payload is an attachment; Spam-folder corroboration only
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -894,6 +895,76 @@ function collectSignals(message)
     // rest still run, and signalsSkipped makes the gap visible.
     signalsSkipped++;
     logError('Signal 11 threw and was skipped: ' + signalError.toString());
+  }
+
+  // ── Signal 13: Attachment-payload note from free mail (advance-fee scam) ─
+  // "CHARITY AND ORPHANAGE HOMES." from a free-mail account to someone else,
+  // Bcc'ing us, with a .docx and a two-line ALL-CAPS body: "PLEASE SEE READ AND
+  // VIEW THE ATTACHMENT FILE PROPOSAL". Nothing in it for any other signal:
+  // no link, no brand, no number, no clickbait. The tells are structural.
+  //
+  // Every condition closes an innocent reading:
+  //   - free-mail sender: the class is advance-fee mail, which does not use a
+  //     domain of its own
+  //   - an attachment: the attachment IS the payload
+  //   - we are not in To or Cc (we were Bcc'd): compared in canonical form
+  //     against Delivered-To, the mailbox that received it. With no
+  //     Delivered-To there is no way to tell, so the signal does not fire.
+  //   - a short plain body with no link: this is a note pointing at a file
+  //   - at least 40 letters, 70%+ upper case: people do not write like this
+  //     to a group they Bcc. A friend's "see attached" is lower case.
+  //
+  // CORROBORATION ONLY, a STRONG point in hasCorroboratingSignal(): not in
+  // makeVerdict() or getRuleFromSignals(), so it can never delete from the
+  // inbox. A shouted note from someone's own Gmail account is still a person,
+  // and Gmail's Spam verdict is what licenses the deletion. Linear scans only;
+  // the 1500-char cap is checked before any of them.
+  try
+  {
+    if (atIdx > 0 &&
+        FREE_MAIL_DOMAINS.some(function(d) {
+          return hostMatchesDomain(senderAddress.substring(atIdx + 1), d);
+        }) &&
+        body.length <= LIMITS.attachmentNoteMaxChars &&
+        body.toLowerCase().indexOf('http') === -1 &&
+        body.toLowerCase().indexOf('www.') === -1)
+    {
+      const delivered = headerMailboxes(getRawHeader(rawContent, 'Delivered-To'));
+      // getRawHeader() caps a value at 200 chars, so a Cc list that long can
+      // hide us past the cut and the signal fires toward a false positive — the
+      // accepted direction (see getRawHeader), and the reason this stays
+      // corroboration-only.
+      const named = headerMailboxes(sanitizeInput(message.getTo()))
+        .concat(headerMailboxes(getRawHeader(rawContent, 'Cc')));
+      let letters = 0, upper = 0;
+      for (let i = 0; i < body.length; i++)
+      {
+        const ch = body.charAt(i);
+        if (ch.toLowerCase() !== ch.toUpperCase())
+        {
+          letters++;
+          if (ch === ch.toUpperCase()) upper++;
+        }
+      }
+      if (delivered.length > 0 &&
+          !delivered.some(function(m) { return named.indexOf(m) !== -1; }) &&
+          letters >= 40 && upper >= letters * 0.7 &&
+          // Last: getAttachments() is the one expensive call, and every cheaper
+          // gate above has already passed.
+          message.getAttachments().length > 0)
+      {
+        signals.attachmentPayloadScam = true;
+        logDebug('Bcc\'d ALL-CAPS free-mail note with an attachment: ' +
+                 sanitizeForLog(senderAddress));
+      }
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 13 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 7: Brand-mismatched call-to-action ───────────────────────────

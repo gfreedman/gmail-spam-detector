@@ -110,6 +110,13 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * It closed "Stop Eating Fruit This Way - (Smart Fund Insiders)", FEAR plus a
  * 50-character name that Signal 1c's >50 cap missed by one.
  *
+ * attachmentPayloadScam (v6.77.0) is STRONG on its own, with no inbox rule: a
+ * Bcc'd, 70%-upper-case, link-free free-mail note with an attachment. Its false
+ * positive class is a relative or group organiser who shouts a flyer to a Bcc
+ * list AND whom Gmail already filed as spam; the cost is that message losing
+ * its 7-day grace window (the Drive archive copy is still written first).
+ * It closed "CHARITY AND ORPHANAGE HOMES.", which scored zero elsewhere.
+ *
  * Deliberately excludes bulkEmailService: virtually every newsletter the user
  * actually wants is bulk-routed, so it corroborates nothing.
  *
@@ -127,6 +134,7 @@ function hasCorroboratingSignal(signals)
       (signals.callbackPhishing && !signals._callbackLooseOnly) ||
       signals.selfNamedSender ||
       signals.calendarLure ||
+      signals.attachmentPayloadScam ||
       signals.emptySubjectWithAttachment)
   {
     return true;

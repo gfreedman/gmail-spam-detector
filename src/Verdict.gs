@@ -157,7 +157,8 @@ function makeVerdict(signals)
            ', callbackPhishing=' + signals.callbackPhishing +
            ', selfNamedSender=' + signals.selfNamedSender +
            ', calendarLure=' + signals.calendarLure +
-           ', headlineFromName=' + signals.headlineFromName);
+           ', headlineFromName=' + signals.headlineFromName +
+           ', attachmentPayloadScam=' + signals.attachmentPayloadScam);
   return false;
 }
 

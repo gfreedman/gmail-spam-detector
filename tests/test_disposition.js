@@ -1963,7 +1963,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 // corpus fires Rule 1 in 51 of 59 convictions and never fires Rules 3 or 6.
 //
 // The signal space is small enough to check completely, so check it completely:
-// 13 booleans x clickbaitCount 0..4 = 40960 combinations, in well under a second.
+// 14 booleans x clickbaitCount 0..4 = 81920 combinations, in well under a second.
 {
   console.log('\n=== the two rule cascades must agree (exhaustive) ===');
   const ctx = makeCtx();
@@ -1971,7 +1971,8 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
                  'marketingFormat', 'suspiciousFromName',
                  'emptySubjectWithAttachment', 'serviceImpersonation',
                  'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',
-                 'selfNamedSender', 'calendarLure', 'headlineFromName'];
+                 'selfNamedSender', 'calendarLure', 'headlineFromName',
+                 'attachmentPayloadScam'];
 
   // Guard the guard: if collectSignals() grows a signal this list does not
   // know about, the sweep below silently stops being exhaustive.
@@ -1983,7 +1984,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 
   const STRONG = ['blacklistedSender', 'serviceImpersonation', 'brandMismatchedCta',
                   'freeMailRandomLocal', 'callbackPhishing', 'emptySubjectWithAttachment',
-                  'selfNamedSender', 'calendarLure'];
+                  'selfNamedSender', 'calendarLure', 'attachmentPayloadScam'];
   let combos = 0, disagreements = [], uncorroborated = [], offSpec = [];
   for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
     for (let cb = 0; cb <= 4; cb++) {
@@ -2097,6 +2098,65 @@ console.log('\n=== Signal 12: headline-then-brand From name (corroboration only)
                                      suspiciousFromName: true }) === false);
   check('HEADLINE_FROM appears in the signals CSV',
         ctx.buildSignalsCsv(alone).indexOf('HEADLINE_FROM') !== -1);
+}
+
+console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment (corroboration only) ===');
+{
+  const ctx = makeCtx();
+  const SHOUT = 'CHARITY AND ORPHANAGE.\r\n\r\nPLEASE SEE READ AND VIEW THE ATTACHMENT FILE PROPOSAL ' +
+                'AND GET BACK TO ME. I AWAIT YOUR URGENT REPLY REMAINS BLESSED.';
+  const note = (o) => {
+    o = Object.assign({ from: 'Hind Houda <hindhouda2014@gmail.com>',
+                        to: 'mrcaroleunicedora@gmail.com',
+                        delivered: 'geoff.c.freedman@gmail.com', cc: '',
+                        body: SHOUT, attach: true }, o || {});
+    const m = phishMessage('mH13');
+    m.getFrom = () => o.from;
+    m.getTo = () => o.to;
+    m.getSubject = () => 'CHARITY AND ORPHANAGE HOMES.';
+    m.getPlainBody = () => o.body;
+    m.getBody = () => '<p>' + o.body + '</p>';
+    m.getAttachments = () => o.attach ? [{ getName: () => 'DEAR BELOVED ONE.docx' }] : [];
+    m.getRawContent = () => (o.delivered ? 'Delivered-To: ' + o.delivered + '\r\n' : '') +
+                            (o.cc ? 'Cc: ' + o.cc + '\r\n' : '') + '\r\n' + o.body;
+    return ctx.collectSignals(m);
+  };
+  const fires = (o) => note(o).attachmentPayloadScam === true;
+  check('the real miss fires Signal 13', fires());
+  check('a lower-case "see attached" note does not fire',
+        !fires({ body: 'hi all, please see the attached proposal and let me know what you think of the plan for next week, thanks' }));
+  check('mixed case below 70% upper does not fire',
+        !fires({ body: 'PLEASE see the attached proposal and let me know what you think of it when you have a moment' }));
+  check('fewer than 40 letters does not fire', !fires({ body: 'SEE ATTACHED' }));
+  check('no attachment does not fire', !fires({ attach: false }));
+  check('a link in the body does not fire', !fires({ body: SHOUT + ' HTTP://EXAMPLE.COM' }));
+  check('a long body (> attachmentNoteMaxChars) does not fire',
+        !fires({ body: SHOUT + ' ' + 'A'.repeat(1600) }));
+  check('we are in To (not Bcc) does not fire',
+        !fires({ to: 'Geoff <geoff.c.freedman@gmail.com>, x@y.com' }));
+  check('we are in To via +tag/dots canonical form does not fire',
+        !fires({ to: 'g.e.o.ff.c.freedman+news@gmail.com' }));
+  check('we are in Cc does not fire', !fires({ cc: 'geoff.c.freedman@gmail.com' }));
+  check('no Delivered-To header does not fire (cannot tell if Bcc)', !fires({ delivered: '' }));
+  check('a company sender (not free mail) does not fire',
+        !fires({ from: 'Hind <hind@charity-homes.org>' }));
+
+  const alone = { clickbaitCount: 0, attachmentPayloadScam: true };
+  check('attachmentPayloadScam alone is NOT an inbox conviction',
+        ctx.makeVerdict(alone) === false && ctx.getRuleFromSignals(alone).rule === 'NONE');
+  check('attachmentPayloadScam + bulk + 2 behaviours is not a verdict through it',
+        ctx.makeVerdict({ clickbaitCount: 0, bulkEmailService: true, attachmentPayloadScam: true,
+                          fearMongering: true }) === false);
+  check('attachmentPayloadScam corroborates a Gmail Spam verdict',
+        ctx.hasCorroboratingSignal(alone) === true);
+  check('ATTACHMENT_PAYLOAD_SCAM appears in the signals CSV',
+        ctx.buildSignalsCsv(alone).indexOf('ATTACHMENT_PAYLOAD_SCAM') !== -1);
+  check('attachment-payload-scam appears in the Spam-folder description',
+        ctx.describeSignals(alone).indexOf('attachment-payload-scam') !== -1);
+
+  const t0 = Date.now();
+  note({ body: 'A'.repeat(90000) });
+  check('a 90 KB body is rejected by length before any scan (< 1 s)', Date.now() - t0 < 1000);
 }
 
 console.log('\n' + '='.repeat(70));

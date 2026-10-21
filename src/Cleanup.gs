@@ -127,6 +127,7 @@ function hasCorroboratingSignal(signals)
       (signals.callbackPhishing && !signals._callbackLooseOnly) ||
       signals.selfNamedSender ||
       signals.calendarLure ||
+      signals.attachmentPayloadScam ||
       signals.emptySubjectWithAttachment)
   {
     return true;

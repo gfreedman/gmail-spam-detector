@@ -20,6 +20,37 @@ detail plus the diffs.
 
 ---
 
+## v6.77.0
+
+**A Bcc'd ALL-CAPS free-mail note with an attachment now corroborates a Gmail spam verdict.**
+
+v6.76.0 shipped (`sharpedgelab.com` blacklisted).
+
+"CHARITY AND ORPHANAGE HOMES." from hindhouda2014@gmail.com, To someone else
+(we were Bcc'd), with `DEAR BELOVED ONE [C=1].docx` and a 391-character
+ALL-CAPS body ("PLEASE SEE READ AND VIEW THE ATTACHMENT FILE PROPOSAL ...
+I AWAIT YOUR URGENT REPLY"), reached the Spam folder on 2026-10-20 and sat in
+AWAITING_GRACE scoring zero on every signal: no link, no brand, no number, no
+clickbait, and a real Gmail address.
+
+New **Signal 13, `attachmentPayloadScam`**. All required: a free-mail sender;
+an attachment; the recipient's own mailbox (Delivered-To, canonical form) is
+in neither To nor Cc, and Delivered-To must exist; a plain body of at most
+`LIMITS.attachmentNoteMaxChars` (1500) with no `http` or `www.`; at least 40
+letters, 70%+ upper case. Linear scans, and length is checked first, so a
+100 KB body costs nothing.
+
+It is **corroboration only**, a STRONG point in `hasCorroboratingSignal()`.
+Not in `makeVerdict()` or `getRuleFromSignals()`: a shouted note from a
+person's own Gmail account is still a person, and Gmail's Spam verdict is
+what licenses the delete. The exhaustive sweep (now 14 booleans, 81,920
+combinations) pins that it convicts nothing in the inbox. The Python mirror and
+Phase 7 parity cover it; fixture in `tests/spam_folder_examples/` (3).
+
+Fault-injected: signal disabled in JS (parity + disposition red), dropped from
+JS corroboration (disposition red), wired into `makeVerdict()` (cascades
+disagree). Each went red; each file restored byte-identical.
+
 ## v6.76.0
 
 **`sharpedgelab.com` is blacklisted.**

@@ -443,7 +443,7 @@ addToWhitelist('domain.com');
 │   ├── spam_examples/           # Real spam .eml files (58)
 │   ├── scam_examples/           # Scam .eml files (8)
 │   ├── ham_examples/            # Legitimate .eml files (26)
-│   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (2)
+│   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

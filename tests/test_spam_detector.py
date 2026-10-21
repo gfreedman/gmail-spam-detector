@@ -1178,6 +1178,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'self_named_sender': False,
                     'calendar_lure': False,
                     'headline_from_name': False,
+                    'attachment_payload_scam': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -1196,6 +1197,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'self_named_sender': False,
         'calendar_lure': False,
         'headline_from_name': False,
+        'attachment_payload_scam': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1471,6 +1473,22 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         if _off:
             signals['calendar_lure'] = True
             signals['matched_patterns'].append('calendar_lure')
+
+    # ── Signal 13: Attachment-payload note from free mail (v6.77.0) ────────
+    # Mirrors Signal 13 in Signals.gs. Corroboration only: no rule reads it.
+    if (_at > 0 and has_attachment and
+            any(_host_matches_domain(sender_address[_at + 1:], d) for d in FREE_MAIL_DOMAINS) and
+            len(body) <= _gs['LIMITS']['attachmentNoteMaxChars'] and
+            'http' not in body.lower() and 'www.' not in body.lower()):
+        _deliv = _header_mailboxes(_raw_header(raw, 'Delivered-To'))
+        _named = (_header_mailboxes(_decoded_to(raw)[:MAX_INPUT_CHARS]) +
+                  _header_mailboxes(_raw_header(raw, 'Cc')))
+        _letters = [c for c in body if c.lower() != c.upper()]
+        _upper = sum(1 for c in _letters if c == c.upper())
+        if (_deliv and not any(m in _named for m in _deliv) and
+                len(_letters) >= 40 and _upper >= len(_letters) * 0.7):
+            signals['attachment_payload_scam'] = True
+            signals['matched_patterns'].append('attachment_payload_scam')
 
     # ── Signal: Brand-mismatched CTA phishing ──────────────────────────────
     # A button naming DocuSign/Adobe Sign/SharePoint whose href the brand does
@@ -2169,7 +2187,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 14
+    EXPECTED_SIGNAL_COUNT = 15
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '
@@ -2627,7 +2645,8 @@ def run_edge_case_tests():
         strong = (sig['blacklisted_sender'] or sig['service_impersonation'] or
                   sig['brand_mismatched_cta'] or sig['free_mail_random_local'] or
                   sig['callback_phishing'] or sig['self_named_sender'] or
-                  sig['calendar_lure'] or sig['empty_subject_with_attachment'])
+                  sig['calendar_lure'] or sig['empty_subject_with_attachment'] or
+                  sig['attachment_payload_scam'])
         weak = (sig['clickbait_count'] + sig['fear_mongering'] +
                 sig['marketing_format'] +
                 (sig['suspicious_from_name'] or sig['headline_from_name']))

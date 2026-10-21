@@ -261,6 +261,7 @@ function buildSignalsCsv(signals)
   if (signals.selfNamedSender)            parts.push('SELF_NAMED_SENDER');
   if (signals._callbackLooseOnly)         parts.push('CALLBACK_NAME_ONLY');
   if (signals.calendarLure)               parts.push('CALENDAR_LURE');
+  if (signals.attachmentPayloadScam)      parts.push('ATTACHMENT_PAYLOAD_SCAM');
   // Surfaced in the Sheet so a degraded verdict is visible in the log, not
   // just in an execution transcript nobody reads.
   if (signals._degraded)                  parts.push('DEGRADED');

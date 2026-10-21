@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.76.0
+ * @version 6.77.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -88,7 +88,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.76.0';
+const SCRIPT_VERSION = '6.77.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -237,6 +237,10 @@ const LIMITS = Object.freeze({
    *  threads unlabelled, and makes the next trigger repeat it forever. */
   maxSubjectChars: 2000,
   maxFromChars: 500,
+
+  /** Longest plain body Signal 13 treats as a "note pointing at an attachment".
+   *  The advance-fee notes it targets run 300-400 characters. */
+  attachmentNoteMaxChars: 1500,
 
   /** Max characters of raw RFC822 scanned for bulk-sender fingerprints. All
    *  fingerprints live in headers, so scanning the whole message (which can be

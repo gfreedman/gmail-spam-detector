@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.75.0
+ * @version 6.76.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -88,7 +88,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.75.0';
+const SCRIPT_VERSION = '6.76.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -184,7 +184,8 @@ const DEFAULT_DOMAINS = Object.freeze({
     'finrisex.com',
     'economicrulebook.com',
     'bondlyst.com',
-    'atlantisinvestors.com'
+    'atlantisinvestors.com',
+    'sharpedgelab.com'
   ])
 });
 

@@ -1478,9 +1478,12 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Mirrors Signal 13 in Signals.gs. Corroboration only: no rule reads it.
     # has_attachment here means "a part with a filename"; JS getAttachments()
     # also counts inline images. Harmless: the Bcc and ALL-CAPS gates decide.
+    # Length is UTF-16 units, trimmed, like JS body.length: len() counts code
+    # points, which differs for astral characters.
+    _body16 = len(body.strip().encode('utf-16-le', 'surrogatepass')) // 2
     if (_at > 0 and has_attachment and
             any(_host_matches_domain(sender_address[_at + 1:], d) for d in FREE_MAIL_DOMAINS) and
-            len(body) <= _gs['LIMITS']['attachmentNoteMaxChars'] and
+            _body16 <= _gs['LIMITS']['attachmentNoteMaxChars'] and
             'http' not in body.lower() and 'www.' not in body.lower()):
         _deliv = _header_mailboxes(_raw_header(raw, 'Delivered-To'))
         _named = (_header_mailboxes(_decoded_to(raw)[:MAX_INPUT_CHARS]) +
@@ -2737,6 +2740,12 @@ def run_edge_case_tests():
     check('13: just under 70% upper does not fire', not _s13('A' * 27 + 'a' * 13))
     check('13: exactly 1500 chars fires', _s13('A' * 1500))
     check('13: 1501 chars does not fire', not _s13('A' * 1501))
+    check('13: cased astral letters count as letters (Deseret, 40 upper)', _s13('\U00010400' * 40))
+    check('13: astral lower-case drags the ratio down (28 upper / 12 lower fires, 27/13 not)',
+          _s13('\U00010400' * 28 + '\U00010428' * 12) and
+          not _s13('\U00010400' * 27 + '\U00010428' * 13))
+    check('13: length counts UTF-16 units (751 astral chars = 1502 units > 1500)',
+          not _s13('\U00010400' * 751) and _s13('\U00010400' * 750))
     check('13: a link does not fire', not _s13('A' * 40 + ' HTTP://X.COM'))
     check('13: a www. link does not fire', not _s13('A' * 40 + ' WWW.X.COM'))
     check('13: no attachment does not fire', not _s13('A' * 40, attach=False))

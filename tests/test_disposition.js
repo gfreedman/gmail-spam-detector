@@ -2137,6 +2137,12 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
   check('39 letters does not fire', !fires({ body: pad(39) }));
   check('exactly 70% upper fires', fires({ body: pad(28) + 'a'.repeat(12) }));
   check('just under 70% upper does not fire', !fires({ body: pad(27) + 'a'.repeat(13) }));
+  check('cased astral letters count as letters (Deseret, 40 upper)', fires({ body: '\u{10400}'.repeat(40) }));
+  check('astral lower-case drags the ratio down (28/12 fires, 27/13 not)',
+        fires({ body: '\u{10400}'.repeat(28) + '\u{10428}'.repeat(12) }) &&
+        !fires({ body: '\u{10400}'.repeat(27) + '\u{10428}'.repeat(13) }));
+  check('length counts UTF-16 units (751 astral = 1502 > 1500)',
+        !fires({ body: '\u{10400}'.repeat(751) }) && fires({ body: '\u{10400}'.repeat(750) }));
   check('exactly 1500 chars fires', fires({ body: pad(1500) }));
   check('1501 chars does not fire', !fires({ body: pad(1501) }));
   check('a long body (> attachmentNoteMaxChars) does not fire',

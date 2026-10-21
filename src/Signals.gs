@@ -937,9 +937,11 @@ function collectSignals(message)
       const named = headerMailboxes(sanitizeInput(message.getTo()))
         .concat(headerMailboxes(getRawHeader(rawContent, 'Cc')));
       let letters = 0, upper = 0;
-      for (let i = 0; i < body.length; i++)
+      // for...of walks CODE POINTS. charAt() walked UTF-16 units, so a cased
+      // astral letter (Deseret, Osage, Adlam) was two caseless surrogates here
+      // and one letter in the Python mirror — a parity gap (v6.77.0 review).
+      for (const ch of body)
       {
-        const ch = body.charAt(i);
         if (ch.toLowerCase() !== ch.toUpperCase())
         {
           letters++;

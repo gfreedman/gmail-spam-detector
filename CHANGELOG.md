@@ -20,6 +20,21 @@ detail plus the diffs.
 
 ---
 
+## v6.78.0
+
+**Signal 13 counts cased astral letters the same way in JS and the Python mirror.**
+
+The v6.77.0 review found that the letter loop walked UTF-16 units with
+`charAt()` in JS, so a cased astral letter (Deseret, Osage, Adlam) was two
+caseless surrogates there and one letter in Python. It could only flip a
+borderline 40-letter or 70% result, but a mirror that disagrees with the
+shipped code is exactly what Phase 7 exists to prevent. The loop is now
+`for (const ch of body)`, which walks code points. The Python mirror also
+measures the body in trimmed UTF-16 units, matching JS `body.length` after
+`.trim()`, for the 1500-char gate. Pinned on both sides with Deseret
+fixtures: letters counted, the 70% ratio, and the 750/751-character length
+boundary. No signal, rule or constant changed.
+
 ## v6.77.0
 
 **A Bcc'd ALL-CAPS free-mail note with an attachment now corroborates a Gmail spam verdict.**

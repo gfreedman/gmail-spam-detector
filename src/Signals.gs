@@ -122,11 +122,14 @@ function collectSignals(message)
 
   // Guarded, unlike the fetches around it. getBody()/getRawContent() failing is
   // transient, so analyzeMessage() turning it into unevaluated:'error' and
-  // retrying is right. This line is pure computation on attacker-supplied HTML:
-  // if it ever threw it would throw on EVERY retry, discard the sender, subject
-  // and link-graph signals along with the body ones, and end as a permanent
-  // flag-and-stamp. An empty body plus signalsSkipped keeps every signal that
-  // does not need the body and still marks the verdict degraded.
+  // retrying is right. This line is computation on attacker-supplied HTML, so a
+  // throw would recur on every retry. Unguarded, it discards the sender, subject
+  // and link-graph signals along with the body ones; guarded, those still run
+  // and CAN convict. (Without a verdict, a clean-looking message ends flagged
+  // and stamped after one retry either way.) An empty body plus signalsSkipped
+  // keeps every signal that does not need the body and marks the verdict
+  // degraded. Other computation above (sanitizeInput, extractEmailAddress) is
+  // also unguarded; neither is known to throw on a string.
   let body = '';
   try
   {

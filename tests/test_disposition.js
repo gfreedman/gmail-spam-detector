@@ -2094,10 +2094,14 @@ console.log('\n=== Maintenance: body extraction, recheck window, step isolation 
     c.logInfo = (x) => logs.push(String(x));
     let t = 0;
     const RealDate = require('vm').runInContext('Date', c);   // built-ins live inside the context
-    c.Date = class extends RealDate { static now() { t += 70000; return t; } };   // 70 s per Date.now() call
+    c.Date = class extends RealDate { static now() { const v = t; t += 120000; return v; } };   // 0, 120 s, 240 s ... per call
     c.recheckRecentSpamChecked(true);
-    check('a recheck past its 120 s budget stops and says where',
+    // startedAt = 0, so the check at i=0 sees EXACTLY 120 s: not past the budget
+    // (a `>=` or a 110 s budget would stop at 0); the check at i=1 sees 240 s.
+    check('a recheck past its 120 s budget stops at the first check over it, and says where',
           logs.some(l => /Recheck stopped at 1 of 10 threads/.test(l)), JSON.stringify(logs));
+    check('...and reports the threads it dropped as NOT re-evaluated',
+          logs.some(l => /remaining 9 were NOT re-evaluated/.test(l)), JSON.stringify(logs));
     check('...and stops ONCE (a `continue` would log on every remaining thread)',
           logs.filter(l => l.indexOf('Recheck stopped') !== -1).length === 1, JSON.stringify(logs));
     const quick = makeCtx(); const qlogs = [];
@@ -2166,9 +2170,24 @@ console.log('\n=== Maintenance: body extraction, recheck window, step isolation 
     check('a clean run still reports errors = 0',
           okBeats.length === 1 && okBeats[0].errors === 0, JSON.stringify(okBeats));
   }
-  const rc = run(['recheckRecentSpamChecked']);
-  check('a throwing recheck is contained too, and the cycle still completes',
-        !!rc.c.props.LAST_MAINTENANCE_TS && rc.errs.some(e => e.indexOf('recheckRecentSpamChecked threw') !== -1));
+  // EVERY step, alone: each is isolated, each is counted, the cycle completes.
+  ['checkFalseNegatives', 'destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot',
+   'sweepSpamFolderCopies', 'recheckRecentSpamChecked'].forEach((name) => {
+    const r = run([name]);
+    check('a throwing ' + name + ' is contained: every step still runs and the cycle completes',
+          r.order.length === ALL.length && !!r.c.props.LAST_MAINTENANCE_TS &&
+          r.errs.some(e => e.indexOf('Maintenance step ' + name + ' threw') !== -1),
+          JSON.stringify({ order: r.order, errs: r.errs }));
+    const c2 = makeCtx({ props: { LAST_SEEN_VERSION: '0.0.0' } });
+    const beats2 = [];
+    ['checkFalseNegatives', 'destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot',
+     'sweepSpamFolderCopies', 'recheckRecentSpamChecked'].forEach(n => { c2[n] = () => {}; });
+    c2[name] = () => { throw new Error(name + ' down'); };
+    c2.logRunHeartbeat = (s) => beats2.push(s);
+    c2.processInbox();
+    check('a throwing ' + name + ' reaches the heartbeat as errors >= 1',
+          beats2.length === 1 && beats2[0].errors >= 1 && !beats2[0].runError, JSON.stringify(beats2));
+  });
 }
 
 console.log('\n=== ONE weak signal no longer skips the Spam-folder grace period ===');

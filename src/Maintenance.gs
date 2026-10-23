@@ -226,10 +226,11 @@ function runPeriodicMaintenance()
 /**
  * Run one maintenance step so that a throw in it cannot abort the cycle.
  *
- * runPeriodicMaintenance() calls six independent passes in a row. Three of them
- * (destroySpam, reviewGmailSpam, writeSpamFolderSnapshot) have no outer try, so
- * an exception escaping any one skipped everything after it, including the
- * re-check that a fix deploy exists to trigger. logError() alone counts
+ * runPeriodicMaintenance() calls six independent passes in a row. Only
+ * destroySpam has no outer try today; the others wrap their bodies themselves
+ * (reviewGmailSpam in two blocks, writeSpamFolderSnapshot in one), but nothing
+ * ENFORCED that, and an exception escaping any one skipped everything after it,
+ * including the re-check that a fix deploy exists to trigger. logError() alone counts
  * nothing, so the failure also increments _maintenanceFailures, which
  * processInbox() folds into the run's error count: the heartbeat then reports
  * ERRORS (not OK) and prod_health.py sees it. It can no longer take the other
@@ -411,9 +412,12 @@ function recheckRecentSpamChecked(widen)
   // three Gmail writes (~2-3 s), a bad pattern deploy matches broadly, and the
   // run shares one 6-minute limit with the main loop and the Spam review.
   const RECHECK_LIMIT        = widen ? 50 : 20;
-  // Wall-clock stop for the loop below. Past it the remaining threads wait for
-  // the next recheck; an execution killed at the limit skips the heartbeat in
-  // `finally`, and LAST_SEEN_VERSION is already recorded, so nothing retries.
+  // Wall-clock stop for the loop below. The threads it leaves are NOT deferred:
+  // LAST_RECHECK_TS is set afterwards and the routine recheck re-reads only the
+  // newest 20, so they are not re-evaluated until another deploy forces a cycle.
+  // Dropping them loudly (the log line below) beats an execution killed at the
+  // limit, which skips the heartbeat in `finally` while LAST_SEEN_VERSION is
+  // already recorded, so nothing retries it at all.
   const RECHECK_BUDGET_MS    = 120 * 1000;
   const startedAt            = Date.now();
 
@@ -444,7 +448,8 @@ function recheckRecentSpamChecked(widen)
       if (Date.now() - startedAt > RECHECK_BUDGET_MS)
       {
         logInfo('Recheck stopped at ' + i + ' of ' + threads.length + ' threads: ' +
-                RECHECK_BUDGET_MS / 1000 + ' s budget spent; the rest wait for the next recheck');
+                RECHECK_BUDGET_MS / 1000 + ' s budget spent; the remaining ' +
+                (threads.length - i) + ' were NOT re-evaluated');
         break;
       }
       try

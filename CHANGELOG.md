@@ -20,6 +20,45 @@ detail plus the diffs.
 
 ---
 
+## v6.81.0
+
+**Rule 11 now keys on the sponsored-ad template, not the sender's structure. v6.79.0 and v6.80.0 never fired on the mail they were built for.**
+
+Signal 14 (v6.79.0) and Rule 11 (v6.80.0) required the From display name to
+equal the dotted mailbox. That premise was never checked: the Gmail connector
+returns only the bare sender address, the fixture's From line was written by
+hand, and every test, mutation run and review inherited it. The real header,
+pasted from Show original, is
+`Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>`,
+so the signal did not fire; all five CI jobs and prod health were green while
+the email stayed in the inbox and a manual run logged `processed=0 spam=0`.
+Run against the real header, the old signal scored nothing. Nothing in the
+sender structure separates this from a legitimate client on the same shared
+relay, so no structural rule was rebuilt.
+
+The tell that is in the message is its template: an "This is an advertisement."
+disclaimer, the ad network's "If you no longer wish to receive promotional
+messages from this advertiser" sentence, a "Sponsored Content" block, and a
+"Sponsored by <name>" credit under each teaser. Signal 14 `sponsoredAdTemplate`
+requires all four (the credit line at least twice) on the lower-cased,
+whitespace-collapsed body, then on the tag-stripped HTML. The advertiser
+sentence was added in review: six plausible editorial-newsletter bodies (a
+Morning-Brew-style block, a Beehiiv sponsor block, a Taboola-style module)
+carried the other three phrases and would have been deleted; none carries it.
+The real message was confirmed HTML-only (`multipart/mixed`, one quoted-printable
+`text/html` part), and its decoded body fires the signal. Review also found the
+Python mirror did not collapse Unicode spaces (U+2009, U+3000, U+202F, U+FEFF,
+U+2028) in the HTML path as JS does; fixed and pinned on both sides. The phrases live in `SPONSORED_AD_PHRASES`, which the
+Python mirror loads from source. Measured against the user's whole mailbox, no
+kept message contained the disclaimer, the block heading, or both. Still Rule
+11, still DELETES at the user's explicit call, still behind the Drive-archive
+gate; STRONG in `hasCorroboratingSignal()`. The fixture now carries the real
+From header, and the end-to-end test reads that same `.eml`, so the outcome
+(real message -> `analyzeMessage` -> Rule 11 -> `batchDelete`) is pinned.
+Evasion is rewording any phrase, or an entity (`&nbsp;`) or zero-width character
+inside one; entities are not decoded here. Mail already stamped `SpamChecked` is still
+only HELD by the recheck path (v6.48.0), not deleted.
+
 ## v6.80.0
 
 **Rule 11: a sender that signs as a brand domain on an ESP relay is now deleted from the inbox.**

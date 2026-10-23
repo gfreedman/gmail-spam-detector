@@ -149,7 +149,7 @@ function collectSignals(message)
     calendarLure: false,               // unknown-sender calendar invite: voicemail lure in the title + off-domain link
     headlineFromName: false,           // display name is "<headline> - <brand>"; Spam-folder corroboration only
     attachmentPayloadScam: false,      // Bcc'd free-mail ALL-CAPS note whose payload is an attachment; Spam-folder corroboration only
-    espRelayIdentity: false            // sender is "<brand.domain.com>@<esp>" with the same string as display name; Spam-folder corroboration only
+    sponsoredAdTemplate: false         // ad disclaimer + advertiser sentence + "Sponsored Content" block + 2 credits; Rule 11
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -271,61 +271,47 @@ function collectSignals(message)
     logError('Signal 12 threw and was skipped: ' + signalError.toString());
   }
 
-  // ── Signal 14: ESP-relay identity (brand domain as the mailbox) ─────────
-  // "cole.emerson.trendwatcherslab.com@email.cyberimpact.com", display name
-  // "cole.emerson.trendwatcherslab.com". A promo mill sending through a
-  // shared ESP cannot sign as its own domain, so its tooling writes the brand
-  // domain into the mailbox and then reuses the mailbox as the display name.
-  // The email it caught scored ZERO on every other signal: nothing in the
-  // subject, the sender domain (the ESP's) or a bulk fingerprint distinguishes
-  // it. Adding the ESP to BULK_EMAIL_FINGERPRINTS was rejected in review —
-  // bulk gates Rules 1-3, which delete, and it would expose every legitimate
-  // sender on that ESP while convicting nothing here.
+  // ── Signal 14: Sponsored-ad template ───────────────────────────────────
+  // "The \"1973 Loophole\" in Trump's new financial plan", From "Trend Watchers
+  // Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>": a gold-IRA
+  // lead-gen promo that scored ZERO on every other signal - clean subject, a
+  // shared ESP's sending domain, no bulk fingerprint. Its template is the tell:
+  // an "This is an advertisement." disclaimer followed by the ad network's "If
+  // you no longer wish to receive promotional messages from this advertiser"
+  // sentence, a "Sponsored Content" block, and a "Sponsored by <name>" credit
+  // under each teaser link.
   //
-  // Convicts on its own (Rule 11, DELETES - the user's explicit call; v6.79.0
-  // shipped it as corroboration-only and the email it was built for stayed in
-  // the inbox) and is STRONG in hasCorroboratingSignal(). Conditions,
-  // all required: >= 3 dot labels in the local part, the last a known TLD, the
-  // brand label (the one before the TLD) appears nowhere in the sending domain,
-  // which excludes the sender's own domain, its subdomains and siblings such as
-  // "reply.github.com" sent from "mg.github.io", and the From display name is that
-  // local part verbatim (so "john.q.smith@gmail.com" with a name set, or with
-  // a bare-address name containing '@', cannot fire). Cheap to evade — rename
-  // the display — it buys time, not lasting coverage. The false positive class
-  // is a legitimate sender on a shared relay that signs with a domain-shaped
-  // display name identical to its mailbox; the Drive archive gate means a
-  // deleted message always leaves a copy in Detected/.
+  // v6.79.0/6.80.0 keyed on the SENDER STRUCTURE instead (display name ==
+  // dotted mailbox) from a header nobody had seen, and never fired on the real
+  // mail. Adding the ESP to BULK_EMAIL_FINGERPRINTS was also rejected: bulk
+  // gates Rules 1-3, which delete, for every legitimate sender on that ESP.
   //
-  // split/indexOf over a local part capped at 100 chars — linear.
+  // Convicts on its own (Rule 11, DELETES - the user's explicit call) and is
+  // STRONG in hasCorroboratingSignal(). All required, on the lower-cased,
+  // whitespace-collapsed text: the disclaimer, the advertiser sentence, the
+  // block heading, and the credit line at least twice. The advertiser sentence
+  // is the guard review asked for: six plausible editorial-newsletter bodies
+  // carried the other three phrases and would have been deleted without it. Checked against the plain body, then against
+  // the tag-stripped HTML, because a multipart message's plain part is not
+  // guaranteed to carry the sponsor block. Cheap to evade - reword any of the
+  // three - it buys time, not lasting coverage. False positive class: a
+  // legitimate sender that carries all three phrases; none exists in the
+  // user's mailbox, and the Drive archive keeps a copy of anything deleted.
+  //
+  // indexOf/split over text capped by sanitizeInput - linear.
   try
   {
-    // atIdx <= 0 (no '@', or nothing before it) gives '' here: substring clamps a
-    // negative end to 0, so no separate atIdx guard is needed (or testable).
-    const rawLocal = senderAddress.substring(0, atIdx).toLowerCase();
-    if (rawLocal !== '' && rawLocal.length <= 100)
+    const hasAdTemplate = function(text) {
+      const t = text.toLowerCase().replace(/[ \t\r\n\f\v\u00a0]+/g, ' ');
+      return t.indexOf(SPONSORED_AD_PHRASES[0]) !== -1 &&
+             t.indexOf(SPONSORED_AD_PHRASES[1]) !== -1 &&
+             t.indexOf(SPONSORED_AD_PHRASES[2]) !== -1 &&
+             t.split(SPONSORED_AD_PHRASES[3]).length - 1 >= 2;
+    };
+    if (hasAdTemplate(body) || hasAdTemplate(stripHtmlTags(html)))
     {
-      const labels = rawLocal.split('.');
-      const n = labels.length;
-      const ownDomain = senderAddress.substring(atIdx + 1).toLowerCase();
-      // Strip only space, tab and quote — not trim(): JS trim() and Python
-      // strip() disagree on U+FEFF and U+001C, and the Python mirror must match.
-      // The 400-char gate keeps the end-anchored strip linear-enough on a
-      // sender-controlled name; a name that long cannot equal a <= 100 char local.
-      let shownName = stripTrailingAngle(from).toLowerCase();
-      if (shownName.length <= 400)
-      {
-        shownName = shownName.replace(/^[ \t"]+/, '').replace(/[ \t"]+$/, '');
-      }
-      if (n >= 3 &&
-          ESP_RELAY_IDENTITY_TLDS.indexOf(labels[n - 1]) !== -1 &&
-          labels[n - 2].length >= 3 &&
-          labels.every(function(l) { return /^[a-z0-9-]+$/.test(l); }) &&
-          ownDomain.indexOf(labels[n - 2]) === -1 &&
-          shownName === rawLocal)
-      {
-        signals.espRelayIdentity = true;
-        logDebug('ESP-relay identity: ' + sanitizeForLog(rawLocal));
-      }
+      signals.sponsoredAdTemplate = true;
+      logDebug('Sponsored-ad template: disclaimer + advertiser sentence + sponsor block + credit lines');
     }
   }
   catch (signalError)

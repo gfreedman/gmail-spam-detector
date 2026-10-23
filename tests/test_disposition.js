@@ -1972,7 +1972,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
                  'emptySubjectWithAttachment', 'serviceImpersonation',
                  'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',
                  'selfNamedSender', 'calendarLure', 'headlineFromName',
-                 'attachmentPayloadScam', 'espRelayIdentity'];
+                 'attachmentPayloadScam', 'sponsoredAdTemplate'];
 
   // Guard the guard: if collectSignals() grows a signal this list does not
   // know about, the sweep below silently stops being exhaustive.
@@ -1985,7 +1985,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
   const STRONG = ['blacklistedSender', 'serviceImpersonation', 'brandMismatchedCta',
                   'freeMailRandomLocal', 'callbackPhishing', 'emptySubjectWithAttachment',
                   'selfNamedSender', 'calendarLure', 'attachmentPayloadScam',
-                  'espRelayIdentity'];
+                  'sponsoredAdTemplate'];
   let combos = 0, disagreements = [], uncorroborated = [], offSpec = [];
   for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
     for (let cb = 0; cb <= 4; cb++) {
@@ -2007,15 +2007,15 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
         offSpec.push('expected=' + expected + ' fired=' +
           BOOLS.filter(k => sig[k]).concat(cb ? ['clickbait=' + cb] : []).join('+'));
       }
-      // Rule NAMES, not just isSpam: Rule 11 is the only rule espRelayIdentity can
+      // Rule NAMES, not just isSpam: Rule 11 is the only rule sponsoredAdTemplate can
       // be the sole cause of, so it must be named exactly then and only then.
-      const soleEsp = sig.espRelayIdentity && cb === 0 &&
-                      BOOLS.every(k => k === 'espRelayIdentity' || !sig[k]);
+      const soleEsp = sig.sponsoredAdTemplate && cb === 0 &&
+                      BOOLS.every(k => k === 'sponsoredAdTemplate' || !sig[k]);
       if (soleEsp && rule !== 'Rule 11' && offSpec.length < 5) {
-        offSpec.push('rule-name: espRelayIdentity alone -> ' + rule);
+        offSpec.push('rule-name: sponsoredAdTemplate alone -> ' + rule);
       }
-      if (rule === 'Rule 11' && !sig.espRelayIdentity && offSpec.length < 5) {
-        offSpec.push('rule-name: Rule 11 without espRelayIdentity');
+      if (rule === 'Rule 11' && !sig.sponsoredAdTemplate && offSpec.length < 5) {
+        offSpec.push('rule-name: Rule 11 without sponsoredAdTemplate');
       }
       combos++;
       if (isSpam !== (rule !== 'NONE') && disagreements.length < 5) {
@@ -2059,104 +2059,135 @@ console.log('\n=== ONE weak signal no longer skips the Spam-folder grace period 
         ctx.hasCorroboratingSignal({ clickbaitCount: 1 }) === false);
 }
 
-console.log('\n=== Signal 14 / Rule 11: ESP-relay identity (deletes) ===');
+console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
 {
   const ctx = makeCtx();
-  const sender = (from) => {
+  const DISC = 'This is an advertisement.';
+  const HEAD = 'Sponsored Content';
+  const ADV = 'If you no longer wish to receive promotional messages from this advertiser, please unsubscribe below.';
+  const CRED = 'Sponsored by A. Sponsored by B.';
+  const FROM = 'Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>';
+  const msg = (o) => {
+    o = Object.assign({ from: FROM, plain: '', html: '', subject: 'Weekly digest' }, o || {});
     const m = phishMessage('mH14');
-    m.getFrom = () => from;
-    m.getSubject = () => 'Weekly digest';
+    m.getFrom = () => o.from;
+    m.getSubject = () => o.subject;
     m.getRawContent = () => 'Received: from x\r\n\r\nhi';
-    m.getBody = () => '<p>hi</p>';
-    return ctx.collectSignals(m);
+    m.getPlainBody = () => o.plain;
+    m.getBody = () => o.html;
+    return m;
   };
-  const fires = (from) => sender(from).espRelayIdentity === true;
-  const ESP = '@email.cyberimpact.com>';
-  check('the real miss fires Signal 14',
-        fires('"cole.emerson.trendwatcherslab.com" <cole.emerson.trendwatcherslab.com' + ESP));
-  check('an unquoted display name fires',
-        fires('cole.emerson.trendwatcherslab.com <cole.emerson.trendwatcherslab.com' + ESP));
-  check('a different display name does not fire (the guard that spares real senders)',
-        !fires('Trend Watchers Lab <cole.emerson.trendwatcherslab.com' + ESP));
-  check('a no-name sender (address as the name) does not fire',
-        !fires('<cole.emerson.trendwatcherslab.com' + ESP));
-  check('a two-label local part does not fire',
-        !fires('john.smith <john.smith@mail.example.org>'));
-  check('"john.quincy.smith" is not a domain (TLD allowlist alone)',
-        !fires('john.quincy.smith <john.quincy.smith@gmail.com>'));
-  check('the sender\'s own domain does not fire',
-        !fires('news.acme.com <news.acme.com@acme.com>'));
-  check('a subdomain of the embedded domain does not fire',
-        !fires('news.acme.com <news.acme.com@mail.acme.com>'));
-  check('a VERP/SRS-style local part (not a-z0-9-) does not fire',
-        !fires('bounce.acme.com=x <bounce.acme.com=x@esp.example.org>'));
-  check('an invalid character in a NON-final label does not fire',
-        !fires('a.b=c.acme.com <a.b=c.acme.com@esp.example.org>'));
-  const pad = (n) => 'x.' + 'a'.repeat(n - 'x..abc.com'.length) + '.abc.com';
-  check('a 100-char local part fires (the cap is exactly 100)',
-        pad(100).length === 100 && fires(pad(100) + ' <' + pad(100) + '@esp.example.org>'));
-  check('a 101-char local part does not fire',
-        pad(101).length === 101 && !fires(pad(101) + ' <' + pad(101) + '@esp.example.org>'));
-  check('a .org.uk identity does not fire ("org" is not a brand; no "uk" in the TLD list)',
-        !fires('news.redcross.org.uk <news.redcross.org.uk@mailchimpapp.net>'));
-  check('a sibling brand domain does not fire (reply.github.com via mg.github.io)',
-        !fires('reply.github.com <reply.github.com@mg.github.io>'));
-  check('spaces inside the angle brackets still fire (matches the Python mirror)',
-        fires('cole.emerson.trendwatcherslab.com < cole.emerson.trendwatcherslab.com@esp.example.org >'));
-  check('a leading BOM in the display name does not fire (no trim(): JS and Python agree)',
-        !fires('\ufeffcole.emerson.trendwatcherslab.com <cole.emerson.trendwatcherslab.com@esp.example.org>'));
-  check('a 2-char registrable label does not fire',
-        !fires('a.ab.com <a.ab.com@esp.example.org>'));
+  const fires = (o) => ctx.collectSignals(msg(o)).sponsoredAdTemplate === true;
+  const T = (body) => ({ plain: body, html: '<p>' + body + '</p>' });
 
-  const t0 = Date.now();
-  sender('"' + 'a.'.repeat(50000) + 'com" <' + 'a.'.repeat(50000) + 'com@esp.example.org>');
-  sender('"x" <' + '.'.repeat(100000) + '@esp.example.org>');
-  check('100 KB dotted local parts are bounded (< 1 s)',
-        Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
-
-  const alone = { clickbaitCount: 0, espRelayIdentity: true };
-  check('espRelayIdentity alone is an inbox conviction under Rule 11',
-        ctx.makeVerdict(alone) === true &&
-        ctx.getRuleFromSignals(alone).rule === 'Rule 11',
-        ctx.getRuleFromSignals(alone).rule);
-  check('Rule 11 yields to an earlier rule (bulk + blacklisted is still Rule 1)',
-        ctx.getRuleFromSignals({ clickbaitCount: 0, bulkEmailService: true,
-                                 blacklistedSender: true, espRelayIdentity: true }).rule === 'Rule 1');
-  check('espRelayIdentity alone corroborates a Gmail spam verdict',
-        ctx.hasCorroboratingSignal(alone) === true);
   {
-    // The end-to-end outcome, not just the signal: the real miss, from the
-    // From header through collectSignals to a permanent delete.
+    // Pin the phrase ORDER in the shipped source: the signal indexes the array,
+    // so a reorder changes behaviour and only the Python suite noticed before.
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'Patterns.gs'), 'utf8');
+    const m = src.match(/const SPONSORED_AD_PHRASES = Object\.freeze\(\[([^\]]*)\]\)/);
+    const phrases = m ? m[1].split(',').map(x => x.trim().replace(/^'|'$/g, '')) : [];
+    check('SPONSORED_AD_PHRASES order is pinned in the shipped source',
+          JSON.stringify(phrases) === JSON.stringify(['this is an advertisement',
+            'promotional messages from this advertiser', 'sponsored content', 'sponsored by']),
+          JSON.stringify(phrases));
+  }
+
+  // The REAL message: the same .eml the Python parity run reads, with the From
+  // header the user pasted from Show original - not a hand-typed copy.
+  const fs = require('fs'), path = require('path');
+  const eml = fs.readFileSync(path.join(__dirname, 'spam_examples',
+              'The 1973 Loophole in Trump new financial plan.eml'), 'utf8');
+  const [rawHead, ...rest] = eml.split(/\r?\n\r?\n/);
+  const header = (name) => (rawHead.match(new RegExp('^' + name + ': (.*)$', 'm')) || [])[1];
+  const real = { from: header('From'), subject: header('Subject'), plain: '', html: rest.join('\n\n') };
+  check('the fixture carries the real From header (Show original)',
+        real.from === FROM, real.from);
+  check('the real miss fires Signal 14 (HTML-only, as in the fixture)', fires(real));
+  check('...and still fires when a plain part exists but lacks the sponsor block',
+        fires(Object.assign({}, real, { plain: 'In 1973, a radical White House policy triggered a historic gold rush.' })));
+  {
     const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
-    const m = phishMessage('mH14e2e');
-    m.getFrom = () => '"cole.emerson.trendwatcherslab.com" <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>';
-    m.getSubject = () => 'The "1973 Loophole" in Trump\'s new financial plan';
-    m.getRawContent = () => 'Received: from x\r\n\r\nhi';
-    m.getBody = () => '<p>hi</p>';
+    const m = (() => {
+      const x = phishMessage('mH14e2e');
+      x.getFrom = () => real.from; x.getSubject = () => real.subject;
+      x.getRawContent = () => 'Received: from x\r\n\r\nhi';
+      x.getPlainBody = () => ''; x.getBody = () => real.html;
+      return x;
+    })();
     const verdict = c.analyzeMessage(m);
-    check('the real miss is judged spam by analyzeMessage()', verdict.isSpam === true,
-          JSON.stringify(verdict));
+    check('analyzeMessage judges the real miss spam under Rule 11',
+          verdict.isSpam === true && c.getRuleFromSignals(verdict.signals).rule === 'Rule 11',
+          JSON.stringify({ isSpam: verdict.isSpam, rule: c.getRuleFromSignals(verdict.signals).rule }));
     const th = fakeThread([m], c.calls);
     c.disposeDetectedMessage(m, th, verdict.signals, true);
     check('Rule 11 PERMANENTLY DELETES the real miss (user\'s explicit call)',
           c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c.calls.map(x => x.op)));
   }
   {
-    // The archive gate is rule-agnostic, but pin it for THIS rule: no Drive
-    // archive means quarantine, never a delete.
     const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
-    const m = phishMessage('mH14noarch');
-    m.getFrom = () => '"cole.emerson.trendwatcherslab.com" <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>';
-    m.getSubject = () => 'x';
-    m.getRawContent = () => 'Received: from x\r\n\r\nhi';
-    m.getBody = () => '<p>hi</p>';
+    const m = msg(Object.assign({}, real));
     const th = fakeThread([m], c.calls);
     c.disposeDetectedMessage(m, th, c.collectSignals(m), false);
     check('Rule 11 with NO Drive archive is quarantined, not deleted',
           !c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c.calls.map(x => x.op)));
   }
-  check('ESP_RELAY_IDENTITY appears in the signals CSV',
-        ctx.buildSignalsCsv(alone).indexOf('ESP_RELAY_IDENTITY') !== -1);
+
+  // Every conjunct, alone: removing any ONE must flip a case below.
+  const FULL = DISC + ' ' + ADV + ' ' + HEAD + ' ' + CRED;
+  check('all four phrases, credit twice, fires', fires(T(FULL)));
+  // PLAIN ONLY (no html): the tag-stripped HTML path collapses whitespace itself
+  // and would mask a missing collapse in the plain-body path.
+  check('whitespace runs, NBSP and tabs are collapsed (plain body only)',
+        fires({ plain: DISC + '\n\n' + ADV + '\n' + HEAD + '  Sponsored\tby A. Sponsored   by B.', html: '' }));
+  check('case-insensitive',
+        fires(T('THIS IS AN ADVERTISEMENT. ' + ADV.toUpperCase() + ' SPONSORED CONTENT sponsored BY A. Sponsored by B.')));
+  check('no disclaimer does not fire', !fires(T(ADV + ' ' + HEAD + ' ' + CRED)));
+  check('no advertiser sentence does not fire (an editorial sponsor block)',
+        !fires(T(DISC + ' ' + HEAD + ' ' + CRED)));
+  check('no sponsor block heading does not fire', !fires(T(DISC + ' ' + ADV + ' ' + CRED)));
+  check('one credit line does not fire', !fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' Sponsored by A.')));
+  check('no credit lines does not fire', !fires(T(DISC + ' ' + ADV + ' ' + HEAD)));
+  // The reviewer's six editorial shapes, which carried the other three phrases.
+  check('a newsletter with sponsors only does not fire',
+        !fires(T('Morning digest. Sponsored by Acme. Sponsored by Globex.')));
+  check('a Taboola-style module with a disclaimer does not fire',
+        !fires(T('Sponsored Content from around the web. ' + CRED + ' ' + DISC)));
+  check('a Beehiiv/Morning-Brew sponsor block with a disclosure line does not fire',
+        !fires(T('TOGETHER WITH ACME. ' + HEAD + ': ' + CRED + ' ' + DISC +
+                 ' You are receiving this because you subscribed.')));
+  const FULL_HTML = '<p><b>' + DISC + '</b></p><p><i>' + ADV + '</i></p><b>' + HEAD +
+                    '</b><i>Sponsored by <b>A</b></i><i>Sponsored by <b>B</b></i>';
+  check('fires from the tag-stripped HTML when the plain part is just "hello"',
+        fires({ plain: 'hello', html: FULL_HTML }));
+  for (const ws of [' ', '　', ' ', '﻿', ' ']) {
+    check('HTML path collapses U+' + ws.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0') +
+          ' (matches the Python mirror)',
+          fires({ plain: 'hello', html: FULL_HTML.split('Sponsored by').join('Sponsored' + ws + 'by') }));
+  }
+  check('reads the body only: a different sender fires too (no sender condition)',
+        fires(Object.assign({ from: 'Jane <jane@gmail.com>' }, T(FULL))));
+
+  // Linear on sender-controlled text: 100 KB of the phrases and of whitespace.
+  const t0 = Date.now();
+  fires(T(('sponsored by ').repeat(8000)));
+  fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' ' + ' \t'.repeat(50000) + 'x'));
+  fires({ plain: '', html: '<b>'.repeat(30000) + DISC });
+  check('100 KB bodies are bounded (< 1 s)', Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
+
+  const alone = { clickbaitCount: 0, sponsoredAdTemplate: true };
+  check('sponsoredAdTemplate alone is an inbox conviction under Rule 11',
+        ctx.makeVerdict(alone) === true &&
+        ctx.getRuleFromSignals(alone).rule === 'Rule 11',
+        ctx.getRuleFromSignals(alone).rule);
+  check('Rule 11 yields to an earlier rule (bulk + blacklisted is still Rule 1)',
+        ctx.getRuleFromSignals({ clickbaitCount: 0, bulkEmailService: true,
+                                 blacklistedSender: true, sponsoredAdTemplate: true }).rule === 'Rule 1');
+  check('sponsoredAdTemplate alone corroborates a Gmail spam verdict',
+        ctx.hasCorroboratingSignal(alone) === true);
+  check('SPONSORED_AD_TEMPLATE appears in the signals CSV',
+        ctx.buildSignalsCsv(alone).indexOf('SPONSORED_AD_TEMPLATE') !== -1);
+  check('sponsored-ad-template appears in the Spam-folder description',
+        ctx.describeSignals(alone).indexOf('sponsored-ad-template') !== -1);
 }
 
 console.log('\n=== Signal 12: headline-then-brand From name (corroboration only) ===');

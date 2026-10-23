@@ -231,9 +231,9 @@ function getRuleFromSignals(signals)
     return { rule: 'Rule 10', description: 'Calendar voicemail lure (unknown-sender invite, voicemail/fax pretext in the title, off-domain link)' };
   }
 
-  if (signals.espRelayIdentity)
+  if (signals.sponsoredAdTemplate)
   {
-    return { rule: 'Rule 11', description: 'ESP-relay identity (mailbox and display name are a brand domain on a shared relay)' };
+    return { rule: 'Rule 11', description: 'Sponsored-ad template (ad disclaimer + Sponsored Content block + sponsor credit lines)' };
   }
 
   return { rule: 'NONE', description: 'No rule triggered' };
@@ -267,7 +267,7 @@ function buildSignalsCsv(signals)
   if (signals._callbackLooseOnly)         parts.push('CALLBACK_NAME_ONLY');
   if (signals.calendarLure)               parts.push('CALENDAR_LURE');
   if (signals.attachmentPayloadScam)      parts.push('ATTACHMENT_PAYLOAD_SCAM');
-  if (signals.espRelayIdentity)           parts.push('ESP_RELAY_IDENTITY');
+  if (signals.sponsoredAdTemplate)        parts.push('SPONSORED_AD_TEMPLATE');
   // Surfaced in the Sheet so a degraded verdict is visible in the log, not
   // just in an execution transcript nobody reads.
   if (signals._degraded)                  parts.push('DEGRADED');

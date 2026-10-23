@@ -43,6 +43,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - Free-mail sender with a machine-generated address + 2 spam behaviours = SPAM
 - Free-mail sender invoicing as a brand it doesn't control, with a phone number to call = PHISHING (quarantined, not deleted)
 - Calendar invite from an unknown organiser with a voicemail/fax lure in the title and an off-domain link = PHISHING
+- Ad disclaimer + the ad network's "promotional messages from this advertiser" sentence + a "Sponsored Content" block + 2 "Sponsored by" credits = SPAM
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
 
@@ -122,7 +123,7 @@ Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely
 
 **Mail Gmail filed as spam is deleted only after a grace period.** Gmail intercepts that mail before your inbox, so the detector's rules never judged it — and Gmail's own false-positive classes (first contact from a new correspondent, 2FA from a small service, an invoice on a cheap relay) are exactly what no whitelist can enumerate in advance. So `reviewGmailSpam()` lets it age `CONFIG.gmailSpamGraceDays` (default **7**) first, which is your recovery window: the folder is visible, searchable, and one "Not spam" click from undoing Gmail's mistake. After that Gmail's verdict stands and the message is archived, logged and deleted. Whitelisted senders are never deleted at any age, and nothing is ever moved back to your inbox.
 
-The exception is mail our own signals **corroborate**: one strong signal (a blacklisted sender, service impersonation, a brand-mismatched link, a machine-generated free-mail address, a callback invoice, an empty subject with an attachment, a free-mail sender using your own name, a sender whose mailbox and display name are both a brand domain on an ESP relay) or two weak ones (clickbait, fear, marketing format, a suspicious From name). That is deleted on the next run instead of waiting. A single weak hit is not enough — that is vocabulary, and vocabulary is what Gmail's false positives share with spam. Mail that is *not* corroborated is copied to Drive (`Spam Intelligence/Spam Folder/<messageId>.eml`) so a miss can be diagnosed; those copies expire after the grace period plus a week, and none are written if that folder is shared.
+The exception is mail our own signals **corroborate**: one strong signal (a blacklisted sender, service impersonation, a brand-mismatched link, a machine-generated free-mail address, a callback invoice, an empty subject with an attachment, a free-mail sender using your own name, an ad disclaimer with an advertiser sentence, a sponsor block and credit lines) or two weak ones (clickbait, fear, marketing format, a suspicious From name). That is deleted on the next run instead of waiting. A single weak hit is not enough — that is vocabulary, and vocabulary is what Gmail's false positives share with spam. Mail that is *not* corroborated is copied to Drive (`Spam Intelligence/Spam Folder/<messageId>.eml`) so a miss can be diagnosed; those copies expire after the grace period plus a week, and none are written if that folder is shared.
 
 Mail already reviewed is normally skipped, so the folder is not re-fetched every cycle. But "reviewed" is a fact about *the logic that did the reviewing*, not about the message — so a `SCRIPT_VERSION` change re-reviews the whole folder once, and an improved rule gets applied to spam the previous logic dismissed. (It did not, before v6.54.0: six messages sat through two releases meant to remove them.)
 
@@ -265,13 +266,15 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
 - Deletes (Rule 10). Built after a compromised Workspace account sent "New
   Voice Message Notification" pointing at a typosquat domain
 
-**16. ESP-Relay Identity (Structural Signal)**
-- The sender's mailbox is a dotted brand domain (`cole.emerson.trendwatcherslab.com`
-  at a shared ESP's relay) and the From display name repeats it verbatim; the
-  brand name appears nowhere in the sending domain
-- Deletes (Rule 11), archived to Drive first. Built after a gold-IRA promo scored
-  zero on every other signal. Cheap to evade (rename the display), so it buys
-  time rather than lasting coverage
+**16. Sponsored-Ad Template (Content Signal)**
+- The body carries an "This is an advertisement" disclaimer, the ad network's
+  "promotional messages from this advertiser" unsubscribe sentence, a "Sponsored
+  Content" block heading, and at least two "Sponsored by ..." credit lines
+  (checked on the plain body, then on the tag-stripped HTML). The advertiser
+  sentence is what editorial sponsor blocks (Morning Brew, Beehiiv) lack
+- Deletes (Rule 11), archived to Drive first. Built after a gold-IRA promo sent
+  through a shared ESP scored zero on every other signal. Cheap to evade
+  (reword any phrase), so it buys time rather than lasting coverage
 
 ### Decision Rules
 
@@ -323,9 +326,9 @@ if (callbackPhishing) { return SPAM; }
 // off-domain link → calendar phishing. DELETES.
 if (calendarLure) { return SPAM; }
 
-// RULE 11: Sender's mailbox AND display name are the same brand domain on a
-// shared ESP relay. DELETES (archived to Drive first).
-if (espRelayIdentity) { return SPAM; }
+// RULE 11: Ad disclaimer + advertiser unsubscribe sentence + "Sponsored
+// Content" block + 2 "Sponsored by" credit lines. DELETES (archived to Drive first).
+if (sponsoredAdTemplate) { return SPAM; }
 
 return NOT_SPAM;
 ```

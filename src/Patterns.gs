@@ -458,16 +458,20 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
 ]);
 
 /**
- * Last labels that make a dotted sender local part read as a DOMAIN for
- * Signal 14 (espRelayIdentity). An allowlist, not "any alphabetic label":
- * "john.q.smith" is a plausible real mailbox and "smith" is not a TLD here.
- * No "uk" (or other country codes that nest a second-level "org"/"co"/"gov"):
- * "news.redcross.org.uk" would read "org" as the brand label.
+ * The four phrases of Signal 14 (sponsoredAdTemplate), IN THIS ORDER: an ad
+ * disclaimer, the ad network's unsubscribe sentence, an ad-network block
+ * heading, and the credit line each teaser carries. Lower-case: the signal
+ * lower-cases and whitespace-collapses the body first. All four are required,
+ * the last at least twice. The second is what editorial sponsor blocks lack:
+ * Morning-Brew-style newsletters carry a heading, credits and even a
+ * disclaimer, but none says "promotional messages from this advertiser".
+ * Measured against the user's whole mailbox (2026-10-23): no kept message
+ * contained the disclaimer, the block heading, or both, other than the miss.
  * @const {Array<string>}
  */
-const ESP_RELAY_IDENTITY_TLDS = Object.freeze([
-  'com', 'net', 'org', 'info', 'biz', 'io', 'co', 'us', 'ca', 'ai', 'app',
-  'dev', 'xyz', 'online', 'site', 'shop', 'news', 'top', 'club', 'live', 'today'
+const SPONSORED_AD_PHRASES = Object.freeze([
+  'this is an advertisement', 'promotional messages from this advertiser',
+  'sponsored content', 'sponsored by'
 ]);
 
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

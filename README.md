@@ -32,7 +32,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 12. **Your address used as your name** ("geoff.c.freedman, Claim Your Free…")
 13. **Survey-scam disclaimers** (a footer disclaiming the very brand it impersonates)
 
-**Detection Logic — 9 rules, first match wins:**
+**Detection Logic — 11 rules, first match wins:**
 - Bulk email + blacklisted sender = SPAM
 - Bulk email + 2+ clickbait patterns = SPAM
 - Bulk email + 2+ spam behaviors = SPAM
@@ -322,6 +322,10 @@ if (callbackPhishing) { return SPAM; }
 // RULE 10: Unknown-sender calendar invite + voicemail/fax lure in the title +
 // off-domain link → calendar phishing. DELETES.
 if (calendarLure) { return SPAM; }
+
+// RULE 11: Sender's mailbox AND display name are the same brand domain on a
+// shared ESP relay. DELETES (archived to Drive first).
+if (espRelayIdentity) { return SPAM; }
 
 return NOT_SPAM;
 ```

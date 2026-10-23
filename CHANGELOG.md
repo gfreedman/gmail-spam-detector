@@ -39,7 +39,11 @@ deleted, and every deletion leaves a copy in `Detected/`. Placed last in both
 cascades, so any earlier rule still wins. Its false positive class is a
 legitimate sender on a shared relay whose display name is exactly its
 domain-shaped mailbox. Mail already stamped `SpamChecked` is still only HELD by
-the recheck path (v6.48.0), not deleted. The fixture moves from
+the recheck path (v6.48.0), not deleted. Review found `news.redcross.org.uk`
+would read `org` as the brand label, so `uk` is out of the TLD allowlist.
+Other plausible but unobserved false positives remain (a Google Group or bot
+whose display name is its domain-shaped mailbox); the Drive archive is the
+recovery path. The fixture moves from
 `spam_folder_examples/` to `spam_examples/`; the test now drives the real From
 header through `analyzeMessage()` and `disposeDetectedMessage()` to a
 `batchDelete`, so the end-to-end outcome is pinned and not just the signal.

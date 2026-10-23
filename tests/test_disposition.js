@@ -1947,7 +1947,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 // ---------------------------------------------------------------------------
 //
 // makeVerdict() (Verdict.gs) returns a boolean. getRuleFromSignals()
-// (Flush.gs) re-implements the SAME nine rules in the same order to return a
+// (Flush.gs) re-implements the SAME eleven rules in the same order to return a
 // rule name. disposeDetectedMessage() then routes destroy-vs-quarantine off
 // getRuleFromSignals(...).rule against DESTRUCTIVE_RULES.
 //
@@ -2006,6 +2006,16 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
       if (corroborated !== expected && offSpec.length < 5) {
         offSpec.push('expected=' + expected + ' fired=' +
           BOOLS.filter(k => sig[k]).concat(cb ? ['clickbait=' + cb] : []).join('+'));
+      }
+      // Rule NAMES, not just isSpam: Rule 11 is the only rule espRelayIdentity can
+      // be the sole cause of, so it must be named exactly then and only then.
+      const soleEsp = sig.espRelayIdentity && cb === 0 &&
+                      BOOLS.every(k => k === 'espRelayIdentity' || !sig[k]);
+      if (soleEsp && rule !== 'Rule 11' && offSpec.length < 5) {
+        offSpec.push('rule-name: espRelayIdentity alone -> ' + rule);
+      }
+      if (rule === 'Rule 11' && !sig.espRelayIdentity && offSpec.length < 5) {
+        offSpec.push('rule-name: Rule 11 without espRelayIdentity');
       }
       combos++;
       if (isSpam !== (rule !== 'NONE') && disagreements.length < 5) {
@@ -2087,6 +2097,8 @@ console.log('\n=== Signal 14 / Rule 11: ESP-relay identity (deletes) ===');
         pad(100).length === 100 && fires(pad(100) + ' <' + pad(100) + '@esp.example.org>'));
   check('a 101-char local part does not fire',
         pad(101).length === 101 && !fires(pad(101) + ' <' + pad(101) + '@esp.example.org>'));
+  check('a .org.uk identity does not fire ("org" is not a brand; no "uk" in the TLD list)',
+        !fires('news.redcross.org.uk <news.redcross.org.uk@mailchimpapp.net>'));
   check('a sibling brand domain does not fire (reply.github.com via mg.github.io)',
         !fires('reply.github.com <reply.github.com@mg.github.io>'));
   check('spaces inside the angle brackets still fire (matches the Python mirror)',
@@ -2128,6 +2140,20 @@ console.log('\n=== Signal 14 / Rule 11: ESP-relay identity (deletes) ===');
     c.disposeDetectedMessage(m, th, verdict.signals, true);
     check('Rule 11 PERMANENTLY DELETES the real miss (user\'s explicit call)',
           c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c.calls.map(x => x.op)));
+  }
+  {
+    // The archive gate is rule-agnostic, but pin it for THIS rule: no Drive
+    // archive means quarantine, never a delete.
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m = phishMessage('mH14noarch');
+    m.getFrom = () => '"cole.emerson.trendwatcherslab.com" <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>';
+    m.getSubject = () => 'x';
+    m.getRawContent = () => 'Received: from x\r\n\r\nhi';
+    m.getBody = () => '<p>hi</p>';
+    const th = fakeThread([m], c.calls);
+    c.disposeDetectedMessage(m, th, c.collectSignals(m), false);
+    check('Rule 11 with NO Drive archive is quarantined, not deleted',
+          !c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c.calls.map(x => x.op)));
   }
   check('ESP_RELAY_IDENTITY appears in the signals CSV',
         ctx.buildSignalsCsv(alone).indexOf('ESP_RELAY_IDENTITY') !== -1);

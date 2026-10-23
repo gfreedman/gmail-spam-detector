@@ -2755,6 +2755,15 @@ def run_edge_case_tests():
           'recipient_address_as_name' not in sig['matched_patterns'],
           'only the mailbox that received it (Delivered-To) counts')
 
+    # Rule 11 deletes in production: the Python cascade carries only a comment,
+    # so pin the shipped DESTRUCTIVE_RULES list itself (Disposition.gs).
+    _disp = (Path(__file__).parent.parent / 'src' / 'Disposition.gs').read_text()
+    _m = re.search(r"const DESTRUCTIVE_RULES = \[(.*?)\];", _disp, re.S)
+    check('Rule 11 is in the shipped DESTRUCTIVE_RULES (it deletes)',
+          bool(_m) and "'Rule 11'" in _m.group(1))
+    check('Rules 7 and 9 are NOT in DESTRUCTIVE_RULES (they quarantine)',
+          bool(_m) and "'Rule 7'" not in _m.group(1) and "'Rule 9'" not in _m.group(1))
+
     # Signal 14 (v6.79.0): the JS side pins every conjunct in test_disposition.js;
     # the mirror needs its own, or a constant changed in one language only passes
     # parity (the one fixture sits nowhere near a boundary).
@@ -2778,6 +2787,7 @@ def run_edge_case_tests():
         (f'\ufeff{_brand} <{_brand}{_esp}', False, 'BOM is not stripped (JS trim() is not used)'),
         ('bounce.acme.com=x <bounce.acme.com=x@esp.example.org>', False, 'VERP-style local part'),
         ('a.b=c.acme.com <a.b=c.acme.com@esp.example.org>', False, 'invalid char in a non-final label'),
+        ('news.redcross.org.uk <news.redcross.org.uk@mailchimpapp.net>', False, '.org.uk: no uk in the TLD list'),
     ]:
         check(f'14 {frm[:48]!r} -> {expect}', _s14(frm) == expect, why)
     # >= 3 labels ending '.abc.com', padded with 'a' to exactly 100 / 101 chars

@@ -158,7 +158,8 @@ function makeVerdict(signals)
            ', selfNamedSender=' + signals.selfNamedSender +
            ', calendarLure=' + signals.calendarLure +
            ', headlineFromName=' + signals.headlineFromName +
-           ', attachmentPayloadScam=' + signals.attachmentPayloadScam);
+           ', attachmentPayloadScam=' + signals.attachmentPayloadScam +
+           ', espRelayIdentity=' + signals.espRelayIdentity);
   return false;
 }
 

@@ -1,7 +1,7 @@
 /**
- * Signals.gs — Signal collection: the whitelist gate, field extraction, 14 detections.
+ * Signals.gs — Signal collection: the whitelist gate, field extraction, 15 detections.
  *
- * ONE function, deliberately long. Twenty-one try/catch blocks write fifteen signal
+ * ONE function, deliberately long. Twenty-two try/catch blocks write sixteen signal
  * keys (seven of them accumulate into clickbaitCount), and every block is wrapped
  * individually because a single throw once discarded eight of eleven signals.
  *
@@ -148,7 +148,8 @@ function collectSignals(message)
     selfNamedSender: false,            // free-mail sender using the recipient's own name, not their address
     calendarLure: false,               // unknown-sender calendar invite: voicemail lure in the title + off-domain link
     headlineFromName: false,           // display name is "<headline> - <brand>"; Spam-folder corroboration only
-    attachmentPayloadScam: false       // Bcc'd free-mail ALL-CAPS note whose payload is an attachment; Spam-folder corroboration only
+    attachmentPayloadScam: false,      // Bcc'd free-mail ALL-CAPS note whose payload is an attachment; Spam-folder corroboration only
+    espRelayIdentity: false            // sender is "<brand.domain.com>@<esp>" with the same string as display name; Spam-folder corroboration only
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -268,6 +269,68 @@ function collectSignals(message)
     // rest still run, and signalsSkipped makes the gap visible.
     signalsSkipped++;
     logError('Signal 12 threw and was skipped: ' + signalError.toString());
+  }
+
+  // ── Signal 14: ESP-relay identity (brand domain as the mailbox) ─────────
+  // "cole.emerson.trendwatcherslab.com@email.cyberimpact.com", display name
+  // "cole.emerson.trendwatcherslab.com". A promo mill sending through a
+  // shared ESP cannot sign as its own domain, so its tooling writes the brand
+  // domain into the mailbox and then reuses the mailbox as the display name.
+  // The email it caught scored ZERO on every other signal: nothing in the
+  // subject, the sender domain (the ESP's) or a bulk fingerprint distinguishes
+  // it. Adding the ESP to BULK_EMAIL_FINGERPRINTS was rejected in review —
+  // bulk gates Rules 1-3, which delete, and it would expose every legitimate
+  // sender on that ESP while convicting nothing here.
+  //
+  // CORROBORATION ONLY, never an inbox conviction: it is not in makeVerdict()
+  // or getRuleFromSignals(). hasCorroboratingSignal() counts it STRONG, so it
+  // acts only once Gmail has already filed the message as spam. Conditions,
+  // all required: >= 3 dot labels in the local part, the last a known TLD, the
+  // brand label (the one before the TLD) appears nowhere in the sending domain,
+  // which excludes the sender's own domain, its subdomains and siblings such as
+  // "reply.github.com" sent from "mg.github.io", and the From display name is that
+  // local part verbatim (so "john.q.smith@gmail.com" with a name set, or with
+  // a bare-address name containing '@', cannot fire). Cheap to evade — rename
+  // the display — it buys time, not lasting coverage.
+  //
+  // split/indexOf over a local part capped at 100 chars — linear.
+  try
+  {
+    // atIdx <= 0 (no '@', or nothing before it) gives '' here: substring clamps a
+    // negative end to 0, so no separate atIdx guard is needed (or testable).
+    const rawLocal = senderAddress.substring(0, atIdx).toLowerCase();
+    if (rawLocal !== '' && rawLocal.length <= 100)
+    {
+      const labels = rawLocal.split('.');
+      const n = labels.length;
+      const ownDomain = senderAddress.substring(atIdx + 1).toLowerCase();
+      // Strip only space, tab and quote — not trim(): JS trim() and Python
+      // strip() disagree on U+FEFF and U+001C, and the Python mirror must match.
+      // The 400-char gate keeps the end-anchored strip linear-enough on a
+      // sender-controlled name; a name that long cannot equal a <= 100 char local.
+      let shownName = stripTrailingAngle(from).toLowerCase();
+      if (shownName.length <= 400)
+      {
+        shownName = shownName.replace(/^[ \t"]+/, '').replace(/[ \t"]+$/, '');
+      }
+      if (n >= 3 &&
+          ESP_RELAY_IDENTITY_TLDS.indexOf(labels[n - 1]) !== -1 &&
+          labels[n - 2].length >= 3 &&
+          labels.every(function(l) { return /^[a-z0-9-]+$/.test(l); }) &&
+          ownDomain.indexOf(labels[n - 2]) === -1 &&
+          shownName === rawLocal)
+      {
+        signals.espRelayIdentity = true;
+        logDebug('ESP-relay identity: ' + sanitizeForLog(rawLocal));
+      }
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 14 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 2: Clickbait / sensationalism patterns ───────────────────────

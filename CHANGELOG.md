@@ -20,6 +20,33 @@ detail plus the diffs.
 
 ---
 
+## v6.79.0
+
+**A sender that signs as a brand domain on an ESP relay now corroborates a Gmail spam verdict.**
+
+"The \"1973 Loophole\" in Trump's new financial plan" reached the inbox from
+`cole.emerson.trendwatcherslab.com@email.cyberimpact.com` and scored zero on
+all fifteen signals: a gold-IRA lead-gen promo with a clean subject, a shared
+ESP's sending domain and no bulk fingerprint. The first draft (add Cyberimpact
+to `BULK_EMAIL_FINGERPRINTS`, blacklist the brand, add a "[Year] Loophole"
+subject regex) was rejected in review. Bulk gates Rules 1-3, which delete, so
+it would expose every legitimate sender on that ESP and convict nothing here;
+the brand is in the local part, so a domain blacklist never matches; and the
+subject regex matches NYT/WSJ/CPA tax coverage.
+
+Signal 14 `espRelayIdentity` keys on the tooling instead: the mailbox is a
+dotted brand domain (>= 3 labels, last a known TLD, the brand label absent
+from the sending domain so own, sub- and sibling domains are spared) and the
+From display name repeats it verbatim. A mill sending through
+an ESP cannot sign as its own domain, so it writes the domain into the mailbox
+and reuses the mailbox as the name. STRONG, corroboration only: it is in
+`hasCorroboratingSignal()` and nowhere in `makeVerdict()` or
+`getRuleFromSignals()`, so it never convicts from the inbox. Evasion is a
+display-name rename; it buys time, not lasting coverage. A quarantine-only
+inbox rule for this class (this signal + ad-disclaimer block + gold-IRA
+vocabulary) was proposed and not built. Sweep now 15 booleans / 163,840
+combinations; `EXPECTED_SIGNAL_COUNT` 16.
+
 ## v6.78.0
 
 **Signal 13 counts cased astral letters the same way in JS and the Python mirror.**

@@ -478,6 +478,7 @@ def _load_gs_constants(source):
         'CALENDAR_LURE_PATTERNS':       _load_regex_array(source, 'CALENDAR_LURE_PATTERNS'),
         'CALENDAR_SAFE_LINK_DOMAINS':   _load_string_array(source, 'CALENDAR_SAFE_LINK_DOMAINS'),
         'HEADLINE_NAME_SEPARATORS':     _load_string_array(source, 'HEADLINE_NAME_SEPARATORS'),
+        'ESP_RELAY_IDENTITY_TLDS':      _load_string_array(source, 'ESP_RELAY_IDENTITY_TLDS'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
             source, 'IMPERSONATED_SUPPORT_BRANDS', allow_spaces=True),
@@ -542,6 +543,7 @@ CALLBACK_PHONE_PATTERN          = _gs['CALLBACK_PHONE_PATTERN']
 CALENDAR_LURE_PATTERNS          = _gs['CALENDAR_LURE_PATTERNS']
 CALENDAR_SAFE_LINK_DOMAINS      = _gs['CALENDAR_SAFE_LINK_DOMAINS']
 HEADLINE_NAME_SEPARATORS        = _gs['HEADLINE_NAME_SEPARATORS']
+ESP_RELAY_IDENTITY_TLDS         = _gs['ESP_RELAY_IDENTITY_TLDS']
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -1179,6 +1181,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'calendar_lure': False,
                     'headline_from_name': False,
                     'attachment_payload_scam': False,
+                    'esp_relay_identity': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -1198,6 +1201,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'calendar_lure': False,
         'headline_from_name': False,
         'attachment_payload_scam': False,
+        'esp_relay_identity': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1233,6 +1237,25 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                 display_name[_at + len(_sep):].strip() != ''):
             signals['headline_from_name'] = True
             signals['matched_patterns'].append('headline_from_name')
+
+    # ── Signal 14: ESP-relay identity (v6.79.0) ────────────────────────────
+    # Corroboration only. Mirrors Signal 14 in Signals.gs.
+    _addr14 = sender_address.strip()   # extractEmailAddress trims the <...> contents
+    _at = _addr14.rfind('@')
+    _local = _addr14[:_at].lower() if _at > 0 else ''
+    if _local and len(_local) <= 100:
+        _labels = _local.split('.')
+        _n = len(_labels)
+        _own = _addr14[_at + 1:].lower()
+        _shown = re.sub(r'<[^>]*>$', '', from_field).lower().strip(' \t"')
+        if (_n >= 3 and
+                _labels[-1] in ESP_RELAY_IDENTITY_TLDS and
+                len(_labels[-2]) >= 3 and
+                all(re.fullmatch(r'[a-z0-9-]+', l) for l in _labels) and
+                _labels[-2] not in _own and
+                _shown == _local):
+            signals['esp_relay_identity'] = True
+            signals['matched_patterns'].append('esp_relay_identity')
 
     # ── Signal: Clickbait pattern count ────────────────────────────────────
     # Each matching pattern increments the counter independently — this allows
@@ -2193,7 +2216,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 15
+    EXPECTED_SIGNAL_COUNT = 16
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '
@@ -2652,7 +2675,7 @@ def run_edge_case_tests():
                   sig['brand_mismatched_cta'] or sig['free_mail_random_local'] or
                   sig['callback_phishing'] or sig['self_named_sender'] or
                   sig['calendar_lure'] or sig['empty_subject_with_attachment'] or
-                  sig['attachment_payload_scam'])
+                  sig['attachment_payload_scam'] or sig['esp_relay_identity'])
         weak = (sig['clickbait_count'] + sig['fear_mongering'] +
                 sig['marketing_format'] +
                 (sig['suspicious_from_name'] or sig['headline_from_name']))
@@ -2725,6 +2748,39 @@ def run_edge_case_tests():
     check('2g ignores a name matching some OTHER To recipient',
           'recipient_address_as_name' not in sig['matched_patterns'],
           'only the mailbox that received it (Delivered-To) counts')
+
+    # Signal 14 (v6.79.0): the JS side pins every conjunct in test_disposition.js;
+    # the mirror needs its own, or a constant changed in one language only passes
+    # parity (the one fixture sits nowhere near a boundary).
+    def _s14(frm):
+        sig, _, _ = analyze_email('hello', frm, False)
+        return sig['esp_relay_identity']
+    _esp = '@esp.example.org>'
+    _brand = 'cole.emerson.trendwatcherslab.com'
+    for frm, expect, why in [
+        (f'"{_brand}" <{_brand}{_esp}', True, 'the real miss'),
+        (f'{_brand} < {_brand}@esp.example.org >', True, 'spaces inside <> are trimmed, as in JS'),
+        (f'Trend Watchers Lab <{_brand}{_esp}', False, 'display name differs'),
+        (f'<{_brand}{_esp}', False, 'no display name'),
+        ('john.smith <john.smith@mail.example.org>', False, 'two labels'),
+        ('john.quincy.smith <john.quincy.smith@gmail.com>', False, 'TLD allowlist alone'),
+        ('news.acme.com <news.acme.com@acme.com>', False, "the sender's own domain"),
+        ('news.acme.com <news.acme.com@mail.acme.com>', False, 'a subdomain of it'),
+        ('reply.github.com <reply.github.com@mg.github.io>', False, 'a sibling brand domain'),
+        ('a.ab.com <a.ab.com@esp.example.org>', False, '2-char registrable label'),
+        ('abc.abc.com <abc.abc.com@esp.example.org>', True, '3-char registrable label fires'),
+        (f'\ufeff{_brand} <{_brand}{_esp}', False, 'BOM is not stripped (JS trim() is not used)'),
+        ('bounce.acme.com=x <bounce.acme.com=x@esp.example.org>', False, 'VERP-style local part'),
+        ('a.b=c.acme.com <a.b=c.acme.com@esp.example.org>', False, 'invalid char in a non-final label'),
+    ]:
+        check(f'14 {frm[:48]!r} -> {expect}', _s14(frm) == expect, why)
+    # >= 3 labels ending '.abc.com', padded with 'a' to exactly 100 / 101 chars
+    _at100 = 'x.' + ('a' * (100 - len('x..abc.com'))) + '.abc.com'
+    _at101 = 'x.' + ('a' * (101 - len('x..abc.com'))) + '.abc.com'
+    check('14 a 100-char local part fires',
+          len(_at100) == 100 and _s14(f'{_at100} <{_at100}{_esp}'))
+    check('14 a 101-char local part does not',
+          len(_at101) == 101 and not _s14(f'{_at101} <{_at101}{_esp}'))
 
     # Signal 13 thresholds: the JS side pins these in test_disposition.js; the
     # mirror needs its own, or a constant changed in one language only passes

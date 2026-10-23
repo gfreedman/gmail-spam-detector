@@ -125,7 +125,7 @@ function runPeriodicMaintenance()
 {
   // 5 minutes, down from 15. Chosen against Gmail's read quota rather than by
   // feel: recheckRecentSpamChecked() runs analyzeMessage() on up to 20 recent
-  // (100 on the once-per-deploy forced cycle)
+  // (50 on the once-per-deploy forced cycle)
   // inbox threads, and each non-whitelisted message costs a getRawContent()
   // fetch. At ~7 inbox threads that is ~7 reads per cycle:
   //     every  1 min -> ~10 000 reads/day  (about half the consumer daily quota)
@@ -229,9 +229,11 @@ function runPeriodicMaintenance()
  * runPeriodicMaintenance() calls six independent passes in a row. Three of them
  * (destroySpam, reviewGmailSpam, writeSpamFolderSnapshot) have no outer try, so
  * an exception escaping any one skipped everything after it, including the
- * re-check that a fix deploy exists to trigger. The failure is logged through
- * logError(), so it still counts toward the run's error total and reaches the
- * health row; it is just no longer able to take the other steps down with it.
+ * re-check that a fix deploy exists to trigger. logError() alone counts
+ * nothing, so the failure also increments _maintenanceFailures, which
+ * processInbox() folds into the run's error count: the heartbeat then reports
+ * ERRORS (not OK) and prod_health.py sees it. It can no longer take the other
+ * steps down with it, but it is not silent either.
  *
  * @param {string}   name  Step name, for the log line.
  * @param {Function} step  Zero-argument function that runs the step.
@@ -244,6 +246,7 @@ function runMaintenanceStep(name, step)
   }
   catch (error)
   {
+    _maintenanceFailures++;
     logError('Maintenance step ' + name + ' threw and was skipped: ' + error.toString());
   }
 }
@@ -392,20 +395,27 @@ function checkFalseNegatives()
  * via getMessagesForThreads() (one API call for all threads). analyzeMessage()
  * averages ~2ms per email in GAS, so 20 emails adds ~40ms — negligible vs. budget.
  *
- * @param {boolean=} widen  True on the forced post-deploy cycle: re-check up to 100
+ * @param {boolean=} widen  True on the forced post-deploy cycle: re-check up to 50
  *                          threads instead of 20. When the window fills, a
  *                          logInfo line says older mail was not re-evaluated.
  */
 function recheckRecentSpamChecked(widen)
 {
   const RECHECK_DAYS         = 2;
-  // 20 on the routine timer; 100 on the forced post-deploy cycle. That cycle
+  // 20 on the routine timer; 50 on the forced post-deploy cycle. That cycle
   // runs once per deploy and is the one a fix depends on, and the search is
   // newest-first, so a 20-thread cap silently dropped the OLDEST rechecks
-  // whenever more than 20 SpamChecked threads sat in the inbox. 100 threads is
-  // ~200 reads once per deploy, against the ~2 000/day budget in
-  // runPeriodicMaintenance().
-  const RECHECK_LIMIT        = widen ? 100 : 20;
+  // whenever more than 20 SpamChecked threads sat in the inbox. 50 threads is
+  // ~100 reads once per deploy, against the ~2 000/day budget in
+  // runPeriodicMaintenance(). Not 100: every MATCH costs a Drive write plus
+  // three Gmail writes (~2-3 s), a bad pattern deploy matches broadly, and the
+  // run shares one 6-minute limit with the main loop and the Spam review.
+  const RECHECK_LIMIT        = widen ? 50 : 20;
+  // Wall-clock stop for the loop below. Past it the remaining threads wait for
+  // the next recheck; an execution killed at the limit skips the heartbeat in
+  // `finally`, and LAST_SEEN_VERSION is already recorded, so nothing retries.
+  const RECHECK_BUDGET_MS    = 120 * 1000;
+  const startedAt            = Date.now();
 
   try
   {
@@ -431,6 +441,12 @@ function recheckRecentSpamChecked(widen)
 
     for (let i = 0; i < threads.length; i++)
     {
+      if (Date.now() - startedAt > RECHECK_BUDGET_MS)
+      {
+        logInfo('Recheck stopped at ' + i + ' of ' + threads.length + ' threads: ' +
+                RECHECK_BUDGET_MS / 1000 + ' s budget spent; the rest wait for the next recheck');
+        break;
+      }
       try
       {
         const thread   = threads[i];

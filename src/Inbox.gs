@@ -44,6 +44,7 @@ function processInbox()
   // Reset audit state for this run. Inside the lock and after the skip check,
   // so a skipped invocation cannot clear a running one's tally.
   _destroyedMessageIds = [];
+  _maintenanceFailures = 0;
   _loggedMessageIds    = [];
   _unresolvedAgedSpam  = 0;
   _spamFolderVerdicts  = {};
@@ -159,6 +160,12 @@ function processInbox()
     // email activity — avoids burning quota on housekeeping every invocation.
     // May queue additional log entries (false negatives, rechecked spam).
     runPeriodicMaintenance();
+
+    // A maintenance step that threw was isolated and logged, but logError()
+    // counts nothing: fold it into the run's errors so the heartbeat reports
+    // ERRORS instead of OK. (Before v6.82.0 the throw escaped to the catch
+    // below and the run reported THREW.)
+    errorCount += _maintenanceFailures;
 
     // Second flush picks up any entries queued by maintenance.
     flushSpamLog();

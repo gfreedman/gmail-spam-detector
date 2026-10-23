@@ -2076,15 +2076,36 @@ console.log('\n=== Maintenance: body extraction, recheck window, step isolation 
     return { seen, logs };
   };
   check('the routine recheck asks for 20 threads', win(false, 0).seen[0].limit === 20);
-  check('the forced post-deploy recheck asks for 100 threads', win(true, 0).seen[0].limit === 100);
+  check('the forced post-deploy recheck asks for 50 threads', win(true, 0).seen[0].limit === 50);
   check('a full routine window says so (20 of 20)',
         win(false, 20).logs.some(l => l.indexOf('Recheck window full (20 threads)') !== -1));
-  check('a full forced window says so (100 of 100)',
-        win(true, 100).logs.some(l => l.indexOf('Recheck window full (100 threads)') !== -1));
+  check('a full forced window says so (50 of 50)',
+        win(true, 50).logs.some(l => l.indexOf('Recheck window full (50 threads)') !== -1));
   check('a window with room (19 of 20) stays silent',
         !win(false, 19).logs.some(l => l.indexOf('Recheck window full') !== -1));
   check('the window query is unchanged (inbox + SpamChecked, no Phishing, 2 days)',
         /in:inbox label:SpamChecked -label:Phishing newer_than:2d/.test(win(true, 0).seen[0].q), win(true, 0).seen[0].q);
+
+  // The wall-clock stop: a recheck that has spent its budget leaves the rest for next time.
+  {
+    const c = makeCtx();
+    const logs = [];
+    c.GmailApp.search = () => Array.from({ length: 10 }, () => ({ __messages: [] }));
+    c.logInfo = (x) => logs.push(String(x));
+    let t = 0;
+    const RealDate = require('vm').runInContext('Date', c);   // built-ins live inside the context
+    c.Date = class extends RealDate { static now() { t += 70000; return t; } };   // 70 s per Date.now() call
+    c.recheckRecentSpamChecked(true);
+    check('a recheck past its 120 s budget stops and says where',
+          logs.some(l => /Recheck stopped at 1 of 10 threads/.test(l)), JSON.stringify(logs));
+    check('...and stops ONCE (a `continue` would log on every remaining thread)',
+          logs.filter(l => l.indexOf('Recheck stopped') !== -1).length === 1, JSON.stringify(logs));
+    const quick = makeCtx(); const qlogs = [];
+    quick.GmailApp.search = () => Array.from({ length: 10 }, () => ({ __messages: [] }));
+    quick.logInfo = (x) => qlogs.push(String(x));
+    quick.recheckRecentSpamChecked(true);
+    check('a fast recheck is not cut short', !qlogs.some(l => l.indexOf('Recheck stopped') !== -1));
+  }
 
   // ---- Gap 3: one failing step must not skip the rest, and the early version
   // marker must still stop a repeat forced cycle.
@@ -2108,7 +2129,7 @@ console.log('\n=== Maintenance: body extraction, recheck window, step isolation 
   check('three throwing steps do not stop the recheck from running',
         bad.order[bad.order.length - 1] === 'recheckRecentSpamChecked(true)', JSON.stringify(bad.order));
   check('every step still ran despite the throws', bad.order.length === ALL.length, JSON.stringify(bad.order));
-  check('each failure is logged by name (and so reaches the error count)',
+  check('each failure is logged by name',
         ['destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot'].every(
           n => bad.errs.some(e => e.indexOf('Maintenance step ' + n + ' threw') !== -1)), JSON.stringify(bad.errs));
   check('LAST_SEEN_VERSION is recorded even when steps throw',
@@ -2117,6 +2138,34 @@ console.log('\n=== Maintenance: body extraction, recheck window, step isolation 
         !!bad.c.props.LAST_RECHECK_TS && !!bad.c.props.LAST_MAINTENANCE_TS);
   check('the early version marker still blocks a second forced cycle (quota guard)',
         bad.again() === 0);
+  // The failure must be COUNTED, not just logged: logError() increments nothing,
+  // so before this a swallowed step reported errors=0 and Health status OK.
+  {
+    const c = makeCtx({ props: { LAST_SEEN_VERSION: '0.0.0' } });
+    const beats = [];
+    ['checkFalseNegatives', 'reviewGmailSpam', 'writeSpamFolderSnapshot', 'sweepSpamFolderCopies',
+     'recheckRecentSpamChecked'].forEach(n => { c[n] = () => {}; });
+    c.destroySpam = () => { throw new Error('destroySpam down'); };
+    c.logRunHeartbeat = (s) => beats.push(s);
+    c.processInbox();
+    check('processInbox emits one heartbeat', beats.length === 1, JSON.stringify(beats));
+    check('a swallowed maintenance failure reaches the heartbeat as errors >= 1 (status ERRORS, not OK)',
+          beats.length === 1 && beats[0].errors >= 1 && !beats[0].runError, JSON.stringify(beats));
+    // The counter is per RUN: a later clean run in the same execution must not inherit it.
+    c.destroySpam = () => {};
+    c.props.LAST_SEEN_VERSION = '0.0.0';
+    c.processInbox();
+    check('the failure counter is reset each run (a later clean run reports errors = 0)',
+          beats.length === 2 && beats[1].errors === 0, JSON.stringify(beats));
+    const ok = makeCtx({ props: { LAST_SEEN_VERSION: '0.0.0' } });
+    const okBeats = [];
+    ['checkFalseNegatives', 'destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot',
+     'sweepSpamFolderCopies', 'recheckRecentSpamChecked'].forEach(n => { ok[n] = () => {}; });
+    ok.logRunHeartbeat = (s) => okBeats.push(s);
+    ok.processInbox();
+    check('a clean run still reports errors = 0',
+          okBeats.length === 1 && okBeats[0].errors === 0, JSON.stringify(okBeats));
+  }
   const rc = run(['recheckRecentSpamChecked']);
   check('a throwing recheck is contained too, and the cycle still completes',
         !!rc.c.props.LAST_MAINTENANCE_TS && rc.errs.some(e => e.indexOf('recheckRecentSpamChecked threw') !== -1));

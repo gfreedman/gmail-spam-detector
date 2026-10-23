@@ -39,16 +39,24 @@ failures; each now has a test that fails when the fix is removed.
 2. **The post-deploy re-check only saw the newest 20 threads.** The search is
    newest-first, so more than 20 `SpamChecked` threads in the last two days
    silently dropped the oldest. The forced post-deploy cycle now asks for 100
-   (about 200 reads, once per deploy); the routine timer keeps 20. When a window
-   fills, a `logInfo` line says older mail was not re-evaluated, so the gap is no
-   longer invisible. The re-check still only HOLDS (v6.48.0); it never deletes.
+   (about 100 reads, once per deploy); the routine timer keeps 20. Not 100: each
+   MATCH costs a Drive write and three Gmail writes (~2-3 s), a bad pattern
+   deploy matches broadly, and the run shares one 6-minute limit, so the loop
+   also stops after a 120 s budget and says where. When a window fills, a
+   `logInfo` line says older mail was not re-evaluated, so the gap is no longer
+   invisible. The re-check still only HOLDS (v6.48.0); it never deletes.
 3. **A throwing maintenance step skipped the re-check.** Three of the six steps
    (`destroySpam`, `reviewGmailSpam`, `writeSpamFolderSnapshot`) have no outer
    try, and `LAST_SEEN_VERSION` is recorded before the cycle, so an escaped throw
    cost a deploy's forced cycle its re-check and left it on the 30-minute timer.
    Each step now runs through `runMaintenanceStep()`, which logs the failure by
-   name through `logError()` (so it still reaches the error count and the health
-   row). `LAST_SEEN_VERSION` stays recorded early on purpose: it stops a failing
+   name and increments `_maintenanceFailures`, which `processInbox()` adds to the
+   run's error count. That counter is required: `logError()` increments nothing,
+   so an isolated failure otherwise reported `errors=0` and Health status OK, and
+   `prod_health.py` would have called a broken step healthy (a first draft of
+   this change said it "still reaches the health row"; review showed that false).
+   The heartbeat now reports ERRORS, where before an escaped throw reported
+   THREW. `LAST_SEEN_VERSION` stays recorded early on purpose: it stops a failing
    cycle being re-forced every trigger and burning Gmail quota, and a test pins
    that a second run does not repeat the forced cycle.
 

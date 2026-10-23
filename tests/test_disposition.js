@@ -2092,17 +2092,28 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
           JSON.stringify(phrases));
   }
 
-  // The REAL message: the same .eml the Python parity run reads, with the From
-  // header the user pasted from Show original - not a hand-typed copy.
+  // The REAL message: the .eml the script archived to Drive when it held the
+  // user's copy (53,443 bytes, the size Gmail reports) - the same file the Python
+  // parity run reads. It is multipart/mixed with ONE quoted-printable text/html
+  // part and no plain part, so decode that the way GmailApp.getBody() would.
   const fs = require('fs'), path = require('path');
   const eml = fs.readFileSync(path.join(__dirname, 'spam_examples',
               'The 1973 Loophole in Trump new financial plan.eml'), 'utf8');
-  const [rawHead, ...rest] = eml.split(/\r?\n\r?\n/);
-  const header = (name) => (rawHead.match(new RegExp('^' + name + ': (.*)$', 'm')) || [])[1];
-  const real = { from: header('From'), subject: header('Subject'), plain: '', html: rest.join('\n\n') };
-  check('the fixture carries the real From header (Show original)',
-        real.from === FROM, real.from);
-  check('the real miss fires Signal 14 (HTML-only, as in the fixture)', fires(real));
+  const split = eml.search(/\r?\n\r?\n/);
+  const rawHead = eml.slice(0, split).replace(/\r?\n[ \t]+/g, ' ');   // unfold
+  const header = (name) => (rawHead.match(new RegExp('^' + name + ': (.*)$', 'mi')) || [])[1];
+  const boundary = '--' + rawHead.match(/boundary="([^"]+)"/)[1];
+  const part = eml.slice(split).split(boundary).find(p => /^\s*Content-Type: text\/html/i.test(p));
+  const partBody = part.slice(part.search(/\r?\n\r?\n/)).replace(/^\s+/, '');
+  const qpDecode = (q) => Buffer.from(q.replace(/=\r?\n/g, '')
+    .replace(/=([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16))), 'latin1').toString('utf8');
+  const real = { from: header('From'), subject: header('Subject'), plain: '', html: qpDecode(partBody) };
+  check('the fixture is the real multipart/QP message (53 KB, text/html part decoded)',
+        eml.length > 50000 && /Quoted-Printable/i.test(part) && real.html.indexOf('<html') !== -1 &&
+        real.html.indexOf('=3D') === -1, 'bytes=' + eml.length + ' html=' + real.html.length);
+  check('the fixture carries the real From header (quoted display name, as archived)',
+        real.from === '"Trend Watchers Lab" <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>', real.from);
+  check('the real miss fires Signal 14 (HTML-only, as archived)', fires(real));
   check('...and still fires when a plain part exists but lacks the sponsor block',
         fires(Object.assign({}, real, { plain: 'In 1973, a radical White House policy triggered a historic gold rush.' })));
   {

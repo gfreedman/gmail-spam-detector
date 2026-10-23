@@ -117,13 +117,12 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * its 7-day grace window (the Drive archive copy is still written first).
  * It closed "CHARITY AND ORPHANAGE HOMES.", which scored zero elsewhere.
  *
- * espRelayIdentity (v6.79.0) is STRONG on its own (and, from v6.80.0, Rule 11): the
- * sender's mailbox is a dotted brand domain on an ESP's relay and the display
- * name repeats it ("cole.emerson.trendwatcherslab.com@email.cyberimpact.com").
- * Its false positive class is a legitimate sender that signs with a domain-
- * shaped display name AND that Gmail already filed as spam; the cost is that
- * message losing its 7-day grace window (the archive copy is written first).
- * It closed "The 1973 Loophole", which scored zero on every other signal.
+ * sponsoredAdTemplate (v6.81.0) is STRONG on its own and is Rule 11: an ad
+ * disclaimer, a "Sponsored Content" block and two "Sponsored by" credits. It
+ * closed "The 1973 Loophole", which scored zero on every other signal. Its false
+ * positive class is a legitimate sender carrying all three phrases AND that
+ * Gmail already filed as spam; the cost is that message losing its 7-day grace
+ * window (the archive copy is written first).
  *
  * Deliberately excludes bulkEmailService: virtually every newsletter the user
  * actually wants is bulk-routed, so it corroborates nothing.
@@ -143,7 +142,7 @@ function hasCorroboratingSignal(signals)
       signals.selfNamedSender ||
       signals.calendarLure ||
       signals.attachmentPayloadScam ||
-      signals.espRelayIdentity ||
+      signals.sponsoredAdTemplate ||
       signals.emptySubjectWithAttachment)
   {
     return true;

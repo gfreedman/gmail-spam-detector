@@ -143,16 +143,16 @@ function makeVerdict(signals)
     return true;
   }
 
-  // Rule 11: ESP-relay identity (v6.80.0). DELETES, at the user's explicit
-  // call, after v6.79.0 shipped the signal as corroboration-only and the
-  // email it was built for ("The 1973 Loophole", gold-IRA lead-gen) stayed in
-  // the inbox. See Signal 14 for the conditions. No bulk prerequisite: the
-  // sending domain is the ESP's, and Cyberimpact is not a bulk fingerprint on
-  // purpose (it would expose every legitimate sender on that ESP to Rules 1-3).
-  // The Drive archive gate in disposeDetectedMessage() still applies.
-  if (signals.espRelayIdentity)
+  // Rule 11: Sponsored-ad template (v6.81.0; v6.79.0-6.80.0 shipped a sender-
+  // structure version of this rule that never fired on the real mail). DELETES,
+  // at the user's explicit call. See Signal 14 for the conditions. No bulk
+  // prerequisite: the sending domain is the ESP's, and Cyberimpact is not a
+  // bulk fingerprint on purpose (it would expose every legitimate sender on
+  // that ESP to Rules 1-3). The Drive archive gate in
+  // disposeDetectedMessage() still applies.
+  if (signals.sponsoredAdTemplate)
   {
-    logInfo('SPAM DETECTED: ESP-relay identity (mailbox and display name are a brand domain on a shared relay)');
+    logInfo('SPAM DETECTED: Sponsored-ad template (ad disclaimer + sponsor block + credit lines)');
     return true;
   }
 
@@ -172,7 +172,7 @@ function makeVerdict(signals)
            ', calendarLure=' + signals.calendarLure +
            ', headlineFromName=' + signals.headlineFromName +
            ', attachmentPayloadScam=' + signals.attachmentPayloadScam +
-           ', espRelayIdentity=' + signals.espRelayIdentity);
+           ', sponsoredAdTemplate=' + signals.sponsoredAdTemplate);
   return false;
 }
 

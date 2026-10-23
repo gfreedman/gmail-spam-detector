@@ -458,16 +458,16 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
 ]);
 
 /**
- * Last labels that make a dotted sender local part read as a DOMAIN for
- * Signal 14 (espRelayIdentity). An allowlist, not "any alphabetic label":
- * "john.q.smith" is a plausible real mailbox and "smith" is not a TLD here.
- * No "uk" (or other country codes that nest a second-level "org"/"co"/"gov"):
- * "news.redcross.org.uk" would read "org" as the brand label.
+ * The three phrases of Signal 14 (sponsoredAdTemplate), IN THIS ORDER: an ad
+ * disclaimer, an ad-network block heading, and the credit line each teaser
+ * carries. Lower-case: the signal lower-cases and whitespace-collapses the body
+ * first. The signal needs the first two once and the third at least twice.
+ * Measured against the user's whole mailbox (2026-10-23): no kept message
+ * contained the first phrase, the second, or both, other than the miss itself.
  * @const {Array<string>}
  */
-const ESP_RELAY_IDENTITY_TLDS = Object.freeze([
-  'com', 'net', 'org', 'info', 'biz', 'io', 'co', 'us', 'ca', 'ai', 'app',
-  'dev', 'xyz', 'online', 'site', 'shop', 'news', 'top', 'club', 'live', 'today'
+const SPONSORED_AD_PHRASES = Object.freeze([
+  'this is an advertisement', 'sponsored content', 'sponsored by'
 ]);
 
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

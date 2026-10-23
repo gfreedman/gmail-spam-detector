@@ -265,13 +265,13 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
 - Deletes (Rule 10). Built after a compromised Workspace account sent "New
   Voice Message Notification" pointing at a typosquat domain
 
-**16. ESP-Relay Identity (Structural Signal)**
-- The sender's mailbox is a dotted brand domain (`cole.emerson.trendwatcherslab.com`
-  at a shared ESP's relay) and the From display name repeats it verbatim; the
-  brand name appears nowhere in the sending domain
-- Deletes (Rule 11), archived to Drive first. Built after a gold-IRA promo scored
-  zero on every other signal. Cheap to evade (rename the display), so it buys
-  time rather than lasting coverage
+**16. Sponsored-Ad Template (Content Signal)**
+- The body carries an "This is an advertisement" disclaimer, a "Sponsored Content"
+  block heading, and at least two "Sponsored by ..." credit lines (checked on
+  the plain body, then on the tag-stripped HTML)
+- Deletes (Rule 11), archived to Drive first. Built after a gold-IRA promo sent
+  through a shared ESP scored zero on every other signal. Cheap to evade
+  (reword any phrase), so it buys time rather than lasting coverage
 
 ### Decision Rules
 
@@ -323,9 +323,9 @@ if (callbackPhishing) { return SPAM; }
 // off-domain link → calendar phishing. DELETES.
 if (calendarLure) { return SPAM; }
 
-// RULE 11: Sender's mailbox AND display name are the same brand domain on a
-// shared ESP relay. DELETES (archived to Drive first).
-if (espRelayIdentity) { return SPAM; }
+// RULE 11: Ad disclaimer + "Sponsored Content" block + 2 "Sponsored by"
+// credit lines. DELETES (archived to Drive first).
+if (sponsoredAdTemplate) { return SPAM; }
 
 return NOT_SPAM;
 ```

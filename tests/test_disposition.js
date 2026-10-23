@@ -2080,6 +2080,18 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   const fires = (o) => ctx.collectSignals(msg(o)).sponsoredAdTemplate === true;
   const T = (body) => ({ plain: body, html: '<p>' + body + '</p>' });
 
+  {
+    // Pin the phrase ORDER in the shipped source: the signal indexes the array,
+    // so a reorder changes behaviour and only the Python suite noticed before.
+    const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'Patterns.gs'), 'utf8');
+    const m = src.match(/const SPONSORED_AD_PHRASES = Object\.freeze\(\[([^\]]*)\]\)/);
+    const phrases = m ? m[1].split(',').map(x => x.trim().replace(/^'|'$/g, '')) : [];
+    check('SPONSORED_AD_PHRASES order is pinned in the shipped source',
+          JSON.stringify(phrases) === JSON.stringify(['this is an advertisement',
+            'promotional messages from this advertiser', 'sponsored content', 'sponsored by']),
+          JSON.stringify(phrases));
+  }
+
   // The REAL message: the same .eml the Python parity run reads, with the From
   // header the user pasted from Show original - not a hand-typed copy.
   const fs = require('fs'), path = require('path');

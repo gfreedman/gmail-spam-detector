@@ -35,7 +35,7 @@
  *      default), so this script is the only thing that can report it.
  *      sweepSpamFolderCopies() then expires old Drive copies.
  *
- * Decision logic (9 rules, evaluated in priority order — first match wins):
+ * Decision logic (11 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
  *   Rule 2: Bulk email + 2+ clickbait patterns → spam
  *   Rule 3: Bulk email + 2+ distinct spam behaviors → spam
@@ -48,6 +48,10 @@
  *   Rule 9: Free-mail sender invoicing as a brand it does not control, with a
  *           phone number as the payload → callback phishing
  *           (QUARANTINED: archived + labelled, never deleted)
+ *   Rule 10: Unknown-sender calendar invite with a voicemail/fax lure in the title
+ *           and an off-domain link → phishing
+ *   Rule 11: Ad disclaimer + the ad network's advertiser sentence + a "Sponsored
+ *           Content" block + 2 "Sponsored by" credits → spam
  *
  * Changelog: see CHANGELOG.md. It is not reproduced here — it reached 459
  * lines and three consecutive entries described three incompatible designs for

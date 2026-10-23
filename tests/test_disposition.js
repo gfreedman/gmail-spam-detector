@@ -2080,6 +2080,19 @@ console.log('\n=== Signal 14: ESP-relay identity (corroboration only) ===');
         !fires('news.acme.com <news.acme.com@mail.acme.com>'));
   check('a VERP/SRS-style local part (not a-z0-9-) does not fire',
         !fires('bounce.acme.com=x <bounce.acme.com=x@esp.example.org>'));
+  check('an invalid character in a NON-final label does not fire',
+        !fires('a.b=c.acme.com <a.b=c.acme.com@esp.example.org>'));
+  const pad = (n) => 'x.' + 'a'.repeat(n - 'x..abc.com'.length) + '.abc.com';
+  check('a 100-char local part fires (the cap is exactly 100)',
+        pad(100).length === 100 && fires(pad(100) + ' <' + pad(100) + '@esp.example.org>'));
+  check('a 101-char local part does not fire',
+        pad(101).length === 101 && !fires(pad(101) + ' <' + pad(101) + '@esp.example.org>'));
+  check('a sibling brand domain does not fire (reply.github.com via mg.github.io)',
+        !fires('reply.github.com <reply.github.com@mg.github.io>'));
+  check('spaces inside the angle brackets still fire (matches the Python mirror)',
+        fires('cole.emerson.trendwatcherslab.com < cole.emerson.trendwatcherslab.com@esp.example.org >'));
+  check('a leading BOM in the display name does not fire (no trim(): JS and Python agree)',
+        !fires('\ufeffcole.emerson.trendwatcherslab.com <cole.emerson.trendwatcherslab.com@esp.example.org>'));
   check('a 2-char registrable label does not fire',
         !fires('a.ab.com <a.ab.com@esp.example.org>'));
 

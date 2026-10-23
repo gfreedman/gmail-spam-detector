@@ -35,8 +35,9 @@ the brand is in the local part, so a domain blacklist never matches; and the
 subject regex matches NYT/WSJ/CPA tax coverage.
 
 Signal 14 `espRelayIdentity` keys on the tooling instead: the mailbox is a
-dotted brand domain (>= 3 labels, last a known TLD, not the sender's own
-domain) and the From display name repeats it verbatim. A mill sending through
+dotted brand domain (>= 3 labels, last a known TLD, the brand label absent
+from the sending domain so own, sub- and sibling domains are spared) and the
+From display name repeats it verbatim. A mill sending through
 an ESP cannot sign as its own domain, so it writes the domain into the mailbox
 and reuses the mailbox as the name. STRONG, corroboration only: it is in
 `hasCorroboratingSignal()` and nowhere in `makeVerdict()` or

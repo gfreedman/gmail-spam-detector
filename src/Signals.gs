@@ -1,7 +1,7 @@
 /**
- * Signals.gs — Signal collection: the whitelist gate, field extraction, 14 detections.
+ * Signals.gs — Signal collection: the whitelist gate, field extraction, 15 detections.
  *
- * ONE function, deliberately long. Twenty-one try/catch blocks write fifteen signal
+ * ONE function, deliberately long. Twenty-two try/catch blocks write sixteen signal
  * keys (seven of them accumulate into clickbaitCount), and every block is wrapped
  * individually because a single throw once discarded eight of eleven signals.
  *
@@ -286,7 +286,9 @@ function collectSignals(message)
   // or getRuleFromSignals(). hasCorroboratingSignal() counts it STRONG, so it
   // acts only once Gmail has already filed the message as spam. Conditions,
   // all required: >= 3 dot labels in the local part, the last a known TLD, the
-  // embedded domain is not the sender's own, and the From display name is that
+  // brand label (the one before the TLD) appears nowhere in the sending domain,
+  // which excludes the sender's own domain, its subdomains and siblings such as
+  // "reply.github.com" sent from "mg.github.io", and the From display name is that
   // local part verbatim (so "john.q.smith@gmail.com" with a name set, or with
   // a bare-address name containing '@', cannot fire). Cheap to evade — rename
   // the display — it buys time, not lasting coverage.
@@ -294,20 +296,28 @@ function collectSignals(message)
   // split/indexOf over a local part capped at 100 chars — linear.
   try
   {
-    const rawLocal = atIdx > 0 ? senderAddress.substring(0, atIdx).toLowerCase() : '';
+    // atIdx <= 0 (no '@', or nothing before it) gives '' here: substring clamps a
+    // negative end to 0, so no separate atIdx guard is needed (or testable).
+    const rawLocal = senderAddress.substring(0, atIdx).toLowerCase();
     if (rawLocal !== '' && rawLocal.length <= 100)
     {
       const labels = rawLocal.split('.');
       const n = labels.length;
-      const embedded = n >= 3 ? labels[n - 2] + '.' + labels[n - 1] : '';
       const ownDomain = senderAddress.substring(atIdx + 1).toLowerCase();
-      const shownName = stripTrailingAngle(from).trim().replace(/^"+|"+$/g, '').trim().toLowerCase();
+      // Strip only space, tab and quote — not trim(): JS trim() and Python
+      // strip() disagree on U+FEFF and U+001C, and the Python mirror must match.
+      // The 400-char gate keeps the end-anchored strip linear-enough on a
+      // sender-controlled name; a name that long cannot equal a <= 100 char local.
+      let shownName = stripTrailingAngle(from).toLowerCase();
+      if (shownName.length <= 400)
+      {
+        shownName = shownName.replace(/^[ \t"]+/, '').replace(/[ \t"]+$/, '');
+      }
       if (n >= 3 &&
           ESP_RELAY_IDENTITY_TLDS.indexOf(labels[n - 1]) !== -1 &&
           labels[n - 2].length >= 3 &&
           labels.every(function(l) { return /^[a-z0-9-]+$/.test(l); }) &&
-          ownDomain !== embedded &&
-          !ownDomain.endsWith('.' + embedded) &&
+          ownDomain.indexOf(labels[n - 2]) === -1 &&
           shownName === rawLocal)
       {
         signals.espRelayIdentity = true;

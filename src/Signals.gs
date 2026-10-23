@@ -282,16 +282,19 @@ function collectSignals(message)
   // bulk gates Rules 1-3, which delete, and it would expose every legitimate
   // sender on that ESP while convicting nothing here.
   //
-  // CORROBORATION ONLY, never an inbox conviction: it is not in makeVerdict()
-  // or getRuleFromSignals(). hasCorroboratingSignal() counts it STRONG, so it
-  // acts only once Gmail has already filed the message as spam. Conditions,
+  // Convicts on its own (Rule 11, DELETES - the user's explicit call; v6.79.0
+  // shipped it as corroboration-only and the email it was built for stayed in
+  // the inbox) and is STRONG in hasCorroboratingSignal(). Conditions,
   // all required: >= 3 dot labels in the local part, the last a known TLD, the
   // brand label (the one before the TLD) appears nowhere in the sending domain,
   // which excludes the sender's own domain, its subdomains and siblings such as
   // "reply.github.com" sent from "mg.github.io", and the From display name is that
   // local part verbatim (so "john.q.smith@gmail.com" with a name set, or with
   // a bare-address name containing '@', cannot fire). Cheap to evade — rename
-  // the display — it buys time, not lasting coverage.
+  // the display — it buys time, not lasting coverage. The false positive class
+  // is a legitimate sender on a shared relay that signs with a domain-shaped
+  // display name identical to its mailbox; the Drive archive gate means a
+  // deleted message always leaves a copy in Detected/.
   //
   // split/indexOf over a local part capped at 100 chars — linear.
   try

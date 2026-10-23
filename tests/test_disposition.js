@@ -2049,7 +2049,7 @@ console.log('\n=== ONE weak signal no longer skips the Spam-folder grace period 
         ctx.hasCorroboratingSignal({ clickbaitCount: 1 }) === false);
 }
 
-console.log('\n=== Signal 14: ESP-relay identity (corroboration only) ===');
+console.log('\n=== Signal 14 / Rule 11: ESP-relay identity (deletes) ===');
 {
   const ctx = makeCtx();
   const sender = (from) => {
@@ -2103,14 +2103,32 @@ console.log('\n=== Signal 14: ESP-relay identity (corroboration only) ===');
         Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
 
   const alone = { clickbaitCount: 0, espRelayIdentity: true };
-  check('espRelayIdentity alone is NOT an inbox conviction',
-        ctx.makeVerdict(alone) === false &&
-        ctx.getRuleFromSignals(alone).rule === 'NONE');
-  check('espRelayIdentity never counts as an inbox behaviour (bulk + 2 of it)',
-        ctx.makeVerdict({ clickbaitCount: 0, bulkEmailService: true,
-                          espRelayIdentity: true, fearMongering: true }) === false);
+  check('espRelayIdentity alone is an inbox conviction under Rule 11',
+        ctx.makeVerdict(alone) === true &&
+        ctx.getRuleFromSignals(alone).rule === 'Rule 11',
+        ctx.getRuleFromSignals(alone).rule);
+  check('Rule 11 yields to an earlier rule (bulk + blacklisted is still Rule 1)',
+        ctx.getRuleFromSignals({ clickbaitCount: 0, bulkEmailService: true,
+                                 blacklistedSender: true, espRelayIdentity: true }).rule === 'Rule 1');
   check('espRelayIdentity alone corroborates a Gmail spam verdict',
         ctx.hasCorroboratingSignal(alone) === true);
+  {
+    // The end-to-end outcome, not just the signal: the real miss, from the
+    // From header through collectSignals to a permanent delete.
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m = phishMessage('mH14e2e');
+    m.getFrom = () => '"cole.emerson.trendwatcherslab.com" <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>';
+    m.getSubject = () => 'The "1973 Loophole" in Trump\'s new financial plan';
+    m.getRawContent = () => 'Received: from x\r\n\r\nhi';
+    m.getBody = () => '<p>hi</p>';
+    const verdict = c.analyzeMessage(m);
+    check('the real miss is judged spam by analyzeMessage()', verdict.isSpam === true,
+          JSON.stringify(verdict));
+    const th = fakeThread([m], c.calls);
+    c.disposeDetectedMessage(m, th, verdict.signals, true);
+    check('Rule 11 PERMANENTLY DELETES the real miss (user\'s explicit call)',
+          c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c.calls.map(x => x.op)));
+  }
   check('ESP_RELAY_IDENTITY appears in the signals CSV',
         ctx.buildSignalsCsv(alone).indexOf('ESP_RELAY_IDENTITY') !== -1);
 }

@@ -20,6 +20,30 @@ detail plus the diffs.
 
 ---
 
+## v6.80.0
+
+**Rule 11: a sender that signs as a brand domain on an ESP relay is now deleted from the inbox.**
+
+v6.79.0 shipped Signal 14 as corroboration-only. That was the wrong deliverable:
+the email it was built for ("The \"1973 Loophole\" in Trump's new financial
+plan") stayed in the inbox, and a manual run logged `processed=0 spam=0`,
+because a signal that no rule reads cannot convict. The review that approved it
+checked whether the signal was safe and well-tested, not whether it removed the
+reported email; the anti-spam expert had said it would not, and that was
+reported as a caveat instead of the failure it was.
+
+Rule 11 (`espRelayIdentity`) now convicts on its own and DELETES, at the user's
+explicit call (the Rule 10 precedent). It is in `DESTRUCTIVE_RULES`, so the
+Drive-archive gate applies: a message with no archive is quarantined, never
+deleted, and every deletion leaves a copy in `Detected/`. Placed last in both
+cascades, so any earlier rule still wins. Its false positive class is a
+legitimate sender on a shared relay whose display name is exactly its
+domain-shaped mailbox. Mail already stamped `SpamChecked` is still only HELD by
+the recheck path (v6.48.0), not deleted. The fixture moves from
+`spam_folder_examples/` to `spam_examples/`; the test now drives the real From
+header through `analyzeMessage()` and `disposeDetectedMessage()` to a
+`batchDelete`, so the end-to-end outcome is pinned and not just the signal.
+
 ## v6.79.0
 
 **A sender that signs as a brand domain on an ESP relay now corroborates a Gmail spam verdict.**

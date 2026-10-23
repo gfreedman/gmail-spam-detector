@@ -1620,6 +1620,12 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             is_spam = True
             rule = 'RULE 10: Calendar voicemail lure'
 
+        # Rule 11: ESP-relay identity. DELETES in production (in
+        #   DESTRUCTIVE_RULES, v6.80.0).
+        elif signals['esp_relay_identity']:
+            is_spam = True
+            rule = 'RULE 11: ESP-relay identity'
+
     return signals, is_spam, rule
 
 

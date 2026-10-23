@@ -1528,7 +1528,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         signals['brand_mismatched_cta'] = True
         signals['matched_patterns'].append('brand_mismatched_cta')
 
-    # ── Decision Logic (9 rules, evaluated in priority order) ──────────────
+    # ── Decision Logic (11 rules, evaluated in priority order) ──────────────
     #
     # The rules cascade in priority order, Rule 1 first.
     # Only one rule can fire per email. This matches the .gs source exactly.

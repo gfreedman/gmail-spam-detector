@@ -1,30 +1,726 @@
 Delivered-To: geoff.c.freedman@gmail.com
-Date: Fri, 23 Oct 2026 12:08:08 +0000
-From: Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>
+Received: by 2002:a05:7412:3899:b0:21a:e7d:218a with SMTP id kb25csp11075036rdb;
+        Fri, 23 Oct 2026 05:08:13 -0700 (PDT)
+X-Received: by 2002:a05:622a:3c6:b0:536:d47:22e with SMTP id d75a77b69052e-536c2570033mr26313401cf.40.1792757292866;
+        Fri, 23 Oct 2026 05:08:12 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1792757292; cv=none;
+        d=google.com; s=arc-20260327;
+        b=LU0xvqfNnMPwAwQ60JPjipKGEj2sG7aUNYkj/ED/LXbkFtbUwUjfgyW+sBL7u9AaIu
+         tLf2w+xo8jIlpfFrdb3cZkQEcd3eJ2VwnBx0zwm77QDsO7mUyuFk9Y8iIB8sSLe5UcmH
+         6G9JYB+1sT8Kb6pn9KbV6BGMqEPMqPd1gPQBIbQeF1uE8Wv2U38pQC1UhEDYdvIsYdg1
+         zW+20AzrRnOf7q42ewqwSgUVDD/Gn5r9iX46HUF/QXAiprUqXLO+DPFWIHhqXFX8EKwJ
+         vdcQGmVYI3ZeEpdRoPn7WnBHnaOpg1RfOvMq5fECbr4i9W0GVeOu09u7gJEuDAGkhRn/
+         vfaQ==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=mime-version:dkim-signature:feedback-id:list-unsubscribe
+         :list-unsubscribe-post:precedence:message-id:date:subject:reply-to
+         :to:from;
+        bh=nGlzkCX1DzqMeYqNF4WJGgKW7lYamrNuyPpSjD6pq1U=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=hwl4JThhOTsEJV/4nQeZEnDpi3gl7hCY1boXT31yBvBmdqoXmjqJy2R+wTNkx3KEFH
+         LMf+OXUGBpu6Tb7beV6IsNOAPqUSmjevwLKPLct7lTjDJCUK/SnJKPHHNG0L4EsY957M
+         v+NohZUBtcFmrCguwZOyOoAvVbev7Hy5Sc2FTefn4VkYzvoyJcWUGYWk2xKqmXGVT/L3
+         umCrxLjSftkn8Y3JZYLx6HNyv4jY6kVA9JvI4tgVOu0z/lncHxa3ecFSbfQqe37xpgyF
+         dimra27VQhoNM7FwPqJKvX57LwSs8DHteqtg4xFvHPbBkoW1kbwXT/f1UyVYjaHBII+8
+         iJjg==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@email.cyberimpact.com header.s=default header.b=kjQYDcBO;
+       spf=pass (google.com: domain of 98wixb8ynjpyud8jjj-eqnhfxzhtm3shfeptqq3pdcvpgzr0v04kyunm0uyfqbeo@email.cyberimpact.com designates 204.154.175.219 as permitted sender) smtp.mailfrom=98wIxb8YNjpYuD8JjJ-EqnHfXzhTM3SHfEPTQq3PDcvpgzr0v04KyUNm0UyfQbEO@email.cyberimpact.com;
+       dmarc=pass (p=REJECT sp=QUARANTINE dis=NONE) header.from=email.cyberimpact.com
+Return-Path: <98wIxb8YNjpYuD8JjJ-EqnHfXzhTM3SHfEPTQq3PDcvpgzr0v04KyUNm0UyfQbEO@email.cyberimpact.com>
+Received: from n175-219.cyberimpact.com (n175-219.cyberimpact.com. [204.154.175.219])
+        by mx.google.com with ESMTPS id d75a77b69052e-536c1666c9csi18460041cf.1.2026.10.23.05.08.12
+        for <geoff.c.freedman@gmail.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 23 Oct 2026 05:08:12 -0700 (PDT)
+Received-SPF: pass (google.com: domain of 98wixb8ynjpyud8jjj-eqnhfxzhtm3shfeptqq3pdcvpgzr0v04kyunm0uyfqbeo@email.cyberimpact.com designates 204.154.175.219 as permitted sender) client-ip=204.154.175.219;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@email.cyberimpact.com header.s=default header.b=kjQYDcBO;
+       spf=pass (google.com: domain of 98wixb8ynjpyud8jjj-eqnhfxzhtm3shfeptqq3pdcvpgzr0v04kyunm0uyfqbeo@email.cyberimpact.com designates 204.154.175.219 as permitted sender) smtp.mailfrom=98wIxb8YNjpYuD8JjJ-EqnHfXzhTM3SHfEPTQq3PDcvpgzr0v04KyUNm0UyfQbEO@email.cyberimpact.com;
+       dmarc=pass (p=REJECT sp=QUARANTINE dis=NONE) header.from=email.cyberimpact.com
+Received: from CIMAILBUILDER2 (unknown [172.20.175.111])
+	by n175-219.cyberimpact.com (Postfix) with SMTP id 4jB1xm298szB2c0K
+	for <geoff.c.freedman@gmail.com>; Fri, 23 Oct 2026 08:08:12 -0400 (EDT)
+From: "Trend Watchers Lab" <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>
 To: geoff.c.freedman@gmail.com
+Reply-To: support@trendwatcherslab.com
 Subject: The "1973 Loophole" in Trump's new financial plan
+Date: Fri, 23 Oct 2026 08:08:08 -0400
+Message-ID: <20261023-08081136-ae3b07b6-0@CIMAILBUILDER2>
+Precedence: bulk
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+List-Unsubscribe: <mailto:list-unsubscribe@cyberimpact.com?subject=m7HXewiYsVsibbSkq1-a3XYpOSjKmXCpG69bjKfDQTGg1QcIQZ0f-CnQzCGtKC9PS6xlRAsFWf9Ohg4NdYS1gvc1yU-u67a0MLpMMpnXKxuKPTikJb7wFFyQQNopLX3_>, <https://app.cyberimpact.com/unsubscribe?ct=m7HXewiYsVsibbSkq1-a3XYpOSjKmXCpG69bjKfDQTGg1QcIQZ0f-CnQzCGtKC9PS6xlRAsFWf9Ohg4NdYS1gvc1yU-u67a0MLpMMpnXKxuKPTikJb7wFFyQQNopLX3_>
+Feedback-ID: c64401:c64401-m49::ci-wl-1
+X-CI-TO: geoff.c.freedman@gmail.com
+X-CI-RP: 98wIxb8YNjpYuD8JjJ-EqnHfXzhTM3SHfEPTQq3PDcvpgzr0v04KyUNm0UyfQbEO@email.cyberimpact.com
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple;
+	d=email.cyberimpact.com; s=default;
+	h=From:To:Subject:Date:Message-ID:List-Unsubscribe-Post:List-Unsubscribe:Feedback-ID:MIME-Version:Content-Type;
+	bh=aXrBkXCUYlDg53ZAXPA5GNpq0fTppgGnyna6v2ne2E8=;
+	b=kjQYDcBOZOADBngjQn/QIjxbQ6SZ/ddjozpNUDS8upY+1DzfbuelQpJcK1N9z/xR
+		3dJh1BqhxNAdkeMG+UMxz56NjyEZspQcDElZXdMtgW6xaqFE3spKYHTB0eri//8B
+		6N0hCm2Xw71nsNw9wOCee7Gq22fUC+3J/Hlzf15u/iU4wsGcJjywzxT/krANnClX
+		IhG/ZnLmaBwFswZPRp75gPS0HJOSFqPsT7esFa86Ex1LZgPKhJxAcDyLXu1pxQlo
+		9hz3Iwnpvku5tuBdWhA5FA5GgArbFfbv/xH2aJXqZWn7h7d6iwa8O0oLhwWwkBWm
+		Gnm09rjJZPshDvdulRYHzQ==
 MIME-Version: 1.0
-Content-Type: text/html; charset="utf-8"
-Content-Transfer-Encoding: 7bit
+Content-Type: multipart/mixed;
+	boundary="--=4b7b0148_5052_4357_bad3_28b8880f8ae1"
 
-<html><head><title>The "1973 Loophole" in Trump's new financial plan</title></head><body>
-<div style="display:none">In 1973, a radical White House policy triggered a historic gold rush. Trump&rsquo;s rumored new Executive Order is about to do it again.</div>
-<a href="https://app.cyberimpact.com/redirect?ct=aQz96AFrMJXFifBd6"><img src="https://cdn.cyberimpact.com/clients/64401/public/header.jpg" alt="HeaderLogo"></a>
-<p>In 1973, a radical White House policy triggered a historic gold rush. Trump&rsquo;s rumored new Executive Order is about to do it again.</p>
-<p>When the government severed the dollar's tie to gold in the 1970s, everyday Americans watched their purchasing power collapse. But a small group of prepared investors made generational wealth as gold prices skyrocketed.</p>
-<p>Fast forward to today. With Jerome Powell out and Trump allegedly preparing a controversial "Financial Executive Order" to bypass the Fed and pump the market, the stage is set for an even bigger dollar shock.</p>
-<p>Top analysts warn inflation will explode. But here is the good news: you don't need to hoard expensive physical bullion to shield yourself.</p>
-<p>There is a little-known market loophole that essentially lets you capitalize on this crisis like you are <strong>"buying gold at 1973 prices"</strong> right before the massive surge.</p>
-<p><a href="https://app.cyberimpact.com/redirect?ct=6WCB2QeKK4QhCyb8Q"><strong><u>Click here to discover the "1973 Gold Loophole" and bulletproof your savings before Trump signs the order</u></strong></a></p>
-<p><i><strong>This is an advertisement.</strong></i></p>
-<p><i>If you no longer wish to receive promotional messages from this advertiser, please unsubscribe below. Or write to: 5005 Lyndon B. Johnson Fwy. Suite 350 Dallas, TX 75244</i></p>
-<div><strong>Sponsored Content</strong>
-<div><a href="https://app.cyberimpact.com/redirect?ct=t9Ui-M2e2rq5AQvQO"><strong><u>You Haven&rsquo;t Claimed Your Gold Guide</u></strong></a><br><i>Sponsored by <strong>Cedar Gold Group</strong></i></div>
-<div><a href="https://app.cyberimpact.com/redirect?ct=SYvGunB0Fq2vdG8qB"><strong><u>Shocking Letters Are Hitting Mailboxes</u></strong></a><br><i>Sponsored by <strong>Amercan Alternative Assets</strong></i></div>
-<div><a href="https://app.cyberimpact.com/redirect?ct=rYcR97HcO15SBU1vB"><strong><u>Why Does America Need a $250 Bill?</u></strong></a><br><i>Sponsored by <strong>Porter &amp; Company</strong></i></div></div>
-<h1>The High Cost of Powering the Green Revolution</h1>
-<p>Benchmark Mineral Intelligence warns the world must open a new lithium mine every two months through 2050 to meet 7 million metric tons of demand, requiring over $100 billion in upfront capital amid surging EV and AI grid storage needs.</p>
-<p>Email sent by Systems and Technologies LLC, owner and operator of TrendWatchersLab.com. For assistance, contact: support@trendwatcherslab.com. &copy; 2026 Trend Watchers Lab. All Rights Reserved.</p>
-<p>Email sent to: geoff.c.freedman@gmail.com. Trend Watchers Lab, 1607 Capitol Ave, Cheyenne, Wyoming | 82001 | United States</p>
-<p><a href="https://app.cyberimpact.com/unsubscribe?ct=vDSBWxiNd0WF">Unsubscribe</a> | <a href="https://app.cyberimpact.com/report-an-abuse?ct=vDSBWxiNd0WF">Report an abuse</a></p>
-</body></html>
+----=4b7b0148_5052_4357_bad3_28b8880f8ae1
+Content-Type: text/html;charset="UTF-8"
+Content-Transfer-Encoding: Quoted-Printable
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http:/=
+/www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">                 <ht=
+ml lang=3D"en" xmlns=3D"http://www.w3.org/1999/xhtml"                  =
+xmlns:v=3D"urn:schemas-microsoft-com:vml"                  xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office">                  <head>       =
+          <!--[if gte mso 9]><xml>                  <o:OfficeDocumentSe=
+ttings>                   <o:AllowPNG/>                   <o:PixelsPerI=
+nch>96</o:PixelsPerInch>                  </o:OfficeDocumentSettings>  =
+               </xml><![endif]-->                 <meta http-equiv=3D"C=
+ontent-Type" content=3D"text/html; charset=3Dutf-8">                 <s=
+tyle type=3D"text/css">/* everything mobile */ @media only screen and (=
+max-width: 480px) {      body {         width: 100% !important;        =
+ padding: 0 !important;     }      /* Button */     .bouton {         d=
+isplay: block !important;         margin: 1em 0;         text-align: ce=
+nter;     }      .bg-body .row.mobile-side-by-side table p span.bouton =
+{         display: inline-block !important;     }      /* resizes image=
+s and tables to fit */     .border-frame {         min-width: 0 !import=
+ant;         padding: 0 !important;     }      .bg-body { padding: 0 !i=
+mportant; }      .ci-mail-footer-root table,     .bg-body table {      =
+   max-width: 600px !important;         width: 100% !important;        =
+ height: auto !important;         border-collapse: collapse;     }     =
+ .bg-body img {         max-width: 100%;         height: auto !importan=
+t;     }      .bg-body img.responsiveImage {         width: 100% !impor=
+tant;     }      /* border-box everything so padding is included in the=
+ width */     .bg-body,     .bg-body td,     .texte, .image {         -=
+moz-box-sizing: border-box;         -webkit-box-sizing: border-box;    =
+     box-sizing: border-box;         max-width: 100% !important;       =
+  height: auto !important;         padding-left: 0 !important;         =
+padding-right: 0 !important;     }      td.row-inner-padding {         =
+padding-left: 18px !important;         padding-right: 18px !important; =
+    }      .row .texte a {         text-decoration: underline;     }   =
+   .row .texte,     .row .image {         padding-top: 9px !important; =
+        padding-bottom: 9px !important;         padding-left: 18px !imp=
+ortant;         padding-right: 18px !important;     }      .row .texte.=
+no-mobile-padding,     .row .image.no-mobile-padding {         padding-=
+top: 0px !important;         padding-bottom: 0px !important;     }     =
+ .row .image.full-width {         padding-top: 0 !important;         pa=
+dding-bottom: 0 !important;         padding-left: 0 !important;        =
+ padding-right: 0 !important;     }      .online-version-link-holder,  =
+   .rss-text {         padding: 18px;     }      .row .cols {         b=
+order-left: 9px solid transparent !important;         border-right: 9px=
+ solid transparent !important;     }      .row .cols .texte, .row .cols=
+ .image {         padding: 9px !important;     }      /* for rows with =
+small icons */     .bg-body .row-icon {         padding-left: 9px !impo=
+rtant;         padding-right: 9px !important;     }     .bg-body .row-i=
+con td {         box-sizing: content-box;         padding-left: 9px !im=
+portant;         padding-right: 9px !important;     }     .bg-body .row=
+-icon .image,     .bg-body .row-icon .texte { padding: 0 !important; } =
+     .row .video, .row .play {         display: block;         padding-=
+left: 18px !important;         padding-right: 18px !important;     }   =
+   .nopadding {         padding: 0 !important;     }      .rss-text {  =
+       padding: 18px;     }      .hide_from_mobile {         display: n=
+one !important;     }      /* social networks icons */     .social {   =
+      padding-left: 10px !important;     }      .social td {         pa=
+dding: 0 !important;     }      .social a {         display: inline-blo=
+ck;         padding: 6px 4px !important;     }      .social img {      =
+   width: 30px !important;         height: auto !important;     }      =
+/** NEW **/     .wrapper {         max-width: 100% !important;         =
+width: 100% !important;     } }     </style><style type=3D"text/css"> @=
+media only screen and (max-width: 480px) {     /* ---- MOBILE SIDE BY S=
+IDE ---- */     .bg-body .row.mobile-side-by-side table.converted-pt-to=
+-pct {         vertical-align: top;     }      .bg-body .row.mobile-sid=
+e-by-side table.converted-pt-to-pct:first-child {         margin-left: =
+auto !important;     }      .bg-body .row.mobile-side-by-side table.con=
+verted-pt-to-pct:last-child {         margin-right: auto !important;   =
+  }      /* Individual widths */     .bg-body .row.mobile-side-by-side =
+table.w99pt {         width: 22% !important;     }      .bg-body .row.m=
+obile-side-by-side table.w102pt {         width: 22.6% !important;     =
+}      .bg-body .row.mobile-side-by-side table.w108pt {         width: =
+24% !important;     }      .bg-body .row.mobile-side-by-side table.w108=
+_75pt {         width: 24.1% !important;     }      .bg-body .row.mobil=
+e-side-by-side table.w112pt {         width: 24.8% !important;     }   =
+   .bg-body .row.mobile-side-by-side table.w112_5pt {         width: 25=
+% !important;     }      .bg-body .row.mobile-side-by-side table.w120pt=
+ {         width: 26.6% !important;     }      .bg-body .row.mobile-sid=
+e-by-side table.w138_75pt {         width: 30.8% !important;     }     =
+ .bg-body .row.mobile-side-by-side table.w141_5pt {         width: 31.4=
+% !important;     }      .bg-body .row.mobile-side-by-side table.w144pt=
+ {         width: 32% !important;     }      .bg-body .row.mobile-side-=
+by-side table.w145pt {         width: 32.2% !important;     }      .bg-=
+body .row.mobile-side-by-side table.w145_5pt {         width: 32.3% !im=
+portant;     }      .bg-body .row.mobile-side-by-side table.w148_25pt {=
+         width: 32.9% !important;     }      .bg-body .row.mobile-side-=
+by-side table.w150pt {         width: 33.3% !important;     }      .bg-=
+body .row.mobile-side-by-side table.w159pt {         width: 35.3% !impo=
+rtant;     }      /* this one is used in a 2-column row with 67px side =
+paddings */     .bg-body .row.mobile-side-by-side table.w182_25pt {    =
+     width: 48.5% !important;     }      .bg-body .row.mobile-side-by-s=
+ide table.w211pt {         width: 46.8% !important;     }      .bg-body=
+ .row.mobile-side-by-side table.w215_25pt {         width: 47.8% !impor=
+tant;     }      .bg-body .row.mobile-side-by-side table.w217_5pt {    =
+     width: 48.3% !important;     }      .bg-body .row.mobile-side-by-s=
+ide table.w218_25pt {         width: 48.5% !important;     }      .bg-b=
+ody .row.mobile-side-by-side table.w220pt {         width: 48.8% !impor=
+tant;     }      .bg-body .row.mobile-side-by-side table.w225pt {      =
+   width: 50% !important;     }      .bg-body .row.mobile-side-by-side =
+table.w255pt {         width: 56.6% !important;     }      .bg-body .ro=
+w.mobile-side-by-side table.w284_25pt {         width: 63.1% !important=
+;     }      .bg-body .row.mobile-side-by-side table.w290_5pt {        =
+ width: 64.5% !important;     }      .bg-body .row.mobile-side-by-side =
+table.w291pt {         width: 64.6% !important;     }      .bg-body .ro=
+w.mobile-side-by-side table.w304pt {         width: 67.5% !important;  =
+   }      .bg-body .row.mobile-side-by-side table.w319_25pt {         w=
+idth: 70.9% !important;     }      .bg-body .row.mobile-side-by-side ta=
+ble.w323_5pt {         width: 71.8% !important;     }      .bg-body .ro=
+w.mobile-side-by-side table.w326pt {         width: 72.4% !important;  =
+   }      .bg-body .row.mobile-side-by-side table.w337pt {         widt=
+h: 74.8% !important;     }      .bg-body .row.mobile-side-by-side table=
+.w423pt {         width: 94% !important;     }      .bg-body .row.mobil=
+e-side-by-side table.w436_5pt {         width: 97% !important;     }   =
+   .bg-body .row.mobile-side-by-side table.w450pt {         width: 100%=
+ !important;     }      /* Exceptions for converted tables inside conve=
+rted tables. Width should double to fill the space */     .bg-body .row=
+.mobile-side-by-side table.converted-pt-to-pct table.w99pt {         wi=
+dth: 44% !important;     }      .bg-body .row.mobile-side-by-side table=
+.converted-pt-to-pct table.w102pt {         width: 45.2% !important;   =
+  }      .bg-body .row.mobile-side-by-side table.converted-pt-to-pct ta=
+ble.w108_75pt {         width: 48.2% !important;     }      .bg-body .r=
+ow.mobile-side-by-side table.converted-pt-to-pct table.w112_5pt {      =
+   width: 50% !important;     }      /* General styles         Not usin=
+g only ".mobile-side-by-size table" because we want to target         t=
+hese tables exclusively      */     .bg-body .row.mobile-side-by-side t=
+able.converted-pt-to-pct .texte,     .bg-body .row.mobile-side-by-side =
+table.cols.converted-pt-to-pct .texte,     .bg-body .row.mobile-side-by=
+-side table.converted-pt-to-pct .texte:first-child,     .bg-body .row.m=
+obile-side-by-side table.converted-pt-to-pct .texte:last-child,     .bg=
+-body .row.mobile-side-by-side table.converted-pt-to-pct:first-child .t=
+exte,     .bg-body .row.mobile-side-by-side table.converted-pt-to-pct:l=
+ast-child .texte,     .bg-body .row.mobile-side-by-side table.converted=
+-pt-to-pct .image,     .bg-body .row.mobile-side-by-side table.cols.con=
+verted-pt-to-pct .image,     .bg-body .row.mobile-side-by-side table.co=
+nverted-pt-to-pct .image:first-child,     .bg-body .row.mobile-side-by-=
+side table.converted-pt-to-pct .image:last-child {         padding: 6px=
+ !important;         padding-left: 6px !important;         padding-top:=
+ 6px !important;         padding-right: 6px !important;         padding=
+-bottom: 6px !important;         word-wrap: break-word;     }      .bg-=
+body .row.mobile-side-by-side table.converted-pt-to-pct .image.full-wid=
+th {         padding: 0 !important;     }      .bg-body .row.mobile-sid=
+e-by-side table.converted-pt-to-pct.cols {         border-left: 0 !impo=
+rtant;         border-right: 0 !important;     }      .bg-body .row.mob=
+ile-side-by-side.with-side-padding-18 > table.first-child {         mar=
+gin-left: 3.1% !important;     }      .bg-body .row.mobile-side-by-side=
+.with-side-padding-18 > table.last-child {         margin-right: 3.1% !=
+important;     }      .bg-body .row.mobile-side-by-side.with-side-paddi=
+ng-9 > table.first-child {         margin-left: 1.5% !important;     } =
+     .bg-body .row.mobile-side-by-side.with-side-padding-9 > table.last=
+-child {         margin-right: 1.5% !important;     } }  </style><style=
+ type=3D"text/css">  body {     margin: 0 !important; }  .bg-body {    =
+ line-height: normal; }  h1, h2, h3, h4 {     font-weight: normal !impo=
+rtant; }  td.row h1, td.row h2, td.row h3, td.row h4 {     font-weight:=
+ normal !important; }  td.row h1[style*=3D"font-weight: bold" i], td.ro=
+w h2[style*=3D"font-weight: bold" i], td.row h3[style*=3D"font-weight: =
+bold" i], td.row h4[style*=3D"font-weight: bold" i], td.row h1[style*=3D=
+"font-weight: 700" i], td.row h2[style*=3D"font-weight: 700" i], td.row=
+ h3[style*=3D"font-weight: 700" i], td.row h4[style*=3D"font-weight: 70=
+0" i], td.row h1 b, td.row h1 strong, td.row h2 b, td.row h2 strong, td=
+.row h3 b, td.row h3 strong, td.row h4 b, td.row h4 strong {     font-w=
+eight: 700 !important; }  p {     Margin-top: 0;     margin-bottom: 1em=
+; }  /* Fix image margin problem on several email platforms. We don't u=
+se "display:block" on img because this would prevent us to offer "left/=
+center/right alignment" setting for image blocks in editor */ .row .ima=
+ge {     font-size: 0px;     line-height: 0px; }  /* .row > table {    =
+ float: left; }*/  @media only screen and (min-width: 481px) {     img =
+{         max-width: 100%;         height: auto;     } }  /* hotmail */=
+ .ExternalClass * { line-height:normal; } .ExternalClass .ecxfixhotmail=
+margins p { display:inline; }  /* If something breaks bad on iPad, remo=
+ve this. * It's a patch for the weird borders that tend to show up when=
+ using a transparent png over a td with a bgcolor. * Please note: this =
+is NOT a good solution and it does not work 100% of the time. * But tes=
+ted over several models, it proved to be better than nothing. */ @media=
+ only screen and (-webkit-min-device-pixel-ratio: 1) and (min-device-wi=
+dth: 768px) and (device-width: 1024px) {     .border-frame > table  { b=
+order: 1px solid transparent; overflow:hidden; }     .bg-frame { positi=
+on: relative; margin: -1px; }      .bg-body > table,     .border-frame =
+{ width: 604px !important; } }  /* removes blue links on ios platforms =
+*/ a[x-apple-data-detectors] {     color: inherit !important;     text-=
+decoration: none !important;     font-size: inherit !important;     fon=
+t-family: inherit !important;     font-weight: inherit !important;     =
+line-height: inherit !important; }  grammarly-btn, grammarly-extension =
+{ display:none !important; }</style>                                   =
+ <title>The "1973 Loophole" in Trump's new financial plan</title></head=
+>                 <body>                 <div class=3D"preview-text" la=
+ng=3D"en" dir=3D"ltr" data-version=3D"2" style=3D"display:none;font-siz=
+e:1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacit=
+y:0;overflow:hidden;">In 1973, a radical White House policy triggered a=
+ historic gold rush. Trump&rsquo;s rumored new Executive Order is about=
+ to do it again.</div><!--BOF sample code--> <table cellpadding=3D"0" c=
+ellspacing=3D"0" width=3D"100%" border=3D"0" role=3D"presentation" dir=3D=
+"ltr">     <tbody><tr>         <td align=3D"center" class=3D"bg-body" s=
+tyle=3D"padding:18px 0px 0px 0px;background-color:rgb(14, 21, 39);" dat=
+a-metadata=3D"{   &quot;.bg-body&quot;: {     &quot;background-color&qu=
+ot;: &quot;#0e1527&quot;   },   &quot;.border-frame&quot;: {     &quot;=
+background-color&quot;: &quot;#ffffff&quot;   },   &quot;.bg-frame&quot=
+;: {     &quot;background-color&quot;: &quot;#ffffff&quot;   },   &quot=
+;.row, .row td&quot;: {     &quot;font-family&quot;: &quot;Arial, sans-=
+serif&quot;   } }">             <!--BOF table border-->                =
+          <table cellpadding=3D"0" cellspacing=3D"0" width=3D"602" role=
+=3D"presentation">                 <tbody><tr>                     <td =
+class=3D"border-frame" style=3D"min-width: 600px; padding: 1px; backgro=
+und-color: rgb(255, 255, 255);" align=3D"left">                        =
+ <!--BOF table frame-->                         <table cellpadding=3D"0=
+" cellspacing=3D"0" width=3D"100%" role=3D"presentation">              =
+               <tbody><tr>                                 <td class=3D=
+"bg-frame" style=3D"background-color: rgb(255, 255, 255);">            =
+                         <!--BOF content-->                            =
+         <table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0" bord=
+er=3D"0" role=3D"presentation">                                        =
+ <tbody><tr>                                             <td valign=3D"=
+top" class=3D"content-holder">                                         =
+        <div class=3D"sortable ui-sortable"><div class=3D"option-holder=
+">     <div class=3D"canvas">         <table width=3D"100%" border=3D"0=
+" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation">           =
+  <tbody><tr>                 <td valign=3D"top" class=3D"row" style=3D=
+"background-color: rgb(14, 21, 39); text-align: center;">              =
+       <div class=3D"image full-width">                         <a href=
+=3D"https://app.cyberimpact.com/redirect?ct=3DaQz96AFrMJXFifBd6-FNKWcvF=
+-sUhTo6TBEQrwLk7Zj4dRtyH4ufH8tU70cb9IOF48nTdvv6TZ8Yb5Uo3Idvo4gnoTnM6t_Y=
+6Rb9e-z9Y3wQ22obX7hFRc2YeoNePV2A" target=3D"_blank"><img src=3D"https:/=
+/cdn.cyberimpact.com/clients/64401/public/b322da49-9ea3-48d7-5126-e7133=
+3d5b784/image/HeaderTWL_(1).jpg?1792573960504" class=3D"responsiveImage=
+" alt=3D"HeaderLogo" border=3D"0" width=3D"500" style=3D"display: inlin=
+e-block; vertical-align: bottom; width: 500px; height: auto;" data-widt=
+h=3D"600" data-height=3D"176"></a>                     </div>          =
+       </td>             </tr>         </tbody></table>     </div> </di=
+v><div class=3D"option-holder">     <div class=3D"canvas">         <tab=
+le width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation">             <tbody><tr>                 <td valign=3D=
+"top" class=3D"row" style=3D"padding: 0px 18px; color: rgb(1, 1, 1); fo=
+nt-size: 12px; font-family: Arial; background-color: rgba(0, 0, 0, 0);"=
+>                     <div class=3D"texte" lang=3D"en" dir=3D"ltr" role=
+=3D"textbox" aria-label=3D"Rich Text Editor. Editing area: main. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p."  id=3D"ui-id-1"><div style=3D"-webkit-font-smoothing:antialiased;ba=
+ckground-color:#ffffff;color:#010101;font-family:Arial, Helvetica, sans=
+-serif;margin:0;padding:24px 0;width:100%;"><div style=3D"background-co=
+lor:#ffffff;box-sizing:border-box;font-family:Arial, Helvetica, sans-se=
+rif;margin:0 auto;max-width:600px;padding:0 0px;"><div style=3D"color:#=
+010101;font-family:Arial, Helvetica, sans-serif;font-size:20px;line-hei=
+ght:1.5;"><p style=3D"font-family:Arial, Helvetica, sans-serif;margin:0=
+ 0 16px;">In 1973, a radical White House policy triggered a historic go=
+ld rush. Trump=E2=80=99s rumored new Executive Order is about to do it =
+again.</p><p style=3D"font-family:Arial, Helvetica, sans-serif;margin:0=
+ 0 16px;">When the government severed the dollar's tie to gold in the 1=
+970s, everyday Americans watched their purchasing power collapse. But a=
+ small group of prepared investors made generational wealth as gold pri=
+ces skyrocketed.</p><p style=3D"font-family:Arial, Helvetica, sans-seri=
+f;margin:0 0 16px;">Fast forward to today. With Jerome Powell out and T=
+rump allegedly preparing a controversial "Financial Executive Order" to=
+ bypass the Fed and pump the market, the stage is set for an even bigge=
+r dollar shock.</p><p style=3D"font-family:Arial, Helvetica, sans-serif=
+;margin:0 0 16px;">Top analysts warn inflation will explode. But here i=
+s the good news: you don't need to hoard expensive physical bullion to =
+shield yourself.</p><p style=3D"font-family:Arial, Helvetica, sans-seri=
+f;margin:0 0 16px;">There is a little-known market loophole that essent=
+ially lets you capitalize on this crisis like you are <strong>"buying g=
+old at 1973 prices"</strong> right before the massive surge.</p><p styl=
+e=3D"font-family:Arial, Helvetica, sans-serif;margin:0 0 24px;"><a styl=
+e=3D"color:#000099;font-family:Arial, Helvetica, sans-serif;text-decora=
+tion:none;" href=3D"https://app.cyberimpact.com/redirect?ct=3D6WCB2QeKK=
+4QhCyb8QqYw7eqtHyRv8LB3kiPiB9xGnr6z67bFdBo-ek2uURbiyNsiFJM1Gp-LOUmVMmFN=
+enPxiPjBpsB7lSRNJwUObchoNoPN-bEnalUoexdjiexmIN3T"><strong><u>Click here=
+ to discover the "1973 Gold Loophole" and bulletproof your savings befo=
+re Trump signs the order&nbsp;</u></strong></a></p></div><div style=3D"=
+color:#010101;font-family:Arial, Helvetica, sans-serif;font-size:12px;l=
+ine-height:1.5;padding-top:34px;word-break:break-word;"><p style=3D"mar=
+gin:0 0 16px;"><i><strong>This is an advertisement.</strong></i></p><p =
+style=3D"margin:0;"><i>If you no longer wish to receive promotional mes=
+sages from this advertiser, please unsubscribe below. Or write to: 5005=
+ Lyndon B. Johnson Fwy. Suite 350 Dallas, TX 75244</i></p></div></div><=
+/div><div style=3D"background-color:#ffffff;font-family:'Tahoma', sans-=
+serif;padding:10px 0;width:100%;"><div style=3D"background-color:#fffff=
+f;border-radius:6px;border:1px solid #E0E0E0;box-sizing:border-box;marg=
+in:0 auto;max-width:600px;overflow:hidden;"><div style=3D"background-co=
+lor:#f5f5f5;border-bottom:1px solid #E0E0E0;color:#333333;font-size:16p=
+x;padding:12px 18px;text-align:left;"><strong>Sponsored Content</strong=
+></div><div style=3D"border-bottom:1px solid #f0f0f0;padding:15px 18px;=
+"><div style=3D"font-size:18px;margin-bottom:6px;text-align:left;"><a s=
+tyle=3D"color:#000099;display:inline-block;text-decoration:none;" href=3D=
+"https://app.cyberimpact.com/redirect?ct=3Dt9Ui-M2e2rq5AQvQOq-nCbWdbXqN=
+QYX-s0uM8aQLmgIuY6rw6lH2ux8bSsiAEuCpXFOtt98-3OoqrAM99eTwbCR3_fp1-tdfea1=
+SCB5fcsGLLuLCjsMXDyae1A-ypJkl" data-sa-id=3D"48f48d99-2185-497b-a234-d5=
+85dd8da08e"><strong><u>You Haven=E2=80=99t Claimed Your Gold Guide&nbsp=
+;</u></strong></a></div><div style=3D"color:#4e4e4e;font-size:12px;text=
+-align:left;"><i>Sponsored by <strong>Cedar Gold Group</strong></i></di=
+v></div><div style=3D"border-bottom:1px solid #f0f0f0;padding:15px 18px=
+;"><div style=3D"font-size:18px;margin-bottom:6px;text-align:left;"><a =
+style=3D"color:#000099;display:inline-block;text-decoration:none;" href=
+=3D"https://app.cyberimpact.com/redirect?ct=3DSYvGunB0Fq2vdG8qB9QLPA5Dv=
+2_vDC2gPW4el2Cmscr8HPQOix7V1o1MeBMfbQLdS-n5iG2cdlh1YU2yifEvegIyleK-kAqC=
+cV0upu7bU6Ah_NXPY22qaaaDYms1tV45" data-sa-id=3D"c3ee41f8-0d24-445b-8a6f=
+-48efbe704590"><strong><u>Shocking Letters Are Hitting Mailboxes&nbsp;<=
+/u></strong></a></div><div style=3D"color:#4e4e4e;font-size:12px;text-a=
+lign:left;"><i>Sponsored by <strong>Amercan Alternative Assets</strong>=
+</i></div></div><div style=3D"padding:15px 18px;"><div style=3D"font-si=
+ze:18px;margin-bottom:6px;text-align:left;"><a style=3D"color:#000099;d=
+isplay:inline-block;text-decoration:none;" href=3D"https://app.cyberimp=
+act.com/redirect?ct=3DrYcR97HcO15SBU1vBwmpsrSzslUs9nyZarcCYsQyIaP_r2_-8=
+jb-jlpvjcn3nk6pl35wTims4gmtSSmwsGMLJ_d9Nz3IibfvBlhFZnaVsgsDDtYe5J5Crx4y=
+bBdVgGD2" data-sa-id=3D"5e47d670-ca57-4f66-8f54-ab1090c688f3"><strong><=
+u>Why Does America Need a $250 Bill?&nbsp;</u></strong></a></div><div s=
+tyle=3D"color:#4e4e4e;font-size:12px;text-align:left;"><i>Sponsored by =
+<strong>Porter &amp; Company</strong></i></div></div></div></div><div s=
+tyle=3D"-webkit-font-smoothing:antialiased;background-color:#ffffff;col=
+or:#0f172a;font-family:Arial, Helvetica, sans-serif;margin:0;padding:24=
+px 0;width:100%;"><div style=3D"background-color:#ffffff;box-sizing:bor=
+der-box;font-family:Arial, Helvetica, sans-serif;margin:0 auto;max-widt=
+h:600px;"><hr style=3D"border-top:1px solid #e2e8f0;border-right-width:=
+0;border-bottom-width:0;border-left-width:0;margin:0 0 24px;"><h1 style=
+=3D"color:#010101;font-family:Arial;font-size:26px;line-height:1.25;mar=
+gin-left:0;" id=3D"ea9f712595d75d412ee66228d6695ea1b"><strong>The High =
+Cost of Powering the Green Revolution</strong></h1><p style=3D"border-b=
+ottom:1px solid #e2e8f0;color:#475569;font-family:Arial, Helvetica, san=
+s-serif;font-size:15px;font-weight:500;line-height:1.5;margin:0 0 24px;=
+padding-bottom:20px;">Benchmark Mineral Intelligence warns the world mu=
+st open a new lithium mine every two months through 2050 to meet 7 mill=
+ion metric tons of demand, requiring over $100 billion in upfront capit=
+al amid surging EV and AI grid storage needs.</p><table class=3D"table =
+content-table" style=3D"background-color:#ffffff;border-collapse:collap=
+se;border-width:0px;font-family:Arial, Helvetica, sans-serif;margin-bot=
+tom:28px;width:100%;" role=3D"presentation" data-ci-table-type=3D"conte=
+nt" width=3D"100%" data-ci-added-attrs=3D"width,align" align=3D"center"=
+><tbody><tr><td style=3D"border:1px solid #e2e8f0;font-family:Arial, He=
+lvetica, sans-serif;padding:14px;vertical-align:top;width:50%;"><div st=
+yle=3D"color:#64748b;font-family:Arial, Helvetica, sans-serif;font-size=
+:11px;letter-spacing:0.5px;text-transform:uppercase;"><strong>Lithium D=
+emand by 2050</strong></div><div style=3D"color:#0f172a;font-family:Ari=
+al, Helvetica, sans-serif;font-size:22px;margin-top:4px;"><strong>7.0M =
+Metric Tons</strong></div><div style=3D"color:#16a34a;font-family:Arial=
+, Helvetica, sans-serif;font-size:12px;margin-top:2px;"><strong>Up From=
+ 2.11M MT in 2026</strong></div></td><td style=3D"border:1px solid #e2e=
+8f0;font-family:Arial, Helvetica, sans-serif;padding:14px;vertical-alig=
+n:top;width:50%;"><div style=3D"color:#64748b;font-family:Arial, Helvet=
+ica, sans-serif;font-size:11px;letter-spacing:0.5px;text-transform:uppe=
+rcase;"><strong>Required New Mines</strong></div><div style=3D"color:#0=
+f172a;font-size:22px;margin-top:4px;"><strong>134 Mines</strong></div><=
+div style=3D"color:#dc2626;font-family:Arial, Helvetica, sans-serif;fon=
+t-size:12px;margin-top:2px;"><strong>1 New Mine Every 2 Months</strong>=
+</div></td></tr><tr><td style=3D"border:1px solid #e2e8f0;font-family:A=
+rial, Helvetica, sans-serif;padding:14px;vertical-align:top;width:50%;"=
+><div style=3D"color:#64748b;font-family:Arial, Helvetica, sans-serif;f=
+ont-size:11px;letter-spacing:0.5px;text-transform:uppercase;"><strong>U=
+pfront Capital Needed</strong></div><div style=3D"color:#0f172a;font-si=
+ze:22px;margin-top:4px;"><strong>$100=2B Billion</strong></div><div sty=
+le=3D"color:#64748b;font-family:Arial, Helvetica, sans-serif;font-size:=
+12px;font-weight:500;margin-top:2px;">Mining CapEx Investment</div></td=
+><td style=3D"border:1px solid #e2e8f0;font-family:Arial, Helvetica, sa=
+ns-serif;padding:14px;vertical-align:top;width:50%;"><div style=3D"colo=
+r:#64748b;font-family:Arial, Helvetica, sans-serif;font-size:11px;lette=
+r-spacing:0.5px;text-transform:uppercase;"><strong>AI Data Center Energ=
+y Storage</strong></div><div style=3D"color:#0f172a;font-size:22px;marg=
+in-top:4px;"><strong>5x Growth</strong></div><div style=3D"color:#16a34=
+a;font-family:Arial, Helvetica, sans-serif;font-size:12px;margin-top:2p=
+x;"><strong>Projected Over Next Decade</strong></div></td></tr></tbody>=
+</table><div style=3D"color:#334155;font-family:Arial, Helvetica, sans-=
+serif;font-size:20px;line-height:1.6;margin-bottom:24px;"><p style=3D"f=
+ont-family:Arial, Helvetica, sans-serif;margin:0 0 16px;">Global net-ze=
+ro mandates and widespread electrification are colliding with severe ra=
+w material constraints. According to new research from <strong>Benchmar=
+k Mineral Intelligence</strong>, global demand for lithium carbonate eq=
+uivalent is projected to jump from <strong>2.11 million metric tons in =
+2026 to 7.0 million metric tons by 2050</strong>. Meeting this deficit =
+will require bringing 134 new lithium mines online=E2=80=94or roughly o=
+ne new mine opening every two months for the next 24 years.</p><p style=
+=3D"font-family:Arial, Helvetica, sans-serif;margin:0 0 16px;">While el=
+ectric vehicles remain the primary driver of lithium consumption, <stro=
+ng>artificial intelligence infrastructure</strong> is emerging as a pow=
+erful secondary catalyst. Hyperscale AI data centers are integrating la=
+rge-scale battery energy storage systems (BESS) to buffer grid loads, d=
+riving a projected 5x surge in data center energy storage demand over t=
+he coming decade.</p><div style=3D"background-color:#f8fafc;border-left=
+:3px solid #0f172a;font-family:Arial, Helvetica, sans-serif;margin:20px=
+ 0;padding:14px 16px;"><p style=3D"color:#1e293b;font-family:Arial, Hel=
+vetica, sans-serif;font-size:18px;font-weight:500;line-height:1.5;margi=
+n:0;"><strong>Geopolitical Shift &amp; Recycling Limits:</strong> North=
+ American mining capacity is expanding rapidly to reduce supply chain d=
+ependence on China, though European projects face strict environmental =
+permitting delays. While battery recycling could fulfill nearly 50% of =
+mid-century lithium demand, experts stress that recycling depends on ba=
+ttery end-of-life timelines and cannot replace near-term primary extrac=
+tion.</p></div><h2 style=3D"color:#010101;font-family:Arial, sans-serif=
+;font-size:18px;line-height:19.8px;margin-left:0;"><strong>Capital Comp=
+etition &amp; Commodity Price Volatility</strong></h2><p style=3D"font-=
+family:Arial, Helvetica, sans-serif;margin:0 0 16px;">Mining executives=
+ and institutional allocators highlight key hurdles facing new mine con=
+struction:</p><ul style=3D"color:rgb(51, 65, 85);font-family:Arial, Hel=
+vetica, sans-serif;list-style-type:disc;margin:0px 0px 20px;padding-lef=
+t:20px;"><li style=3D"font-family:Arial, Helvetica, sans-serif;margin-b=
+ottom:8px;"><strong>$100B=2B Financing Gap:</strong> Developing the req=
+uired primary mining assets requires over $100 billion in upfront capit=
+al expenditure, forcing developers to compete with defense and tech sec=
+tors.</li><li style=3D"font-family:Arial, Helvetica, sans-serif;margin-=
+bottom:8px;"><strong>Price Swing Hesitancy:</strong> Benchmark Product =
+Director Cameron Perks notes that wide fluctuations in spot lithium pri=
+ces continue to discourage long-term institutional equity commitments.<=
+/li><li style=3D"font-family:Arial, Helvetica, sans-serif;margin-bottom=
+:8px;"><strong>Shifting Production Geography:</strong> Australia's glob=
+al supply share is expected to temper as domestic North American and So=
+uth American brine and hard-rock projects expand.</li></ul><p style=3D"=
+font-family:Arial, Helvetica, sans-serif;margin:0;">The sheer scale of =
+required lithium extraction underscores the growing structural link bet=
+ween critical mineral mining, global energy storage, and AI infrastruct=
+ure expansion.</p></div></div></div></div>                 </td>       =
+      </tr>         </tbody></table>     </div> </div><div class=3D"opt=
+ion-holder">     <div class=3D"canvas">         <table width=3D"100%" b=
+order=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation"> =
+            <tbody><tr>                 <td valign=3D"top" class=3D"row=
+" style=3D"padding: 8px 18px 0px; background-color: rgb(14, 21, 39);"> =
+                    <table width=3D"100%" cellpadding=3D"0" cellspacing=
+=3D"0" border=3D"0" style=3D"float: left" role=3D"presentation">       =
+                  <tbody><tr>                             <td valign=3D=
+"top" style=3D"text-align: center;">                                 <d=
+iv class=3D"image">                                     <a href=3D"http=
+s://app.cyberimpact.com/redirect?ct=3DaQz96AFrMJXFifBd6-FNKWcvF-sUhTo6T=
+BEQrwLk7Zj4dRtyH4ufH8tU70cb9IOF48nTdvv6TZ8Yb5Uo3Idvo4gnoTnM6t_Y6Rb9e-z9=
+Y3wQ22obX7hFRc2YeoNePV2A" target=3D"_blank"><img src=3D"https://cdn.cyb=
+erimpact.com/clients/64401/public/b322da49-9ea3-48d7-5126-e71333d5b784/=
+image/HeaderTWL_(1)_(1).jpg?1792574278571" class=3D"noresize" alt=3D"Fo=
+oterLogo" border=3D"0" width=3D"230" style=3D"display: inline-block; ve=
+rtical-align: bottom; width: 230px; height: auto;" data-width=3D"564" d=
+ata-height=3D"192"></a>                                 </div>         =
+                    </td>                         </tr>                =
+     </tbody></table>                 </td>             </tr>         <=
+/tbody></table>     </div> </div><div class=3D"option-holder">     <div=
+ class=3D"canvas">         <table width=3D"100%" border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" role=3D"presentation">             <tbody><t=
+r>                 <td valign=3D"top" class=3D"row" style=3D"padding: 2=
+px 18px 0px; color: rgb(1, 1, 1); font-size: 12px; font-family: Arial; =
+background-color: rgb(14, 21, 39);">                     <div class=3D"=
+texte" style=3D"" lang=3D"en" dir=3D"ltr" role=3D"textbox" aria-label=3D=
+"Rich Text Editor. Editing area: main. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help."  id=3D"ui-id-2"><p style=3D"text-align:center;"><span style=3D"c=
+olor:rgb(255,255,255);">Email sent by Systems and Technologies LLC, own=
+er and operator of TrendWatchersLab.com</span></p><p style=3D"text-alig=
+n:center;"><span style=3D"color:rgb(255,255,255);">For assistance, cont=
+act: </span><a style=3D"color:#010101;" href=3D"mailto:support@trendwat=
+cherslab.com"><span style=3D"color:rgb(255,255,255);">support@trendwatc=
+herslab.com</span></a></p><p style=3D"text-align:center;"><span style=3D=
+"color:rgb(255,255,255);">=C2=A9 2026 Trend Watchers Lab. All Rights Re=
+served.</span></p></div>                 </td>             </tr>       =
+  </tbody></table>     </div> </div><div class=3D"option-holder">     <=
+div class=3D"canvas">         <table width=3D"100%" border=3D"0" cellpa=
+dding=3D"0" cellspacing=3D"0" role=3D"presentation">             <tbody=
+><tr>                 <td valign=3D"top" class=3D"row with-side-padding=
+-9 mobile-side-by-side" style=3D"padding: 0px 0px 0px 9px; background-c=
+olor: rgb(14, 21, 39);">                     <!--[if (gte mso 9)|(IE)]>=
+                     <table cellpadding=3D"0" cellspacing=3D"0" border=3D=
+"0" style=3D"width:423pt;">                         <tr>               =
+              <td width=3D"50%" valign=3D"top">                     <![=
+endif]-->                     <table cellpadding=3D"0" cellspacing=3D"0=
+" border=3D"0" align=3D"left" style=3D"width:218.25pt;margin-right:0; m=
+argin-left:0; border:0; mso-table-lspace:0pt; mso-table-rspace:0pt; bor=
+der-collapse:collapse;float: left" role=3D"presentation" class=3D"first=
+-child w218_25pt converted-pt-to-pct">                         <tbody><=
+tr>                             <td valign=3D"top" style=3D"color:#0101=
+01; font-size:12px; font-family: Arial; padding: 0 9px; mso-padding-lef=
+t-alt: 6.75pt; mso-padding-right-alt: 6.75pt;">                        =
+         <div class=3D"texte" style=3D"" lang=3D"en" dir=3D"ltr" role=3D=
+"textbox" aria-label=3D"Rich Text Editor. Editing area: main. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help."  id=3D"ui-id-3"><p style=3D"margin-top:0px=
+;margin-bottom:10px;text-align:right;"><a style=3D"color:#010101;" href=
+=3D"https://app.cyberimpact.com/redirect?ct=3DyAe4O47lODkOcmuUYcH_KDlS9=
+u59qv1LYSXSSmzODd-II6hvbjV_4Vfg9tiT5qwTq2EW5yiy7I1b13UcuDxjPPIbDc4ffv4t=
+tqISADS3E51XLI7kQ2Bg20uJhO_q5due"><span style=3D"color:rgb(255,255,255)=
+;"><u>Privacy Policy</u></span></a></p></div>                          =
+   </td>                         </tr>                     </tbody></ta=
+ble>                     <!--[if (gte mso 9)|(IE)]></td>               =
+  <td width=3D"50%" valign=3D"top"><![endif]-->                     <ta=
+ble border=3D"0" cellpadding=3D"0" cellspacing=3D"0" style=3D"width:218=
+.25pt;margin-right:0; margin-left:0; border:0; mso-table-lspace:0pt; ms=
+o-table-rspace:0pt; border-collapse:collapse;float: left" role=3D"prese=
+ntation" class=3D"last-child w218_25pt converted-pt-to-pct">           =
+              <tbody><tr>                             <td valign=3D"top=
+" style=3D"color:#010101; font-size:12px; font-family: Arial; padding: =
+0 9px; mso-padding-left-alt: 6.75pt; mso-padding-right-alt: 6.75pt;">  =
+                               <div class=3D"texte" style=3D"" lang=3D"=
+en" dir=3D"ltr" role=3D"textbox" aria-label=3D"Rich Text Editor. Editin=
+g area: main. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. P=
+ress =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50=
+ for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pre=
+ss =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 f=
+or help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press=
+ =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for=
+ help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help."  id=3D"ui-id-4"><p =
+style=3D"margin-top:0;margin-bottom:10px;"><a style=3D"color:#010101;" =
+href=3D"https://app.cyberimpact.com/redirect?ct=3D8GePEwIGQhQbfbATtwGcU=
+yQdLAgy8VD0KEa4AA9dsHcbd9R8nbNup8zBq6ZpN1wXUip5c9SKodRh2OhmWubKuEItUDpo=
+KPJQRG5v-Ormt18IymJNu6QHNsqFKha-fvMn"><span style=3D"color:rgb(255,255,=
+255);"><u>Terms &amp; Conditions</u></span></a></p></div>              =
+               </td>                         </tr>                     =
+</tbody></table>                     <!--[if (gte mso 9)|(IE)]></td></t=
+r></table><![endif]-->                 </td>             </tr>         =
+</tbody></table>     </div> </div></div>                               =
+              </td>                                         </tr>      =
+                               </tbody></table>                        =
+             <!--EOF content-->                                 </td>  =
+                           </tr>                         </tbody></tabl=
+e>                         <!--EOF table frame-->                     <=
+/td>                 </tr>             </tbody></table>             <!-=
+-EOF table border-->         </td>     </tr> </tbody></table> <!--EOF s=
+ample code //-->                 <table class=3D"ci-mail-footer-root" l=
+ang=3D"en" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" align=3D"=
+center" border=3D"0" dir=3D"ltr" style=3D"background-color:#ffffff;">  =
+   <tr>         <td align=3D"center">             <style type=3D"text/c=
+ss">                 .ci-mail-footer-root a {     color: #626264; }  .f=
+ooter-outer-table.outside {     width: 602px; }  .footer-outer-table.in=
+side {     width: 600px; }  .ci-mail-footer-root .ci_f-email.desktop-lo=
+ng-email {     white-space: normal;     overflow-wrap: anywhere;     di=
+splay: block; }  .ci-mail-footer-root .recipient-email {     overflow-w=
+rap: anywhere; }  @media only screen and (max-width: 480px) {     .ci-m=
+ail-footer-root .footer-inner-table {         max-width: 600px;        =
+ width: 100% !important;         height: auto !important;         borde=
+r-collapse: collapse;     }      .ci-mail-footer-root {         width: =
+100% !important;     }      .footer-outer-table.outside {         width=
+: 100%;     }      .footer-border-frame {         max-width: 600px;    =
+ }      .ci-mail-footer-root .footer-content {         padding: 30px 18=
+px;     }      .ci-mail-footer-root .ci_f-address br {         display:=
+ none;     }      .ci-mail-footer-root .ci_f-address .ci_f_name {      =
+   display: block;     }      .ci-mail-footer-root .ci_f-address .ci_f-=
+tel1,     .ci-mail-footer-root .ci_f-address .ci_f-tel2,     .ci-mail-f=
+ooter-root .ci_f-address .ci_f-email {         white-space: nowrap;    =
+ }      .ci-mail-footer-root .ci_f-email.mobile-long-email {         wh=
+ite-space: normal;         overflow-wrap: anywhere;         display: bl=
+ock;     }      .ci-mail-footer-root .recipient-email {         display=
+: block;     } }  @media only screen and (min-width: 480px) {     .ci-m=
+ail-footer-root .ci_f-sep-mobile {         display: none;     } }      =
+      </style>             <div class=3D"option-holder">               =
+  <div class=3D"canvas">                     <table class=3D"footer-mar=
+gin-top-table" cellpadding=3D"0" cellspacing=3D"0" border=3D"0">       =
+                  <tr>                             <td class=3D"footer-=
+margin-cell" style=3D"padding-top:20px;">                              =
+   <table class=3D"footer-outer-table outside" cellpadding=3D"0" cellsp=
+acing=3D"0" border=3D"0">                                     <tr>     =
+                                    <td class=3D"footer-border-frame"> =
+                                            <table class=3D"footer-inne=
+r-table" cellpadding=3D"0" cellspacing=3D"0" width=3D"600" border=3D"0"=
+ style=3D"width: 600px;">     <tr>         <td align=3D"left" valign=3D=
+"top" class=3D"row footer-content footer-bg-frame" style=3D"font-family=
+:Arial, Helvetica, sans-serif;font-size:11px;line-height:1.4;color:#414=
+042;padding:30px 18px;">             <p style=3D"margin:0;text-align:ri=
+ght;color:#414042;font-size:11px;height:10px;font-family:Arial, Helveti=
+ca, sans-serif;">     <a href=3D"https://app.cyberimpact.com/click-trac=
+king?ct=3DkvmqSUQ01ry38i3AnExcDBHrUsZLEhoSu3E5VB5X0pX0CMtv_WBfgQpV4UZfp=
+JXl-EhIXe65FSST6GWAWTYN0vDZbkS5LQF5JJXdICeQfdM~" style=3D"text-decorati=
+on:underline;font-size:11px;font-family:Arial, Helvetica, sans-serif;co=
+lor:#414042;"><span style=3D"text-decoration: none"></span></a> </p>   =
+          <p style=3D"margin:0 0 20px;text-align:center;color:#414042;f=
+ont-family:Arial, Helvetica, sans-serif;font-size:11px;">              =
+   Email sent to:                 <a class=3D"recipient-email" href=3D"=
+mailto:geoff.c.freedman@gmail.com" style=3D"font-family:Arial, Helvetic=
+a, sans-serif;font-size:11px;color:#414042;text-decoration:underline;">=
+geoff.c.freedman@gmail.com</a>             </p>              <p class=3D=
+"ci_f-address" style=3D"margin:0 0 20px;text-align:center;color:#414042=
+;font-family:Arial, Helvetica, sans-serif;font-size:11px;">            =
+     <span class=3D"ci_f_name">Trend Watchers Lab</span><br><span class=
+=3D"ci_f-street">1607 Capitol Ave</span><![if !(gte mso 9)&!(IE)]><span=
+ class=3D"ci_f-sep-mobile">&nbsp;| </span><![endif]><br><span class=3D"=
+ci_f-city">Cheyenne</span><span class=3D"ci_f-region">, Wyoming</span><=
+span class=3D"ci_f-sep">&nbsp;| </span><span class=3D"ci_f-zipcode">820=
+01</span><span class=3D"ci_f-sep">&nbsp;| </span><span class=3D"ci_f-co=
+untry">United States</span><![if !(gte mso 9)&!(IE)]><span class=3D"ci_=
+f-sep-mobile">&nbsp;| </span><![endif]><br>                            =
+         <span class=3D"ci_f-email"><a href=3D"mailto:support@trendwatc=
+herslab.com" style=3D"text-decoration:underline;color:#414042;font-fami=
+ly:Arial, Helvetica, sans-serif;font-size:11px;">support@trendwatchersl=
+ab.com</a></span>                             </p>              <p styl=
+e=3D"margin:0 0 25px;text-align:center;color:#414042;font-family:Arial,=
+ Helvetica, sans-serif;font-size:11px;">                               =
+      <a href=3D"https://app.cyberimpact.com/anti-spam-policy?l=3Den_ca=
+" style=3D"font-family:Arial, Helvetica, sans-serif;font-size:11px;colo=
+r:#414042;font-weight:normal;text-decoration:underline;">Anti&#8209;spa=
+m policy</a>                                                      |    =
+                <a href=3D"https://app.cyberimpact.com/report-an-abuse?=
+ct=3DvDSBWxiNd0WF_j-bFfk41R81gJd17-GvOwzDl_lrBjaqiwlZCKwRMbPuQ5kT8moX-s=
+8xtcy-KoktTw6EswURDxO877saZl7A54Vu1_fXo-81jEMwdLDkt8OXr68JYQrOke-dvfFUT=
+8P2eZVbNITJLw~~" style=3D"font-family:Arial, Helvetica, sans-serif;font=
+-size:11px;color:#414042;font-weight:normal;text-decoration:underline;"=
+>Report&nbsp;an&nbsp;abuse</a>                                         =
+             |                    <a href=3D"https://app.cyberimpact.co=
+m/unsubscribe?ct=3DvDSBWxiNd0WF_j-bFfk41R81gJd17-GvOwzDl_lrBjaqiwlZCKwR=
+MbPuQ5kT8moX-s8xtcy-KoktTw6EswURDxO877saZl7A54Vu1_fXo-81jEMwdLDkt8OXr68=
+JYQrOke-dvfFUT8P2eZVbNITJLw~~" style=3D"font-family:Arial, Helvetica, s=
+ans-serif;font-size:11px;color:#414042;font-weight:normal;text-decorati=
+on:underline;">Unsubscribe</a>                                         =
+     </p>                             <p class=3D"wl-logo" style=3D"mar=
+gin:0;text-align:center;color:#414042;font-family:Arial, Helvetica, san=
+s-serif;font-size:11px;">                     <a href=3D"https://www.cy=
+berimpact.com?utm_source=3Dcifooter&utm_medium=3Demail&utm_campaign=3Df=
+ooter_link" style=3D"font-family:Arial, Helvetica, sans-serif;font-size=
+:11px;color:#414042;text-decoration:underline;">                       =
+  <img src=3D"https://app.cyberimpact.com/footer-image/20220926%402x/d?=
+ct=3DvDSBWxiNd0WF_j-bFfk41R81gJd17-GvOwzDl_lrBjaqiwlZCKwRMbPuQ5kT8moX-s=
+8xtcy-KoktTw6EswURDxO877saZl7A54Vu1_fXo-81jEMwdLDkt8OXr68JYQrOke-dvfFUT=
+8P2eZVbNITJLw~~" width=3D"174" height=3D"37" alt=3D"Try Cyberimpact for=
+ free" style=3D"border:0;display:inline-block;width:174px;height:37px;"=
+ class=3D"noresize"/>                     </a>                 </p>    =
+                 </td>     </tr> </table>                              =
+          </td>                                     </tr>              =
+                   </table>                             </td>          =
+               </tr>                     </table>                 </div=
+>             </div>         </td>     </tr>     <!--/End of footer wra=
+pper-->     </table></body>                 </html>
+
+----=4b7b0148_5052_4357_bad3_28b8880f8ae1--

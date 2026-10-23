@@ -478,6 +478,7 @@ def _load_gs_constants(source):
         'CALENDAR_LURE_PATTERNS':       _load_regex_array(source, 'CALENDAR_LURE_PATTERNS'),
         'CALENDAR_SAFE_LINK_DOMAINS':   _load_string_array(source, 'CALENDAR_SAFE_LINK_DOMAINS'),
         'HEADLINE_NAME_SEPARATORS':     _load_string_array(source, 'HEADLINE_NAME_SEPARATORS'),
+        'ESP_RELAY_IDENTITY_TLDS':      _load_string_array(source, 'ESP_RELAY_IDENTITY_TLDS'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
             source, 'IMPERSONATED_SUPPORT_BRANDS', allow_spaces=True),
@@ -542,6 +543,7 @@ CALLBACK_PHONE_PATTERN          = _gs['CALLBACK_PHONE_PATTERN']
 CALENDAR_LURE_PATTERNS          = _gs['CALENDAR_LURE_PATTERNS']
 CALENDAR_SAFE_LINK_DOMAINS      = _gs['CALENDAR_SAFE_LINK_DOMAINS']
 HEADLINE_NAME_SEPARATORS        = _gs['HEADLINE_NAME_SEPARATORS']
+ESP_RELAY_IDENTITY_TLDS         = _gs['ESP_RELAY_IDENTITY_TLDS']
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -1179,6 +1181,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'calendar_lure': False,
                     'headline_from_name': False,
                     'attachment_payload_scam': False,
+                    'esp_relay_identity': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -1198,6 +1201,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'calendar_lure': False,
         'headline_from_name': False,
         'attachment_payload_scam': False,
+        'esp_relay_identity': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1233,6 +1237,26 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                 display_name[_at + len(_sep):].strip() != ''):
             signals['headline_from_name'] = True
             signals['matched_patterns'].append('headline_from_name')
+
+    # ── Signal 14: ESP-relay identity (v6.79.0) ────────────────────────────
+    # Corroboration only. Mirrors Signal 14 in Signals.gs.
+    _at = sender_address.rfind('@')
+    _local = sender_address[:_at].lower() if _at > 0 else ''
+    if _local and len(_local) <= 100:
+        _labels = _local.split('.')
+        _n = len(_labels)
+        _embedded = _labels[-2] + '.' + _labels[-1] if _n >= 3 else ''
+        _own = sender_address[_at + 1:].lower()
+        _shown = re.sub(r'<[^>]*>$', '', from_field).strip().strip('"').strip().lower()
+        if (_n >= 3 and
+                _labels[-1] in ESP_RELAY_IDENTITY_TLDS and
+                len(_labels[-2]) >= 3 and
+                all(re.fullmatch(r'[a-z0-9-]+', l) for l in _labels) and
+                _own != _embedded and
+                not _own.endswith('.' + _embedded) and
+                _shown == _local):
+            signals['esp_relay_identity'] = True
+            signals['matched_patterns'].append('esp_relay_identity')
 
     # ── Signal: Clickbait pattern count ────────────────────────────────────
     # Each matching pattern increments the counter independently — this allows
@@ -2193,7 +2217,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 15
+    EXPECTED_SIGNAL_COUNT = 16
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '
@@ -2652,7 +2676,7 @@ def run_edge_case_tests():
                   sig['brand_mismatched_cta'] or sig['free_mail_random_local'] or
                   sig['callback_phishing'] or sig['self_named_sender'] or
                   sig['calendar_lure'] or sig['empty_subject_with_attachment'] or
-                  sig['attachment_payload_scam'])
+                  sig['attachment_payload_scam'] or sig['esp_relay_identity'])
         weak = (sig['clickbait_count'] + sig['fear_mongering'] +
                 sig['marketing_format'] +
                 (sig['suspicious_from_name'] or sig['headline_from_name']))

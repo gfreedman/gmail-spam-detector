@@ -49,7 +49,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 ## 📊 Results
 
 - ✅ **100% detection** on 58/58 spam + 8/8 scam (.eml files)
-- ✅ **0% false positives** on 26/26 legitimate emails
+- ✅ **0% false positives** on 28/28 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
 - ✅ **CI asks prod whether it is healthy after every deploy** — the `verify-prod` job confirms the trigger is running, the live version matches the commit, and the last run was clean.
@@ -122,7 +122,7 @@ Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely
 
 **Mail Gmail filed as spam is deleted only after a grace period.** Gmail intercepts that mail before your inbox, so the detector's rules never judged it — and Gmail's own false-positive classes (first contact from a new correspondent, 2FA from a small service, an invoice on a cheap relay) are exactly what no whitelist can enumerate in advance. So `reviewGmailSpam()` lets it age `CONFIG.gmailSpamGraceDays` (default **7**) first, which is your recovery window: the folder is visible, searchable, and one "Not spam" click from undoing Gmail's mistake. After that Gmail's verdict stands and the message is archived, logged and deleted. Whitelisted senders are never deleted at any age, and nothing is ever moved back to your inbox.
 
-The exception is mail our own signals **corroborate**: one strong signal (a blacklisted sender, service impersonation, a brand-mismatched link, a machine-generated free-mail address, a callback invoice, an empty subject with an attachment, a free-mail sender using your own name) or two weak ones (clickbait, fear, marketing format, a suspicious From name). That is deleted on the next run instead of waiting. A single weak hit is not enough — that is vocabulary, and vocabulary is what Gmail's false positives share with spam. Mail that is *not* corroborated is copied to Drive (`Spam Intelligence/Spam Folder/<messageId>.eml`) so a miss can be diagnosed; those copies expire after the grace period plus a week, and none are written if that folder is shared.
+The exception is mail our own signals **corroborate**: one strong signal (a blacklisted sender, service impersonation, a brand-mismatched link, a machine-generated free-mail address, a callback invoice, an empty subject with an attachment, a free-mail sender using your own name, a sender whose mailbox and display name are both a brand domain on an ESP relay) or two weak ones (clickbait, fear, marketing format, a suspicious From name). That is deleted on the next run instead of waiting. A single weak hit is not enough — that is vocabulary, and vocabulary is what Gmail's false positives share with spam. Mail that is *not* corroborated is copied to Drive (`Spam Intelligence/Spam Folder/<messageId>.eml`) so a miss can be diagnosed; those copies expire after the grace period plus a week, and none are written if that folder is shared.
 
 Mail already reviewed is normally skipped, so the folder is not re-fetched every cycle. But "reviewed" is a fact about *the logic that did the reviewing*, not about the message — so a `SCRIPT_VERSION` change re-reviews the whole folder once, and an improved rule gets applied to spam the previous logic dismissed. (It did not, before v6.54.0: six messages sat through two releases meant to remove them.)
 
@@ -442,8 +442,8 @@ addToWhitelist('domain.com');
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
 │   ├── spam_examples/           # Real spam .eml files (58)
 │   ├── scam_examples/           # Scam .eml files (8)
-│   ├── ham_examples/            # Legitimate .eml files (26)
-│   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)
+│   ├── ham_examples/            # Legitimate .eml files (28)
+│   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (4)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

@@ -1963,7 +1963,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 // corpus fires Rule 1 in 51 of 59 convictions and never fires Rules 3 or 6.
 //
 // The signal space is small enough to check completely, so check it completely:
-// 14 booleans x clickbaitCount 0..4 = 81920 combinations, in well under a second.
+// 15 booleans x clickbaitCount 0..4 = 163840 combinations, in well under a second.
 {
   console.log('\n=== the two rule cascades must agree (exhaustive) ===');
   const ctx = makeCtx();
@@ -1972,7 +1972,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
                  'emptySubjectWithAttachment', 'serviceImpersonation',
                  'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',
                  'selfNamedSender', 'calendarLure', 'headlineFromName',
-                 'attachmentPayloadScam'];
+                 'attachmentPayloadScam', 'espRelayIdentity'];
 
   // Guard the guard: if collectSignals() grows a signal this list does not
   // know about, the sweep below silently stops being exhaustive.
@@ -1984,7 +1984,8 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 
   const STRONG = ['blacklistedSender', 'serviceImpersonation', 'brandMismatchedCta',
                   'freeMailRandomLocal', 'callbackPhishing', 'emptySubjectWithAttachment',
-                  'selfNamedSender', 'calendarLure', 'attachmentPayloadScam'];
+                  'selfNamedSender', 'calendarLure', 'attachmentPayloadScam',
+                  'espRelayIdentity'];
   let combos = 0, disagreements = [], uncorroborated = [], offSpec = [];
   for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
     for (let cb = 0; cb <= 4; cb++) {
@@ -2046,6 +2047,59 @@ console.log('\n=== ONE weak signal no longer skips the Spam-folder grace period 
         ctx.hasCorroboratingSignal({ clickbaitCount: 1, fearMongering: true }) === true);
   check('one weak point does not',
         ctx.hasCorroboratingSignal({ clickbaitCount: 1 }) === false);
+}
+
+console.log('\n=== Signal 14: ESP-relay identity (corroboration only) ===');
+{
+  const ctx = makeCtx();
+  const sender = (from) => {
+    const m = phishMessage('mH14');
+    m.getFrom = () => from;
+    m.getSubject = () => 'Weekly digest';
+    m.getRawContent = () => 'Received: from x\r\n\r\nhi';
+    m.getBody = () => '<p>hi</p>';
+    return ctx.collectSignals(m);
+  };
+  const fires = (from) => sender(from).espRelayIdentity === true;
+  const ESP = '@email.cyberimpact.com>';
+  check('the real miss fires Signal 14',
+        fires('"cole.emerson.trendwatcherslab.com" <cole.emerson.trendwatcherslab.com' + ESP));
+  check('an unquoted display name fires',
+        fires('cole.emerson.trendwatcherslab.com <cole.emerson.trendwatcherslab.com' + ESP));
+  check('a different display name does not fire (the guard that spares real senders)',
+        !fires('Trend Watchers Lab <cole.emerson.trendwatcherslab.com' + ESP));
+  check('a no-name sender (address as the name) does not fire',
+        !fires('<cole.emerson.trendwatcherslab.com' + ESP));
+  check('a two-label local part does not fire',
+        !fires('john.smith <john.smith@mail.example.org>'));
+  check('"john.quincy.smith" is not a domain (TLD allowlist alone)',
+        !fires('john.quincy.smith <john.quincy.smith@gmail.com>'));
+  check('the sender\'s own domain does not fire',
+        !fires('news.acme.com <news.acme.com@acme.com>'));
+  check('a subdomain of the embedded domain does not fire',
+        !fires('news.acme.com <news.acme.com@mail.acme.com>'));
+  check('a VERP/SRS-style local part (not a-z0-9-) does not fire',
+        !fires('bounce.acme.com=x <bounce.acme.com=x@esp.example.org>'));
+  check('a 2-char registrable label does not fire',
+        !fires('a.ab.com <a.ab.com@esp.example.org>'));
+
+  const t0 = Date.now();
+  sender('"' + 'a.'.repeat(50000) + 'com" <' + 'a.'.repeat(50000) + 'com@esp.example.org>');
+  sender('"x" <' + '.'.repeat(100000) + '@esp.example.org>');
+  check('100 KB dotted local parts are bounded (< 1 s)',
+        Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
+
+  const alone = { clickbaitCount: 0, espRelayIdentity: true };
+  check('espRelayIdentity alone is NOT an inbox conviction',
+        ctx.makeVerdict(alone) === false &&
+        ctx.getRuleFromSignals(alone).rule === 'NONE');
+  check('espRelayIdentity never counts as an inbox behaviour (bulk + 2 of it)',
+        ctx.makeVerdict({ clickbaitCount: 0, bulkEmailService: true,
+                          espRelayIdentity: true, fearMongering: true }) === false);
+  check('espRelayIdentity alone corroborates a Gmail spam verdict',
+        ctx.hasCorroboratingSignal(alone) === true);
+  check('ESP_RELAY_IDENTITY appears in the signals CSV',
+        ctx.buildSignalsCsv(alone).indexOf('ESP_RELAY_IDENTITY') !== -1);
 }
 
 console.log('\n=== Signal 12: headline-then-brand From name (corroboration only) ===');

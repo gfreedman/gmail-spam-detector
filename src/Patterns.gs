@@ -457,4 +457,15 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
   '-', '|', '–', '—'
 ]);
 
+/**
+ * Last labels that make a dotted sender local part read as a DOMAIN for
+ * Signal 14 (espRelayIdentity). An allowlist, not "any alphabetic label":
+ * "john.q.smith" is a plausible real mailbox and "smith" is not a TLD here.
+ * @const {Array<string>}
+ */
+const ESP_RELAY_IDENTITY_TLDS = Object.freeze([
+  'com', 'net', 'org', 'info', 'biz', 'io', 'co', 'us', 'ca', 'uk', 'ai', 'app',
+  'dev', 'xyz', 'online', 'site', 'shop', 'news', 'top', 'club', 'live', 'today'
+]);
+
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

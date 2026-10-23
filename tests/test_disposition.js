@@ -2064,6 +2064,8 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   const ctx = makeCtx();
   const DISC = 'This is an advertisement.';
   const HEAD = 'Sponsored Content';
+  const ADV = 'If you no longer wish to receive promotional messages from this advertiser, please unsubscribe below.';
+  const CRED = 'Sponsored by A. Sponsored by B.';
   const FROM = 'Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>';
   const msg = (o) => {
     o = Object.assign({ from: FROM, plain: '', html: '', subject: 'Weekly digest' }, o || {});
@@ -2119,29 +2121,44 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   }
 
   // Every conjunct, alone: removing any ONE must flip a case below.
-  check('all three phrases, credit twice, fires',
-        fires(T(DISC + ' ' + HEAD + ' Sponsored by A. Sponsored by B.')));
+  const FULL = DISC + ' ' + ADV + ' ' + HEAD + ' ' + CRED;
+  check('all four phrases, credit twice, fires', fires(T(FULL)));
   // PLAIN ONLY (no html): the tag-stripped HTML path collapses whitespace itself
   // and would mask a missing collapse in the plain-body path.
   check('whitespace runs, NBSP and tabs are collapsed (plain body only)',
-        fires({ plain: DISC + '\n\n' + HEAD + '\u00a0 Sponsored\tby A. Sponsored   by B.', html: '' }));
-  check('case-insensitive', fires(T('THIS IS AN ADVERTISEMENT. SPONSORED CONTENT sponsored BY A. Sponsored by B.')));
-  check('no disclaimer does not fire', !fires(T(HEAD + ' Sponsored by A. Sponsored by B.')));
-  check('no sponsor block heading does not fire', !fires(T(DISC + ' Sponsored by A. Sponsored by B.')));
-  check('one credit line does not fire', !fires(T(DISC + ' ' + HEAD + ' Sponsored by A.')));
-  check('no credit lines does not fire', !fires(T(DISC + ' ' + HEAD)));
+        fires({ plain: DISC + '\n\n' + ADV + '\n' + HEAD + '  Sponsored\tby A. Sponsored   by B.', html: '' }));
+  check('case-insensitive',
+        fires(T('THIS IS AN ADVERTISEMENT. ' + ADV.toUpperCase() + ' SPONSORED CONTENT sponsored BY A. Sponsored by B.')));
+  check('no disclaimer does not fire', !fires(T(ADV + ' ' + HEAD + ' ' + CRED)));
+  check('no advertiser sentence does not fire (an editorial sponsor block)',
+        !fires(T(DISC + ' ' + HEAD + ' ' + CRED)));
+  check('no sponsor block heading does not fire', !fires(T(DISC + ' ' + ADV + ' ' + CRED)));
+  check('one credit line does not fire', !fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' Sponsored by A.')));
+  check('no credit lines does not fire', !fires(T(DISC + ' ' + ADV + ' ' + HEAD)));
+  // The reviewer's six editorial shapes, which carried the other three phrases.
   check('a newsletter with sponsors only does not fire',
         !fires(T('Morning digest. Sponsored by Acme. Sponsored by Globex.')));
+  check('a Taboola-style module with a disclaimer does not fire',
+        !fires(T('Sponsored Content from around the web. ' + CRED + ' ' + DISC)));
+  check('a Beehiiv/Morning-Brew sponsor block with a disclosure line does not fire',
+        !fires(T('TOGETHER WITH ACME. ' + HEAD + ': ' + CRED + ' ' + DISC +
+                 ' You are receiving this because you subscribed.')));
+  const FULL_HTML = '<p><b>' + DISC + '</b></p><p><i>' + ADV + '</i></p><b>' + HEAD +
+                    '</b><i>Sponsored by <b>A</b></i><i>Sponsored by <b>B</b></i>';
   check('fires from the tag-stripped HTML when the plain part is just "hello"',
-        fires({ plain: 'hello', html: '<p><b>' + DISC + '</b></p><b>' + HEAD +
-                '</b><i>Sponsored by <b>A</b></i><i>Sponsored by <b>B</b></i>' }));
+        fires({ plain: 'hello', html: FULL_HTML }));
+  for (const ws of [' ', '　', ' ', '﻿', ' ']) {
+    check('HTML path collapses U+' + ws.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0') +
+          ' (matches the Python mirror)',
+          fires({ plain: 'hello', html: FULL_HTML.split('Sponsored by').join('Sponsored' + ws + 'by') }));
+  }
   check('reads the body only: a different sender fires too (no sender condition)',
-        fires(Object.assign({ from: 'Jane <jane@gmail.com>' }, T(DISC + ' ' + HEAD + ' Sponsored by A. Sponsored by B.'))));
+        fires(Object.assign({ from: 'Jane <jane@gmail.com>' }, T(FULL))));
 
   // Linear on sender-controlled text: 100 KB of the phrases and of whitespace.
   const t0 = Date.now();
   fires(T(('sponsored by ').repeat(8000)));
-  fires(T(DISC + ' ' + HEAD + ' ' + ' \t'.repeat(50000) + 'x'));
+  fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' ' + ' \t'.repeat(50000) + 'x'));
   fires({ plain: '', html: '<b>'.repeat(30000) + DISC });
   check('100 KB bodies are bounded (< 1 s)', Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
 

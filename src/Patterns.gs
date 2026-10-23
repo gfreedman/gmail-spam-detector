@@ -458,16 +458,20 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
 ]);
 
 /**
- * The three phrases of Signal 14 (sponsoredAdTemplate), IN THIS ORDER: an ad
- * disclaimer, an ad-network block heading, and the credit line each teaser
- * carries. Lower-case: the signal lower-cases and whitespace-collapses the body
- * first. The signal needs the first two once and the third at least twice.
+ * The four phrases of Signal 14 (sponsoredAdTemplate), IN THIS ORDER: an ad
+ * disclaimer, the ad network's unsubscribe sentence, an ad-network block
+ * heading, and the credit line each teaser carries. Lower-case: the signal
+ * lower-cases and whitespace-collapses the body first. All four are required,
+ * the last at least twice. The second is what editorial sponsor blocks lack:
+ * Morning-Brew-style newsletters carry a heading, credits and even a
+ * disclaimer, but none says "promotional messages from this advertiser".
  * Measured against the user's whole mailbox (2026-10-23): no kept message
- * contained the first phrase, the second, or both, other than the miss itself.
+ * contained the disclaimer, the block heading, or both, other than the miss.
  * @const {Array<string>}
  */
 const SPONSORED_AD_PHRASES = Object.freeze([
-  'this is an advertisement', 'sponsored content', 'sponsored by'
+  'this is an advertisement', 'promotional messages from this advertiser',
+  'sponsored content', 'sponsored by'
 ]);
 
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

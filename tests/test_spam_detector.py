@@ -1241,13 +1241,19 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
 
     # ── Signal 14: Sponsored-ad template (v6.81.0) ─────────────────────────
     # Convicts on its own (Rule 11, DELETES). Mirrors Signal 14 in Signals.gs:
-    # disclaimer + sponsor-block heading once, credit line twice, checked on the
+    # disclaimer, advertiser sentence and block heading once, credit line twice, checked on the
     # body and then on the tag-stripped HTML.
     def _has_ad_template(text):
         t = re.sub(r'[ \t\r\n\f\v\u00a0]+', ' ', text.lower())
         return (SPONSORED_AD_PHRASES[0] in t and SPONSORED_AD_PHRASES[1] in t and
-                t.count(SPONSORED_AD_PHRASES[2]) >= 2)
-    if _has_ad_template(body) or _has_ad_template(re.sub(r'<[^>]*>', ' ', html)):
+                SPONSORED_AD_PHRASES[2] in t and
+                t.count(SPONSORED_AD_PHRASES[3]) >= 2)
+    # JS stripHtmlTags() collapses /\s+/, which is wider than the ASCII+NBSP class
+    # _has_ad_template() applies; spell the JS \s set out so the HTML path agrees
+    # (Python's \s differs: it adds U+001C-1F and U+0085, and lacks U+FEFF).
+    _JS_WS = r'[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+'
+    if (_has_ad_template(body) or
+            _has_ad_template(re.sub(_JS_WS, ' ', re.sub(r'<[^>]*>', ' ', html)).strip())):
         signals['sponsored_ad_template'] = True
         signals['matched_patterns'].append('sponsored_ad_template')
 
@@ -2762,28 +2768,39 @@ def run_edge_case_tests():
     # the mirror needs its own, or a phrase or count changed in one language only
     # passes parity (the one fixture sits nowhere near a boundary).
     check('SPONSORED_AD_PHRASES loaded from the source, in order',
-          SPONSORED_AD_PHRASES == ['this is an advertisement', 'sponsored content', 'sponsored by'],
+          SPONSORED_AD_PHRASES == ['this is an advertisement',
+                                   'promotional messages from this advertiser',
+                                   'sponsored content', 'sponsored by'],
           str(SPONSORED_AD_PHRASES))
     _DISC = 'This is an advertisement.'
+    _ADV = 'If you no longer wish to receive promotional messages from this advertiser, please unsubscribe below.'
     _HEAD = 'Sponsored Content'
+    _CRED = 'Sponsored by A. Sponsored by B.'
     def _s14(body='', html='', frm='Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>'):
         sig, _, _ = analyze_email('hello', frm, False, body=body, html=html)
         return sig['sponsored_ad_template']
     for body, expect, why in [
-        (f'{_DISC} {_HEAD} Sponsored by A. Sponsored by B.', True, 'all three, credit twice'),
-        (f'{_DISC}\n\n{_HEAD}\u00a0 Sponsored\tby A. Sponsored   by B.', True, 'whitespace is collapsed'),
-        ('THIS IS AN ADVERTISEMENT. SPONSORED CONTENT sponsored BY A. Sponsored by B.', True, 'case-insensitive'),
-        (f'{_HEAD} Sponsored by A. Sponsored by B.', False, 'no disclaimer'),
-        (f'{_DISC} Sponsored by A. Sponsored by B.', False, 'no sponsor block heading'),
-        (f'{_DISC} {_HEAD} Sponsored by A.', False, 'only one credit line'),
-        (f'{_DISC} {_HEAD}', False, 'no credit lines'),
+        (f'{_DISC} {_ADV} {_HEAD} {_CRED}', True, 'all four, credit twice'),
+        (f'{_DISC}\n\n{_ADV}\n{_HEAD}\u00a0 Sponsored\tby A. Sponsored   by B.', True, 'whitespace is collapsed'),
+        (f'THIS IS AN ADVERTISEMENT. {_ADV.upper()} SPONSORED CONTENT sponsored BY A. Sponsored by B.', True, 'case-insensitive'),
+        (f'{_ADV} {_HEAD} {_CRED}', False, 'no disclaimer'),
+        (f'{_DISC} {_HEAD} {_CRED}', False, 'no advertiser sentence (an editorial sponsor block)'),
+        (f'{_DISC} {_ADV} {_CRED}', False, 'no sponsor block heading'),
+        (f'{_DISC} {_ADV} {_HEAD} Sponsored by A.', False, 'only one credit line'),
+        (f'{_DISC} {_ADV} {_HEAD}', False, 'no credit lines'),
         ('Morning digest. Sponsored by Acme. Sponsored by Globex.', False, 'a newsletter with sponsors only'),
+        (f'Sponsored Content from around the web. {_CRED} {_DISC}', False, 'a Taboola-style module with a disclaimer'),
     ]:
         check(f'14 body {body[:46]!r} -> {expect}', _s14(body=body) == expect, why)
+    _FULL_HTML = (f'<p><b>{_DISC}</b></p><p><i>{_ADV}</i></p><b>{_HEAD}</b>'
+                  '<i>Sponsored by <b>A</b></i><i>Sponsored by <b>B</b></i>')
     check('14 fires from the tag-stripped HTML when the plain body lacks it',
-          _s14(body='hello', html=f'<p><b>{_DISC}</b></p><b>{_HEAD}</b><i>Sponsored by <b>A</b></i><i>Sponsored by <b>B</b></i>') is True)
+          _s14(body='hello', html=_FULL_HTML) is True)
+    for ws in ('\u2009', '\u3000', '\u202f', '\ufeff', '\u2028'):
+        check(f'14 HTML path collapses U+{ord(ws):04X} like the JS stripHtmlTags',
+              _s14(body='hello', html=_FULL_HTML.replace('Sponsored by', f'Sponsored{ws}by')) is True)
     check('14 reads the body only: no sender condition (a person sending the same text fires too)',
-          _s14(body=f'{_DISC} {_HEAD} Sponsored by A. Sponsored by B.', frm='Jane <jane@gmail.com>') is True)
+          _s14(body=f'{_DISC} {_ADV} {_HEAD} {_CRED}', frm='Jane <jane@gmail.com>') is True)
 
     # Signal 13 thresholds: the JS side pins these in test_disposition.js; the
     # mirror needs its own, or a constant changed in one language only passes

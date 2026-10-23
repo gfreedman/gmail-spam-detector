@@ -149,7 +149,7 @@ function collectSignals(message)
     calendarLure: false,               // unknown-sender calendar invite: voicemail lure in the title + off-domain link
     headlineFromName: false,           // display name is "<headline> - <brand>"; Spam-folder corroboration only
     attachmentPayloadScam: false,      // Bcc'd free-mail ALL-CAPS note whose payload is an attachment; Spam-folder corroboration only
-    sponsoredAdTemplate: false         // ad disclaimer + "Sponsored Content" block + 2 "Sponsored by" credits; Rule 11
+    sponsoredAdTemplate: false         // ad disclaimer + advertiser sentence + "Sponsored Content" block + 2 credits; Rule 11
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -276,8 +276,10 @@ function collectSignals(message)
   // Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>": a gold-IRA
   // lead-gen promo that scored ZERO on every other signal - clean subject, a
   // shared ESP's sending domain, no bulk fingerprint. Its template is the tell:
-  // an "This is an advertisement." disclaimer, a "Sponsored Content" block, and
-  // a "Sponsored by <name>" credit under each teaser link.
+  // an "This is an advertisement." disclaimer followed by the ad network's "If
+  // you no longer wish to receive promotional messages from this advertiser"
+  // sentence, a "Sponsored Content" block, and a "Sponsored by <name>" credit
+  // under each teaser link.
   //
   // v6.79.0/6.80.0 keyed on the SENDER STRUCTURE instead (display name ==
   // dotted mailbox) from a header nobody had seen, and never fired on the real
@@ -286,8 +288,10 @@ function collectSignals(message)
   //
   // Convicts on its own (Rule 11, DELETES - the user's explicit call) and is
   // STRONG in hasCorroboratingSignal(). All required, on the lower-cased,
-  // whitespace-collapsed text: the disclaimer, the block heading, and the
-  // credit line at least twice. Checked against the plain body, then against
+  // whitespace-collapsed text: the disclaimer, the advertiser sentence, the
+  // block heading, and the credit line at least twice. The advertiser sentence
+  // is the guard review asked for: six plausible editorial-newsletter bodies
+  // carried the other three phrases and would have been deleted without it. Checked against the plain body, then against
   // the tag-stripped HTML, because a multipart message's plain part is not
   // guaranteed to carry the sponsor block. Cheap to evade - reword any of the
   // three - it buys time, not lasting coverage. False positive class: a
@@ -301,12 +305,13 @@ function collectSignals(message)
       const t = text.toLowerCase().replace(/[ \t\r\n\f\v\u00a0]+/g, ' ');
       return t.indexOf(SPONSORED_AD_PHRASES[0]) !== -1 &&
              t.indexOf(SPONSORED_AD_PHRASES[1]) !== -1 &&
-             t.split(SPONSORED_AD_PHRASES[2]).length - 1 >= 2;
+             t.indexOf(SPONSORED_AD_PHRASES[2]) !== -1 &&
+             t.split(SPONSORED_AD_PHRASES[3]).length - 1 >= 2;
     };
     if (hasAdTemplate(body) || hasAdTemplate(stripHtmlTags(html)))
     {
       signals.sponsoredAdTemplate = true;
-      logDebug('Sponsored-ad template: disclaimer + sponsor block + credit lines');
+      logDebug('Sponsored-ad template: disclaimer + advertiser sentence + sponsor block + credit lines');
     }
   }
   catch (signalError)

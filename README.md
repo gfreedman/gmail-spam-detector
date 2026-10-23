@@ -266,9 +266,11 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
   Voice Message Notification" pointing at a typosquat domain
 
 **16. Sponsored-Ad Template (Content Signal)**
-- The body carries an "This is an advertisement" disclaimer, a "Sponsored Content"
-  block heading, and at least two "Sponsored by ..." credit lines (checked on
-  the plain body, then on the tag-stripped HTML)
+- The body carries an "This is an advertisement" disclaimer, the ad network's
+  "promotional messages from this advertiser" unsubscribe sentence, a "Sponsored
+  Content" block heading, and at least two "Sponsored by ..." credit lines
+  (checked on the plain body, then on the tag-stripped HTML). The advertiser
+  sentence is what editorial sponsor blocks (Morning Brew, Beehiiv) lack
 - Deletes (Rule 11), archived to Drive first. Built after a gold-IRA promo sent
   through a shared ESP scored zero on every other signal. Cheap to evade
   (reword any phrase), so it buys time rather than lasting coverage
@@ -323,8 +325,8 @@ if (callbackPhishing) { return SPAM; }
 // off-domain link → calendar phishing. DELETES.
 if (calendarLure) { return SPAM; }
 
-// RULE 11: Ad disclaimer + "Sponsored Content" block + 2 "Sponsored by"
-// credit lines. DELETES (archived to Drive first).
+// RULE 11: Ad disclaimer + advertiser unsubscribe sentence + "Sponsored
+// Content" block + 2 "Sponsored by" credit lines. DELETES (archived to Drive first).
 if (sponsoredAdTemplate) { return SPAM; }
 
 return NOT_SPAM;

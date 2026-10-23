@@ -37,17 +37,26 @@ sender structure separates this from a legitimate client on the same shared
 relay, so no structural rule was rebuilt.
 
 The tell that is in the message is its template: an "This is an advertisement."
-disclaimer, a "Sponsored Content" block, and a "Sponsored by <name>" credit
-under each teaser. Signal 14 `sponsoredAdTemplate` requires all three (the
-credit line at least twice) on the lower-cased, whitespace-collapsed body, then
-on the tag-stripped HTML. The phrases live in `SPONSORED_AD_PHRASES`, which the
+disclaimer, the ad network's "If you no longer wish to receive promotional
+messages from this advertiser" sentence, a "Sponsored Content" block, and a
+"Sponsored by <name>" credit under each teaser. Signal 14 `sponsoredAdTemplate`
+requires all four (the credit line at least twice) on the lower-cased,
+whitespace-collapsed body, then on the tag-stripped HTML. The advertiser
+sentence was added in review: six plausible editorial-newsletter bodies (a
+Morning-Brew-style block, a Beehiiv sponsor block, a Taboola-style module)
+carried the other three phrases and would have been deleted; none carries it.
+The real message was confirmed HTML-only (`multipart/mixed`, one quoted-printable
+`text/html` part), and its decoded body fires the signal. Review also found the
+Python mirror did not collapse Unicode spaces (U+2009, U+3000, U+202F, U+FEFF,
+U+2028) in the HTML path as JS does; fixed and pinned on both sides. The phrases live in `SPONSORED_AD_PHRASES`, which the
 Python mirror loads from source. Measured against the user's whole mailbox, no
 kept message contained the disclaimer, the block heading, or both. Still Rule
 11, still DELETES at the user's explicit call, still behind the Drive-archive
 gate; STRONG in `hasCorroboratingSignal()`. The fixture now carries the real
 From header, and the end-to-end test reads that same `.eml`, so the outcome
 (real message -> `analyzeMessage` -> Rule 11 -> `batchDelete`) is pinned.
-Evasion is rewording any phrase. Mail already stamped `SpamChecked` is still
+Evasion is rewording any phrase, or an entity (`&nbsp;`) or zero-width character
+inside one; entities are not decoded here. Mail already stamped `SpamChecked` is still
 only HELD by the recheck path (v6.48.0), not deleted.
 
 ## v6.80.0

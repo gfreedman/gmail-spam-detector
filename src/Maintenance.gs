@@ -394,7 +394,10 @@ function checkFalseNegatives()
  *
  * Performance: capped at RECHECK_LIMIT emails per run. Messages are batch-fetched
  * via getMessagesForThreads() (one API call for all threads). analyzeMessage()
- * averages ~2ms per email in GAS, so 20 emails adds ~40ms — negligible vs. budget.
+ * averages ~2ms per email in GAS, so 20 emails adds ~40ms (50 on the forced
+ * post-deploy cycle: ~100ms) — negligible vs. budget. The wall-clock cost is the
+ * per-message fetches and the writes on a match, which is what RECHECK_BUDGET_MS
+ * bounds.
  *
  * @param {boolean=} widen  True on the forced post-deploy cycle: re-check up to 50
  *                          threads instead of 20. When the window fills, a

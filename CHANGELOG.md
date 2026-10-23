@@ -110,6 +110,8 @@ only HELD by the recheck path (v6.48.0), not deleted.
 
 ## v6.80.0
 
+*Superseded by v6.81.0: this rule's signal required the From display name to equal the dotted mailbox, which the real email's header did not satisfy, so it never fired on the mail it was built for. Rule 11 now keys on the sponsored-ad template; see that entry.*
+
 **Rule 11: a sender that signs as a brand domain on an ESP relay is now deleted from the inbox.**
 
 v6.79.0 shipped Signal 14 as corroboration-only. That was the wrong deliverable:
@@ -137,6 +139,8 @@ header through `analyzeMessage()` and `disposeDetectedMessage()` to a
 `batchDelete`, so the end-to-end outcome is pinned and not just the signal.
 
 ## v6.79.0
+
+*Superseded by v6.81.0: Signal 14 as described here (display name == dotted mailbox) never fired on the real email, and it was corroboration-only, so it could not have removed it from the inbox either. See v6.80.0 and v6.81.0.*
 
 **A sender that signs as a brand domain on an ESP relay now corroborates a Gmail spam verdict.**
 

@@ -2,7 +2,7 @@
  * Flush.gs — Buffered log flush, and the rule-name cascade.
  *
  * getRuleFromSignals() is here for historical reasons and is easy to miss: it is
- * a SECOND implementation of makeVerdict()'s nine rules, returning the rule NAME
+ * a SECOND implementation of makeVerdict()'s eleven rules, returning the rule NAME
  * rather than a boolean — and it is what disposeDetectedMessage() reads to
  * decide whether a message is destroyed or quarantined.
  *
@@ -229,6 +229,11 @@ function getRuleFromSignals(signals)
   if (signals.calendarLure)
   {
     return { rule: 'Rule 10', description: 'Calendar voicemail lure (unknown-sender invite, voicemail/fax pretext in the title, off-domain link)' };
+  }
+
+  if (signals.espRelayIdentity)
+  {
+    return { rule: 'Rule 11', description: 'ESP-relay identity (mailbox and display name are a brand domain on a shared relay)' };
   }
 
   return { rule: 'NONE', description: 'No rule triggered' };

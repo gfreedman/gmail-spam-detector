@@ -32,7 +32,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 12. **Your address used as your name** ("geoff.c.freedman, Claim Your Free…")
 13. **Survey-scam disclaimers** (a footer disclaiming the very brand it impersonates)
 
-**Detection Logic — 9 rules, first match wins:**
+**Detection Logic — 11 rules, first match wins:**
 - Bulk email + blacklisted sender = SPAM
 - Bulk email + 2+ clickbait patterns = SPAM
 - Bulk email + 2+ spam behaviors = SPAM
@@ -48,7 +48,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 ## 📊 Results
 
-- ✅ **100% detection** on 58/58 spam + 8/8 scam (.eml files)
+- ✅ **100% detection** on 59/59 spam + 8/8 scam (.eml files)
 - ✅ **0% false positives** on 28/28 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
@@ -265,6 +265,14 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
 - Deletes (Rule 10). Built after a compromised Workspace account sent "New
   Voice Message Notification" pointing at a typosquat domain
 
+**16. ESP-Relay Identity (Structural Signal)**
+- The sender's mailbox is a dotted brand domain (`cole.emerson.trendwatcherslab.com`
+  at a shared ESP's relay) and the From display name repeats it verbatim; the
+  brand name appears nowhere in the sending domain
+- Deletes (Rule 11), archived to Drive first. Built after a gold-IRA promo scored
+  zero on every other signal. Cheap to evade (rename the display), so it buys
+  time rather than lasting coverage
+
 ### Decision Rules
 
 **Conservative approach - requires multiple signals:**
@@ -314,6 +322,10 @@ if (callbackPhishing) { return SPAM; }
 // RULE 10: Unknown-sender calendar invite + voicemail/fax lure in the title +
 // off-domain link → calendar phishing. DELETES.
 if (calendarLure) { return SPAM; }
+
+// RULE 11: Sender's mailbox AND display name are the same brand domain on a
+// shared ESP relay. DELETES (archived to Drive first).
+if (espRelayIdentity) { return SPAM; }
 
 return NOT_SPAM;
 ```
@@ -440,10 +452,10 @@ addToWhitelist('domain.com');
 │   ├── test_disposition.js      # Quarantine-vs-delete routing (Node)
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
-│   ├── spam_examples/           # Real spam .eml files (58)
+│   ├── spam_examples/           # Real spam .eml files (59)
 │   ├── scam_examples/           # Scam .eml files (8)
 │   ├── ham_examples/            # Legitimate .eml files (28)
-│   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (4)
+│   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

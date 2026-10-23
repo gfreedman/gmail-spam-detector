@@ -1,15 +1,15 @@
 /**
- * Verdict.gs — The nine rules, and the analyze entry point.
+ * Verdict.gs — The eleven rules, and the analyze entry point.
  *
  * makeVerdict() evaluates the rules in priority order, first match wins, and
  * returns a boolean. analyzeMessage() wraps collectSignals() + makeVerdict() and
  * is the catch-all: anything thrown below it returns unevaluated:'error' so the
  * message is retried rather than silently marked clean.
  *
- * NOTE: the same ten rules are implemented a second time as
+ * NOTE: the same eleven rules are implemented a second time as
  * getRuleFromSignals() in Flush.gs, which is what the destroy-vs-quarantine
  * decision actually reads. The two are pinned to each other by an exhaustive
- * 20,480-combination test in tests/test_disposition.js.
+ * 163,840-combination test in tests/test_disposition.js.
  *
  * Apps Script concatenates every .gs file in sources.json into ONE global
  * scope. These are not modules: nothing is imported, and every function here
@@ -140,6 +140,19 @@ function makeVerdict(signals)
   {
     logInfo('PHISHING DETECTED: Calendar invite from an unknown organiser with ' +
             'a voicemail/fax lure in the title and an off-domain link');
+    return true;
+  }
+
+  // Rule 11: ESP-relay identity (v6.80.0). DELETES, at the user's explicit
+  // call, after v6.79.0 shipped the signal as corroboration-only and the
+  // email it was built for ("The 1973 Loophole", gold-IRA lead-gen) stayed in
+  // the inbox. See Signal 14 for the conditions. No bulk prerequisite: the
+  // sending domain is the ESP's, and Cyberimpact is not a bulk fingerprint on
+  // purpose (it would expose every legitimate sender on that ESP to Rules 1-3).
+  // The Drive archive gate in disposeDetectedMessage() still applies.
+  if (signals.espRelayIdentity)
+  {
+    logInfo('SPAM DETECTED: ESP-relay identity (mailbox and display name are a brand domain on a shared relay)');
     return true;
   }
 

@@ -461,10 +461,12 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
  * Last labels that make a dotted sender local part read as a DOMAIN for
  * Signal 14 (espRelayIdentity). An allowlist, not "any alphabetic label":
  * "john.q.smith" is a plausible real mailbox and "smith" is not a TLD here.
+ * No "uk" (or other country codes that nest a second-level "org"/"co"/"gov"):
+ * "news.redcross.org.uk" would read "org" as the brand label.
  * @const {Array<string>}
  */
 const ESP_RELAY_IDENTITY_TLDS = Object.freeze([
-  'com', 'net', 'org', 'info', 'biz', 'io', 'co', 'us', 'ca', 'uk', 'ai', 'app',
+  'com', 'net', 'org', 'info', 'biz', 'io', 'co', 'us', 'ca', 'ai', 'app',
   'dev', 'xyz', 'online', 'site', 'shop', 'news', 'top', 'club', 'live', 'today'
 ]);
 

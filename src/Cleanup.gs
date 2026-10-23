@@ -117,7 +117,7 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * its 7-day grace window (the Drive archive copy is still written first).
  * It closed "CHARITY AND ORPHANAGE HOMES.", which scored zero elsewhere.
  *
- * espRelayIdentity (v6.79.0) is STRONG on its own, with no inbox rule: the
+ * espRelayIdentity (v6.79.0) is STRONG on its own (and, from v6.80.0, Rule 11): the
  * sender's mailbox is a dotted brand domain on an ESP's relay and the display
  * name repeats it ("cole.emerson.trendwatcherslab.com@email.cyberimpact.com").
  * Its false positive class is a legitimate sender that signs with a domain-

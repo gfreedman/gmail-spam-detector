@@ -113,7 +113,33 @@ function collectSignals(message)
   // .trim() matters: a text/plain part containing a single space is truthy,
   // so the HTML fallback never ran and Signals 2b/2c/2d all saw an empty
   // body. One space in the plain part disabled every body-based signal.
-  const body = sanitizeInput(plainBody).trim() || stripHtmlTags(html);
+  //
+  // Counts signals that threw and were skipped. A verdict reached with fewer
+  // signals than intended is not a trustworthy "clean" — see _degraded below.
+  // Declared HERE, before the first thing that can throw, because the body
+  // extraction below is itself guarded.
+  let signalsSkipped = 0;
+
+  // Guarded, unlike the fetches around it. getBody()/getRawContent() failing is
+  // transient, so analyzeMessage() turning it into unevaluated:'error' and
+  // retrying is right. This line is computation on attacker-supplied HTML, so a
+  // throw would recur on every retry. Unguarded, it discards the sender, subject
+  // and link-graph signals along with the body ones; guarded, those still run
+  // and CAN convict. (Without a verdict, a clean-looking message ends flagged
+  // and stamped after one retry either way.) An empty body plus signalsSkipped
+  // keeps every signal that does not need the body and marks the verdict
+  // degraded. Other computation above (sanitizeInput, extractEmailAddress) is
+  // also unguarded; neither is known to throw on a string.
+  let body = '';
+  try
+  {
+    body = sanitizeInput(plainBody).trim() || stripHtmlTags(html);
+  }
+  catch (bodyError)
+  {
+    signalsSkipped++;
+    logError('Body extraction threw; body signals will see an empty body: ' + bodyError.toString());
+  }
   const rawContent = message.getRawContent(); // Full RFC 822 content (includes all headers)
 
   // ── Values shared across signal blocks ──────────────────────────────────
@@ -125,10 +151,6 @@ function collectSignals(message)
   const atIdx       = senderAddress.lastIndexOf('@');
   let   isThrowawayHost = false;              // free mail OR a throwaway tenant; set by 8, read by 9 and 10
   let   selfNamedLoose  = false;              // set by Signal 10, read ONLY by Signal 9 — see Signal 10
-
-  // Counts signals that threw and were skipped. A verdict reached with fewer
-  // signals than intended is not a trustworthy "clean" — see _degraded below.
-  let signalsSkipped = 0;
 
   // ── Initialize signal accumulators ───────────────────────────────────────
   // Each detection phase below populates one signal. makeVerdict() combines

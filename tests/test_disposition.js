@@ -2034,6 +2034,162 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
         ' combinations', offSpec.length === 0, offSpec.join(' | '));
 }
 
+console.log('\n=== Maintenance: body extraction, recheck window, step isolation (v6.82.0) ===');
+{
+  // ---- Gap 1: a throw while extracting the body must not discard every signal.
+  const ctx = makeCtx();
+  // Throw on the FIRST call only (the body extraction). Signal 14 calls
+  // stripHtmlTags() later inside its own try and bumps signalsSkipped itself,
+  // which would mask a body-extraction path that forgot to.
+  const realStrip = ctx.stripHtmlTags;
+  let stripCalls = 0;
+  ctx.stripHtmlTags = (h) => { if (stripCalls++ === 0) throw new Error('boom'); return realStrip(h); };
+  const m = phishMessage('mBODY');          // brand-mismatched CTA lives in the HTML, not the body
+  m.getPlainBody = () => '';                // HTML-only: forces the stripHtmlTags fallback
+  const errors = [];
+  ctx.logError = (x) => errors.push(String(x));
+  const sig = ctx.collectSignals(m);
+  check('a throw in body extraction does not abort collectSignals', sig !== null && typeof sig === 'object');
+  check('...the signals that do not need the body still fire (brand-mismatched CTA)',
+        sig && sig.brandMismatchedCta === true, JSON.stringify(sig));
+  check('...and the verdict is marked degraded, so it is not a trusted "clean"',
+        sig && sig._degraded === true);
+  check('...and the failure is logged', errors.some(e => e.indexOf('Body extraction threw') !== -1),
+        JSON.stringify(errors));
+  stripCalls = 0;   // re-arm: the next analyzeMessage() throws on its body extraction again
+  const clean = phishMessage('mBODY2');
+  clean.getFrom = () => 'A <a@example.org>'; clean.getBody = () => '<p>hello</p>'; clean.getPlainBody = () => '';
+  const v = ctx.analyzeMessage(clean);
+  check('a clean-looking message with a failed body is unevaluated:error (retried), never silently clean',
+        v.isSpam === false && v.unevaluated === 'error', JSON.stringify({ s: v.isSpam, u: v.unevaluated }));
+
+  // ---- Gap 2: the recheck window.
+  const win = (widen, n) => {
+    const c = makeCtx();
+    const seen = [], logs = [];
+    c.GmailApp.search = (q, start, limit) => {
+      seen.push({ q, start, limit });
+      return Array.from({ length: n }, () => ({ __messages: [] }));
+    };
+    c.logInfo = (x) => logs.push(String(x));
+    c.recheckRecentSpamChecked(widen);
+    return { seen, logs };
+  };
+  check('the routine recheck asks for 20 threads', win(false, 0).seen[0].limit === 20);
+  check('the forced post-deploy recheck asks for 50 threads', win(true, 0).seen[0].limit === 50);
+  check('a full routine window says so (20 of 20)',
+        win(false, 20).logs.some(l => l.indexOf('Recheck window full (20 threads)') !== -1));
+  check('a full forced window says so (50 of 50)',
+        win(true, 50).logs.some(l => l.indexOf('Recheck window full (50 threads)') !== -1));
+  check('a window with room (19 of 20) stays silent',
+        !win(false, 19).logs.some(l => l.indexOf('Recheck window full') !== -1));
+  check('the window query is unchanged (inbox + SpamChecked, no Phishing, 2 days)',
+        /in:inbox label:SpamChecked -label:Phishing newer_than:2d/.test(win(true, 0).seen[0].q), win(true, 0).seen[0].q);
+
+  // The wall-clock stop: a recheck that has spent its budget leaves the rest for next time.
+  {
+    const c = makeCtx();
+    const logs = [];
+    c.GmailApp.search = () => Array.from({ length: 10 }, () => ({ __messages: [] }));
+    c.logInfo = (x) => logs.push(String(x));
+    let t = 0;
+    const RealDate = require('vm').runInContext('Date', c);   // built-ins live inside the context
+    c.Date = class extends RealDate { static now() { const v = t; t += 120000; return v; } };   // 0, 120 s, 240 s ... per call
+    c.recheckRecentSpamChecked(true);
+    // startedAt = 0, so the check at i=0 sees EXACTLY 120 s: not past the budget
+    // (a `>=` or a 110 s budget would stop at 0); the check at i=1 sees 240 s.
+    check('a recheck past its 120 s budget stops at the first check over it, and says where',
+          logs.some(l => /Recheck stopped at 1 of 10 threads/.test(l)), JSON.stringify(logs));
+    check('...and reports the threads it dropped as NOT re-evaluated',
+          logs.some(l => /remaining 9 were NOT re-evaluated/.test(l)), JSON.stringify(logs));
+    check('...and stops ONCE (a `continue` would log on every remaining thread)',
+          logs.filter(l => l.indexOf('Recheck stopped') !== -1).length === 1, JSON.stringify(logs));
+    const quick = makeCtx(); const qlogs = [];
+    quick.GmailApp.search = () => Array.from({ length: 10 }, () => ({ __messages: [] }));
+    quick.logInfo = (x) => qlogs.push(String(x));
+    quick.recheckRecentSpamChecked(true);
+    check('a fast recheck is not cut short', !qlogs.some(l => l.indexOf('Recheck stopped') !== -1));
+  }
+
+  // ---- Gap 3: one failing step must not skip the rest, and the early version
+  // marker must still stop a repeat forced cycle.
+  const run = (throwing) => {
+    const c = makeCtx({ props: { LAST_SEEN_VERSION: '0.0.0' } });
+    const order = [], errs = [];
+    const step = (name) => (...a) => { order.push(name + (a.length ? '(' + a.join(',') + ')' : '')); if (throwing.indexOf(name) !== -1) throw new Error(name + ' down'); };
+    ['checkFalseNegatives', 'destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot',
+     'sweepSpamFolderCopies', 'recheckRecentSpamChecked'].forEach(n => { c[n] = step(n); });
+    c.logError = (x) => errs.push(String(x));
+    c.runPeriodicMaintenance();
+    const ver = require('vm').runInContext('SCRIPT_VERSION', c);
+    return { c, order, errs, ver, again: () => { const before = order.length; c.runPeriodicMaintenance(); return order.length - before; } };
+  };
+  const ALL = ['checkFalseNegatives', 'destroySpam', 'reviewGmailSpam(true)', 'writeSpamFolderSnapshot',
+               'sweepSpamFolderCopies', 'recheckRecentSpamChecked(true)'];
+  const ok = run([]);
+  check('a forced cycle runs every step in order, passing versionChanged to the two that need it',
+        JSON.stringify(ok.order) === JSON.stringify(ALL), JSON.stringify(ok.order));
+  const bad = run(['destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot']);
+  check('three throwing steps do not stop the recheck from running',
+        bad.order[bad.order.length - 1] === 'recheckRecentSpamChecked(true)', JSON.stringify(bad.order));
+  check('every step still ran despite the throws', bad.order.length === ALL.length, JSON.stringify(bad.order));
+  check('each failure is logged by name',
+        ['destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot'].every(
+          n => bad.errs.some(e => e.indexOf('Maintenance step ' + n + ' threw') !== -1)), JSON.stringify(bad.errs));
+  check('LAST_SEEN_VERSION is recorded even when steps throw',
+        bad.c.props.LAST_SEEN_VERSION === bad.ver, bad.c.props.LAST_SEEN_VERSION);
+  check('LAST_RECHECK_TS and LAST_MAINTENANCE_TS are written despite the throws',
+        !!bad.c.props.LAST_RECHECK_TS && !!bad.c.props.LAST_MAINTENANCE_TS);
+  check('the early version marker still blocks a second forced cycle (quota guard)',
+        bad.again() === 0);
+  // The failure must be COUNTED, not just logged: logError() increments nothing,
+  // so before this a swallowed step reported errors=0 and Health status OK.
+  {
+    const c = makeCtx({ props: { LAST_SEEN_VERSION: '0.0.0' } });
+    const beats = [];
+    ['checkFalseNegatives', 'reviewGmailSpam', 'writeSpamFolderSnapshot', 'sweepSpamFolderCopies',
+     'recheckRecentSpamChecked'].forEach(n => { c[n] = () => {}; });
+    c.destroySpam = () => { throw new Error('destroySpam down'); };
+    c.logRunHeartbeat = (s) => beats.push(s);
+    c.processInbox();
+    check('processInbox emits one heartbeat', beats.length === 1, JSON.stringify(beats));
+    check('a swallowed maintenance failure reaches the heartbeat as errors >= 1 (status ERRORS, not OK)',
+          beats.length === 1 && beats[0].errors >= 1 && !beats[0].runError, JSON.stringify(beats));
+    // The counter is per RUN: a later clean run in the same execution must not inherit it.
+    c.destroySpam = () => {};
+    c.props.LAST_SEEN_VERSION = '0.0.0';
+    c.processInbox();
+    check('the failure counter is reset each run (a later clean run reports errors = 0)',
+          beats.length === 2 && beats[1].errors === 0, JSON.stringify(beats));
+    const ok = makeCtx({ props: { LAST_SEEN_VERSION: '0.0.0' } });
+    const okBeats = [];
+    ['checkFalseNegatives', 'destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot',
+     'sweepSpamFolderCopies', 'recheckRecentSpamChecked'].forEach(n => { ok[n] = () => {}; });
+    ok.logRunHeartbeat = (s) => okBeats.push(s);
+    ok.processInbox();
+    check('a clean run still reports errors = 0',
+          okBeats.length === 1 && okBeats[0].errors === 0, JSON.stringify(okBeats));
+  }
+  // EVERY step, alone: each is isolated, each is counted, the cycle completes.
+  ['checkFalseNegatives', 'destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot',
+   'sweepSpamFolderCopies', 'recheckRecentSpamChecked'].forEach((name) => {
+    const r = run([name]);
+    check('a throwing ' + name + ' is contained: every step still runs and the cycle completes',
+          r.order.length === ALL.length && !!r.c.props.LAST_MAINTENANCE_TS &&
+          r.errs.some(e => e.indexOf('Maintenance step ' + name + ' threw') !== -1),
+          JSON.stringify({ order: r.order, errs: r.errs }));
+    const c2 = makeCtx({ props: { LAST_SEEN_VERSION: '0.0.0' } });
+    const beats2 = [];
+    ['checkFalseNegatives', 'destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot',
+     'sweepSpamFolderCopies', 'recheckRecentSpamChecked'].forEach(n => { c2[n] = () => {}; });
+    c2[name] = () => { throw new Error(name + ' down'); };
+    c2.logRunHeartbeat = (s) => beats2.push(s);
+    c2.processInbox();
+    check('a throwing ' + name + ' reaches the heartbeat as errors >= 1',
+          beats2.length === 1 && beats2[0].errors >= 1 && !beats2[0].runError, JSON.stringify(beats2));
+  });
+}
+
 console.log('\n=== ONE weak signal no longer skips the Spam-folder grace period ===');
 {
   // "Storage 100% Full", FEAR only: was deleted the same run pre-v6.66.0.

@@ -20,6 +20,55 @@ detail plus the diffs.
 
 ---
 
+## v6.82.0
+
+**Three maintenance gaps the v6.81.0 reviews found are closed. No rule changed, and nothing new can be deleted.**
+
+All three were reported as unchanged, low-probability gaps rather than live
+failures; each now has a test that fails when the fix is removed.
+
+1. **Body extraction was an unguarded computation on attacker-supplied HTML.**
+   `sanitizeInput(plainBody).trim() || stripHtmlTags(html)` sat outside every
+   try. (It was not the only unguarded line in `collectSignals()`: the fetches
+   before it are meant to be retried, and `sanitizeInput` and
+   `extractEmailAddress` are unguarded too but not known to throw on a string.)
+   A throw here would recur on every retry and discard the sender, subject and
+   link-graph signals along with the body ones. It is now guarded: the body is
+   empty, `signalsSkipped` is bumped, so the verdict is `_degraded` (retried once
+   as `unevaluated:'error'`), and every signal that does not need the body still
+   runs and can convict. For a message that stays clean-looking the end state is
+   unchanged: flagged and stamped after one retry. `signalsSkipped` moved above
+   it to be in scope.
+2. **The post-deploy re-check only saw the newest 20 threads.** The search is
+   newest-first, so more than 20 `SpamChecked` threads in the last two days
+   silently dropped the oldest. The forced post-deploy cycle now asks for 100
+   (about 100 reads, once per deploy); the routine timer keeps 20. Not 100: each
+   MATCH costs a Drive write and three Gmail writes (~2-3 s), a bad pattern
+   deploy matches broadly, and the run shares one 6-minute limit, so the loop
+   also stops after a 120 s budget and says where. Threads it leaves are not
+   deferred: the routine recheck re-reads only the newest 20, so they are not
+   re-evaluated until another deploy forces a cycle. The log line says so. When a window fills, a
+   `logInfo` line says older mail was not re-evaluated, so the gap is no longer
+   invisible. The re-check still only HOLDS (v6.48.0); it never deletes.
+3. **A throwing maintenance step skipped the re-check.** Only `destroySpam` has
+   no outer try; `reviewGmailSpam` wraps its body in two blocks and
+   `writeSpamFolderSnapshot` in one, but nothing enforced that, and
+   `LAST_SEEN_VERSION` is recorded before the cycle, so an escaped throw cost a
+   deploy's forced cycle its re-check and left it on the 30-minute timer. Each
+   step now runs through `runMaintenanceStep()`, which logs the failure by name
+   and increments `_maintenanceFailures`, which `processInbox()` adds to the
+   run's error count. That counter is required: `logError()` increments nothing,
+   so an isolated failure otherwise reported `errors=0` and Health status OK, and
+   `prod_health.py` would have called a broken step healthy (a first draft of
+   this change said it "still reaches the health row"; review showed that false).
+   The heartbeat now reports ERRORS, where before an escaped throw reported
+   THREW. `LAST_SEEN_VERSION` stays recorded early; with the steps isolated it
+   now guards only a throw in `runPeriodicMaintenance()`'s own property calls, so
+   it is belt-and-braces. A test still pins that a second run does not repeat the
+   forced cycle. The steps still not isolated from each other's *effects* were
+   checked in review: none depends on an earlier step having succeeded in a way
+   that makes running it unsafe.
+
 ## v6.81.0
 
 **Rule 11 now keys on the sponsored-ad template, not the sender's structure. v6.79.0 and v6.80.0 never fired on the mail they were built for.**

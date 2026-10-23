@@ -44,6 +44,14 @@ let _pendingLogEntries = [];
  * @type {Array<string>}
  */
 let _destroyedMessageIds = [];
+
+/**
+ * Maintenance steps that threw and were isolated by runMaintenanceStep() this
+ * run. logError() increments nothing, so without this a swallowed failure
+ * left errors=0 and the Health status OK. processInbox() adds it to the run's
+ * error count before the heartbeat. Reset at the top of every run.
+ */
+let _maintenanceFailures = 0;
 /** @type {Array<string>} Message ids that reached the Sheet buffer this run. */
 let _loggedMessageIds    = [];
 /**

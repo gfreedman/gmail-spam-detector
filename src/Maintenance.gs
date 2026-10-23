@@ -125,6 +125,7 @@ function runPeriodicMaintenance()
 {
   // 5 minutes, down from 15. Chosen against Gmail's read quota rather than by
   // feel: recheckRecentSpamChecked() runs analyzeMessage() on up to 20 recent
+  // (100 on the once-per-deploy forced cycle)
   // inbox threads, and each non-whitelisted message costs a getRawContent()
   // fetch. At ~7 inbox threads that is ~7 reads per cycle:
   //     every  1 min -> ~10 000 reads/day  (about half the consumer daily quota)
@@ -176,25 +177,31 @@ function runPeriodicMaintenance()
 
   logInfo('Running periodic maintenance');
 
+  // Each step is isolated (see runMaintenanceStep): a throw in one must not
+  // abort the cycle and skip the rest. That mattered most for the re-check
+  // below, because LAST_SEEN_VERSION is already recorded, so on a deploy's
+  // forced cycle an early throw would have cost the re-check its only
+  // immediate run and left it waiting on the 30-minute timer.
+
   // Cheap, and genuinely time-sensitive: one search each.
-  checkFalseNegatives();
-  destroySpam();
+  runMaintenanceStep('checkFalseNegatives', checkFalseNegatives);
+  runMaintenanceStep('destroySpam', destroySpam);
 
   // Re-judge Gmail's own spam verdicts and delete only what we agree about.
   // Runs after destroySpam() so our own failed deletes are retried first and
   // do not show up here as unreviewed.
   // versionChanged forces a full re-review, so a detection improvement is
   // applied to spam the previous logic already looked at and dismissed.
-  reviewGmailSpam(versionChanged);
+  runMaintenanceStep('reviewGmailSpam', function() { reviewGmailSpam(versionChanged); });
 
   // Publish the folder AFTER the review, so the tab reflects the deletions this
   // run just made rather than the state that preceded them. Costs two searches
   // and no getRawContent(); see the function header.
-  writeSpamFolderSnapshot();
+  runMaintenanceStep('writeSpamFolderSnapshot', writeSpamFolderSnapshot);
 
   // Copies archiveSpamFolderCopy() made can include legitimate mail Gmail
   // misfiled; they must not outlive their purpose. One folder listing.
-  sweepSpamFolderCopies();
+  runMaintenanceStep('sweepSpamFolderCopies', sweepSpamFolderCopies);
 
   // Expensive, and NOT time-sensitive. recheckRecentSpamChecked() re-evaluates
   // recent mail against the CURRENT patterns, so between deploys it keeps
@@ -208,11 +215,37 @@ function runPeriodicMaintenance()
   const lastRecheck = parseInt(props.getProperty('LAST_RECHECK_TS') || '0', 10);
   if (versionChanged || Date.now() - lastRecheck >= RECHECK_INTERVAL_MS)
   {
-    recheckRecentSpamChecked();
+    runMaintenanceStep('recheckRecentSpamChecked',
+                       function() { recheckRecentSpamChecked(versionChanged); });
     props.setProperty('LAST_RECHECK_TS', String(Date.now()));
   }
 
   props.setProperty('LAST_MAINTENANCE_TS', String(Date.now()));
+}
+
+/**
+ * Run one maintenance step so that a throw in it cannot abort the cycle.
+ *
+ * runPeriodicMaintenance() calls six independent passes in a row. Three of them
+ * (destroySpam, reviewGmailSpam, writeSpamFolderSnapshot) have no outer try, so
+ * an exception escaping any one skipped everything after it, including the
+ * re-check that a fix deploy exists to trigger. The failure is logged through
+ * logError(), so it still counts toward the run's error total and reaches the
+ * health row; it is just no longer able to take the other steps down with it.
+ *
+ * @param {string}   name  Step name, for the log line.
+ * @param {Function} step  Zero-argument function that runs the step.
+ */
+function runMaintenanceStep(name, step)
+{
+  try
+  {
+    step();
+  }
+  catch (error)
+  {
+    logError('Maintenance step ' + name + ' threw and was skipped: ' + error.toString());
+  }
 }
 
 /**
@@ -358,11 +391,21 @@ function checkFalseNegatives()
  * Performance: capped at RECHECK_LIMIT emails per run. Messages are batch-fetched
  * via getMessagesForThreads() (one API call for all threads). analyzeMessage()
  * averages ~2ms per email in GAS, so 20 emails adds ~40ms — negligible vs. budget.
+ *
+ * @param {boolean=} widen  True on the forced post-deploy cycle: re-check up to 100
+ *                          threads instead of 20. When the window fills, a
+ *                          logInfo line says older mail was not re-evaluated.
  */
-function recheckRecentSpamChecked()
+function recheckRecentSpamChecked(widen)
 {
-  const RECHECK_DAYS  = 2;
-  const RECHECK_LIMIT = 20;
+  const RECHECK_DAYS         = 2;
+  // 20 on the routine timer; 100 on the forced post-deploy cycle. That cycle
+  // runs once per deploy and is the one a fix depends on, and the search is
+  // newest-first, so a 20-thread cap silently dropped the OLDEST rechecks
+  // whenever more than 20 SpamChecked threads sat in the inbox. 100 threads is
+  // ~200 reads once per deploy, against the ~2 000/day budget in
+  // runPeriodicMaintenance().
+  const RECHECK_LIMIT        = widen ? 100 : 20;
 
   try
   {
@@ -371,6 +414,14 @@ function recheckRecentSpamChecked()
                     ' newer_than:' + RECHECK_DAYS + 'd';
     const threads = GmailApp.search(query, 0, RECHECK_LIMIT);
     if (threads.length === 0) return;
+
+    // logInfo, not logDebug: debug is suppressed in production, and this is the
+    // only way anyone learns that older mail was not re-evaluated.
+    if (threads.length >= RECHECK_LIMIT)
+    {
+      logInfo('Recheck window full (' + RECHECK_LIMIT + ' threads): SpamChecked mail ' +
+              'older than the newest ' + RECHECK_LIMIT + ' was not re-evaluated this cycle');
+    }
 
     logDebug('Rechecking ' + threads.length + ' recent SpamChecked inbox email(s)');
 

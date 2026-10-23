@@ -2034,6 +2034,94 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
         ' combinations', offSpec.length === 0, offSpec.join(' | '));
 }
 
+console.log('\n=== Maintenance: body extraction, recheck window, step isolation (v6.82.0) ===');
+{
+  // ---- Gap 1: a throw while extracting the body must not discard every signal.
+  const ctx = makeCtx();
+  // Throw on the FIRST call only (the body extraction). Signal 14 calls
+  // stripHtmlTags() later inside its own try and bumps signalsSkipped itself,
+  // which would mask a body-extraction path that forgot to.
+  const realStrip = ctx.stripHtmlTags;
+  let stripCalls = 0;
+  ctx.stripHtmlTags = (h) => { if (stripCalls++ === 0) throw new Error('boom'); return realStrip(h); };
+  const m = phishMessage('mBODY');          // brand-mismatched CTA lives in the HTML, not the body
+  m.getPlainBody = () => '';                // HTML-only: forces the stripHtmlTags fallback
+  const errors = [];
+  ctx.logError = (x) => errors.push(String(x));
+  const sig = ctx.collectSignals(m);
+  check('a throw in body extraction does not abort collectSignals', sig !== null && typeof sig === 'object');
+  check('...the signals that do not need the body still fire (brand-mismatched CTA)',
+        sig && sig.brandMismatchedCta === true, JSON.stringify(sig));
+  check('...and the verdict is marked degraded, so it is not a trusted "clean"',
+        sig && sig._degraded === true);
+  check('...and the failure is logged', errors.some(e => e.indexOf('Body extraction threw') !== -1),
+        JSON.stringify(errors));
+  stripCalls = 0;   // re-arm: the next analyzeMessage() throws on its body extraction again
+  const clean = phishMessage('mBODY2');
+  clean.getFrom = () => 'A <a@example.org>'; clean.getBody = () => '<p>hello</p>'; clean.getPlainBody = () => '';
+  const v = ctx.analyzeMessage(clean);
+  check('a clean-looking message with a failed body is unevaluated:error (retried), never silently clean',
+        v.isSpam === false && v.unevaluated === 'error', JSON.stringify({ s: v.isSpam, u: v.unevaluated }));
+
+  // ---- Gap 2: the recheck window.
+  const win = (widen, n) => {
+    const c = makeCtx();
+    const seen = [], logs = [];
+    c.GmailApp.search = (q, start, limit) => {
+      seen.push({ q, start, limit });
+      return Array.from({ length: n }, () => ({ __messages: [] }));
+    };
+    c.logInfo = (x) => logs.push(String(x));
+    c.recheckRecentSpamChecked(widen);
+    return { seen, logs };
+  };
+  check('the routine recheck asks for 20 threads', win(false, 0).seen[0].limit === 20);
+  check('the forced post-deploy recheck asks for 100 threads', win(true, 0).seen[0].limit === 100);
+  check('a full routine window says so (20 of 20)',
+        win(false, 20).logs.some(l => l.indexOf('Recheck window full (20 threads)') !== -1));
+  check('a full forced window says so (100 of 100)',
+        win(true, 100).logs.some(l => l.indexOf('Recheck window full (100 threads)') !== -1));
+  check('a window with room (19 of 20) stays silent',
+        !win(false, 19).logs.some(l => l.indexOf('Recheck window full') !== -1));
+  check('the window query is unchanged (inbox + SpamChecked, no Phishing, 2 days)',
+        /in:inbox label:SpamChecked -label:Phishing newer_than:2d/.test(win(true, 0).seen[0].q), win(true, 0).seen[0].q);
+
+  // ---- Gap 3: one failing step must not skip the rest, and the early version
+  // marker must still stop a repeat forced cycle.
+  const run = (throwing) => {
+    const c = makeCtx({ props: { LAST_SEEN_VERSION: '0.0.0' } });
+    const order = [], errs = [];
+    const step = (name) => (...a) => { order.push(name + (a.length ? '(' + a.join(',') + ')' : '')); if (throwing.indexOf(name) !== -1) throw new Error(name + ' down'); };
+    ['checkFalseNegatives', 'destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot',
+     'sweepSpamFolderCopies', 'recheckRecentSpamChecked'].forEach(n => { c[n] = step(n); });
+    c.logError = (x) => errs.push(String(x));
+    c.runPeriodicMaintenance();
+    const ver = require('vm').runInContext('SCRIPT_VERSION', c);
+    return { c, order, errs, ver, again: () => { const before = order.length; c.runPeriodicMaintenance(); return order.length - before; } };
+  };
+  const ALL = ['checkFalseNegatives', 'destroySpam', 'reviewGmailSpam(true)', 'writeSpamFolderSnapshot',
+               'sweepSpamFolderCopies', 'recheckRecentSpamChecked(true)'];
+  const ok = run([]);
+  check('a forced cycle runs every step in order, passing versionChanged to the two that need it',
+        JSON.stringify(ok.order) === JSON.stringify(ALL), JSON.stringify(ok.order));
+  const bad = run(['destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot']);
+  check('three throwing steps do not stop the recheck from running',
+        bad.order[bad.order.length - 1] === 'recheckRecentSpamChecked(true)', JSON.stringify(bad.order));
+  check('every step still ran despite the throws', bad.order.length === ALL.length, JSON.stringify(bad.order));
+  check('each failure is logged by name (and so reaches the error count)',
+        ['destroySpam', 'reviewGmailSpam', 'writeSpamFolderSnapshot'].every(
+          n => bad.errs.some(e => e.indexOf('Maintenance step ' + n + ' threw') !== -1)), JSON.stringify(bad.errs));
+  check('LAST_SEEN_VERSION is recorded even when steps throw',
+        bad.c.props.LAST_SEEN_VERSION === bad.ver, bad.c.props.LAST_SEEN_VERSION);
+  check('LAST_RECHECK_TS and LAST_MAINTENANCE_TS are written despite the throws',
+        !!bad.c.props.LAST_RECHECK_TS && !!bad.c.props.LAST_MAINTENANCE_TS);
+  check('the early version marker still blocks a second forced cycle (quota guard)',
+        bad.again() === 0);
+  const rc = run(['recheckRecentSpamChecked']);
+  check('a throwing recheck is contained too, and the cycle still completes',
+        !!rc.c.props.LAST_MAINTENANCE_TS && rc.errs.some(e => e.indexOf('recheckRecentSpamChecked threw') !== -1));
+}
+
 console.log('\n=== ONE weak signal no longer skips the Spam-folder grace period ===');
 {
   // "Storage 100% Full", FEAR only: was deleted the same run pre-v6.66.0.

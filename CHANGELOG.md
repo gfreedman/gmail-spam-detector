@@ -20,6 +20,38 @@ detail plus the diffs.
 
 ---
 
+## v6.82.0
+
+**Three maintenance gaps the v6.81.0 reviews found are closed. No rule changed, and nothing new can be deleted.**
+
+All three were reported as unchanged, low-probability gaps rather than live
+failures; each now has a test that fails when the fix is removed.
+
+1. **Body extraction was the one unguarded line in `collectSignals()`.**
+   `sanitizeInput(plainBody).trim() || stripHtmlTags(html)` sat outside every
+   try. It is pure computation on attacker-supplied HTML, so a throw there
+   would recur on every retry, discard the sender, subject and link-graph
+   signals with the body ones, and end as a permanent flag-and-stamp. It is now
+   guarded: the body is empty, `signalsSkipped` is bumped, so the verdict is
+   `_degraded` (never a trusted "clean"; retried once as `unevaluated:'error'`),
+   and every signal that does not need the body still runs. `signalsSkipped`
+   moved above it to be in scope.
+2. **The post-deploy re-check only saw the newest 20 threads.** The search is
+   newest-first, so more than 20 `SpamChecked` threads in the last two days
+   silently dropped the oldest. The forced post-deploy cycle now asks for 100
+   (about 200 reads, once per deploy); the routine timer keeps 20. When a window
+   fills, a `logInfo` line says older mail was not re-evaluated, so the gap is no
+   longer invisible. The re-check still only HOLDS (v6.48.0); it never deletes.
+3. **A throwing maintenance step skipped the re-check.** Three of the six steps
+   (`destroySpam`, `reviewGmailSpam`, `writeSpamFolderSnapshot`) have no outer
+   try, and `LAST_SEEN_VERSION` is recorded before the cycle, so an escaped throw
+   cost a deploy's forced cycle its re-check and left it on the 30-minute timer.
+   Each step now runs through `runMaintenanceStep()`, which logs the failure by
+   name through `logError()` (so it still reaches the error count and the health
+   row). `LAST_SEEN_VERSION` stays recorded early on purpose: it stops a failing
+   cycle being re-forced every trigger and burning Gmail quota, and a test pins
+   that a second run does not repeat the forced cycle.
+
 ## v6.81.0
 
 **Rule 11 now keys on the sponsored-ad template, not the sender's structure. v6.79.0 and v6.80.0 never fired on the mail they were built for.**

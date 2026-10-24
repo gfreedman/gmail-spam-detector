@@ -20,6 +20,38 @@ detail plus the diffs.
 
 ---
 
+## v6.84.0
+
+**The post-deploy re-check now deletes a Rule 11 match instead of only holding it.**
+
+The v6.83.0 deploy re-checked the inbox, matched the AutoCamp ad it was built for,
+logged it (Raw Log row: `FALSE_NEGATIVE`, `Rule 11`, with the archived `.eml`) and
+**held** it (archived out of the inbox, `SuspectedSpam`). It was not deleted: the
+re-check path has held everything since v6.48.0, and the user, who had asked for
+this template to be deleted, had to trash it by hand. Detection and logging were
+correct; only the last step was missing on this path.
+
+- `recheckRecentSpamChecked()` takes `RECHECK_DELETE_RULES = ['Rule 11']`. A match
+  is archived to Drive (`accumulateLogEntry`), then routed through
+  `disposeDetectedMessage()`, which deletes only with a successful archive.
+- Every other rule still only HOLDS on this path. The v6.48.0 reasoning (a
+  pattern deployed minutes ago must not destroy mail the user already kept)
+  stands for them; Rule 11 is the exception because the user named the template
+  twice as mail to delete and its conditions are the narrowest of any rule.
+- No Drive archive: `disposeDetectedMessage()` quarantines, and the thread is then
+  held, as before.
+- The summary line now reads `N newly-matching email(s) ... M deleted (Rule 11 only,
+  archived first), K held`.
+
+Blast radius: the re-check covers the last 2 days of inbox mail carrying
+`SpamChecked`, at most 20 threads (50 on the forced post-deploy cycle), and only
+the Rule 11 conditions can delete.
+
+Tests: 7 new assertions in `test_disposition.js` (Rule 11 deletes after the Drive
+write, in that order; no archive holds; Rule 1 still holds; the summary line).
+Four faults injected on a scratch copy (allowlist widened to Rule 1, allowlist
+emptied, archive gate bypassed, no `continue` after the delete), each red.
+
 ## v6.83.0
 
 **Rule 11 now catches the same ad network's reworded variant. It still deletes.**

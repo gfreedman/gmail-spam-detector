@@ -2380,6 +2380,62 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
     c2.disposeDetectedMessage(m2, fakeThread([m2], c2.calls), v2.signals, true);
     check('Rule 11 PERMANENTLY DELETES the AutoCamp miss (user\'s call: delete, not quarantine)',
           c2.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c2.calls.map(x => x.op)));
+
+    // v6.84.0: the post-deploy RECHECK re-judges mail already kept in the inbox.
+    // It held the AutoCamp miss (v6.83.0 deploy) instead of deleting it. Rule 11
+    // alone is now archived and then deleted there; every other rule still holds.
+    const mkAuto = (id) => {
+      const x = phishMessage(id);
+      x.getFrom = () => autocamp.from; x.getSubject = () => autocamp.subject;
+      x.getRawContent = () => autocamp.raw;
+      x.getPlainBody = () => ''; x.getBody = () => autocamp.html;
+      return x;
+    };
+    const recheck = (msgs, props) => {
+      const c = makeCtx({ props: props });
+      const th = fakeThread(msgs, c.calls);
+      // Record Drive writes in the SAME ordered log as the Gmail calls, so the
+      // archive-before-delete order is provable.
+      const realFolder = c.DriveApp.getFolderById;
+      c.DriveApp.getFolderById = (id) => {
+        const f = realFolder(id), cf = f.createFile;
+        f.createFile = function() { c.calls.push({ op: 'driveCreateFile' }); return cf.apply(this, arguments); };
+        return f;
+      };
+      c.GmailApp.search = () => [th];
+      c.GmailApp.getMessagesForThreads = () => [msgs];
+      const logs = [];
+      c.logInfo = (l) => logs.push(String(l));
+      c.recheckRecentSpamChecked(true);
+      return { c, th, logs, deleted: c.calls.some(x => x.op === 'batchDelete'),
+               archivedOut: c.calls.some(x => x.op === 'modify' && x.rm.indexOf('INBOX') !== -1) };
+    };
+    {
+      const r = recheck([mkAuto('mRC11')], { SPAM_LOG_FOLDER_ID: 'folder123' });
+      check('RECHECK: a Rule 11 match is archived to Drive, then PERMANENTLY DELETED', r.deleted,
+            JSON.stringify(r.c.calls.map(x => x.op)));
+      const ops = r.c.calls.map(x => x.op);
+      check('RECHECK: the Drive archive is written BEFORE the delete',
+            ops.indexOf('driveCreateFile') !== -1 && ops.indexOf('driveCreateFile') < ops.indexOf('batchDelete'),
+            JSON.stringify(ops));
+      check('RECHECK: a deleted thread is not also held (no SuspectedSpam label)', r.th.__labels.indexOf('SuspectedSpam') === -1,
+            JSON.stringify(r.th.__labels));
+      check('RECHECK: the summary line says 1 deleted, 0 held',
+            r.logs.some(l => /1 newly-matching.*1 deleted.*0 held/.test(l)), JSON.stringify(r.logs));
+    }
+    {
+      const r = recheck([mkAuto('mRC11b')], {});   // no SPAM_LOG_FOLDER_ID: no Drive archive
+      check('RECHECK: a Rule 11 match with NO Drive archive is NOT deleted (the archive gate)', !r.deleted,
+            JSON.stringify(r.c.calls.map(x => x.op)));
+      check('RECHECK: ...it is held instead (archived out of the inbox, SuspectedSpam)',
+            r.archivedOut && r.th.__labels.indexOf('SuspectedSpam') !== -1, JSON.stringify(r.th.__labels));
+    }
+    {
+      const r = recheck([blacklistMessage('mRC1')], { SPAM_LOG_FOLDER_ID: 'folder123' });
+      check('RECHECK: a Rule 1 match is still only HELD, never deleted (v6.48.0 policy intact)',
+            !r.deleted && r.archivedOut && r.th.__labels.indexOf('SuspectedSpam') !== -1,
+            JSON.stringify({ calls: r.c.calls.map(x => x.op), labels: r.th.__labels }));
+    }
   }
   const MILLRAW = 'Reply-To: support@trendwatcherslab.com\r\n\r\nhi';
   const PAID = 'This is a paid advertisement. ' + HEAD + ' ' + CRED3;

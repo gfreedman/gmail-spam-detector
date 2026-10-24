@@ -43,13 +43,13 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - Free-mail sender with a machine-generated address + 2 spam behaviours = SPAM
 - Free-mail sender invoicing as a brand it doesn't control, with a phone number to call = PHISHING (quarantined, not deleted)
 - Calendar invite from an unknown organiser with a voicemail/fax lure in the title and an off-domain link = PHISHING
-- Ad disclaimer + the ad network's "promotional messages from this advertiser" sentence + a "Sponsored Content" block + 2 "Sponsored by" credits = SPAM
+- Ad disclaimer + a "Sponsored Content" block + "Sponsored by" credits (2, or 3 on the relay shape) + EITHER the ad network's "promotional messages from this advertiser" sentence OR the ad-mill sender shape (From mailbox ends in the Reply-To brand domain, on an ESP relay) = SPAM
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
 
 ## 📊 Results
 
-- ✅ **100% detection** on 59/59 spam + 8/8 scam (.eml files)
+- ✅ **100% detection** on 60/60 spam + 8/8 scam (.eml files)
 - ✅ **0% false positives** on 28/28 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
@@ -267,11 +267,14 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
   Voice Message Notification" pointing at a typosquat domain
 
 **16. Sponsored-Ad Template (Content Signal)**
-- The body carries an "This is an advertisement" disclaimer, the ad network's
-  "promotional messages from this advertiser" unsubscribe sentence, a "Sponsored
-  Content" block heading, and at least two "Sponsored by ..." credit lines
-  (checked on the plain body, then on the tag-stripped HTML). The advertiser
-  sentence is what editorial sponsor blocks (Morning Brew, Beehiiv) lack
+- The body carries an ad disclaimer ("This is an advertisement" / "a paid
+  advertisement"), a "Sponsored Content" block heading, and at least two
+  "Sponsored by ..." credit lines (regexes, v6.83.0; checked on the plain body,
+  then on the tag-stripped HTML, after decoding entities), PLUS either the ad
+  network's "promotional messages from this advertiser" unsubscribe sentence or
+  the ad-mill sender shape: a From mailbox like `brand.com@esp-relay` whose
+  Reply-To is on `brand.com`. Either one is what editorial sponsor blocks
+  (Morning Brew, Beehiiv) lack
 - Deletes (Rule 11), archived to Drive first. Built after a gold-IRA promo sent
   through a shared ESP scored zero on every other signal. Cheap to evade
   (reword any phrase), so it buys time rather than lasting coverage
@@ -455,7 +458,7 @@ addToWhitelist('domain.com');
 │   ├── test_disposition.js      # Quarantine-vs-delete routing (Node)
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
-│   ├── spam_examples/           # Real spam .eml files (59)
+│   ├── spam_examples/           # Real spam .eml files (60)
 │   ├── scam_examples/           # Scam .eml files (8)
 │   ├── ham_examples/            # Legitimate .eml files (28)
 │   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)

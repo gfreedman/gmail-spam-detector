@@ -2222,13 +2222,15 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   const HEAD = 'Sponsored Content';
   const ADV = 'If you no longer wish to receive promotional messages from this advertiser, please unsubscribe below.';
   const CRED = 'Sponsored by A. Sponsored by B.';
+  const CRED3 = CRED + ' Sponsored by C.';
   const FROM = 'Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>';
   const msg = (o) => {
-    o = Object.assign({ from: FROM, plain: '', html: '', subject: 'Weekly digest' }, o || {});
+    o = Object.assign({ from: FROM, plain: '', html: '', subject: 'Weekly digest',
+                        raw: 'Received: from x\r\n\r\nhi' }, o || {});
     const m = phishMessage('mH14');
     m.getFrom = () => o.from;
     m.getSubject = () => o.subject;
-    m.getRawContent = () => 'Received: from x\r\n\r\nhi';
+    m.getRawContent = () => o.raw;
     m.getPlainBody = () => o.plain;
     m.getBody = () => o.html;
     return m;
@@ -2237,15 +2239,24 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   const T = (body) => ({ plain: body, html: '<p>' + body + '</p>' });
 
   {
-    // Pin the phrase ORDER in the shipped source: the signal indexes the array,
+    // Pin the pattern ORDER in the shipped source: the signal indexes the array,
     // so a reorder changes behaviour and only the Python suite noticed before.
     const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'Patterns.gs'), 'utf8');
-    const m = src.match(/const SPONSORED_AD_PHRASES = Object\.freeze\(\[([^\]]*)\]\)/);
-    const phrases = m ? m[1].split(',').map(x => x.trim().replace(/^'|'$/g, '')) : [];
-    check('SPONSORED_AD_PHRASES order is pinned in the shipped source',
-          JSON.stringify(phrases) === JSON.stringify(['this is an advertisement',
-            'promotional messages from this advertiser', 'sponsored content', 'sponsored by']),
-          JSON.stringify(phrases));
+    const m = src.indexOf('const SPONSORED_AD_PATTERNS = Object.freeze([') !== -1;
+    const pats = Array.from(vm.runInContext('SPONSORED_AD_PATTERNS', ctx));
+    check('SPONSORED_AD_PATTERNS is four patterns in the shipped source', !!m && pats.length === 4,
+          String(pats.length));
+    const probe = ['this is a paid advertisement', 'marketing emails from the sponsor',
+                   'sponsored stories', 'sponsored by'];
+    check('SPONSORED_AD_PATTERNS order is pinned (each pattern matches its own probe, not the others)',
+          pats.every((p, i) => probe.every((x, j) => (p.test(x) === (i === j)))),
+          JSON.stringify(pats.map(p => probe.map(x => p.test(x)))));
+    // split() splices capture groups into its result and would corrupt every
+    // count: a pattern that matches the empty string at group level would show here.
+    check('SPONSORED_AD_PATTERNS have no capture groups (Signal 14 counts with split())',
+          pats.every(p => new RegExp(p.source + '|').exec('').length === 1));
+    check('"this is an ad hoc group" is not a disclaimer', !pats[0].test('this is an ad hoc group'));
+    check('"this is an adventure" is not a disclaimer', !pats[0].test('this is an adventure'));
   }
 
   // The REAL message: the .eml the script archived to Drive when it held the
@@ -2301,7 +2312,7 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
 
   // Every conjunct, alone: removing any ONE must flip a case below.
   const FULL = DISC + ' ' + ADV + ' ' + HEAD + ' ' + CRED;
-  check('all four phrases, credit twice, fires', fires(T(FULL)));
+  check('all four patterns, credit twice, fires', fires(T(FULL)));
   // PLAIN ONLY (no html): the tag-stripped HTML path collapses whitespace itself
   // and would mask a missing collapse in the plain-body path.
   check('whitespace runs, NBSP and tabs are collapsed (plain body only)',
@@ -2333,6 +2344,107 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   }
   check('reads the body only: a different sender fires too (no sender condition)',
         fires(Object.assign({ from: 'Jane <jane@gmail.com>' }, T(FULL))));
+
+  // v6.83.0: the 2026-10-24 AutoCamp miss - same network, disclaimer reworded to
+  // "paid advertisement", no advertiser sentence. Fires only through the RELAY shape.
+  {
+    const eml2 = fs.readFileSync(path.join(__dirname, 'spam_examples',
+                 'AutoCamp Reg CF ad from Trend Watchers Lab.eml'), 'utf8');
+    const sp2 = eml2.search(/\r?\n\r?\n/);
+    const head2 = eml2.slice(0, sp2).replace(/\r?\n[ \t]+/g, ' ');
+    const hdr2 = (n) => (head2.match(new RegExp('^' + n + ': (.*)$', 'mi')) || [])[1];
+    const part2 = eml2.slice(sp2).split('--' + (head2.match(/boundary="([^"]+)"/) || [])[1])
+                      .find(p => /^\s*Content-Type: text\/html/i.test(p));
+    const html2 = qpDecode(part2.slice(part2.search(/\r?\n\r?\n/)).replace(/^\s+/, ''));
+    const autocamp = { from: hdr2('From'), subject: hdr2('Subject'), plain: '', html: html2, raw: eml2 };
+    check('the AutoCamp fixture is the real message (Reply-To on the brand domain)',
+          /^support@trendwatcherslab\.com$/.test(hdr2('Reply-To')) && html2.indexOf('<html') !== -1,
+          String(hdr2('Reply-To')));
+    check('the AutoCamp miss fires Signal 14 through the relay shape', fires(autocamp));
+    check('...and does NOT fire without its Reply-To header (the sentence is absent)',
+          !fires(Object.assign({}, autocamp, { raw: eml2.replace(/^Reply-To:.*$/mi, 'X-Removed: 1') })));
+    check('...and does NOT fire when Reply-To is on an unrelated domain',
+          !fires(Object.assign({}, autocamp, { raw: eml2.replace(/^Reply-To:.*$/mi, 'Reply-To: help@other.org') })));
+    const c2 = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m2 = (() => {
+      const x = phishMessage('mAutoCamp');
+      x.getFrom = () => autocamp.from; x.getSubject = () => autocamp.subject;
+      x.getRawContent = () => autocamp.raw;
+      x.getPlainBody = () => ''; x.getBody = () => autocamp.html;
+      return x;
+    })();
+    const v2 = c2.analyzeMessage(m2);
+    check('analyzeMessage judges the AutoCamp miss spam under Rule 11',
+          v2.isSpam === true && c2.getRuleFromSignals(v2.signals).rule === 'Rule 11',
+          JSON.stringify({ isSpam: v2.isSpam, rule: c2.getRuleFromSignals(v2.signals).rule }));
+    c2.disposeDetectedMessage(m2, fakeThread([m2], c2.calls), v2.signals, true);
+    check('Rule 11 PERMANENTLY DELETES the AutoCamp miss (user\'s call: delete, not quarantine)',
+          c2.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c2.calls.map(x => x.op)));
+  }
+  const MILLRAW = 'Reply-To: support@trendwatcherslab.com\r\n\r\nhi';
+  const PAID = 'This is a paid advertisement. ' + HEAD + ' ' + CRED3;
+  check('relay shape: paid-ad wording fires with the real sender shape',
+        fires(Object.assign({ raw: MILLRAW }, T(PAID))));
+  check('relay shape: the same body without a Reply-To does not fire', !fires(T(PAID)));
+  check('relay shape: the same body from an ordinary sender does not fire',
+        !fires(Object.assign({ from: 'Jane <jane@morningdigest.com>',
+                               raw: 'Reply-To: jane@morningdigest.com\r\n\r\nhi' }, T(PAID))));
+  check('relay shape: Reply-To on the sender\'s own domain does not fire',
+        !fires(Object.assign({ raw: 'Reply-To: x@email.cyberimpact.com\r\n\r\nhi' }, T(PAID))));
+  check('relay shape: suffix without the dot boundary does not fire',
+        !fires(Object.assign({ from: 'L <xtrendwatcherslab.com@email.cyberimpact.com>', raw: MILLRAW }, T(PAID))));
+  check('relay shape: a Reply-To only in the BODY does not count',
+        !fires(Object.assign({ raw: 'Subject: x\r\n\r\nReply-To: support@trendwatcherslab.com' }, T(PAID))));
+  // The review's editorial shapes: two labelled ad blocks used to satisfy the
+  // draft "disclaimer twice" branch; neither shape accepts them.
+  check('REVIEW: two labelled ad blocks in an editorial digest do not fire',
+        !fires(T('This is an ad. This is an ad. ' + HEAD + ' ' + CRED3)));
+  check('REVIEW: two labelled ad blocks do not fire even from the relay sender WITHOUT its Reply-To',
+        !fires(T('This is an advertisement. This is an advertisement. ' + HEAD + ' ' + CRED3)));
+  check('REVIEW: "this is an ad hoc group" x2 is not a pair of disclaimers',
+        !fires(Object.assign({ raw: MILLRAW }, T('This is an ad hoc group. This is an ad hoc thing. ' + HEAD + ' ' + CRED3))));
+  check('REVIEW: HTML entities cannot hide the credit (sponsored&nbsp;by, &#160;)',
+        fires(T(DISC + ' ' + ADV + ' Sponsored&nbsp;Content Sponsored&#160;by A. Sponsored&nbsp;by B.')));
+  check('REVIEW: zero-width characters inside words are stripped',
+        fires(T(DISC + ' ' + ADV + ' S\u200bponsored Content Spon\u200bsored by A. Sponsored by B.')));
+  check('REVIEW: thin, narrow and ideographic spaces are collapsed',
+        fires(T(DISC + ' ' + ADV + ' Sponsored\u2009Content Sponsored\u202fby A. Sponsored\u3000by B.')));
+
+  // ── Round 2 of the panel (v6.83.0) ──────────────────────────────────────
+  const relayFires = (body, o) => fires(Object.assign({ raw: MILLRAW }, T(body), o || {}));
+  check('R2: the short disclaimer "this is an ad." fires on the relay shape', relayFires('This is an ad. ' + HEAD + ' ' + CRED3));
+  for (const bad of ['This is an ad-free edition.', 'This is an ad blocker tip.', 'This is an ad-supported site.',
+                     'This is an advertisement-free issue.', 'This is an advertisement blocker.', 'This is an ad hoc group.']) {
+    check('R2: "' + bad + '" is not a disclaimer (a brand tenant with the relay shape is NOT deleted)',
+          !relayFires(bad + ' ' + HEAD + ' ' + CRED3));
+  }
+  check('R2: the relay shape needs THREE credits (two is not enough)',
+        !relayFires('This is a paid advertisement. ' + HEAD + ' ' + CRED));
+  check('R2: the strict shape still needs only TWO credits', fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' ' + CRED)));
+  check('R2: hyphens, incl. U+2011, stand for the space',
+        relayFires('This is a paid advertisement. Sponsored-Content Sponsored-by A. Sponsored\u2011by B. Sponsored\u2011by C.'));
+  check('R2: a Cyrillic o in "sponsored" is folded', fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' Sp\u043ensored by A. Sp\u043ensored by B.')));
+  check('R2: full-width letters are folded (NFKC)',
+        fires(T(DISC + ' ' + ADV + ' \uff33ponsored Content \uff33ponsored by A. \uff33ponsored by B.')));
+  check('R2: a tag INSIDE a word is glued back in the tags-deleted view',
+        fires({ plain: 'hello', html: '<p>This is an adver<span></span>tisement.</p><p>' + ADV + '</p><b>Sponsored Con<i></i>tent</b>' +
+                '<i>Spon<b></b>sored by A</i><i>Sponsored by B</i>' }));
+  check('R2: normalizeAdText maps every table letter to its ASCII twin',
+        ctx.normalizeAdText('\u0430\u0435\u043e\u0440\u0441\u0445\u0443\u0456\u0458\u0455\u0501\u03bf\u03bd\u03b9\u03c1') === 'aeopcxyijsdovip');
+  check('R2: the fold table is two equal-length strings',
+        vm.runInContext('AD_CONFUSABLES_FROM.length === AD_CONFUSABLES_TO.length && AD_CONFUSABLES_TO.length === 15', ctx));
+  check('R2: NFKC expansion is re-capped (U+FDFA x 20000 stays bounded)',
+        ctx.normalizeAdText('\ufdfa'.repeat(20000)).length <= vm.runInContext('LIMITS.maxRawScanChars', ctx));
+  // Reply-To oddities (Microsoft advisory): both languages take the FIRST address
+  // of the FIRST header; a list, a duplicate header and a non-ASCII host never
+  // widen the gate. The Python suite asserts the same table.
+  const rt = (hdrs) => relayFires('This is a paid advertisement. ' + HEAD + ' ' + CRED3,
+                                  { raw: hdrs + '\r\n\r\nhi' });
+  check('R2 Reply-To: a list whose first address is the brand fires', rt('Reply-To: support@trendwatcherslab.com, other@x.org'));
+  check('R2 Reply-To: a list whose first address is NOT the brand does not fire', !rt('Reply-To: other@x.org, support@trendwatcherslab.com'));
+  check('R2 Reply-To: a duplicate header uses the first', !rt('Reply-To: a@x.org\r\nReply-To: support@trendwatcherslab.com'));
+  check('R2 Reply-To: a non-ASCII host never matches the ASCII local part', !rt('Reply-To: support@trendwatcherslab.c\u00f6m'));
+  check('R2 Reply-To: a folded header is unfolded', rt('Reply-To: support@trendwatcherslab.com,\r\n other@x.org'));
 
   // Linear on sender-controlled text: 100 KB of the phrases and of whitespace.
   const t0 = Date.now();

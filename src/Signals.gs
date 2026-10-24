@@ -308,32 +308,67 @@ function collectSignals(message)
   // mail. Adding the ESP to BULK_EMAIL_FINGERPRINTS was also rejected: bulk
   // gates Rules 1-3, which delete, for every legitimate sender on that ESP.
   //
-  // Convicts on its own (Rule 11, DELETES - the user's explicit call) and is
-  // STRONG in hasCorroboratingSignal(). All required, on the lower-cased,
-  // whitespace-collapsed text: the disclaimer, the advertiser sentence, the
-  // block heading, and the credit line at least twice. The advertiser sentence
-  // is the guard review asked for: six plausible editorial-newsletter bodies
-  // carried the other three phrases and would have been deleted without it. Checked against the plain body, then against
-  // the tag-stripped HTML, because a multipart message's plain part is not
-  // guaranteed to carry the sponsor block. Cheap to evade - reword any of the
-  // three - it buys time, not lasting coverage. False positive class: a
-  // legitimate sender that carries all three phrases; none exists in the
-  // user's mailbox, and the Drive archive keeps a copy of anything deleted.
+  // Convicts on its own (Rule 11, DELETES - the user's explicit call, including
+  // for the relay shape below) and is STRONG in hasCorroboratingSignal().
+  // Text goes through normalizeAdText() first (entities, NFKC, lookalike letters,
+  // dashes, zero-width characters, spaces). Two shapes, both needing the
+  // disclaimer and the block heading:
+  //   STRICT - plus the ad network's advertiser sentence and 2 credit lines.
+  //            The guard the first review asked for: six plausible editorial-
+  //            newsletter bodies carried the other three phrases and would have
+  //            been deleted without it.
+  //   RELAY  - (v6.83.0) instead of the sentence: 3 credit lines AND the sender
+  //            shape of an ad mill on an ESP relay - the From mailbox is
+  //            "<brand-domain>@<esp>" (its local part ends in the Reply-To
+  //            domain) and the Reply-To is on a different domain. Same network,
+  //            reworded disclaimer, no advertiser sentence: the 2026-10-24
+  //            AutoCamp miss. A first draft accepted "disclaimer twice" here;
+  //            the panel built editorial digests with two labelled ad blocks
+  //            that it deleted. A second draft's disclaimer matched "this is an
+  //            ad-free edition"; the short form must now end its clause.
+  //            Authentication cannot separate a mill from a tenant (the ESP signs
+  //            for both), so it is not used. Declined on review, with reasons:
+  //            an ESP allowlist (the mill can move ESPs; the shape is the tell),
+  //            and a header-only conviction (Precedence/one-click are on every
+  //            newsletter - that is the scored classifier, not this rule).
+  // Checked on three views of the message (plain body; HTML with tags as spaces;
+  // HTML with tags deleted), because a multipart message's plain part is not
+  // guaranteed to carry the sponsor block and a tag inside a word splits it.
+  // Cheap to evade - reword the heading/credit/disclaimer, put the credits in
+  // images, or change the sender shape - it buys time, not lasting coverage.
+  // False positive class: a legitimate sender that carries the template; none
+  // exists in the user's mailbox, and the Drive archive keeps a copy of anything
+  // deleted.
   //
-  // indexOf/split over text capped by sanitizeInput - linear.
+  // split() over text capped by sanitizeInput - linear. The patterns have no
+  // capture groups (split would splice them into the count); a test asserts it.
   try
   {
-    const hasAdTemplate = function(text) {
-      const t = text.toLowerCase().replace(/[ \t\r\n\f\v\u00a0]+/g, ' ');
-      return t.indexOf(SPONSORED_AD_PHRASES[0]) !== -1 &&
-             t.indexOf(SPONSORED_AD_PHRASES[1]) !== -1 &&
-             t.indexOf(SPONSORED_AD_PHRASES[2]) !== -1 &&
-             t.split(SPONSORED_AD_PHRASES[3]).length - 1 >= 2;
+    const relayShape = function() {
+      const sender = senderAddress.toLowerCase();
+      const local = sender.substring(0, atIdx);
+      const senderHost = sender.substring(atIdx + 1);
+      const replyTo = headerAddresses(getRawHeader(rawContent, 'Reply-To'))[0] || '';
+      const replyHost = replyTo.substring(replyTo.lastIndexOf('@') + 1);
+      return atIdx > 0 && replyHost.indexOf('.') > 0 && replyHost !== senderHost &&
+             (local === replyHost || local.endsWith('.' + replyHost));
     };
-    if (hasAdTemplate(body) || hasAdTemplate(stripHtmlTags(html)))
+    const hasAdTemplate = function(text) {
+      const t = normalizeAdText(text);
+      const count = function(i) { return t.split(SPONSORED_AD_PATTERNS[i]).length - 1; };
+      if (count(0) < 1 || count(2) < 1) return false;
+      // STRICT: the advertiser sentence, 2 credits. RELAY: the sender shape
+      // and 3 credits - one more than strict, because the sentence is gone.
+      return (count(1) >= 1 && count(3) >= 2) || (count(3) >= 3 && relayShape());
+    };
+    // Three views of the same message: the plain body, the HTML with tags turned
+    // into spaces, and the HTML with tags DELETED (a tag inside a word, "adver<b>
+    // </b>tisement", glues back together only in the last).
+    if (hasAdTemplate(body) || hasAdTemplate(stripHtmlTags(html)) ||
+        hasAdTemplate(replaceAngles(html, '', 1)))
     {
       signals.sponsoredAdTemplate = true;
-      logDebug('Sponsored-ad template: disclaimer + advertiser sentence + sponsor block + credit lines');
+      logDebug('Sponsored-ad template: disclaimer + sponsor block + credit lines + advertiser sentence or relay sender');
     }
   }
   catch (signalError)

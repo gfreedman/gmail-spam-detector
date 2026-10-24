@@ -56,6 +56,44 @@ function stripHtmlTags(html)
 }
 
 /**
+ * Lookalike letters Signal 14 folds to ASCII, as two parallel strings
+ * (Cyrillic and Greek that render like a Latin letter). Lower-case only: the
+ * text is lower-cased first. Mirrored by _AD_CONFUSABLES in the Python suite;
+ * a test on each side pins the same fold, so a character added to one fails.
+ * @const {string}
+ */
+const AD_CONFUSABLES_FROM = '\u0430\u0435\u043e\u0440\u0441\u0445\u0443\u0456\u0458\u0455\u0501\u03bf\u03bd\u03b9\u03c1';
+const AD_CONFUSABLES_TO   = 'aeopcxyijsdovip';
+
+/**
+ * Prepare text for Signal 14's phrase patterns (v6.83.0). The review of the
+ * first regex draft evaded it five ways, each now closed here, IN THIS ORDER:
+ * entities decoded ("sponsored&nbsp;by"), NFKC (full-width and math-bold
+ * letters; re-capped because NFKC can expand text up to 18x), lower-cased,
+ * lookalike letters folded ("sp\u043ensored"), every dash variant made '-'
+ * (a non-breaking hyphen for the space), zero-width characters and soft
+ * hyphens deleted (they sit INSIDE words, so no space), then every Unicode
+ * space run collapsed to one space.
+ *
+ * Linear: each step is one pass over text capped at LIMITS.maxRawScanChars.
+ * Mirrored by _normalize_ad_text() in tests/test_spam_detector.py.
+ *
+ * @param {string} text
+ * @return {string}
+ */
+function normalizeAdText(text)
+{
+  return decodeHtmlEntities(text).normalize('NFKC')
+    .substring(0, LIMITS.maxRawScanChars)
+    .toLowerCase()
+    .replace(/[\u0430\u0435\u043e\u0440\u0441\u0445\u0443\u0456\u0458\u0455\u0501\u03bf\u03bd\u03b9\u03c1]/g,
+             function(ch) { return AD_CONFUSABLES_TO.charAt(AD_CONFUSABLES_FROM.indexOf(ch)); })
+    .replace(/[\u2010-\u2015\u2212]/g, '-')
+    .replace(/[\u00ad\u200b-\u200f\u2060\ufeff]/g, '')
+    .replace(/[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+/g, ' ');
+}
+
+/**
  * Decode the HTML entities a mail client honours inside link text and hrefs.
  *
  * This is NOT cosmetic — a plain substring search for a brand name is defeated

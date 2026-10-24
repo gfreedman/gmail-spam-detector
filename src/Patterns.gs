@@ -458,20 +458,39 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
 ]);
 
 /**
- * The four phrases of Signal 14 (sponsoredAdTemplate), IN THIS ORDER: an ad
+ * The four patterns of Signal 14 (sponsoredAdTemplate), IN THIS ORDER: an ad
  * disclaimer, the ad network's unsubscribe sentence, an ad-network block
- * heading, and the credit line each teaser carries. Lower-case: the signal
- * lower-cases and whitespace-collapses the body first. All four are required,
- * the last at least twice. The second is what editorial sponsor blocks lack:
- * Morning-Brew-style newsletters carry a heading, credits and even a
- * disclaimer, but none says "promotional messages from this advertiser".
- * Measured against the user's whole mailbox (2026-10-23): no kept message
- * contained the disclaimer, the block heading, or both, other than the miss.
- * @const {Array<string>}
+ * heading, and the credit line each teaser carries. Patterns rather than
+ * literals (v6.83.0): the same network reworded its disclaimer from "This is an
+ * advertisement" to "This is a paid advertisement" and the literal missed it.
+ *
+ * Run against normalizeAdText() output (Text.gs: entities, NFKC, lower-case,
+ * lookalike and dash folds, zero-width strip, spaces collapsed), so they
+ * carry no /i flag and no \b (JS \b is ASCII-only and Python's is not, so the
+ * mirror would disagree on non-ASCII neighbours). The disclaimer is strict
+ * about its tail (v6.83.0 review): the long form refuses a following letter,
+ * digit, hyphen or " blocker"; the SHORT form "ad" must END its clause (a
+ * following . ! : , ; ) or the end of the text), so "this is an ad-free
+ * edition", "an ad blocker tip" and "an ad hoc group" are not disclaimers. The
+ * heading and credit accept a hyphen for the space (text is hyphen-folded).
+ * NO CAPTURE GROUPS, ever: Signal 14 counts matches with String.split(), which
+ * splices captured text into its result and would corrupt every count (a test
+ * asserts it). No quantifier is nested, so each scan is linear.
+ *
+ * Signal 14 fires on EITHER of two shapes (see there): the strict one needs all
+ * four patterns; the relay one drops the advertiser sentence but needs the
+ * brand-on-an-ESP-relay sender shape. The sentence is what editorial sponsor
+ * blocks lack: Morning-Brew-style newsletters carry a heading, credits and even
+ * a disclaimer, but none says "promotional messages from this advertiser".
+ * Measured against the user's whole mailbox (2026-10-23/24): no kept message
+ * contained the disclaimer, the block heading, or both, other than the misses.
+ * @const {Array<RegExp>}
  */
-const SPONSORED_AD_PHRASES = Object.freeze([
-  'this is an advertisement', 'promotional messages from this advertiser',
-  'sponsored content', 'sponsored by'
+const SPONSORED_AD_PATTERNS = Object.freeze([
+  /this is an? (?:paid |sponsored )?(?:advertisement(?![a-z0-9-]| blocker)|ad(?= ?[.!:,;)]| ?$))/,
+  /(?:promotional|marketing|advertising) (?:messages?|emails?) from (?:this|the) (?:advertiser|sponsor)/,
+  /sponsored[ -](?:content|stories)/,
+  /sponsored[ -]by/
 ]);
 
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

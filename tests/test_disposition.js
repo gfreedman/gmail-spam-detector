@@ -2224,11 +2224,12 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   const CRED = 'Sponsored by A. Sponsored by B.';
   const FROM = 'Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>';
   const msg = (o) => {
-    o = Object.assign({ from: FROM, plain: '', html: '', subject: 'Weekly digest' }, o || {});
+    o = Object.assign({ from: FROM, plain: '', html: '', subject: 'Weekly digest',
+                        raw: 'Received: from x\r\n\r\nhi' }, o || {});
     const m = phishMessage('mH14');
     m.getFrom = () => o.from;
     m.getSubject = () => o.subject;
-    m.getRawContent = () => 'Received: from x\r\n\r\nhi';
+    m.getRawContent = () => o.raw;
     m.getPlainBody = () => o.plain;
     m.getBody = () => o.html;
     return m;
@@ -2237,15 +2238,24 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   const T = (body) => ({ plain: body, html: '<p>' + body + '</p>' });
 
   {
-    // Pin the phrase ORDER in the shipped source: the signal indexes the array,
+    // Pin the pattern ORDER in the shipped source: the signal indexes the array,
     // so a reorder changes behaviour and only the Python suite noticed before.
     const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'Patterns.gs'), 'utf8');
-    const m = src.match(/const SPONSORED_AD_PHRASES = Object\.freeze\(\[([^\]]*)\]\)/);
-    const phrases = m ? m[1].split(',').map(x => x.trim().replace(/^'|'$/g, '')) : [];
-    check('SPONSORED_AD_PHRASES order is pinned in the shipped source',
-          JSON.stringify(phrases) === JSON.stringify(['this is an advertisement',
-            'promotional messages from this advertiser', 'sponsored content', 'sponsored by']),
-          JSON.stringify(phrases));
+    const m = src.indexOf('const SPONSORED_AD_PATTERNS = Object.freeze([') !== -1;
+    const pats = Array.from(vm.runInContext('SPONSORED_AD_PATTERNS', ctx));
+    check('SPONSORED_AD_PATTERNS is four patterns in the shipped source', !!m && pats.length === 4,
+          String(pats.length));
+    const probe = ['this is a paid advertisement', 'marketing emails from the sponsor',
+                   'sponsored stories', 'sponsored by'];
+    check('SPONSORED_AD_PATTERNS order is pinned (each pattern matches its own probe, not the others)',
+          pats.every((p, i) => probe.every((x, j) => (p.test(x) === (i === j)))),
+          JSON.stringify(pats.map(p => probe.map(x => p.test(x)))));
+    // split() splices capture groups into its result and would corrupt every
+    // count: a pattern that matches the empty string at group level would show here.
+    check('SPONSORED_AD_PATTERNS have no capture groups (Signal 14 counts with split())',
+          pats.every(p => new RegExp(p.source + '|').exec('').length === 1));
+    check('"this is an ad hoc group" is not a disclaimer', !pats[0].test('this is an ad hoc group'));
+    check('"this is an adventure" is not a disclaimer', !pats[0].test('this is an adventure'));
   }
 
   // The REAL message: the .eml the script archived to Drive when it held the
@@ -2333,6 +2343,71 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   }
   check('reads the body only: a different sender fires too (no sender condition)',
         fires(Object.assign({ from: 'Jane <jane@gmail.com>' }, T(FULL))));
+
+  // v6.83.0: the 2026-10-24 AutoCamp miss - same network, disclaimer reworded to
+  // "paid advertisement", no advertiser sentence. Fires only through the RELAY shape.
+  {
+    const eml2 = fs.readFileSync(path.join(__dirname, 'spam_examples',
+                 'AutoCamp Reg CF ad from Trend Watchers Lab.eml'), 'utf8');
+    const sp2 = eml2.search(/\r?\n\r?\n/);
+    const head2 = eml2.slice(0, sp2).replace(/\r?\n[ \t]+/g, ' ');
+    const hdr2 = (n) => (head2.match(new RegExp('^' + n + ': (.*)$', 'mi')) || [])[1];
+    const part2 = eml2.slice(sp2).split('--' + (head2.match(/boundary="([^"]+)"/) || [])[1])
+                      .find(p => /^\s*Content-Type: text\/html/i.test(p));
+    const html2 = qpDecode(part2.slice(part2.search(/\r?\n\r?\n/)).replace(/^\s+/, ''));
+    const autocamp = { from: hdr2('From'), subject: hdr2('Subject'), plain: '', html: html2, raw: eml2 };
+    check('the AutoCamp fixture is the real message (Reply-To on the brand domain)',
+          /^support@trendwatcherslab\.com$/.test(hdr2('Reply-To')) && html2.indexOf('<html') !== -1,
+          String(hdr2('Reply-To')));
+    check('the AutoCamp miss fires Signal 14 through the relay shape', fires(autocamp));
+    check('...and does NOT fire without its Reply-To header (the sentence is absent)',
+          !fires(Object.assign({}, autocamp, { raw: eml2.replace(/^Reply-To:.*$/mi, 'X-Removed: 1') })));
+    check('...and does NOT fire when Reply-To is on an unrelated domain',
+          !fires(Object.assign({}, autocamp, { raw: eml2.replace(/^Reply-To:.*$/mi, 'Reply-To: help@other.org') })));
+    const c2 = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m2 = (() => {
+      const x = phishMessage('mAutoCamp');
+      x.getFrom = () => autocamp.from; x.getSubject = () => autocamp.subject;
+      x.getRawContent = () => autocamp.raw;
+      x.getPlainBody = () => ''; x.getBody = () => autocamp.html;
+      return x;
+    })();
+    const v2 = c2.analyzeMessage(m2);
+    check('analyzeMessage judges the AutoCamp miss spam under Rule 11',
+          v2.isSpam === true && c2.getRuleFromSignals(v2.signals).rule === 'Rule 11',
+          JSON.stringify({ isSpam: v2.isSpam, rule: c2.getRuleFromSignals(v2.signals).rule }));
+    c2.disposeDetectedMessage(m2, fakeThread([m2], c2.calls), v2.signals, true);
+    check('Rule 11 PERMANENTLY DELETES the AutoCamp miss (user\'s call: delete, not quarantine)',
+          c2.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c2.calls.map(x => x.op)));
+  }
+  const MILLRAW = 'Reply-To: support@trendwatcherslab.com\r\n\r\nhi';
+  const PAID = 'This is a paid advertisement. ' + HEAD + ' ' + CRED;
+  check('relay shape: paid-ad wording fires with the real sender shape',
+        fires(Object.assign({ raw: MILLRAW }, T(PAID))));
+  check('relay shape: the same body without a Reply-To does not fire', !fires(T(PAID)));
+  check('relay shape: the same body from an ordinary sender does not fire',
+        !fires(Object.assign({ from: 'Jane <jane@morningdigest.com>',
+                               raw: 'Reply-To: jane@morningdigest.com\r\n\r\nhi' }, T(PAID))));
+  check('relay shape: Reply-To on the sender\'s own domain does not fire',
+        !fires(Object.assign({ raw: 'Reply-To: x@email.cyberimpact.com\r\n\r\nhi' }, T(PAID))));
+  check('relay shape: suffix without the dot boundary does not fire',
+        !fires(Object.assign({ from: 'L <xtrendwatcherslab.com@email.cyberimpact.com>', raw: MILLRAW }, T(PAID))));
+  check('relay shape: a Reply-To only in the BODY does not count',
+        !fires(Object.assign({ raw: 'Subject: x\r\n\r\nReply-To: support@trendwatcherslab.com' }, T(PAID))));
+  // The review's editorial shapes: two labelled ad blocks used to satisfy the
+  // draft "disclaimer twice" branch; neither shape accepts them.
+  check('REVIEW: two labelled ad blocks in an editorial digest do not fire',
+        !fires(T('This is an ad. This is an ad. ' + HEAD + ' ' + CRED)));
+  check('REVIEW: two labelled ad blocks do not fire even from the relay sender WITHOUT its Reply-To',
+        !fires(T('This is an advertisement. This is an advertisement. ' + HEAD + ' ' + CRED)));
+  check('REVIEW: "this is an ad hoc group" x2 is not a pair of disclaimers',
+        !fires(Object.assign({ raw: MILLRAW }, T('This is an ad hoc group. This is an ad hoc thing. ' + HEAD + ' ' + CRED))));
+  check('REVIEW: HTML entities cannot hide the credit (sponsored&nbsp;by, &#160;)',
+        fires(T(DISC + ' ' + ADV + ' Sponsored&nbsp;Content Sponsored&#160;by A. Sponsored&nbsp;by B.')));
+  check('REVIEW: zero-width characters inside words are stripped',
+        fires(T(DISC + ' ' + ADV + ' S\u200bponsored Content Spon\u200bsored by A. Sponsored by B.')));
+  check('REVIEW: thin, narrow and ideographic spaces are collapsed',
+        fires(T(DISC + ' ' + ADV + ' Sponsored\u2009Content Sponsored\u202fby A. Sponsored\u3000by B.')));
 
   // Linear on sender-controlled text: 100 KB of the phrases and of whitespace.
   const t0 = Date.now();

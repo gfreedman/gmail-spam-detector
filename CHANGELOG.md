@@ -20,6 +20,45 @@ detail plus the diffs.
 
 ---
 
+## v6.83.0
+
+**Rule 11 now catches the same ad network's reworded variant. It still deletes.**
+
+2026-10-24: "$150M+ in revenue: invest in AutoCamp" (Trend Watchers Lab, via
+Cyberimpact, the sender of the v6.81.0 miss a day earlier) scored one clickbait
+point and nothing else. Its disclaimer read "This is a **paid** advertisement"
+and it carried no "promotional messages from this advertiser" sentence, so
+Signal 14's four literals matched two.
+
+1. **Literals became patterns** (`SPONSORED_AD_PATTERNS`, was
+   `SPONSORED_AD_PHRASES`): "an ad / an advertisement / a paid ad(vertisement) /
+   a sponsored ad", "sponsored content / stories", "marketing / advertising
+   emails from the sponsor".
+2. **A second shape, the relay shape.** Without the advertiser sentence the
+   signal also fires when the sender looks like an ad mill on an ESP relay: the
+   From mailbox is `<brand-domain>@<esp>` (the local part ends in the Reply-To
+   domain) and the Reply-To is on a different domain. Authentication cannot
+   separate this (the ESP signs and passes SPF/DKIM/DMARC); structure can.
+3. **Deletes, not quarantines**, at the user's explicit call.
+
+Reviewed by a panel before merge (see the PR): the first draft accepted "the
+disclaimer twice" in place of the sentence; the review built editorial digests
+with two labelled ad blocks that it deleted, so that branch was removed and the
+sender shape replaces it. The same review found and this release fixes:
+- `this is an ad hoc group` counted as a disclaimer (now refuses a following
+  letter or " hoc");
+- `sponsored&nbsp;by` and `&#160;` hid the credit (entities are now decoded);
+- thin, narrow and ideographic spaces and zero-width characters inside words
+  defeated the match (collapsed / stripped);
+- `split()` counting is corrupted by a capture group; a test now asserts none.
+
+Fixture: `AutoCamp Reg CF ad from Trend Watchers Lab.eml` (recipient scrubbed to
+`recipient@example.com`). Seven guards were fault-injected on a scratch copy and
+each turned a test red.
+
+Known limits: cheap to evade by changing the disclaimer wording AND the sender
+shape. `sponsored by` is unanchored (it also matches inside a longer word).
+
 ## v6.82.0
 
 **Three maintenance gaps the v6.81.0 reviews found are closed. No rule changed, and nothing new can be deleted.**

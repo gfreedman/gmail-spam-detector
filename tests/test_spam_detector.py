@@ -478,8 +478,7 @@ def _load_gs_constants(source):
         'CALENDAR_LURE_PATTERNS':       _load_regex_array(source, 'CALENDAR_LURE_PATTERNS'),
         'CALENDAR_SAFE_LINK_DOMAINS':   _load_string_array(source, 'CALENDAR_SAFE_LINK_DOMAINS'),
         'HEADLINE_NAME_SEPARATORS':     _load_string_array(source, 'HEADLINE_NAME_SEPARATORS'),
-        'SPONSORED_AD_PHRASES':         _load_string_array(
-            source, 'SPONSORED_AD_PHRASES', allow_spaces=True),
+        'SPONSORED_AD_PATTERNS':        _load_regex_array(source, 'SPONSORED_AD_PATTERNS'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
             source, 'IMPERSONATED_SUPPORT_BRANDS', allow_spaces=True),
@@ -544,7 +543,7 @@ CALLBACK_PHONE_PATTERN          = _gs['CALLBACK_PHONE_PATTERN']
 CALENDAR_LURE_PATTERNS          = _gs['CALENDAR_LURE_PATTERNS']
 CALENDAR_SAFE_LINK_DOMAINS      = _gs['CALENDAR_SAFE_LINK_DOMAINS']
 HEADLINE_NAME_SEPARATORS        = _gs['HEADLINE_NAME_SEPARATORS']
-SPONSORED_AD_PHRASES            = _gs['SPONSORED_AD_PHRASES']
+SPONSORED_AD_PATTERNS           = _gs['SPONSORED_AD_PATTERNS']
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -1239,17 +1238,30 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             signals['headline_from_name'] = True
             signals['matched_patterns'].append('headline_from_name')
 
-    # ── Signal 14: Sponsored-ad template (v6.81.0) ─────────────────────────
+    # ── Signal 14: Sponsored-ad template (v6.81.0, patterns + relay v6.83.0) ─
     # Convicts on its own (Rule 11, DELETES). Mirrors Signal 14 in Signals.gs:
-    # disclaimer, advertiser sentence and block heading once, credit line twice, checked on the
-    # body and then on the tag-stripped HTML.
+    # disclaimer, block heading once, credit line twice, plus EITHER the
+    # advertiser sentence (strict) or the brand-on-an-ESP-relay sender shape
+    # (relay), on the body and then on the tag-stripped HTML. Text is entity-
+    # decoded, lower-cased, stripped of zero-width characters and collapsed.
+    def _relay_shape():
+        sender = sender_address
+        at = sender.rfind('@')
+        local, sender_host = sender[:at], sender[at + 1:]
+        reply = (_header_addresses(_raw_header(raw, 'Reply-To')) or [''])[0]
+        reply_host = reply[reply.rfind('@') + 1:]
+        return (at > 0 and reply_host.find('.') > 0 and reply_host != sender_host and
+                (local == reply_host or local.endswith('.' + reply_host)))
     def _has_ad_template(text):
-        t = re.sub(r'[ \t\r\n\f\v\u00a0]+', ' ', text.lower())
-        return (SPONSORED_AD_PHRASES[0] in t and SPONSORED_AD_PHRASES[1] in t and
-                SPONSORED_AD_PHRASES[2] in t and
-                t.count(SPONSORED_AD_PHRASES[3]) >= 2)
+        t = _decode_html_entities(text).lower()
+        t = re.sub('[\u00ad\u200b-\u200f\u2060\ufeff]', '', t)
+        t = re.sub(r'[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ' ', t)
+        n = [len(p.findall(t)) for p in SPONSORED_AD_PATTERNS]
+        if n[0] < 1 or n[2] < 1 or n[3] < 2:
+            return False
+        return n[1] >= 1 or _relay_shape()
     # JS stripHtmlTags() collapses /\s+/, which is wider than the ASCII+NBSP class
-    # _has_ad_template() applies; spell the JS \s set out so the HTML path agrees
+    # the normaliser above applies; spell the JS \s set out so the HTML path agrees
     # (Python's \s differs: it adds U+001C-1F and U+0085, and lacks U+FEFF).
     _JS_WS = r'[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+'
     if (_has_ad_template(body) or
@@ -2767,31 +2779,71 @@ def run_edge_case_tests():
     # Signal 14 (v6.81.0): the JS side pins every conjunct in test_disposition.js;
     # the mirror needs its own, or a phrase or count changed in one language only
     # passes parity (the one fixture sits nowhere near a boundary).
-    check('SPONSORED_AD_PHRASES loaded from the source, in order',
-          SPONSORED_AD_PHRASES == ['this is an advertisement',
-                                   'promotional messages from this advertiser',
-                                   'sponsored content', 'sponsored by'],
-          str(SPONSORED_AD_PHRASES))
+    check('SPONSORED_AD_PATTERNS loaded from the source: four, in order',
+          len(SPONSORED_AD_PATTERNS) == 4 and
+          [bool(p.search(x)) for p, x in zip(SPONSORED_AD_PATTERNS, [
+              'this is an advertisement', 'promotional messages from this advertiser',
+              'sponsored content', 'sponsored by'])] == [True] * 4,
+          str([p.pattern for p in SPONSORED_AD_PATTERNS]))
+    # v6.83.0 review: split() splices capture groups into its result, which would
+    # corrupt every count. Pin "none" so nobody adds one.
+    check('SPONSORED_AD_PATTERNS have no capture groups (split-based counting)',
+          all(p.groups == 0 for p in SPONSORED_AD_PATTERNS))
     _DISC = 'This is an advertisement.'
     _ADV = 'If you no longer wish to receive promotional messages from this advertiser, please unsubscribe below.'
     _HEAD = 'Sponsored Content'
     _CRED = 'Sponsored by A. Sponsored by B.'
-    def _s14(body='', html='', frm='Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>'):
-        sig, _, _ = analyze_email('hello', frm, False, body=body, html=html)
+    _MILL = 'Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>'
+    _MILL_RAW = 'Reply-To: support@trendwatcherslab.com\r\n\r\nx'
+    def _s14(body='', html='', frm=_MILL, raw=_MILL_RAW):
+        sig, _, _ = analyze_email('hello', frm, False, body=body, html=html, raw=raw)
         return sig['sponsored_ad_template']
     for body, expect, why in [
-        (f'{_DISC} {_ADV} {_HEAD} {_CRED}', True, 'all four, credit twice'),
+        (f'{_DISC} {_ADV} {_HEAD} {_CRED}', True, 'strict: all four, credit twice'),
         (f'{_DISC}\n\n{_ADV}\n{_HEAD}\u00a0 Sponsored\tby A. Sponsored   by B.', True, 'whitespace is collapsed'),
         (f'THIS IS AN ADVERTISEMENT. {_ADV.upper()} SPONSORED CONTENT sponsored BY A. Sponsored by B.', True, 'case-insensitive'),
+        (f'This is a paid advertisement. {_HEAD} {_CRED}', True, 'relay: paid-ad wording, no advertiser sentence (the AutoCamp miss)'),
+        (f'This is a paid ad. {_HEAD} {_CRED}', True, 'relay: "paid ad"'),
+        (f'{_DISC} Sponsored Stories {_CRED}', True, 'relay: "sponsored stories" heading'),
         (f'{_ADV} {_HEAD} {_CRED}', False, 'no disclaimer'),
-        (f'{_DISC} {_HEAD} {_CRED}', False, 'no advertiser sentence (an editorial sponsor block)'),
         (f'{_DISC} {_ADV} {_CRED}', False, 'no sponsor block heading'),
         (f'{_DISC} {_ADV} {_HEAD} Sponsored by A.', False, 'only one credit line'),
         (f'{_DISC} {_ADV} {_HEAD}', False, 'no credit lines'),
         ('Morning digest. Sponsored by Acme. Sponsored by Globex.', False, 'a newsletter with sponsors only'),
-        (f'Sponsored Content from around the web. {_CRED} {_DISC}', False, 'a Taboola-style module with a disclaimer'),
+        (f'This is an ad hoc group. This is an ad hoc thing. {_HEAD} {_CRED}', False, '"ad hoc" is not a disclaimer (review bug)'),
+        (f'This is an adventure. {_HEAD} {_CRED}', False, '"adventure" is not a disclaimer'),
+        (f'{_DISC} S\u200bponsored Content S\u200bponsored by A. Spon\u200bsored by B. {_ADV}', True, 'zero-width characters inside words are stripped'),
+        (f'{_DISC} {_ADV} Sponsored&nbsp;Content Sponsored&#160;by A. Sponsored&nbsp;by B.', True, 'entities are decoded (review evasion)'),
+        (f'{_DISC} {_ADV} Sponsored\u2009Content Sponsored\u202fby A. Sponsored\u3000by B.', True, 'thin/narrow/ideographic spaces are collapsed'),
     ]:
         check(f'14 body {body[:46]!r} -> {expect}', _s14(body=body) == expect, why)
+    # The review's editorial shapes: they carry the heading, credits and disclaimers
+    # but neither the advertiser sentence nor the relay sender shape.
+    _EDITORIAL = 'Jane <hello@morningdigest.com>'
+    _EDITORIAL_RAW = 'Reply-To: hello@morningdigest.com\r\n\r\nx'
+    for body, why in [
+        (f'{_DISC} {_DISC} {_HEAD} {_CRED}', 'two labelled ad blocks (the draft "disclaimer twice" branch)'),
+        (f'Sponsored Stories. This is an ad. This is an ad. {_CRED}', 'Taboola/Outbrain module with two labels'),
+        (f'Sponsored Content from around the web. {_CRED} {_DISC}', 'a Taboola-style module with a disclaimer'),
+        (f'TOGETHER WITH ACME. {_HEAD}: {_CRED} {_DISC} You are receiving this because you subscribed.', 'a Morning-Brew sponsor block'),
+    ]:
+        check(f'14 editorial {body[:40]!r} does not fire', not _s14(body=body, frm=_EDITORIAL, raw=_EDITORIAL_RAW), why)
+    # The relay gate, one condition at a time (each alone must flip the result).
+    _PAID = f'This is a paid advertisement. {_HEAD} {_CRED}'
+    for frm, raw, expect, why in [
+        (_MILL, _MILL_RAW, True, 'the real shape'),
+        (_MILL, 'Reply-To: Support <support@trendwatcherslab.com>\r\n\r\nx', True, 'Reply-To with a display name'),
+        (_MILL.upper(), _MILL_RAW.upper(), True, 'case-insensitive'),
+        (_MILL, 'X-Other: 1\r\n\r\nx', False, 'no Reply-To'),
+        (_MILL, 'Reply-To: support@other.com\r\n\r\nx', False, 'Reply-To not the brand embedded in the local part'),
+        (_MILL, 'Reply-To: support@email.cyberimpact.com\r\n\r\nx', False, 'Reply-To on the sender\'s own domain'),
+        ('Lab <cole@email.cyberimpact.com>', _MILL_RAW, False, 'local part does not end in the Reply-To domain'),
+        ('Lab <xtrendwatcherslab.com@email.cyberimpact.com>', _MILL_RAW, False, 'suffix without the dot boundary'),
+        ('Lab <trendwatcherslab.com@email.cyberimpact.com>', _MILL_RAW, True, 'local part IS the Reply-To domain'),
+        (_MILL, 'Reply-To: support@localhost\r\n\r\nx', False, 'Reply-To host has no dot'),
+        (_MILL, 'Body: x\r\n\r\nReply-To: support@trendwatcherslab.com', False, 'Reply-To only in the body, not the headers'),
+    ]:
+        check(f'14 relay gate: {why} -> {expect}', _s14(body=_PAID, frm=frm, raw=raw) == expect)
     _FULL_HTML = (f'<p><b>{_DISC}</b></p><p><i>{_ADV}</i></p><b>{_HEAD}</b>'
                   '<i>Sponsored by <b>A</b></i><i>Sponsored by <b>B</b></i>')
     check('14 fires from the tag-stripped HTML when the plain body lacks it',
@@ -2799,8 +2851,8 @@ def run_edge_case_tests():
     for ws in ('\u2009', '\u3000', '\u202f', '\ufeff', '\u2028'):
         check(f'14 HTML path collapses U+{ord(ws):04X} like the JS stripHtmlTags',
               _s14(body='hello', html=_FULL_HTML.replace('Sponsored by', f'Sponsored{ws}by')) is True)
-    check('14 reads the body only: no sender condition (a person sending the same text fires too)',
-          _s14(body=f'{_DISC} {_ADV} {_HEAD} {_CRED}', frm='Jane <jane@gmail.com>') is True)
+    check('14 strict shape reads the body only: no sender condition',
+          _s14(body=f'{_DISC} {_ADV} {_HEAD} {_CRED}', frm='Jane <jane@gmail.com>', raw='') is True)
 
     # Signal 13 thresholds: the JS side pins these in test_disposition.js; the
     # mirror needs its own, or a constant changed in one language only passes

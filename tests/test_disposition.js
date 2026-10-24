@@ -2431,6 +2431,20 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
             r.archivedOut && r.th.__labels.indexOf('SuspectedSpam') !== -1, JSON.stringify(r.th.__labels));
     }
     {
+      // Panel (v6.84.0): only messages[0] is judged, so in a longer thread a later
+      // message may be the user's own reply. Held, never deleted.
+      const reply = phishMessage('mRC11reply');
+      reply.getFrom = () => 'Geoff Freedman <geoff.c.freedman@gmail.com>';
+      reply.getSubject = () => 'Re: ' + autocamp.subject;
+      const r = recheck([mkAuto('mRC11multi'), reply], { SPAM_LOG_FOLDER_ID: 'folder123' });
+      check('RECHECK: a Rule 11 match in a MULTI-message thread is NOT deleted (a later message may be the owner\'s reply)',
+            !r.deleted, JSON.stringify(r.c.calls.map(x => x.op)));
+      check('RECHECK: ...it is held instead (archived out of the inbox, SuspectedSpam)',
+            r.archivedOut && r.th.__labels.indexOf('SuspectedSpam') !== -1, JSON.stringify(r.th.__labels));
+      check('RECHECK: ...and the summary says 0 deleted, 1 held',
+            r.logs.some(l => /1 newly-matching.*0 deleted.*1 held/.test(l)), JSON.stringify(r.logs));
+    }
+    {
       const r = recheck([blacklistMessage('mRC1')], { SPAM_LOG_FOLDER_ID: 'folder123' });
       check('RECHECK: a Rule 1 match is still only HELD, never deleted (v6.48.0 policy intact)',
             !r.deleted && r.archivedOut && r.th.__labels.indexOf('SuspectedSpam') !== -1,

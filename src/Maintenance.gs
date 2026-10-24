@@ -496,7 +496,11 @@ function recheckRecentSpamChecked(widen)
         // then held below.
         const rule     = getRuleFromSignals(verdict.signals).rule;
         const archived = accumulateLogEntry(message, verdict.signals, 'FALSE_NEGATIVE');
-        if (RECHECK_DELETE_RULES.indexOf(rule) !== -1 &&
+        // A thread with MORE than one message is held, never deleted (panel,
+        // v6.84.0): only messages[0] is judged, so a later message may be the
+        // user's own reply - evidence they engaged with it, which no ad earns.
+        // Single-message ad mail, the case Rule 11 exists for, is unaffected.
+        if (RECHECK_DELETE_RULES.indexOf(rule) !== -1 && messages.length === 1 &&
             disposeDetectedMessage(message, thread, verdict.signals, archived))
         {
           deletedCount++;

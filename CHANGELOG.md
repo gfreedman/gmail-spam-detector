@@ -38,6 +38,9 @@ correct; only the last step was missing on this path.
   pattern deployed minutes ago must not destroy mail the user already kept)
   stands for them; Rule 11 is the exception because the user named the template
   twice as mail to delete and its conditions are the narrowest of any rule.
+- A thread with MORE than one message is held, never deleted (panel review): only
+  `messages[0]` is judged, so a later message may be the user's own reply. Single-
+  message ad mail, the case Rule 11 exists for, is unaffected.
 - No Drive archive: `disposeDetectedMessage()` quarantines, and the thread is then
   held, as before.
 - The summary line now reads `N newly-matching email(s) ... M deleted (Rule 11 only,
@@ -47,10 +50,11 @@ Blast radius: the re-check covers the last 2 days of inbox mail carrying
 `SpamChecked`, at most 20 threads (50 on the forced post-deploy cycle), and only
 the Rule 11 conditions can delete.
 
-Tests: 7 new assertions in `test_disposition.js` (Rule 11 deletes after the Drive
+Tests: 10 new assertions in `test_disposition.js` (Rule 11 deletes after the Drive
 write, in that order; no archive holds; Rule 1 still holds; the summary line).
-Four faults injected on a scratch copy (allowlist widened to Rule 1, allowlist
-emptied, archive gate bypassed, no `continue` after the delete), each red.
+Five faults injected on a scratch copy (allowlist widened to Rule 1, allowlist
+emptied, archive gate bypassed, no `continue` after the delete, multi-message
+guard removed), each red.
 
 ## v6.83.0
 

@@ -67,6 +67,28 @@ Run `/deploy-change` (`.claude/skills/deploy-change/`). Short version:
 3. **Prove the guard fails.** A check that has never gone red proves nothing.
    Inject the fault, watch it fail, restore, verify with `cmp`.
 
+## Fixing a reported miss: done means the email is gone
+
+Green CI and a passing review are not done. On 2026-10-24 a missed ad took two
+releases because the deploy's recheck **detected and logged it but only HELD it**;
+nobody had read that path before promising it would be deleted.
+
+1. **Name the path** the reported email takes, then read that function:
+   live inbox (`processInbox` -> `disposeDetectedMessage`), the post-deploy
+   recheck (`recheckRecentSpamChecked`: HOLDS everything except
+   `RECHECK_DELETE_RULES`), or the Spam-folder review. Mail already in the inbox
+   when a fix deploys goes through the recheck, not the live path.
+2. **Tell the user before deploying** what will happen to that specific email and
+   whether they must act by hand.
+3. **Acceptance test = the email's observed end state**: Gmail `get_thread` by id,
+   its Raw Log row, its Drive archive. Not "tests pass".
+4. **Design before mirror.** Put the design in front of reviewers who must
+   CONSTRUCT false positives, before writing the Python mirror, tests and fixture.
+5. **Scrub fixtures when you create them** (this repo is public): recipient
+   address, `Return-Path`/`X-CI-RP` tokens, `List-Unsubscribe` `ct=`, tracking links.
+6. **When CI is blind or hung**, read production directly with
+   `python3 scripts/prod_health.py` before reporting anything.
+
 ## Watching a deploy
 
 After every push, stream `python3 -u scripts/watch_deploy.py <run-id>` through

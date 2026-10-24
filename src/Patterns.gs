@@ -464,7 +464,8 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
  * literals (v6.83.0): the same network reworded its disclaimer from "This is an
  * advertisement" to "This is a paid advertisement" and the literal missed it.
  *
- * Run against lower-cased, entity-decoded, whitespace-collapsed text, so they
+ * Run against normalizeAdText() output (Text.gs: entities, NFKC, lower-case,
+ * lookalike and dash folds, zero-width strip, spaces collapsed), so they
  * carry no /i flag and no \b (JS \b is ASCII-only and Python's is not, so the
  * mirror would disagree on non-ASCII neighbours). The disclaimer is strict
  * about its tail (v6.83.0 review): the long form refuses a following letter,

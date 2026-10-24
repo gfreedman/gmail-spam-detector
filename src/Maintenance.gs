@@ -384,10 +384,11 @@ function checkFalseNegatives()
  * runPeriodicMaintenance(), re-checking inbox emails carrying SpamChecked from
  * the last RECHECK_DAYS days. Any that now score as spam under updated patterns
  * are logged as FALSE_NEGATIVE, archived out of the inbox, and HELD under
- * CONFIG.reviewLabel.
+ * CONFIG.reviewLabel. Rule 11 alone (RECHECK_DELETE_RULES) is archived to Drive
+ * and then deleted, at the user's explicit call (v6.84.0).
  *
- * This path does NOT delete, and deliberately does not get the same treatment
- * as a manually labelled SpamMissed email. The difference is consent: a
+ * This path does NOT delete anything else, and deliberately does not get the
+ * same treatment as a manually labelled SpamMissed email. The difference is consent: a
  * SpamMissed label is the user asking for destruction, whereas this is the
  * script overruling a decision the user already made, using a pattern deployed
  * moments ago. See holdForReview() for the full reasoning.
@@ -422,6 +423,10 @@ function recheckRecentSpamChecked(widen)
   // limit, which skips the heartbeat in `finally` while LAST_SEEN_VERSION is
   // already recorded, so nothing retries it at all.
   const RECHECK_BUDGET_MS    = 120 * 1000;
+  // The only rules this path may delete (see the comment at the match below).
+  // An allowlist, so a new rule defaults to HOLD here as it does in
+  // disposeDetectedMessage().
+  const RECHECK_DELETE_RULES = ['Rule 11'];
   const startedAt            = Date.now();
 
   try
@@ -445,6 +450,7 @@ function recheckRecentSpamChecked(widen)
     // Batch-fetch messages for all recheck threads in one API call.
     const allMessages = GmailApp.getMessagesForThreads(threads);
     let recaughtCount = 0;
+    let deletedCount  = 0;
 
     for (let i = 0; i < threads.length; i++)
     {
@@ -467,16 +473,40 @@ function recheckRecentSpamChecked(widen)
 
         logInfo('Auto-recaught false negative: ' + sanitizeForLog(message.getSubject()));
 
-        // Archive the evidence, then HOLD — never delete on this path.
+        // Archive the evidence, then HOLD - EXCEPT for the rules in
+        // RECHECK_DELETE_RULES, which are archived and then deleted.
         //
-        // Until v6.48.0 this called disposeDetectedMessage(), so a newly
-        // deployed pattern permanently deleted up to 20 messages the user had
-        // already read and kept, within a minute of the deploy, with nothing
-        // between the new regex and the loss but a 22-file ham corpus. It was
-        // the highest-blast-radius consequence of a bad pattern in the system
-        // and the one most likely to be exercised, because a pattern is added
-        // precisely when it is new and unproven.
-        accumulateLogEntry(message, verdict.signals, 'FALSE_NEGATIVE');
+        // Until v6.48.0 this called disposeDetectedMessage() for everything, so
+        // a newly deployed pattern permanently deleted up to 20 messages the
+        // user had already read and kept, within a minute of the deploy, with
+        // nothing between the new regex and the loss but a 22-file ham corpus.
+        // That was the highest-blast-radius consequence of a bad pattern in the
+        // system and the one most likely to be exercised, because a pattern is
+        // added precisely when it is new and unproven. So it HOLDS.
+        //
+        // v6.84.0: Rule 11 is the one exception. The v6.83.0 deploy re-checked
+        // the very email it was built for, matched it, logged it
+        // (FALSE_NEGATIVE, Rule 11) and HELD it - the user, who had asked for
+        // that mail to be deleted, had to trash it by hand. The consent
+        // argument above does not hold for it: the user named this template
+        // (twice) as mail to delete, and its conditions are the narrowest of
+        // any rule (disclaimer + heading + credits + advertiser sentence or the
+        // relay sender shape). The archive gate still applies: with no Drive
+        // copy, disposeDetectedMessage() quarantines instead, and the thread is
+        // then held below.
+        const rule     = getRuleFromSignals(verdict.signals).rule;
+        const archived = accumulateLogEntry(message, verdict.signals, 'FALSE_NEGATIVE');
+        // A thread with MORE than one message is held, never deleted (panel,
+        // v6.84.0): only messages[0] is judged, so a later message may be the
+        // user's own reply - evidence they engaged with it, which no ad earns.
+        // Single-message ad mail, the case Rule 11 exists for, is unaffected.
+        if (RECHECK_DELETE_RULES.indexOf(rule) !== -1 && messages.length === 1 &&
+            disposeDetectedMessage(message, thread, verdict.signals, archived))
+        {
+          deletedCount++;
+          recaughtCount++;
+          continue;   // thread destroyed - nothing left to hold
+        }
         holdForReview(message, thread, 'recheck after pattern change');
         recaughtCount++;
       }
@@ -488,9 +518,11 @@ function recheckRecentSpamChecked(widen)
 
     if (recaughtCount > 0)
     {
-      logInfo('Recheck: held ' + recaughtCount + ' newly-matching email(s) from the last ' +
-              RECHECK_DAYS + ' days for review under the "' + CONFIG.reviewLabel +
-              '" label — none were deleted');
+      logInfo('Recheck: ' + recaughtCount + ' newly-matching email(s) from the last ' +
+              RECHECK_DAYS + ' days - ' + deletedCount + ' deleted (' +
+              RECHECK_DELETE_RULES.join(', ') + ' only, archived first), ' +
+              (recaughtCount - deletedCount) + ' held for review under the "' +
+              CONFIG.reviewLabel + '" label');
     }
   }
   catch (error)

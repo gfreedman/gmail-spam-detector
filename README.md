@@ -43,7 +43,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - Free-mail sender with a machine-generated address + 2 spam behaviours = SPAM
 - Free-mail sender invoicing as a brand it doesn't control, with a phone number to call = PHISHING (quarantined, not deleted)
 - Calendar invite from an unknown organiser with a voicemail/fax lure in the title and an off-domain link = PHISHING
-- Ad disclaimer + a "Sponsored Content" block + 2 "Sponsored by" credits + EITHER the ad network's "promotional messages from this advertiser" sentence OR the ad-mill sender shape (From mailbox ends in the Reply-To brand domain, on an ESP relay) = SPAM
+- Ad disclaimer + a "Sponsored Content" block + "Sponsored by" credits (2, or 3 on the relay shape) + EITHER the ad network's "promotional messages from this advertiser" sentence OR the ad-mill sender shape (From mailbox ends in the Reply-To brand domain, on an ESP relay) = SPAM
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
 

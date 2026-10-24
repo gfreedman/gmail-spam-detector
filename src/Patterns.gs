@@ -466,8 +466,12 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
  *
  * Run against lower-cased, entity-decoded, whitespace-collapsed text, so they
  * carry no /i flag and no \b (JS \b is ASCII-only and Python's is not, so the
- * mirror would disagree on non-ASCII neighbours). The disclaimer refuses a
- * following letter AND " hoc" ("this is an ad hoc group" is not an ad).
+ * mirror would disagree on non-ASCII neighbours). The disclaimer is strict
+ * about its tail (v6.83.0 review): the long form refuses a following letter,
+ * digit, hyphen or " blocker"; the SHORT form "ad" must END its clause (a
+ * following . ! : , ; ) or the end of the text), so "this is an ad-free
+ * edition", "an ad blocker tip" and "an ad hoc group" are not disclaimers. The
+ * heading and credit accept a hyphen for the space (text is hyphen-folded).
  * NO CAPTURE GROUPS, ever: Signal 14 counts matches with String.split(), which
  * splices captured text into its result and would corrupt every count (a test
  * asserts it). No quantifier is nested, so each scan is linear.
@@ -482,10 +486,10 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
  * @const {Array<RegExp>}
  */
 const SPONSORED_AD_PATTERNS = Object.freeze([
-  /this is an? (?:paid |sponsored )?(?:advertisement|ad)(?![a-z]| hoc)/,
+  /this is an? (?:paid |sponsored )?(?:advertisement(?![a-z0-9-]| blocker)|ad(?= ?[.!:,;)]| ?$))/,
   /(?:promotional|marketing|advertising) (?:messages?|emails?) from (?:this|the) (?:advertiser|sponsor)/,
-  /sponsored (?:content|stories)/,
-  /sponsored by/
+  /sponsored[ -](?:content|stories)/,
+  /sponsored[ -]by/
 ]);
 
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

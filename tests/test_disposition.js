@@ -2222,6 +2222,7 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   const HEAD = 'Sponsored Content';
   const ADV = 'If you no longer wish to receive promotional messages from this advertiser, please unsubscribe below.';
   const CRED = 'Sponsored by A. Sponsored by B.';
+  const CRED3 = CRED + ' Sponsored by C.';
   const FROM = 'Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>';
   const msg = (o) => {
     o = Object.assign({ from: FROM, plain: '', html: '', subject: 'Weekly digest',
@@ -2311,7 +2312,7 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
 
   // Every conjunct, alone: removing any ONE must flip a case below.
   const FULL = DISC + ' ' + ADV + ' ' + HEAD + ' ' + CRED;
-  check('all four phrases, credit twice, fires', fires(T(FULL)));
+  check('all four patterns, credit twice, fires', fires(T(FULL)));
   // PLAIN ONLY (no html): the tag-stripped HTML path collapses whitespace itself
   // and would mask a missing collapse in the plain-body path.
   check('whitespace runs, NBSP and tabs are collapsed (plain body only)',
@@ -2381,7 +2382,7 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
           c2.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c2.calls.map(x => x.op)));
   }
   const MILLRAW = 'Reply-To: support@trendwatcherslab.com\r\n\r\nhi';
-  const PAID = 'This is a paid advertisement. ' + HEAD + ' ' + CRED;
+  const PAID = 'This is a paid advertisement. ' + HEAD + ' ' + CRED3;
   check('relay shape: paid-ad wording fires with the real sender shape',
         fires(Object.assign({ raw: MILLRAW }, T(PAID))));
   check('relay shape: the same body without a Reply-To does not fire', !fires(T(PAID)));
@@ -2397,17 +2398,53 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   // The review's editorial shapes: two labelled ad blocks used to satisfy the
   // draft "disclaimer twice" branch; neither shape accepts them.
   check('REVIEW: two labelled ad blocks in an editorial digest do not fire',
-        !fires(T('This is an ad. This is an ad. ' + HEAD + ' ' + CRED)));
+        !fires(T('This is an ad. This is an ad. ' + HEAD + ' ' + CRED3)));
   check('REVIEW: two labelled ad blocks do not fire even from the relay sender WITHOUT its Reply-To',
-        !fires(T('This is an advertisement. This is an advertisement. ' + HEAD + ' ' + CRED)));
+        !fires(T('This is an advertisement. This is an advertisement. ' + HEAD + ' ' + CRED3)));
   check('REVIEW: "this is an ad hoc group" x2 is not a pair of disclaimers',
-        !fires(Object.assign({ raw: MILLRAW }, T('This is an ad hoc group. This is an ad hoc thing. ' + HEAD + ' ' + CRED))));
+        !fires(Object.assign({ raw: MILLRAW }, T('This is an ad hoc group. This is an ad hoc thing. ' + HEAD + ' ' + CRED3))));
   check('REVIEW: HTML entities cannot hide the credit (sponsored&nbsp;by, &#160;)',
         fires(T(DISC + ' ' + ADV + ' Sponsored&nbsp;Content Sponsored&#160;by A. Sponsored&nbsp;by B.')));
   check('REVIEW: zero-width characters inside words are stripped',
         fires(T(DISC + ' ' + ADV + ' S\u200bponsored Content Spon\u200bsored by A. Sponsored by B.')));
   check('REVIEW: thin, narrow and ideographic spaces are collapsed',
         fires(T(DISC + ' ' + ADV + ' Sponsored\u2009Content Sponsored\u202fby A. Sponsored\u3000by B.')));
+
+  // ── Round 2 of the panel (v6.83.0) ──────────────────────────────────────
+  const relayFires = (body, o) => fires(Object.assign({ raw: MILLRAW }, T(body), o || {}));
+  check('R2: the short disclaimer "this is an ad." fires on the relay shape', relayFires('This is an ad. ' + HEAD + ' ' + CRED3));
+  for (const bad of ['This is an ad-free edition.', 'This is an ad blocker tip.', 'This is an ad-supported site.',
+                     'This is an advertisement-free issue.', 'This is an advertisement blocker.', 'This is an ad hoc group.']) {
+    check('R2: "' + bad + '" is not a disclaimer (a brand tenant with the relay shape is NOT deleted)',
+          !relayFires(bad + ' ' + HEAD + ' ' + CRED3));
+  }
+  check('R2: the relay shape needs THREE credits (two is not enough)',
+        !relayFires('This is a paid advertisement. ' + HEAD + ' ' + CRED));
+  check('R2: the strict shape still needs only TWO credits', fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' ' + CRED)));
+  check('R2: hyphens, incl. U+2011, stand for the space',
+        relayFires('This is a paid advertisement. Sponsored-Content Sponsored-by A. Sponsored\u2011by B. Sponsored\u2011by C.'));
+  check('R2: a Cyrillic o in "sponsored" is folded', fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' Sp\u043ensored by A. Sp\u043ensored by B.')));
+  check('R2: full-width letters are folded (NFKC)',
+        fires(T(DISC + ' ' + ADV + ' \uff33ponsored Content \uff33ponsored by A. \uff33ponsored by B.')));
+  check('R2: a tag INSIDE a word is glued back in the tags-deleted view',
+        fires({ plain: 'hello', html: '<p>This is an adver<span></span>tisement.</p><p>' + ADV + '</p><b>Sponsored Con<i></i>tent</b>' +
+                '<i>Spon<b></b>sored by A</i><i>Sponsored by B</i>' }));
+  check('R2: normalizeAdText maps every table letter to its ASCII twin',
+        ctx.normalizeAdText('\u0430\u0435\u043e\u0440\u0441\u0445\u0443\u0456\u0458\u0455\u0501\u03bf\u03bd\u03b9\u03c1') === 'aeopcxyijsdovip');
+  check('R2: the fold table is two equal-length strings',
+        vm.runInContext('AD_CONFUSABLES_FROM.length === AD_CONFUSABLES_TO.length && AD_CONFUSABLES_TO.length === 15', ctx));
+  check('R2: NFKC expansion is re-capped (U+FDFA x 20000 stays bounded)',
+        ctx.normalizeAdText('\ufdfa'.repeat(20000)).length <= vm.runInContext('LIMITS.maxRawScanChars', ctx));
+  // Reply-To oddities (Microsoft advisory): both languages take the FIRST address
+  // of the FIRST header; a list, a duplicate header and a non-ASCII host never
+  // widen the gate. The Python suite asserts the same table.
+  const rt = (hdrs) => relayFires('This is a paid advertisement. ' + HEAD + ' ' + CRED3,
+                                  { raw: hdrs + '\r\n\r\nhi' });
+  check('R2 Reply-To: a list whose first address is the brand fires', rt('Reply-To: support@trendwatcherslab.com, other@x.org'));
+  check('R2 Reply-To: a list whose first address is NOT the brand does not fire', !rt('Reply-To: other@x.org, support@trendwatcherslab.com'));
+  check('R2 Reply-To: a duplicate header uses the first', !rt('Reply-To: a@x.org\r\nReply-To: support@trendwatcherslab.com'));
+  check('R2 Reply-To: a non-ASCII host never matches the ASCII local part', !rt('Reply-To: support@trendwatcherslab.c\u00f6m'));
+  check('R2 Reply-To: a folded header is unfolded', rt('Reply-To: support@trendwatcherslab.com,\r\n other@x.org'));
 
   // Linear on sender-controlled text: 100 KB of the phrases and of whitespace.
   const t0 = Date.now();

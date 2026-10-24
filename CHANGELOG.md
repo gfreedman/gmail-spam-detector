@@ -31,33 +31,75 @@ and it carried no "promotional messages from this advertiser" sentence, so
 Signal 14's four literals matched two.
 
 1. **Literals became patterns** (`SPONSORED_AD_PATTERNS`, was
-   `SPONSORED_AD_PHRASES`): "an ad / an advertisement / a paid ad(vertisement) /
-   a sponsored ad", "sponsored content / stories", "marketing / advertising
-   emails from the sponsor".
-2. **A second shape, the relay shape.** Without the advertiser sentence the
-   signal also fires when the sender looks like an ad mill on an ESP relay: the
-   From mailbox is `<brand-domain>@<esp>` (the local part ends in the Reply-To
-   domain) and the Reply-To is on a different domain. Authentication cannot
-   separate this (the ESP signs and passes SPF/DKIM/DMARC); structure can.
+   `SPONSORED_AD_PHRASES`).
+2. **Two shapes.** STRICT is unchanged in spirit: disclaimer, heading, the
+   advertiser sentence, 2 credits. RELAY drops the sentence but requires 3
+   credits AND the sender shape of an ad mill on an ESP relay: the From mailbox
+   is `<brand-domain>@<esp>` (local part ends in the Reply-To domain) and the
+   Reply-To is on a different domain. Authentication cannot separate a mill from
+   a tenant (the ESP signs for both); structure can.
 3. **Deletes, not quarantines**, at the user's explicit call.
+4. **Text is normalised first** (`normalizeAdText`): entities, NFKC, lookalike
+   Cyrillic/Greek letters, dash variants, zero-width characters, Unicode spaces.
+   Matched on three views: plain body, HTML with tags as spaces, HTML with tags
+   deleted (a tag inside a word glues back together).
 
-Reviewed by a panel before merge (see the PR): the first draft accepted "the
-disclaimer twice" in place of the sentence; the review built editorial digests
-with two labelled ad blocks that it deleted, so that branch was removed and the
-sender shape replaces it. The same review found and this release fixes:
-- `this is an ad hoc group` counted as a disclaimer (now refuses a following
-  letter or " hoc");
-- `sponsored&nbsp;by` and `&#160;` hid the credit (entities are now decoded);
-- thin, narrow and ideographic spaces and zero-width characters inside words
-  defeated the match (collapsed / stripped);
-- `split()` counting is corrupted by a capture group; a test now asserts none.
+### Panel review (PR #25), round 1 -> fixes
 
-Fixture: `AutoCamp Reg CF ad from Trend Watchers Lab.eml` (recipient scrubbed to
-`recipient@example.com`). Seven guards were fault-injected on a scratch copy and
-each turned a test red.
+Four reviewers; three said FAIL. Everything below was reproduced before it was
+fixed, and each fix has a test that fails without it (7 + 7 faults injected on
+scratch copies).
 
-Known limits: cheap to evade by changing the disclaimer wording AND the sender
-shape. `sponsored by` is unanchored (it also matches inside a longer word).
+- *Draft accepted "the disclaimer twice" instead of the sentence.* Editorial
+  digests with two labelled ad blocks were deleted. **Removed.**
+- *`this is an ad hoc group` counted as a disclaimer.* **Fixed.**
+- *`sponsored&nbsp;by` / `&#160;` hid the credit.* **Entities decoded.**
+- *Thin, narrow, ideographic spaces; zero-width characters in words.*
+  **Collapsed / stripped.**
+- *`split()` counting is corrupted by a capture group.* **A test asserts none.**
+
+### Round 2 -> fixes
+
+- *"This is an ad-free edition" / "an ad blocker tip" / "ad-supported" still
+  matched; a brand's own tenant with the relay shape would be deleted.* The long
+  form refuses a following letter/digit/hyphen/" blocker"; the short form must
+  END its clause. **Fixed.**
+- *The relay gate carries all the weight.* Relay now needs **3** credits, one
+  more than strict.
+- *Evasions: a tag inside a word, Cyrillic o, full-width letters, a non-breaking
+  hyphen for the space.* **All closed**, each verified by running the shipped JS.
+- *Per-recipient ESP tokens in the public fixture* (`Return-Path`, `X-CI-RP`,
+  `List-Unsubscribe`, ~18 tracking links). **Scrubbed to `REDACTED`.**
+- *Python `_header_addresses` split on a wider `\s` than JS.* **Explicit class.**
+- *Reply-To lists, duplicate headers, non-ASCII hosts, folded headers.* A table
+  of cases, asserted in both languages.
+
+### Declined, with reasons
+
+- **Allowlist of known ESP relays.** The mill can change ESP in a day; the sender
+  *shape* is the tell, and it is already required.
+- **Conviction on `Precedence: bulk` + one-click unsubscribe + a "SPONSORED"
+  label, without the text.** Every newsletter carries those headers. That is the
+  scored classifier (proposed separately), not a tweak to this rule.
+- **A 7-day hold before deleting.** The owner decided Rule 11 deletes; the Drive
+  archive remains the recovery path.
+- **Credits "inside `<i>`/`<em>`".** Layout-specific; a one-line template change
+  defeats it.
+
+### Post-deploy check
+
+The forced re-review after a version change cannot delete (the recheck only
+holds). To prove nothing legitimate was deleted: filter the Raw Log for
+`SPONSORED_AD_TEMPLATE` rows after the 6.83.0 stamp and read every sender, then
+look at the `SuspectedSpam` label for unexpected senders. Result: see the PR.
+
+Fixture: `AutoCamp Reg CF ad from Trend Watchers Lab.eml` (recipient and
+per-recipient tokens scrubbed).
+
+Known limits: cheap to evade by rewording heading/credit/disclaimer, image-only
+credits, or a different sender shape. `sponsored by` is unanchored (it also
+matches inside a longer word). The earlier v6.81.0 fixture still carries
+per-recipient tokens (tracked separately under the public-repo exposure).
 
 ## v6.82.0
 

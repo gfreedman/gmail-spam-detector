@@ -1069,7 +1069,10 @@ def _canonical_mailbox(address):
 def _header_addresses(value):
     """Mirror of headerAddresses(): split on one character class (linear),
     keep tokens with an '@' after the first character, lowercased."""
-    return [t.lower() for t in re.split(r'[\s,;<>"():]+', value or '') if t.find('@') > 0]
+    # JS \s spelled out: Python's adds U+001C-1F and U+0085 and lacks U+FEFF.
+    return [t.lower() for t in re.split(
+        r'[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff,;<>"():]+',
+        value or '') if t.find('@') > 0]
 
 
 def _local_part_words(addresses):
@@ -1119,6 +1122,20 @@ def _has_random_case_label(domain):
         if upper >= 3 and lower >= 3 and switches >= 3 and max_run <= 3:
             return True
     return False
+
+
+_AD_CONFUSABLES_FROM = '\u0430\u0435\u043e\u0440\u0441\u0445\u0443\u0456\u0458\u0455\u0501\u03bf\u03bd\u03b9\u03c1'
+_AD_CONFUSABLES_TO   = 'aeopcxyijsdovip'
+
+
+def _normalize_ad_text(text):
+    """Mirror of normalizeAdText(): entities, NFKC (re-capped), lower-case,
+    lookalike letters, dashes, zero-width deletion, Unicode space collapse."""
+    t = unicodedata.normalize('NFKC', _decode_html_entities(text))[:MAX_RAW_SCAN_CHARS].lower()
+    t = t.translate({ord(f): ord(to) for f, to in zip(_AD_CONFUSABLES_FROM, _AD_CONFUSABLES_TO)})
+    t = re.sub('[\u2010-\u2015\u2212]', '-', t)
+    t = re.sub('[\u00ad\u200b-\u200f\u2060\ufeff]', '', t)
+    return re.sub(r'[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ' ', t)
 
 
 def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=False, html='', raw=''):
@@ -1253,19 +1270,19 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         return (at > 0 and reply_host.find('.') > 0 and reply_host != sender_host and
                 (local == reply_host or local.endswith('.' + reply_host)))
     def _has_ad_template(text):
-        t = _decode_html_entities(text).lower()
-        t = re.sub('[\u00ad\u200b-\u200f\u2060\ufeff]', '', t)
-        t = re.sub(r'[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ' ', t)
+        t = _normalize_ad_text(text)
         n = [len(p.findall(t)) for p in SPONSORED_AD_PATTERNS]
-        if n[0] < 1 or n[2] < 1 or n[3] < 2:
+        if n[0] < 1 or n[2] < 1:
             return False
-        return n[1] >= 1 or _relay_shape()
+        # STRICT: advertiser sentence + 2 credits. RELAY: sender shape + 3 credits.
+        return (n[1] >= 1 and n[3] >= 2) or (n[3] >= 3 and _relay_shape())
     # JS stripHtmlTags() collapses /\s+/, which is wider than the ASCII+NBSP class
     # the normaliser above applies; spell the JS \s set out so the HTML path agrees
     # (Python's \s differs: it adds U+001C-1F and U+0085, and lacks U+FEFF).
     _JS_WS = r'[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff]+'
     if (_has_ad_template(body) or
-            _has_ad_template(re.sub(_JS_WS, ' ', re.sub(r'<[^>]*>', ' ', html)).strip())):
+            _has_ad_template(re.sub(_JS_WS, ' ', re.sub(r'<[^>]*>', ' ', html)).strip()) or
+            _has_ad_template(re.sub(r'<[^>]+>', '', html))):
         signals['sponsored_ad_template'] = True
         signals['matched_patterns'].append('sponsored_ad_template')
 
@@ -2789,22 +2806,26 @@ def run_edge_case_tests():
     # corrupt every count. Pin "none" so nobody adds one.
     check('SPONSORED_AD_PATTERNS have no capture groups (split-based counting)',
           all(p.groups == 0 for p in SPONSORED_AD_PATTERNS))
+    check('ad-text fold table pinned (mirror of AD_CONFUSABLES in Text.gs)',
+          _AD_CONFUSABLES_FROM == '\u0430\u0435\u043e\u0440\u0441\u0445\u0443\u0456\u0458\u0455\u0501\u03bf\u03bd\u03b9\u03c1' and
+          len(_AD_CONFUSABLES_FROM) == len(_AD_CONFUSABLES_TO) == 15)
     _DISC = 'This is an advertisement.'
     _ADV = 'If you no longer wish to receive promotional messages from this advertiser, please unsubscribe below.'
     _HEAD = 'Sponsored Content'
     _CRED = 'Sponsored by A. Sponsored by B.'
+    _CRED3 = _CRED + ' Sponsored by C.'
     _MILL = 'Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>'
     _MILL_RAW = 'Reply-To: support@trendwatcherslab.com\r\n\r\nx'
     def _s14(body='', html='', frm=_MILL, raw=_MILL_RAW):
         sig, _, _ = analyze_email('hello', frm, False, body=body, html=html, raw=raw)
         return sig['sponsored_ad_template']
     for body, expect, why in [
-        (f'{_DISC} {_ADV} {_HEAD} {_CRED}', True, 'strict: all four, credit twice'),
+        (f'{_DISC} {_ADV} {_HEAD} {_CRED}', True, 'strict: all four patterns, credit twice'),
         (f'{_DISC}\n\n{_ADV}\n{_HEAD}\u00a0 Sponsored\tby A. Sponsored   by B.', True, 'whitespace is collapsed'),
         (f'THIS IS AN ADVERTISEMENT. {_ADV.upper()} SPONSORED CONTENT sponsored BY A. Sponsored by B.', True, 'case-insensitive'),
-        (f'This is a paid advertisement. {_HEAD} {_CRED}', True, 'relay: paid-ad wording, no advertiser sentence (the AutoCamp miss)'),
-        (f'This is a paid ad. {_HEAD} {_CRED}', True, 'relay: "paid ad"'),
-        (f'{_DISC} Sponsored Stories {_CRED}', True, 'relay: "sponsored stories" heading'),
+        (f'This is a paid advertisement. {_HEAD} {_CRED3}', True, 'relay: paid-ad wording, no advertiser sentence (the AutoCamp miss)'),
+        (f'This is a paid ad. {_HEAD} {_CRED3}', True, 'relay: "paid ad"'),
+        (f'{_DISC} Sponsored Stories {_CRED3}', True, 'relay: "sponsored stories" heading'),
         (f'{_ADV} {_HEAD} {_CRED}', False, 'no disclaimer'),
         (f'{_DISC} {_ADV} {_CRED}', False, 'no sponsor block heading'),
         (f'{_DISC} {_ADV} {_HEAD} Sponsored by A.', False, 'only one credit line'),
@@ -2815,6 +2836,17 @@ def run_edge_case_tests():
         (f'{_DISC} S\u200bponsored Content S\u200bponsored by A. Spon\u200bsored by B. {_ADV}', True, 'zero-width characters inside words are stripped'),
         (f'{_DISC} {_ADV} Sponsored&nbsp;Content Sponsored&#160;by A. Sponsored&nbsp;by B.', True, 'entities are decoded (review evasion)'),
         (f'{_DISC} {_ADV} Sponsored\u2009Content Sponsored\u202fby A. Sponsored\u3000by B.', True, 'thin/narrow/ideographic spaces are collapsed'),
+        (f'This is an ad. {_HEAD} {_CRED3}', True, 'relay: the short form ends its clause'),
+        (f'This is an ad {_HEAD} {_CRED3}', False, 'short form with nothing ending the clause (ad + more words)'),
+        (f'This is an ad-free edition. {_HEAD} {_CRED3}', False, 'REVIEW: "ad-free" is not a disclaimer'),
+        (f'This is an ad blocker tip. {_HEAD} {_CRED3}', False, 'REVIEW: "ad blocker" is not a disclaimer'),
+        (f'This is an ad-supported site. {_HEAD} {_CRED3}', False, 'REVIEW: "ad-supported" is not a disclaimer'),
+        (f'This is an advertisement-free issue. {_HEAD} {_CRED3}', False, 'REVIEW: "advertisement-free" is not a disclaimer'),
+        (f'This is an advertisement blocker. {_HEAD} {_CRED3}', False, 'REVIEW: "advertisement blocker" is not a disclaimer'),
+        (f'This is a paid advertisement. {_HEAD} {_CRED}', False, 'relay needs THREE credits (two is the strict count only)'),
+        (f'This is a paid advertisement. Sponsored-Content Sponsored-by A. Sponsored\u2011by B. Sponsored\u2011by C.', True, 'REVIEW: hyphens, incl. U+2011, stand for the space'),
+        (f'{_DISC} {_ADV} {_HEAD} Sp\u043ensored by A. Sp\u043ensored by B.', True, 'REVIEW: Cyrillic o in "sponsored" is folded'),
+        (f'{_DISC} {_ADV} \uff33ponsored Content \uff33ponsored by A. \uff33ponsored by B.', True, 'REVIEW: full-width letters via NFKC'),
     ]:
         check(f'14 body {body[:46]!r} -> {expect}', _s14(body=body) == expect, why)
     # The review's editorial shapes: they carry the heading, credits and disclaimers
@@ -2829,7 +2861,7 @@ def run_edge_case_tests():
     ]:
         check(f'14 editorial {body[:40]!r} does not fire', not _s14(body=body, frm=_EDITORIAL, raw=_EDITORIAL_RAW), why)
     # The relay gate, one condition at a time (each alone must flip the result).
-    _PAID = f'This is a paid advertisement. {_HEAD} {_CRED}'
+    _PAID = f'This is a paid advertisement. {_HEAD} {_CRED3}'
     for frm, raw, expect, why in [
         (_MILL, _MILL_RAW, True, 'the real shape'),
         (_MILL, 'Reply-To: Support <support@trendwatcherslab.com>\r\n\r\nx', True, 'Reply-To with a display name'),
@@ -2844,10 +2876,23 @@ def run_edge_case_tests():
         (_MILL, 'Body: x\r\n\r\nReply-To: support@trendwatcherslab.com', False, 'Reply-To only in the body, not the headers'),
     ]:
         check(f'14 relay gate: {why} -> {expect}', _s14(body=_PAID, frm=frm, raw=raw) == expect)
+    for hdrs, expect, why in [
+        ('Reply-To: support@trendwatcherslab.com, other@x.org', True, 'list, brand first'),
+        ('Reply-To: other@x.org, support@trendwatcherslab.com', False, 'list, brand second'),
+        ('Reply-To: a@x.org\r\nReply-To: support@trendwatcherslab.com', False, 'duplicate header uses the first'),
+        ('Reply-To: support@trendwatcherslab.c\u00f6m', False, 'non-ASCII host'),
+        ('Reply-To: support@trendwatcherslab.com,\r\n other@x.org', True, 'folded header'),
+    ]:
+        check(f'14 Reply-To table (mirrors test_disposition.js): {why} -> {expect}',
+              _s14(body=_PAID, raw=hdrs + '\r\n\r\nhi') == expect)
     _FULL_HTML = (f'<p><b>{_DISC}</b></p><p><i>{_ADV}</i></p><b>{_HEAD}</b>'
                   '<i>Sponsored by <b>A</b></i><i>Sponsored by <b>B</b></i>')
     check('14 fires from the tag-stripped HTML when the plain body lacks it',
           _s14(body='hello', html=_FULL_HTML) is True)
+    check('14 REVIEW: a tag INSIDE a word is glued back (tags-deleted view)',
+          _s14(body='hello', html=_FULL_HTML.replace('Sponsored by <b>A', 'Spon<b></b>sored by <b>A')
+                                         .replace('Sponsored Content', 'Sponsored Con<i></i>tent')
+                                         .replace('This is an advertisement', 'This is an adver<span></span>tisement')) is True)
     for ws in ('\u2009', '\u3000', '\u202f', '\ufeff', '\u2028'):
         check(f'14 HTML path collapses U+{ord(ws):04X} like the JS stripHtmlTags',
               _s14(body='hello', html=_FULL_HTML.replace('Sponsored by', f'Sponsored{ws}by')) is True)

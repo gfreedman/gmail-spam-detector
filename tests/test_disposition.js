@@ -2673,6 +2673,21 @@ console.log('\n=== Signal 15 / Rule 12: blacklisted brand behind an ESP relay (v
         !rfires({ from: 'A Friend <friend@example.org>', reply: RT }));
   check('the mill sending from its OWN domain is not relay-shaped (Signal 1b + bulk handles that)',
         !rfires({ from: 'x <x@trendwatcherslab.com>', reply: RT }));
+  // False positives the attacker review reproduced: dotless entries have host-SUBSTRING semantics.
+  check('a dotless shipped entry ("financebuzz") does NOT match an unrelated relay tenant (financebuzzfans.org)',
+        !rfires({ from: 'A <news.financebuzzfans.org@relay.esp.com>', reply: 'Reply-To: hi@financebuzzfans.org' }));
+  check('...nor "investorplace" inside realinvestorplace.co.uk on the mill\'s own ESP',
+        !rfires({ from: 'Z <realinvestorplace.co.uk@email.cyberimpact.com>', reply: 'Reply-To: info@realinvestorplace.co.uk' }));
+  {
+    const c = makeCtx();
+    c.addToBlacklist('news');
+    check('a USER-ADDED dotless entry ("news") does not fire either',
+          !rfires({ from: 'A <news.example.org@e.esp.com>', reply: 'Reply-To: a@news.example.org' }, c));
+    const c2 = makeCtx();
+    c2.addToBlacklist('a@b.com');   // has a dot AND an '@': only the '@' rule can stop it
+    check('an address-fragment entry ("a@b.com") does not fire',
+          !rfires({ from: 'A <b.com@e.esp.com>', reply: 'Reply-To: a@b.com' }, c2));
+  }
   check('a mailbox that embeds its OWN sending domain is not "behind a relay" (Signal 1b\'s territory)',
         !rfires({ from: 'x <x.trendwatcherslab.com@trendwatcherslab.com>', reply: RT }));
   check('an unlisted ESP tenant with the same shape does NOT fire',
@@ -2690,7 +2705,17 @@ console.log('\n=== Signal 15 / Rule 12: blacklisted brand behind an ESP relay (v
         rfires({ reply: 'Reply-To: support@trendwatcherslab.com.' }));
   check('header name and addresses are case-insensitive',
         rfires({ from: 'X <Ivy.Hart.TrendWatchersLab.com@Email.Cyberimpact.com>', reply: 'REPLY-TO: Support@TrendWatchersLab.COM' }));
+  check('11+ decoy Reply-To addresses before the brand do not hide it (no count cap)',
+        rfires({ reply: 'Reply-To: ' + 'a@b.c, '.repeat(12) + 'support@trendwatcherslab.com' }));
+  check('a zero-width space after the host does not hide it',
+        rfires({ reply: 'Reply-To: support@trendwatcherslab.com\u200b' }));
   // Known gaps, pinned so they cannot be "fixed" or forgotten by accident:
+  check('KNOWN GAP: "Reply-To :" (whitespace before the colon) is not read; getRawHeader is shared with Delivered-To',
+        !rfires({ reply: 'Reply-To : support@trendwatcherslab.com' }));
+  check('KNOWN GAP: a From mailbox that stops embedding the brand host escapes',
+        !rfires({ from: 'Cole <cole@email.cyberimpact.com>', reply: RT }));
+  check('KNOWN GAP: a Reply-To on a subdomain while the mailbox embeds the PARENT escapes',
+        !rfires({ from: 'x <a.trendwatcherslab.com@email.cyberimpact.com>', reply: 'Reply-To: s@help.trendwatcherslab.com' }));
   check('KNOWN GAP: dropping Reply-To hides it (it needs the header)', !rfires({}));
   check('KNOWN GAP: a SECOND Reply-To header line is not read (getRawHeader takes the first)',
         !rfires({ reply: 'Reply-To: a@decoy.com\r\nReply-To: support@trendwatcherslab.com' }));

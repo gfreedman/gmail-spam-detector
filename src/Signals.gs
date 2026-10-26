@@ -407,11 +407,18 @@ function collectSignals(message)
   // retroactively delete mail already read (RECHECK_DELETE_RULES).
   //
   // Reads EVERY Reply-To address, so a decoy listed first is not enough, and
-  // strips a trailing dot. Known gaps, cheap for the mill and not closed here:
-  // dropping Reply-To, or a display name past getRawHeader()'s 200-char cap that
-  // truncates it. A fresh brand domain also escapes until one data line is added;
-  // that is the point: the answer to a new brand is data, not code or a deploy.
-  // False positive class: a legitimate tenant of a brand the user blacklisted.
+  // strips a trailing dot and zero-width characters. Only FULL-DOMAIN blacklist
+  // entries count (see the loop). Known gaps, cheap for the mill and not closed,
+  // each pinned by a test: dropping Reply-To; a second "Reply-To:" line;
+  // "Reply-To :" with whitespace before the colon (getRawHeader() is shared with
+  // Delivered-To/To/Cc, and Signal 13 fires only when Delivered-To is ABSENT, so
+  // loosening it could flip that signal toward a false positive - not touched
+  // here); a display name past getRawHeader()'s 200-char cap; a From mailbox
+  // that stops embedding the brand host (one ESP template change); a Reply-To on a
+  // subdomain while the mailbox embeds the parent. A fresh brand domain also escapes
+  // until one data line is added; that is the point: the answer to a new brand is
+  // data, not code or a deploy. False positive class: a legitimate tenant of a
+  // full-domain entry the user blacklisted.
   try
   {
     if (atIdx > 0)
@@ -421,14 +428,26 @@ function collectSignals(message)
       const relayHost   = relaySender.substring(atIdx + 1).replace(/\.+$/, '');
       const replyTos    = headerAddresses(getRawHeader(rawContent, 'Reply-To'));
       const blacklistForRelay = getCachedBlacklist();
-      for (let r = 0; r < replyTos.length && r < 10 && !signals.blacklistedRelayIdentity; r++)
+      // No cap on the address count: getRawHeader() already bounds the header at 200
+      // chars, so the loop is bounded; a count cap only handed the mill a free
+      // evasion (11 decoys, reproduced in review).
+      for (let r = 0; r < replyTos.length && !signals.blacklistedRelayIdentity; r++)
       {
-        const replyTo   = replyTos[r].replace(/\.+$/, '');
+        // Zero-width characters are removed first: one after the host (a@brand.com<U+200B>)
+        // otherwise made the host a different string and hid the match.
+        const replyTo   = replyTos[r].replace(/[\u200b-\u200d\u2060\ufeff]/g, '').replace(/\.+$/, '');
         const replyHost = replyTo.substring(replyTo.lastIndexOf('@') + 1);
         if (replyHost.indexOf('.') <= 0 || replyHost === relayHost) continue;
         if (relayLocal !== replyHost && !relayLocal.endsWith('.' + replyHost)) continue;
         for (let i = 0; i < blacklistForRelay.length; i++)
         {
+          // FULL DOMAINS ONLY. A dotless entry ("financebuzz", "investorplace") has
+          // host-SUBSTRING semantics in addressMatchesDomain(), which is tolerable for
+          // Signal 1b (it also needs bulk) but here would delete an unrelated relay
+          // tenant whose host merely contains the fragment (financebuzzfans.org,
+          // realinvestorplace.co.uk - both reproduced in review). So skip entries
+          // without a dot, and address-fragment entries ('@'), including user-added ones.
+          if (blacklistForRelay[i].indexOf('.') === -1 || blacklistForRelay[i].indexOf('@') !== -1) continue;
           if (addressMatchesDomain(replyTo, blacklistForRelay[i]))
           {
             signals.blacklistedRelayIdentity = true;

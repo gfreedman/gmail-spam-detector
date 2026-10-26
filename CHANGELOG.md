@@ -56,11 +56,27 @@ same Drive-archive gate (no archive: quarantined). It is deliberately NOT in
 hold, not delete, mail the user has already read. On the live path mail is new, so
 the first message from a listed mill is deleted on arrival.
 
-**Evasions closed:** a decoy Reply-To address listed first (every address is read),
-a trailing dot. **Not closed, pinned by tests as known gaps:** dropping Reply-To,
-a second `Reply-To:` header line, and a display name past `getRawHeader()`'s 200-char
-cap. A fresh brand domain also escapes until a line is added; that is the cost this
-design accepts in exchange for no wording dependence.
+**Attacker review, then fixes.** Reproduced against the shipped code: dotless
+blacklist entries (`financebuzz`, `investorplace`, `weissratings`, ...) have
+host-SUBSTRING semantics in `addressMatchesDomain()`, so an unrelated relay
+tenant such as `financebuzzfans.org` or `realinvestorplace.co.uk` would have been
+deleted; user-added dotless and `a@b.com`-style entries had the same overreach.
+Signal 15 now counts only FULL-DOMAIN entries (a dot, no `@`). Also closed: a decoy
+Reply-To address anywhere in the (200-char) header (the first draft's 10-address cap
+was itself a free evasion, so it is gone), a trailing dot, and a zero-width character
+after the host. A third party cannot get someone else's mail deleted: firing needs
+the From local part to embed the blacklisted Reply-To host, which only the sender
+controls.
+
+**Not closed, each pinned by a test as a known gap** (cheapest first, given the mill
+has kept this From shape and Reply-To for three rewordings): `Reply-To :` with
+whitespace before the colon (`getRawHeader()` is shared with `Delivered-To`/`To`/`Cc`,
+and Signal 13 fires only when `Delivered-To` is ABSENT, so loosening it could flip
+that signal toward a false positive; deliberately not touched); a From mailbox that
+stops embedding the brand host; a Reply-To on a subdomain while the mailbox embeds
+the parent; dropping Reply-To; a second `Reply-To:` line; a display name past the
+200-char cap. A fresh brand domain also escapes until a line is added; that is the
+cost this design accepts in exchange for no wording dependence.
 
 A synthetic fixture (`Relay mill mail with an unrelated template.eml`) has none of
 the mill's template wording and is convicted by Rule 12 alone. Sweep: 16 booleans /

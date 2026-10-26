@@ -1294,21 +1294,23 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Convicts alone (Rule 12, DELETES like Rule 1). Mirrors Signal 15 in
     # Signals.gs: a Reply-To host on the blacklist AND the relay shape (the From
     # mailbox is, or ends with '.', the Reply-To host, which is not the sending
-    # host). EVERY Reply-To address is read (a decoy first is not enough), capped at
-    # 10, and a trailing dot is stripped. The Python blacklist is the source
+    # host). EVERY Reply-To address is read (a decoy first is not enough), with no
+    # count cap, and a trailing dot and zero-width characters are stripped. Only
+    # FULL-DOMAIN blacklist entries count (a dotless one has host-substring semantics). The Python blacklist is the source
     # defaults; JS also merges user-added Script Properties domains.
     _rat = sender_address.rfind('@')
     if _rat > 0:
         _rlocal = sender_address[:_rat]
         _rhost = sender_address[_rat + 1:].rstrip('.')
-        for _rt in _header_addresses(_raw_header(raw, 'Reply-To'))[:10]:
-            _rt = _rt.rstrip('.')
+        for _rt in _header_addresses(_raw_header(raw, 'Reply-To')):
+            _rt = re.sub('[\u200b-\u200d\u2060\ufeff]', '', _rt).rstrip('.')
             _rh = _rt[_rt.rfind('@') + 1:]
             if _rh.find('.') <= 0 or _rh == _rhost:
                 continue
             if _rlocal != _rh and not _rlocal.endswith('.' + _rh):
                 continue
-            if any(_address_matches_domain(_rt, d) for d in BLACKLISTED_DOMAINS):
+            if any(_address_matches_domain(_rt, d) for d in BLACKLISTED_DOMAINS
+                   if '.' in d and '@' not in d):   # full domains only (see Signals.gs)
                 signals['blacklisted_relay_identity'] = True
                 signals['matched_patterns'].append('blacklisted_relay_identity')
                 break
@@ -2966,6 +2968,13 @@ def run_edge_case_tests():
         (_MILLF, 'Reply-To: a@decoy.com, support@trendwatcherslab.com', True, 'a decoy first does not hide it'),
         (_MILLF, 'Reply-To: support@trendwatcherslab.com.', True, 'trailing dot stripped'),
         ('X <Ivy.Hart.TrendWatchersLab.com@Email.Cyberimpact.com>', 'REPLY-TO: Support@TrendWatchersLab.COM', True, 'case-insensitive'),
+        ('A <news.financebuzzfans.org@relay.esp.com>', 'Reply-To: hi@financebuzzfans.org', False, 'a dotless entry (financebuzz) must not match financebuzzfans.org'),
+        ('Z <realinvestorplace.co.uk@email.cyberimpact.com>', 'Reply-To: info@realinvestorplace.co.uk', False, 'a dotless entry (investorplace) must not match inside a longer host'),
+        (_MILLF, 'Reply-To: ' + 'a@b.c, ' * 12 + 'support@trendwatcherslab.com', True, '11+ decoys do not hide it (no count cap)'),
+        (_MILLF, 'Reply-To: support@trendwatcherslab.com\u200b', True, 'a zero-width space after the host'),
+        (_MILLF, 'Reply-To : support@trendwatcherslab.com', False, 'KNOWN GAP: whitespace before the colon'),
+        ('Cole <cole@email.cyberimpact.com>', _RT, False, 'KNOWN GAP: a mailbox that stops embedding the brand host'),
+        ('x <a.trendwatcherslab.com@email.cyberimpact.com>', 'Reply-To: s@help.trendwatcherslab.com', False, 'KNOWN GAP: Reply-To on a subdomain, mailbox embeds the parent'),
         (_MILLF, 'Reply-To: a@decoy.com\r\nReply-To: support@trendwatcherslab.com', False, 'KNOWN GAP: second Reply-To line not read'),
         (_MILLF, 'Reply-To: "' + 'a' * 190 + '" <support@trendwatcherslab.com>', False, 'KNOWN GAP: 200-char cap truncates the address'),
     ]:

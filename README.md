@@ -282,7 +282,8 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
 **17. Blacklisted Brand Behind an ESP Relay (Sender-Structure Signal)**
 - The From mailbox is, or ends with `.`, the Reply-To host (`name.brand.com@some-esp.com`
   with `Reply-To: help@brand.com`), that host is not the sending host, AND that host
-  is on the blacklist. Every Reply-To address is read. The sender blacklist cannot see
+  is a full-domain blacklist entry (dotless entries are skipped: they match by
+  substring). Every Reply-To address is read. The sender blacklist cannot see
   this because it matches the *sending* domain, which here is the ESP's
 - Deletes (Rule 12) on arrival, archived to Drive first, like Rule 1; the post-deploy
   recheck only *holds* it, because the blacklist is editable at runtime. Wording-

@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.85.0
+ * @version 6.86.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -35,7 +35,7 @@
  *      default), so this script is the only thing that can report it.
  *      sweepSpamFolderCopies() then expires old Drive copies.
  *
- * Decision logic (11 rules, evaluated in priority order — first match wins):
+ * Decision logic (12 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
  *   Rule 2: Bulk email + 2+ clickbait patterns → spam
  *   Rule 3: Bulk email + 2+ distinct spam behaviors → spam
@@ -52,6 +52,8 @@
  *           and an off-domain link → phishing
  *   Rule 11: Ad disclaimer + the ad network's advertiser sentence + a "Sponsored
  *           Content" block + 2 "Sponsored by"/"Ad by" credits → spam
+ *   Rule 12: A blacklisted brand domain behind an ESP relay (the From mailbox embeds
+ *           the Reply-To host, which is on the blacklist) → spam
  *
  * Changelog: see CHANGELOG.md. It is not reproduced here — it reached 459
  * lines and three consecutive entries described three incompatible designs for
@@ -92,7 +94,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.85.0';
+const SCRIPT_VERSION = '6.86.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -169,7 +171,8 @@ const DEFAULT_DOMAINS = Object.freeze({
     'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'e.linkedin.com',
     'linkedin.email', 'dsf.ca', 'dragonfly', 'ezyvet.com'
   ]),
-  /** Known spam mill domains — triggers Rule 1 when combined with bulk email */
+  /** Known spam mill domains — Rule 1 when combined with bulk email; Rule 12 when the
+   *  mill is hidden behind an ESP relay (Signal 15) */
   suspicious: Object.freeze([
     'financeinsiderpro.com', 'financebuzz', 'smartinvestmenttools',
     'globalaxisintel.com',
@@ -189,7 +192,11 @@ const DEFAULT_DOMAINS = Object.freeze({
     'economicrulebook.com',
     'bondlyst.com',
     'atlantisinvestors.com',
-    'sharpedgelab.com'
+    'sharpedgelab.com',
+    // v6.86.0: the Trend Watchers Lab ad mill. It sends through a shared ESP
+    // (Cyberimpact), so this domain is never the SENDING domain and Signal 1b
+    // cannot see it; Signal 15 matches it behind the relay, via Reply-To.
+    'trendwatcherslab.com'
   ])
 });
 

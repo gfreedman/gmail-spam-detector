@@ -1947,7 +1947,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 // ---------------------------------------------------------------------------
 //
 // makeVerdict() (Verdict.gs) returns a boolean. getRuleFromSignals()
-// (Flush.gs) re-implements the SAME eleven rules in the same order to return a
+// (Flush.gs) re-implements the SAME twelve rules in the same order to return a
 // rule name. disposeDetectedMessage() then routes destroy-vs-quarantine off
 // getRuleFromSignals(...).rule against DESTRUCTIVE_RULES.
 //
@@ -1963,7 +1963,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 // corpus fires Rule 1 in 51 of 59 convictions and never fires Rules 3 or 6.
 //
 // The signal space is small enough to check completely, so check it completely:
-// 15 booleans x clickbaitCount 0..4 = 163840 combinations, in well under a second.
+// 16 booleans x clickbaitCount 0..4 = 327680 combinations, in well under a second.
 {
   console.log('\n=== the two rule cascades must agree (exhaustive) ===');
   const ctx = makeCtx();
@@ -1972,7 +1972,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
                  'emptySubjectWithAttachment', 'serviceImpersonation',
                  'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',
                  'selfNamedSender', 'calendarLure', 'headlineFromName',
-                 'attachmentPayloadScam', 'sponsoredAdTemplate'];
+                 'attachmentPayloadScam', 'sponsoredAdTemplate', 'blacklistedRelayIdentity'];
 
   // Guard the guard: if collectSignals() grows a signal this list does not
   // know about, the sweep below silently stops being exhaustive.
@@ -1985,7 +1985,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
   const STRONG = ['blacklistedSender', 'serviceImpersonation', 'brandMismatchedCta',
                   'freeMailRandomLocal', 'callbackPhishing', 'emptySubjectWithAttachment',
                   'selfNamedSender', 'calendarLure', 'attachmentPayloadScam',
-                  'sponsoredAdTemplate'];
+                  'sponsoredAdTemplate', 'blacklistedRelayIdentity'];
   let combos = 0, disagreements = [], uncorroborated = [], offSpec = [];
   for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
     for (let cb = 0; cb <= 4; cb++) {
@@ -2016,6 +2016,16 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
       }
       if (rule === 'Rule 11' && !sig.sponsoredAdTemplate && offSpec.length < 5) {
         offSpec.push('rule-name: Rule 11 without sponsoredAdTemplate');
+      }
+      // Rule 12 is last: blacklistedRelayIdentity alone must be named Rule 12, and
+      // Rule 12 must never be named without it.
+      const soleRelay = sig.blacklistedRelayIdentity && cb === 0 &&
+                        BOOLS.every(k => k === 'blacklistedRelayIdentity' || !sig[k]);
+      if (soleRelay && rule !== 'Rule 12' && offSpec.length < 5) {
+        offSpec.push('rule-name: blacklistedRelayIdentity alone -> ' + rule);
+      }
+      if (rule === 'Rule 12' && !sig.blacklistedRelayIdentity && offSpec.length < 5) {
+        offSpec.push('rule-name: Rule 12 without blacklistedRelayIdentity');
       }
       combos++;
       if (isSpam !== (rule !== 'NONE') && disagreements.length < 5) {
@@ -2598,6 +2608,124 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
         ctx.buildSignalsCsv(alone).indexOf('SPONSORED_AD_TEMPLATE') !== -1);
   check('sponsored-ad-template appears in the Spam-folder description',
         ctx.describeSignals(alone).indexOf('sponsored-ad-template') !== -1);
+}
+
+console.log('\n=== Signal 15 / Rule 12: blacklisted brand behind an ESP relay (v6.86.0) ===');
+{
+  const ctx = makeCtx();
+  const MILL = 'Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>';
+  const rmsg = (o) => {
+    const m = phishMessage('mR15');
+    m.getFrom = () => o.from === undefined ? MILL : o.from;
+    m.getSubject = () => 'Your free report is ready';
+    m.getRawContent = () => (o.reply === undefined ? '' : o.reply + '\r\n') + '\r\nhi';
+    m.getPlainBody = () => 'hello';
+    m.getBody = () => '<p>hello</p>';
+    return m;
+  };
+  const rfires = (o, c) => (c || ctx).collectSignals(rmsg(o)).blacklistedRelayIdentity === true;
+  const RT = 'Reply-To: support@trendwatcherslab.com';
+
+  check('the mill (relay mailbox + Reply-To on its brand) fires Signal 15', rfires({ reply: RT }));
+  // Wording independence: the real reason for this signal.
+  {
+    const fx = require('fs').readFileSync(require('path').join(__dirname, 'spam_examples',
+               'Relay mill mail with an unrelated template.eml'), 'utf8');
+    const cut = fx.search(/\r?\n\r?\n/);
+    const h = (n) => (fx.slice(0, cut).match(new RegExp('^' + n + ': (.*)$', 'mi')) || [])[1];
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m = phishMessage('mR15fx');
+    m.getFrom = () => h('From'); m.getSubject = () => h('Subject');
+    m.getRawContent = () => fx; m.getPlainBody = () => fx.slice(cut).trim(); m.getBody = () => '<p>x</p>';
+    const v = c.analyzeMessage(m);
+    check('a mill message with NO template wording is convicted by Rule 12 alone (wording-independent)',
+          v.isSpam === true && c.getRuleFromSignals(v.signals).rule === 'Rule 12' &&
+          v.signals.sponsoredAdTemplate === false, JSON.stringify({ s: v.isSpam, r: c.getRuleFromSignals(v.signals).rule }));
+    c.disposeDetectedMessage(m, fakeThread([m], c.calls), v.signals, true);
+    check('Rule 12 PERMANENTLY DELETES on the live path (like Rule 1), behind the archive',
+          c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c.calls.map(x => x.op)));
+    const c2 = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m2 = phishMessage('mR15fx2');
+    m2.getFrom = () => h('From'); m2.getSubject = () => h('Subject');
+    m2.getRawContent = () => fx; m2.getPlainBody = () => fx.slice(cut).trim(); m2.getBody = () => '<p>x</p>';
+    c2.disposeDetectedMessage(m2, fakeThread([m2], c2.calls), c2.analyzeMessage(m2).signals, false);
+    check('Rule 12 with NO Drive archive is quarantined, never deleted (the archive gate)',
+          !c2.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c2.calls.map(x => x.op)));
+    // RECHECK: held, not deleted (RECHECK_DELETE_RULES is Rule 11 only).
+    const c3 = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m3 = phishMessage('mR15fx3');
+    m3.getFrom = () => h('From'); m3.getSubject = () => h('Subject');
+    m3.getRawContent = () => fx; m3.getPlainBody = () => fx.slice(cut).trim(); m3.getBody = () => '<p>x</p>';
+    const th3 = fakeThread([m3], c3.calls);
+    c3.GmailApp.search = () => [th3]; c3.GmailApp.getMessagesForThreads = () => [[m3]];
+    c3.recheckRecentSpamChecked(true);
+    check('the post-deploy RECHECK HOLDS a Rule 12 match and does NOT delete it',
+          !c3.calls.some(x => x.op === 'batchDelete') && th3.__labels.indexOf('SuspectedSpam') !== -1,
+          JSON.stringify({ ops: c3.calls.map(x => x.op), labels: th3.__labels }));
+  }
+
+  // Each guard closes a reproduced false positive.
+  check('no Reply-To: not relay-shaped, does not fire', !rfires({}));
+  check('Reply-To on an unrelated host does not fire', !rfires({ reply: 'Reply-To: support@other.org' }));
+  check('a colleague on Gmail with Reply-To on the listed domain does NOT fire (A2\'s false positive)',
+        !rfires({ from: 'Pat <pat@gmail.com>', reply: RT }));
+  check('a mailing list / friend forwarding a mill mail (their own From) does NOT fire',
+        !rfires({ from: 'A Friend <friend@example.org>', reply: RT }));
+  check('the mill sending from its OWN domain is not relay-shaped (Signal 1b + bulk handles that)',
+        !rfires({ from: 'x <x@trendwatcherslab.com>', reply: RT }));
+  check('a mailbox that embeds its OWN sending domain is not "behind a relay" (Signal 1b\'s territory)',
+        !rfires({ from: 'x <x.trendwatcherslab.com@trendwatcherslab.com>', reply: RT }));
+  check('an unlisted ESP tenant with the same shape does NOT fire',
+        !rfires({ from: 'Local News <localnews.ca@email.cyberimpact.com>', reply: 'Reply-To: info@localnews.ca' }));
+  check('a look-alike host ("nottrendwatcherslab.com") does not match the entry',
+        !rfires({ from: 'x <a.nottrendwatcherslab.com@email.cyberimpact.com>', reply: 'Reply-To: help@nottrendwatcherslab.com' }));
+  check('mailbox that does not embed the Reply-To host does not fire',
+        !rfires({ from: 'Someone <someone@email.cyberimpact.com>', reply: RT }));
+  check('a subdomain tenant of the listed brand fires (suffix match, intended)',
+        rfires({ from: 'x <ivy.help.trendwatcherslab.com@email.cyberimpact.com>', reply: 'Reply-To: help@help.trendwatcherslab.com' }));
+  // Evasions closed here:
+  check('a decoy Reply-To address listed FIRST does not hide the real one',
+        rfires({ reply: 'Reply-To: a@decoy.com, support@trendwatcherslab.com' }));
+  check('a trailing dot on the Reply-To host is stripped',
+        rfires({ reply: 'Reply-To: support@trendwatcherslab.com.' }));
+  check('header name and addresses are case-insensitive',
+        rfires({ from: 'X <Ivy.Hart.TrendWatchersLab.com@Email.Cyberimpact.com>', reply: 'REPLY-TO: Support@TrendWatchersLab.COM' }));
+  // Known gaps, pinned so they cannot be "fixed" or forgotten by accident:
+  check('KNOWN GAP: dropping Reply-To hides it (it needs the header)', !rfires({}));
+  check('KNOWN GAP: a SECOND Reply-To header line is not read (getRawHeader takes the first)',
+        !rfires({ reply: 'Reply-To: a@decoy.com\r\nReply-To: support@trendwatcherslab.com' }));
+  check('KNOWN GAP: a display name past getRawHeader\'s 200-char cap truncates the address',
+        !rfires({ reply: 'Reply-To: "' + 'a'.repeat(190) + '" <support@trendwatcherslab.com>' }));
+  // The answer to a NEW brand is data, not code: a user-added entry works with no deploy.
+  {
+    const c = makeCtx();
+    c.addToBlacklist('newmill.example');
+    check('a user-added blacklist entry (no deploy) makes a new brand behind the relay fire',
+          rfires({ from: 'X <ivy.newmill.example@email.cyberimpact.com>', reply: 'Reply-To: help@newmill.example' }, c));
+    check('...and before the entry is added the same message does not',
+          !rfires({ from: 'X <ivy.newmill.example@email.cyberimpact.com>', reply: 'Reply-To: help@newmill.example' }));
+  }
+  const t0 = Date.now();
+  rfires({ reply: 'Reply-To: ' + 'a@b.c, '.repeat(15000) });
+  check('a 100 KB Reply-To header is bounded (< 1 s)', Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
+
+  const alone = { clickbaitCount: 0, blacklistedRelayIdentity: true };
+  check('blacklistedRelayIdentity alone is an inbox conviction under Rule 12',
+        ctx.makeVerdict(alone) === true && ctx.getRuleFromSignals(alone).rule === 'Rule 12',
+        ctx.getRuleFromSignals(alone).rule);
+  check('Rule 1 wins when bulk + blacklisted sender also hold (same disposition)',
+        ctx.getRuleFromSignals({ clickbaitCount: 0, bulkEmailService: true, blacklistedSender: true,
+                                 blacklistedRelayIdentity: true }).rule === 'Rule 1');
+  check('Rule 11 wins over Rule 12 when both hold',
+        ctx.getRuleFromSignals({ clickbaitCount: 0, sponsoredAdTemplate: true,
+                                 blacklistedRelayIdentity: true }).rule === 'Rule 11');
+  check('blacklistedRelayIdentity corroborates a Gmail spam verdict', ctx.hasCorroboratingSignal(alone) === true);
+  check('BLACKLISTED_RELAY_IDENTITY appears in the signals CSV',
+        ctx.buildSignalsCsv(alone).indexOf('BLACKLISTED_RELAY_IDENTITY') !== -1);
+  check('blacklisted-relay-identity appears in the Spam-folder description',
+        ctx.describeSignals(alone).indexOf('blacklisted-relay-identity') !== -1);
+  check('trendwatcherslab.com is on the shipped blacklist',
+        vm.runInContext("DEFAULT_DOMAINS.suspicious.indexOf('trendwatcherslab.com') !== -1", ctx));
 }
 
 console.log('\n=== Signal 12: headline-then-brand From name (corroboration only) ===');

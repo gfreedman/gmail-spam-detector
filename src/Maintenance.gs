@@ -426,6 +426,9 @@ function recheckRecentSpamChecked(widen)
   // The only rules this path may delete (see the comment at the match below).
   // An allowlist, so a new rule defaults to HOLD here as it does in
   // disposeDetectedMessage().
+  // Rule 12 (blacklisted brand behind a relay) is deliberately ABSENT: the blacklist is
+  // user-editable at runtime, so an entry added today must hold, not delete, mail the
+  // user has already read. It still deletes on the live path, where mail is new.
   const RECHECK_DELETE_RULES = ['Rule 11'];
   const startedAt            = Date.now();
 

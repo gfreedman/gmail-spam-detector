@@ -439,6 +439,7 @@ function describeSignals(signals)
   if (signals.selfNamedSender)            fired.push('self-named-sender');
   if (signals.calendarLure)               fired.push('calendar-voicemail-lure');
   if (signals.attachmentPayloadScam)      fired.push('attachment-payload-scam');
+  if (signals.blacklistedRelayIdentity)   fired.push('blacklisted-relay-identity');
   if (signals.sponsoredAdTemplate)           fired.push('sponsored-ad-template');
 
   // Parenthesised and last, deliberately. Bulk routing corroborates nothing on

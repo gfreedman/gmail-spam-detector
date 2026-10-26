@@ -171,7 +171,8 @@ function collectSignals(message)
     calendarLure: false,               // unknown-sender calendar invite: voicemail lure in the title + off-domain link
     headlineFromName: false,           // display name is "<headline> - <brand>"; Spam-folder corroboration only
     attachmentPayloadScam: false,      // Bcc'd free-mail ALL-CAPS note whose payload is an attachment; Spam-folder corroboration only
-    sponsoredAdTemplate: false         // ad disclaimer + advertiser sentence + "Sponsored Content" block + 2 credits; Rule 11
+    sponsoredAdTemplate: false,        // ad disclaimer + advertiser sentence + "Sponsored Content" block + 2 credits; Rule 11
+    blacklistedRelayIdentity: false    // a blacklisted brand domain behind an ESP relay (From mailbox + Reply-To); Rule 12
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -380,6 +381,70 @@ function collectSignals(message)
     // rest still run, and signalsSkipped makes the gap visible.
     signalsSkipped++;
     logError('Signal 14 threw and was skipped: ' + signalError.toString());
+  }
+
+  // ── Signal 15: Blacklisted brand domain behind an ESP relay ─────────────
+  // The Trend Watchers Lab ad mill reworded its template three times in four
+  // days (v6.81, v6.83, v6.85), each time slipping past Signal 14, which is bound
+  // to wording. What did not change: it always sends as
+  // "<name>.trendwatcherslab.com@email.cyberimpact.com" with
+  // "Reply-To: support@trendwatcherslab.com". The sender blacklist (Signal 1b)
+  // cannot see that, because it matches the SENDING domain, which here is the
+  // ESP's; and Rule 1 needs a bulk fingerprint, which a shared ESP deliberately
+  // is not (it would expose every legitimate tenant to Rules 1-3).
+  //
+  // So match the blacklist against the brand BEHIND the relay: the Reply-To host
+  // must be a blacklist entry AND the sender must have the relay shape (the From
+  // mailbox is, or ends with ".", the Reply-To host, and that host is not the
+  // sending host). The shape is the stand-in for "bulk": a human writing from a
+  // Gmail address cannot satisfy it, so a colleague, a mailing list or a friend
+  // forwarding a mill email (each reproduced in review with Reply-To alone) does
+  // not fire. A third party cannot use it to get someone else's mail deleted:
+  // the legitimate sender must have authored both headers. Convicts alone (Rule
+  // 12, DELETES like Rule 1, behind the Drive-archive gate) and is STRONG in
+  // hasCorroboratingSignal(). The post-deploy recheck only HOLDS it: the
+  // blacklist is user-editable at runtime, so an entry added tomorrow must not
+  // retroactively delete mail already read (RECHECK_DELETE_RULES).
+  //
+  // Reads EVERY Reply-To address, so a decoy listed first is not enough, and
+  // strips a trailing dot. Known gaps, cheap for the mill and not closed here:
+  // dropping Reply-To, or a display name past getRawHeader()'s 200-char cap that
+  // truncates it. A fresh brand domain also escapes until one data line is added;
+  // that is the point: the answer to a new brand is data, not code or a deploy.
+  // False positive class: a legitimate tenant of a brand the user blacklisted.
+  try
+  {
+    if (atIdx > 0)
+    {
+      const relaySender = senderAddress.toLowerCase();
+      const relayLocal  = relaySender.substring(0, atIdx);
+      const relayHost   = relaySender.substring(atIdx + 1).replace(/\.+$/, '');
+      const replyTos    = headerAddresses(getRawHeader(rawContent, 'Reply-To'));
+      const blacklistForRelay = getCachedBlacklist();
+      for (let r = 0; r < replyTos.length && r < 10 && !signals.blacklistedRelayIdentity; r++)
+      {
+        const replyTo   = replyTos[r].replace(/\.+$/, '');
+        const replyHost = replyTo.substring(replyTo.lastIndexOf('@') + 1);
+        if (replyHost.indexOf('.') <= 0 || replyHost === relayHost) continue;
+        if (relayLocal !== replyHost && !relayLocal.endsWith('.' + replyHost)) continue;
+        for (let i = 0; i < blacklistForRelay.length; i++)
+        {
+          if (addressMatchesDomain(replyTo, blacklistForRelay[i]))
+          {
+            signals.blacklistedRelayIdentity = true;
+            logDebug('Blacklisted brand behind an ESP relay: ' + blacklistForRelay[i]);
+            break;
+          }
+        }
+      }
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 15 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 2: Clickbait / sensationalism patterns ───────────────────────

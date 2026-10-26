@@ -54,9 +54,11 @@ function disposeDetectedMessage(message, thread, signals, archived)
   // kind of default goes unnoticed until it isn't.
   // Rule 10 (calendar voicemail lure) added v6.71.0 at the user's explicit
   // request to delete rather than quarantine; Rules 7 and 9 still quarantine.
+  // Rule 12 (blacklisted brand behind an ESP relay) added v6.86.0: it deletes, like
+  // Rule 1, the other blacklist rule, and is behind the same archive gate.
   // Rule 11 (sponsored-ad template) added v6.80.0 (re-based v6.81.0), also at the user's explicit call.
   const DESTRUCTIVE_RULES = ['Rule 1', 'Rule 2', 'Rule 3', 'Rule 4', 'Rule 5',
-                             'Rule 6', 'Rule 8', 'Rule 10', 'Rule 11'];
+                             'Rule 6', 'Rule 8', 'Rule 10', 'Rule 11', 'Rule 12'];
 
   if (DESTRUCTIVE_RULES.indexOf(rule) !== -1)
   {

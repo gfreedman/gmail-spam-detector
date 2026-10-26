@@ -2824,7 +2824,7 @@ def run_edge_case_tests():
         sig, _, _ = analyze_email('hello', frm, False, body=body, html=html, raw=raw)
         return sig['sponsored_ad_template']
     for body, expect, why in [
-        (f'{_DISC} {_ADV} {_HEAD} {_CRED}', True, 'strict: all four patterns, credit twice'),
+        (f'{_DISC} {_ADV} {_HEAD} {_CRED}', True, 'strict: disclaimer, sentence, heading, credit twice'),
         (f'{_DISC}\n\n{_ADV}\n{_HEAD}\u00a0 Sponsored\tby A. Sponsored   by B.', True, 'whitespace is collapsed'),
         (f'THIS IS AN ADVERTISEMENT. {_ADV.upper()} SPONSORED CONTENT sponsored BY A. Sponsored by B.', True, 'case-insensitive'),
         (f'This is a paid advertisement. {_HEAD} {_CRED3}', True, 'relay: paid-ad wording, no advertiser sentence (the AutoCamp miss)'),
@@ -2846,6 +2846,7 @@ def run_edge_case_tests():
         (f'{_DISC} {_ADV} {_HEAD} Ad by A.', False, 'strict: one "Ad by" credit is not enough'),
         (f'{_DISC} {_HEAD} Ad by A. Ad by B. Ad by C.', False, 'relay keeps the TIGHT label: three "Ad by" credits + relay sender, no sentence'),
         (f'{_DISC} {_ADV} {_HEAD} Pre-ad by A. Pre-ad by B.', False, 'a leading hyphen is not an "ad by" label'),
+        (f'{_DISC} {_ADV} {_HEAD} 1ad by A. 2ad by B.', False, 'a digit before "ad by" is not a label'),
         (f'{_DISC} {_ADV} {_HEAD} Bad by A. Head by B. Read by C.', False, 'word-internal "ad by" is not a credit'),
         (f'{_DISC} {_ADV} {_HEAD} Promoted by A. Promoted by B.', False, '"promoted by" is ordinary English, not a credit label'),
         (f'This is an ad {_HEAD} {_CRED3}', False, 'short form with nothing ending the clause (ad + more words)'),

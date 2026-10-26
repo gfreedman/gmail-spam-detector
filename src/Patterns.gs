@@ -458,7 +458,7 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
 ]);
 
 /**
- * The four patterns of Signal 14 (sponsoredAdTemplate), IN THIS ORDER: an ad
+ * The five patterns of Signal 14 (sponsoredAdTemplate), IN THIS ORDER: an ad
  * disclaimer, the ad network's unsubscribe sentence, an ad-network block
  * heading, and the credit line each teaser carries. Patterns rather than
  * literals (v6.83.0): the same network reworded its disclaimer from "This is an
@@ -492,7 +492,7 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
  * re, no capture group. Index 3 stays the tight "sponsored by", for the relay shape.
  *
  * Signal 14 fires on EITHER of two shapes (see there): the strict one needs all
- * four patterns; the relay one drops the advertiser sentence but needs the
+ * patterns 0, 1, 2 and 4; the relay one drops the advertiser sentence (pattern 1) and uses pattern 3 for its credits, but needs the
  * brand-on-an-ESP-relay sender shape. The sentence is what editorial sponsor
  * blocks lack: Morning-Brew-style newsletters carry a heading, credits and even
  * a disclaimer, but none says "promotional messages from this advertiser".

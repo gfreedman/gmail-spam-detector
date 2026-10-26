@@ -43,7 +43,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - Free-mail sender with a machine-generated address + 2 spam behaviours = SPAM
 - Free-mail sender invoicing as a brand it doesn't control, with a phone number to call = PHISHING (quarantined, not deleted)
 - Calendar invite from an unknown organiser with a voicemail/fax lure in the title and an off-domain link = PHISHING
-- Ad disclaimer + a "Sponsored Content" block + "Sponsored by" credits (2, or 3 on the relay shape) + EITHER the ad network's "promotional messages from this advertiser" sentence OR the ad-mill sender shape (From mailbox ends in the Reply-To brand domain, on an ESP relay) = SPAM (deletes; Rule 11)
+- Ad disclaimer + a "Sponsored Content" block + "Sponsored by" or "Ad by" credits (2 on the strict shape, which takes either label; 3 "Sponsored by" on the relay shape) + EITHER the ad network's "promotional messages from this advertiser" sentence OR the ad-mill sender shape (From mailbox ends in the Reply-To brand domain, on an ESP relay) = SPAM (deletes; Rule 11)
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
 
@@ -269,7 +269,7 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
 **16. Sponsored-Ad Template (Content Signal)**
 - The body carries an ad disclaimer ("This is an advertisement" / "a paid
   advertisement"), a "Sponsored Content" block heading, and at least two
-  "Sponsored by ..." credit lines (regexes, v6.83.0; checked on the plain body,
+  "Sponsored by ..." or "Ad by ..." credit lines (regexes, v6.83.0/v6.85.0; checked on the plain body,
   then on the tag-stripped HTML, after decoding entities), PLUS either the ad
   network's "promotional messages from this advertiser" unsubscribe sentence or
   the ad-mill sender shape: a From mailbox like `brand.com@esp-relay` whose
@@ -330,7 +330,7 @@ if (callbackPhishing) { return SPAM; }
 if (calendarLure) { return SPAM; }
 
 // RULE 11: Ad disclaimer + advertiser unsubscribe sentence + "Sponsored
-// Content" block + 2 "Sponsored by" credit lines. DELETES (archived to Drive first).
+// Content" block + 2 "Sponsored by"/"Ad by" credit lines. DELETES (archived to Drive first).
 if (sponsoredAdTemplate) { return SPAM; }
 
 return NOT_SPAM;

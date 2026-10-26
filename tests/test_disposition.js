@@ -2319,7 +2319,7 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
 
   // Every conjunct, alone: removing any ONE must flip a case below.
   const FULL = DISC + ' ' + ADV + ' ' + HEAD + ' ' + CRED;
-  check('all four patterns, credit twice, fires', fires(T(FULL)));
+  check('strict shape: disclaimer, sentence, heading, credit twice, fires', fires(T(FULL)));
   // PLAIN ONLY (no html): the tag-stripped HTML path collapses whitespace itself
   // and would mask a missing collapse in the plain-body path.
   check('whitespace runs, NBSP and tabs are collapsed (plain body only)',
@@ -2568,6 +2568,8 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
         !relayFires(DISC + ' ' + HEAD + ' Ad by A. Ad by B. Ad by C.'));
   check('...while three "Sponsored by" credits on the same relay sender still fire',
         relayFires(DISC + ' ' + HEAD + ' ' + CRED + ' Sponsored by C.'));
+  check('a digit before "ad by" ("1ad by") is not a credit',
+        !fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' 1ad by A. 2ad by B.')));
   check('word-internal "ad by" ("bad by", "head by", "read by") is not a credit',
         !fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' Bad by A. Head by B. Read by C.')));
   check('"promoted by" is not a credit label (ordinary English)',

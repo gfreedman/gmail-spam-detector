@@ -51,7 +51,7 @@
  *   Rule 10: Unknown-sender calendar invite with a voicemail/fax lure in the title
  *           and an off-domain link → phishing
  *   Rule 11: Ad disclaimer + the ad network's advertiser sentence + a "Sponsored
- *           Content" block + 2 "Sponsored by" credits → spam
+ *           Content" block + 2 "Sponsored by"/"Ad by" credits → spam
  *
  * Changelog: see CHANGELOG.md. It is not reproduced here — it reached 459
  * lines and three consecutive entries described three incompatible designs for

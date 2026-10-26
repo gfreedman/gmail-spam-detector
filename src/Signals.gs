@@ -300,7 +300,7 @@ function collectSignals(message)
   // shared ESP's sending domain, no bulk fingerprint. Its template is the tell:
   // an "This is an advertisement." disclaimer followed by the ad network's "If
   // you no longer wish to receive promotional messages from this advertiser"
-  // sentence, a "Sponsored Content" block, and a "Sponsored by <name>" credit
+  // sentence, a "Sponsored Content" block, and a "Sponsored by <name>" (or, from v6.85.0, "Ad by <name>") credit
   // under each teaser link.
   //
   // v6.79.0/6.80.0 keyed on the SENDER STRUCTURE instead (display name ==
@@ -313,7 +313,8 @@ function collectSignals(message)
   // Text goes through normalizeAdText() first (entities, NFKC, lookalike letters,
   // dashes, zero-width characters, spaces). Two shapes, both needing the
   // disclaimer and the block heading:
-  //   STRICT - plus the ad network's advertiser sentence and 2 credit lines.
+  //   STRICT - plus the ad network's advertiser sentence and 2 credit lines
+  //            ("Sponsored by" or "Ad by"; pattern 4).
   //            The guard the first review asked for: six plausible editorial-
   //            newsletter bodies carried the other three phrases and would have
   //            been deleted without it.

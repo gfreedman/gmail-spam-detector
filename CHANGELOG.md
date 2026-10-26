@@ -20,6 +20,74 @@ detail plus the diffs.
 
 ---
 
+## v6.86.0
+
+**Rule 12: a blacklisted brand domain hiding behind an ESP relay is deleted, whatever the email says.**
+
+The same ad mill (Trend Watchers Lab, via Cyberimpact) reached the inbox three
+times in four days, each time because Rule 11 is bound to the WORDING of its
+template and the mill rewords it (v6.81.0, v6.83.0, v6.85.0). Each fix was one
+label wide. What never changed is the sender: `<name>.trendwatcherslab.com@email.cyberimpact.com`
+with `Reply-To: support@trendwatcherslab.com`. The sender blacklist cannot see it,
+because it matches the *sending* domain, which is always the ESP's; and Rule 1 also
+needs a bulk fingerprint, which a shared ESP deliberately is not (it would expose
+every legitimate tenant to Rules 1-3).
+
+**Design, after a review that had to construct false positives** (22 messages run
+through the shipped code): Signal 15 `blacklistedRelayIdentity` fires when a
+Reply-To host (any address in the first `Reply-To:` header, within `getRawHeader()`'s
+200-char cap) is on the blacklist AND the sender has the relay shape (the From
+mailbox is, or ends with `.`, that host, which is not the sending host). The shape
+stands in for Rule 1's bulk prerequisite. Rejected, with the reproduced reason:
+
+- *Set `bulk` for relay-shaped mail* (A3): a legitimate Cyberimpact tenant with one
+  clickbait-ish subject became Rule 3, a permanent delete.
+- *Reply-To on a blacklisted host alone* (A2): deleted a colleague on Gmail, a
+  mailing list and a friend forwarding a mill mail.
+- *Let Rule 11's relay shape convict with fewer credits* (B): would delete the
+  editorial digests an earlier review already built false positives from.
+
+`trendwatcherslab.com` is added to `DEFAULT_DOMAINS.suspicious`. **A new brand is
+one blacklist line, addable at runtime with `addToBlacklist()` and no deploy.**
+
+**Disposition.** The reviewer recommended quarantine; this deletes, like Rule 1 (the
+other blacklist rule) and as the user has asked of every rule like it, behind the
+same Drive-archive gate (no archive: quarantined). On the live path the first message
+from a listed mill is deleted on arrival. It is ALSO in `RECHECK_DELETE_RULES`, so mill
+mail already in the inbox when a blacklist line lands is removed by the post-deploy
+recheck (single-message threads only, archived first); a first draft HELD it there,
+reasoning that a runtime entry must not retroactively delete mail already read, and
+the outcome review showed that leaves such mail for the user to trash by hand and
+does not hold for the entry this ships. The cost is accepted and bounded: mail from the
+last 2 days that the script itself stamped, from a relay-shaped sender whose Reply-To
+host is a FULL-DOMAIN blacklist entry.
+
+**Attacker review, then fixes.** Reproduced against the shipped code: dotless
+blacklist entries (`financebuzz`, `investorplace`, `weissratings`, ...) have
+host-SUBSTRING semantics in `addressMatchesDomain()`, so an unrelated relay
+tenant such as `financebuzzfans.org` or `realinvestorplace.co.uk` would have been
+deleted; user-added dotless and `a@b.com`-style entries had the same overreach.
+Signal 15 now counts only FULL-DOMAIN entries (a dot, no `@`). Also closed: a decoy
+Reply-To address anywhere in the (200-char) header (the first draft's 10-address cap
+was itself a free evasion, so it is gone), a trailing dot, and a zero-width character
+after the host. A third party cannot get someone else's mail deleted: firing needs
+the From local part to embed the blacklisted Reply-To host, which only the sender
+controls.
+
+**Not closed, each pinned by a test as a known gap** (cheapest first, given the mill
+has kept this From shape and Reply-To for three rewordings): `Reply-To :` with
+whitespace before the colon (`getRawHeader()` is shared with `Delivered-To`/`To`/`Cc`,
+and Signal 13 fires only when `Delivered-To` is ABSENT, so loosening it could flip
+that signal toward a false positive; deliberately not touched); a From mailbox that
+stops embedding the brand host; a Reply-To on a subdomain while the mailbox embeds
+the parent; dropping Reply-To; a second `Reply-To:` line; a display name past the
+200-char cap. A fresh brand domain also escapes until a line is added; that is the
+cost this design accepts in exchange for no wording dependence.
+
+A synthetic fixture (`Relay mill mail with an unrelated template.eml`) has none of
+the mill's template wording and is convicted by Rule 12 alone. Sweep: 16 booleans /
+327,680 combinations; `EXPECTED_SIGNAL_COUNT` 17.
+
 ## v6.85.0
 
 **Rule 11 now accepts the "Ad by <name>" credit label. It is the third reword of this mill's template in four days.**

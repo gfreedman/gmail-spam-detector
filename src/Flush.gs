@@ -2,7 +2,7 @@
  * Flush.gs — Buffered log flush, and the rule-name cascade.
  *
  * getRuleFromSignals() is here for historical reasons and is easy to miss: it is
- * a SECOND implementation of makeVerdict()'s eleven rules, returning the rule NAME
+ * a SECOND implementation of makeVerdict()'s twelve rules, returning the rule NAME
  * rather than a boolean — and it is what disposeDetectedMessage() reads to
  * decide whether a message is destroyed or quarantined.
  *
@@ -236,6 +236,11 @@ function getRuleFromSignals(signals)
     return { rule: 'Rule 11', description: 'Sponsored-ad template (ad disclaimer + Sponsored Content block + sponsor credit lines)' };
   }
 
+  if (signals.blacklistedRelayIdentity)
+  {
+    return { rule: 'Rule 12', description: 'Blacklisted brand domain behind an ESP relay (Reply-To on a listed mill, mailbox embeds it)' };
+  }
+
   return { rule: 'NONE', description: 'No rule triggered' };
 }
 
@@ -268,6 +273,7 @@ function buildSignalsCsv(signals)
   if (signals.calendarLure)               parts.push('CALENDAR_LURE');
   if (signals.attachmentPayloadScam)      parts.push('ATTACHMENT_PAYLOAD_SCAM');
   if (signals.sponsoredAdTemplate)        parts.push('SPONSORED_AD_TEMPLATE');
+  if (signals.blacklistedRelayIdentity)   parts.push('BLACKLISTED_RELAY_IDENTITY');
   // Surfaced in the Sheet so a degraded verdict is visible in the log, not
   // just in an execution transcript nobody reads.
   if (signals._degraded)                  parts.push('DEGRADED');

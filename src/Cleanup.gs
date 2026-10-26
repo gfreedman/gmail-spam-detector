@@ -143,6 +143,7 @@ function hasCorroboratingSignal(signals)
       signals.calendarLure ||
       signals.attachmentPayloadScam ||
       signals.sponsoredAdTemplate ||
+      signals.blacklistedRelayIdentity ||
       signals.emptySubjectWithAttachment)
   {
     return true;

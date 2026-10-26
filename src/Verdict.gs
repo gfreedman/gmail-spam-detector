@@ -1,15 +1,15 @@
 /**
- * Verdict.gs — The eleven rules, and the analyze entry point.
+ * Verdict.gs — The twelve rules, and the analyze entry point.
  *
  * makeVerdict() evaluates the rules in priority order, first match wins, and
  * returns a boolean. analyzeMessage() wraps collectSignals() + makeVerdict() and
  * is the catch-all: anything thrown below it returns unevaluated:'error' so the
  * message is retried rather than silently marked clean.
  *
- * NOTE: the same eleven rules are implemented a second time as
+ * NOTE: the same twelve rules are implemented a second time as
  * getRuleFromSignals() in Flush.gs, which is what the destroy-vs-quarantine
  * decision actually reads. The two are pinned to each other by an exhaustive
- * 163,840-combination test in tests/test_disposition.js.
+ * 327,680-combination test in tests/test_disposition.js.
  *
  * Apps Script concatenates every .gs file in sources.json into ONE global
  * scope. These are not modules: nothing is imported, and every function here
@@ -156,6 +156,15 @@ function makeVerdict(signals)
     return true;
   }
 
+  // Rule 12: a blacklisted brand domain behind an ESP relay (v6.86.0). DELETES,
+  // like Rule 1 (the other blacklist rule), behind the Drive-archive gate. The
+  // relay shape stands in for Rule 1's bulk prerequisite. See Signal 15.
+  if (signals.blacklistedRelayIdentity)
+  {
+    logInfo('SPAM DETECTED: blacklisted brand domain behind an ESP relay (Reply-To)');
+    return true;
+  }
+
   // No rule triggered — email is not spam
   logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
            ', blacklist=' + signals.blacklistedSender +
@@ -172,7 +181,8 @@ function makeVerdict(signals)
            ', calendarLure=' + signals.calendarLure +
            ', headlineFromName=' + signals.headlineFromName +
            ', attachmentPayloadScam=' + signals.attachmentPayloadScam +
-           ', sponsoredAdTemplate=' + signals.sponsoredAdTemplate);
+           ', sponsoredAdTemplate=' + signals.sponsoredAdTemplate +
+           ', blacklistedRelayIdentity=' + signals.blacklistedRelayIdentity);
   return false;
 }
 

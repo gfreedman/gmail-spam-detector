@@ -32,7 +32,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 12. **Your address used as your name** ("geoff.c.freedman, Claim Your Free…")
 13. **Survey-scam disclaimers** (a footer disclaiming the very brand it impersonates)
 
-**Detection Logic — 11 rules, first match wins:**
+**Detection Logic — 12 rules, first match wins:**
 - Bulk email + blacklisted sender = SPAM
 - Bulk email + 2+ clickbait patterns = SPAM
 - Bulk email + 2+ spam behaviors = SPAM
@@ -43,13 +43,14 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - Free-mail sender with a machine-generated address + 2 spam behaviours = SPAM
 - Free-mail sender invoicing as a brand it doesn't control, with a phone number to call = PHISHING (quarantined, not deleted)
 - Calendar invite from an unknown organiser with a voicemail/fax lure in the title and an off-domain link = PHISHING
+- A blacklisted brand domain behind an ESP relay (mailbox embeds the Reply-To host, which is a full-domain blacklist entry) = SPAM, wording-independent
 - Ad disclaimer + a "Sponsored Content" block + "Sponsored by" or "Ad by" credits (2 on the strict shape, which takes either label; 3 "Sponsored by" on the relay shape) + EITHER the ad network's "promotional messages from this advertiser" sentence OR the ad-mill sender shape (From mailbox ends in the Reply-To brand domain, on an ESP relay) = SPAM (deletes; Rule 11)
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
 
 ## 📊 Results
 
-- ✅ **100% detection** on 61/61 spam + 8/8 scam (.eml files)
+- ✅ **100% detection** on 62/62 spam + 8/8 scam (.eml files)
 - ✅ **0% false positives** on 28/28 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
@@ -279,6 +280,18 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
   through a shared ESP scored zero on every other signal. Cheap to evade
   (reword any phrase), so it buys time rather than lasting coverage
 
+**17. Blacklisted Brand Behind an ESP Relay (Sender-Structure Signal)**
+- The From mailbox is, or ends with `.`, the Reply-To host (`name.brand.com@some-esp.com`
+  with `Reply-To: help@brand.com`), that host is not the sending host, AND that host
+  is a full-domain blacklist entry (dotless entries are skipped: they match by
+  substring). Every Reply-To address is read. The sender blacklist cannot see
+  this because it matches the *sending* domain, which here is the ESP's
+- Deletes (Rule 12) on arrival, archived to Drive first, like Rule 1; the post-deploy
+  recheck also deletes it (archived first, single-message threads), so mill mail
+  already in the inbox when a blacklist line lands is removed too. Wording-
+  independent: a new brand is one blacklist line (no deploy), not a new pattern.
+  Built after the same ad mill reworded its template three times in four days
+
 ### Decision Rules
 
 **Conservative approach - requires multiple signals:**
@@ -332,6 +345,10 @@ if (calendarLure) { return SPAM; }
 // RULE 11: Ad disclaimer + advertiser unsubscribe sentence + "Sponsored
 // Content" block + 2 "Sponsored by"/"Ad by" credit lines. DELETES (archived to Drive first).
 if (sponsoredAdTemplate) { return SPAM; }
+
+// RULE 12: A blacklisted brand domain behind an ESP relay (the From mailbox embeds
+// the Reply-To host, which is on the blacklist). DELETES (archived to Drive first).
+if (blacklistedRelayIdentity) { return SPAM; }
 
 return NOT_SPAM;
 ```
@@ -458,7 +475,7 @@ addToWhitelist('domain.com');
 │   ├── test_disposition.js      # Quarantine-vs-delete routing (Node)
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
-│   ├── spam_examples/           # Real spam .eml files (61)
+│   ├── spam_examples/           # Real spam .eml files (62)
 │   ├── scam_examples/           # Scam .eml files (8)
 │   ├── ham_examples/            # Legitimate .eml files (28)
 │   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)

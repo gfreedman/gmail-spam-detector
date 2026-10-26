@@ -1199,6 +1199,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'headline_from_name': False,
                     'attachment_payload_scam': False,
                     'sponsored_ad_template': False,
+                    'blacklisted_relay_identity': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -1219,6 +1220,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'headline_from_name': False,
         'attachment_payload_scam': False,
         'sponsored_ad_template': False,
+        'blacklisted_relay_identity': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1286,6 +1288,31 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             _has_ad_template(re.sub(r'<[^>]+>', '', html))):
         signals['sponsored_ad_template'] = True
         signals['matched_patterns'].append('sponsored_ad_template')
+
+    # ── Signal 15: Blacklisted brand domain behind an ESP relay (v6.86.0) ───
+    # Convicts alone (Rule 12, DELETES like Rule 1). Mirrors Signal 15 in
+    # Signals.gs: a Reply-To host on the blacklist AND the relay shape (the From
+    # mailbox is, or ends with '.', the Reply-To host, which is not the sending
+    # host). EVERY Reply-To address is read (a decoy first is not enough), with no
+    # count cap, and a trailing dot and zero-width characters are stripped. Only
+    # FULL-DOMAIN blacklist entries count (a dotless one has host-substring semantics). The Python blacklist is the source
+    # defaults; JS also merges user-added Script Properties domains.
+    _rat = sender_address.rfind('@')
+    if _rat > 0:
+        _rlocal = sender_address[:_rat]
+        _rhost = sender_address[_rat + 1:].rstrip('.')
+        for _rt in _header_addresses(_raw_header(raw, 'Reply-To')):
+            _rt = re.sub('[\u200b-\u200d\u2060\ufeff]', '', _rt).rstrip('.')
+            _rh = _rt[_rt.rfind('@') + 1:]
+            if _rh.find('.') <= 0 or _rh == _rhost:
+                continue
+            if _rlocal != _rh and not _rlocal.endswith('.' + _rh):
+                continue
+            if any(_address_matches_domain(_rt, d) for d in BLACKLISTED_DOMAINS
+                   if '.' in d and '@' not in d):   # full domains only (see Signals.gs)
+                signals['blacklisted_relay_identity'] = True
+                signals['matched_patterns'].append('blacklisted_relay_identity')
+                break
 
     # ── Signal: Clickbait pattern count ────────────────────────────────────
     # Each matching pattern increments the counter independently — this allows
@@ -1558,7 +1585,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         signals['brand_mismatched_cta'] = True
         signals['matched_patterns'].append('brand_mismatched_cta')
 
-    # ── Decision Logic (11 rules, evaluated in priority order) ──────────────
+    # ── Decision Logic (12 rules, evaluated in priority order) ──────────────
     #
     # The rules cascade in priority order, Rule 1 first.
     # Only one rule can fire per email. This matches the .gs source exactly.
@@ -1655,6 +1682,12 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         elif signals['sponsored_ad_template']:
             is_spam = True
             rule = 'RULE 11: Sponsored-ad template'
+
+        # Rule 12: a blacklisted brand domain behind an ESP relay. DELETES in
+        #   production (in DESTRUCTIVE_RULES, v6.86.0), like Rule 1.
+        elif signals['blacklisted_relay_identity']:
+            is_spam = True
+            rule = 'RULE 12: Blacklisted brand behind an ESP relay'
 
     return signals, is_spam, rule
 
@@ -2252,7 +2285,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 16
+    EXPECTED_SIGNAL_COUNT = 17
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '
@@ -2711,7 +2744,8 @@ def run_edge_case_tests():
                   sig['brand_mismatched_cta'] or sig['free_mail_random_local'] or
                   sig['callback_phishing'] or sig['self_named_sender'] or
                   sig['calendar_lure'] or sig['empty_subject_with_attachment'] or
-                  sig['attachment_payload_scam'] or sig['sponsored_ad_template'])
+                  sig['attachment_payload_scam'] or sig['sponsored_ad_template'] or
+                  sig['blacklisted_relay_identity'])
         weak = (sig['clickbait_count'] + sig['fear_mongering'] +
                 sig['marketing_format'] +
                 (sig['suspicious_from_name'] or sig['headline_from_name']))
@@ -2910,6 +2944,43 @@ def run_edge_case_tests():
               _s14(body='hello', html=_FULL_HTML.replace('Sponsored by', f'Sponsored{ws}by')) is True)
     check('14 strict shape reads the body only: no sender condition',
           _s14(body=f'{_DISC} {_ADV} {_HEAD} {_CRED}', frm='Jane <jane@gmail.com>', raw='') is True)
+
+    # Signal 15 (v6.86.0): mirrors the JS table in test_disposition.js.
+    _MILLF = 'Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>'
+    def _s15(frm=_MILLF, reply=None):
+        raw = (f'{reply}\r\n' if reply else '') + '\r\nhi'
+        sig, _, _ = analyze_email('Your free report is ready', frm, False, body='hello', raw=raw)
+        return sig['blacklisted_relay_identity']
+    _RT = 'Reply-To: support@trendwatcherslab.com'
+    for frm, reply, expect, why in [
+        (_MILLF, _RT, True, 'the mill'),
+        (_MILLF, None, False, 'no Reply-To'),
+        (_MILLF, 'Reply-To: support@other.org', False, 'Reply-To on an unrelated host'),
+        ('Pat <pat@gmail.com>', _RT, False, 'a colleague on Gmail (the Reply-To-alone false positive)'),
+        ('A Friend <friend@example.org>', _RT, False, 'someone forwarding a mill mail'),
+        ('x <x@trendwatcherslab.com>', _RT, False, 'the mill sending from its own domain is not relay-shaped'),
+        ('X <xtrendwatcherslab.com@email.cyberimpact.com>', _RT, False, 'the mailbox must end with ".<host>" (no dot boundary)'),
+        ('x <x.trendwatcherslab.com@trendwatcherslab.com>', _RT, False, 'a mailbox embedding its OWN sending domain is not behind a relay'),
+        ('Local News <localnews.ca@email.cyberimpact.com>', 'Reply-To: info@localnews.ca', False, 'an unlisted ESP tenant'),
+        ('x <a.nottrendwatcherslab.com@email.cyberimpact.com>', 'Reply-To: help@nottrendwatcherslab.com', False, 'look-alike host'),
+        ('Someone <someone@email.cyberimpact.com>', _RT, False, 'mailbox does not embed the Reply-To host'),
+        ('x <ivy.help.trendwatcherslab.com@email.cyberimpact.com>', 'Reply-To: help@help.trendwatcherslab.com', True, 'subdomain tenant (suffix match)'),
+        (_MILLF, 'Reply-To: a@decoy.com, support@trendwatcherslab.com', True, 'a decoy first does not hide it'),
+        (_MILLF, 'Reply-To: support@trendwatcherslab.com.', True, 'trailing dot stripped'),
+        ('X <Ivy.Hart.TrendWatchersLab.com@Email.Cyberimpact.com>', 'REPLY-TO: Support@TrendWatchersLab.COM', True, 'case-insensitive'),
+        ('A <news.financebuzzfans.org@relay.esp.com>', 'Reply-To: hi@financebuzzfans.org', False, 'a dotless entry (financebuzz) must not match financebuzzfans.org'),
+        ('Z <realinvestorplace.co.uk@email.cyberimpact.com>', 'Reply-To: info@realinvestorplace.co.uk', False, 'a dotless entry (investorplace) must not match inside a longer host'),
+        (_MILLF, 'Reply-To: ' + 'a@b.c, ' * 12 + 'support@trendwatcherslab.com', True, '11+ decoys do not hide it (no count cap)'),
+        (_MILLF, 'Reply-To: support@trendwatcherslab.com\u200b', True, 'a zero-width space after the host'),
+        (_MILLF, 'Reply-To : support@trendwatcherslab.com', False, 'KNOWN GAP: whitespace before the colon'),
+        ('Cole <cole@email.cyberimpact.com>', _RT, False, 'KNOWN GAP: a mailbox that stops embedding the brand host'),
+        ('x <a.trendwatcherslab.com@email.cyberimpact.com>', 'Reply-To: s@help.trendwatcherslab.com', False, 'KNOWN GAP: Reply-To on a subdomain, mailbox embeds the parent'),
+        (_MILLF, 'Reply-To: a@decoy.com\r\nReply-To: support@trendwatcherslab.com', False, 'KNOWN GAP: second Reply-To line not read'),
+        (_MILLF, 'Reply-To: "' + 'a' * 190 + '" <support@trendwatcherslab.com>', False, 'KNOWN GAP: 200-char cap truncates the address'),
+    ]:
+        check(f'15 {frm[:34]!r} / {(reply or "-")[:34]!r} -> {expect}', _s15(frm, reply) == expect, why)
+    check('15 trendwatcherslab.com is on the shipped blacklist (source defaults)',
+          'trendwatcherslab.com' in BLACKLISTED_DOMAINS)
 
     # Signal 13 thresholds: the JS side pins these in test_disposition.js; the
     # mirror needs its own, or a constant changed in one language only passes

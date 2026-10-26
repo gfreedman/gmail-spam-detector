@@ -2244,13 +2244,20 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
     const src = require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'Patterns.gs'), 'utf8');
     const m = src.indexOf('const SPONSORED_AD_PATTERNS = Object.freeze([') !== -1;
     const pats = Array.from(vm.runInContext('SPONSORED_AD_PATTERNS', ctx));
-    check('SPONSORED_AD_PATTERNS is four patterns in the shipped source', !!m && pats.length === 4,
+    check('SPONSORED_AD_PATTERNS is five patterns in the shipped source', !!m && pats.length === 5,
           String(pats.length));
     const probe = ['this is a paid advertisement', 'marketing emails from the sponsor',
-                   'sponsored stories', 'sponsored by'];
-    check('SPONSORED_AD_PATTERNS order is pinned (each pattern matches its own probe, not the others)',
-          pats.every((p, i) => probe.every((x, j) => (p.test(x) === (i === j)))),
+                   'sponsored stories', 'sponsored by', 'ad by'];
+    // Pattern 4 is the wider credit label, so it also matches the probe for 3.
+    const expect = (i, j) => (i === j) || (i === 4 && j === 3);
+    check('SPONSORED_AD_PATTERNS order is pinned (each pattern matches its own probe; 4 also matches 3)',
+          pats.every((p, i) => probe.every((x, j) => (p.test(x) === expect(i, j)))),
           JSON.stringify(pats.map(p => probe.map(x => p.test(x)))));
+    check('the relay credit label (3) does not take "ad by"; the strict one (4) does, but not "promoted by" or "bad by"',
+          !pats[3].test('ad by') && pats[4].test('ad by') && !pats[4].test('promoted by') &&
+          !pats[4].test('bad by') && !pats[4].test('head by') && !pats[4].test('-ad by'));
+    check('"sponsored by" glued to the previous word still counts (tags-deleted view), as in index 3',
+          pats[4].test('xsponsored by') && pats[3].test('xsponsored by'));
     // split() splices capture groups into its result and would corrupt every
     // count: a pattern that matches the empty string at group level would show here.
     check('SPONSORED_AD_PATTERNS have no capture groups (Signal 14 counts with split())',
@@ -2312,7 +2319,7 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
 
   // Every conjunct, alone: removing any ONE must flip a case below.
   const FULL = DISC + ' ' + ADV + ' ' + HEAD + ' ' + CRED;
-  check('all four patterns, credit twice, fires', fires(T(FULL)));
+  check('strict shape: disclaimer, sentence, heading, credit twice, fires', fires(T(FULL)));
   // PLAIN ONLY (no html): the tag-stripped HTML path collapses whitespace itself
   // and would mask a missing collapse in the plain-body path.
   check('whitespace runs, NBSP and tabs are collapsed (plain body only)',
@@ -2430,6 +2437,41 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
       check('RECHECK: ...it is held instead (archived out of the inbox, SuspectedSpam)',
             r.archivedOut && r.th.__labels.indexOf('SuspectedSpam') !== -1, JSON.stringify(r.th.__labels));
     }
+
+    // v6.85.0: the 2026-10-26 "Trump Doesn't Want You To Know This" miss - same mill,
+    // credits reworded to "Ad by <name>". Built from the REAL message's HTML (scrubbed:
+    // recipient, tokens and tracking removed; detector results proven identical).
+    // Its end state is the RECHECK path: it sat in the inbox, SpamChecked, one message.
+    {
+      const fsx = require('fs'), pathx = require('path');
+      const emlx = fsx.readFileSync(pathx.join(__dirname, 'spam_examples',
+                   'Trump Doesnt Want You To Know This.eml'), 'utf8');
+      const cut = emlx.search(/\r?\n\r?\n/);
+      const hx = (n) => (emlx.slice(0, cut).match(new RegExp('^' + n + ': (.*)$', 'mi')) || [])[1];
+      const adby = { from: hx('From'), subject: hx('Subject'), raw: emlx, html: emlx.slice(cut).replace(/^\s+/, '') };
+      check('the Ad-by fixture carries the mill\'s real From header', 
+            adby.from === 'Trend Watchers Lab <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>', adby.from);
+      check('the Ad-by fixture has "Ad by" credits and NO "Sponsored by" credit (the reword)',
+            (adby.html.match(/Ad by/g) || []).length === 4 && !/sponsored by/i.test(adby.html));
+      const mkAdBy = (id) => {
+        const x = phishMessage(id);
+        x.getFrom = () => adby.from; x.getSubject = () => adby.subject;
+        x.getRawContent = () => adby.raw; x.getPlainBody = () => ''; x.getBody = () => adby.html;
+        return x;
+      };
+      const cl = makeCtx();
+      const vl = cl.analyzeMessage(mkAdBy('mAdBy'));
+      check('analyzeMessage judges the Ad-by miss spam under Rule 11',
+            vl.isSpam === true && cl.getRuleFromSignals(vl.signals).rule === 'Rule 11',
+            JSON.stringify({ isSpam: vl.isSpam, rule: cl.getRuleFromSignals(vl.signals).rule }));
+      const r = recheck([mkAdBy('mAdByRC')], { SPAM_LOG_FOLDER_ID: 'folder123' });
+      check('RECHECK: the Ad-by miss is archived to Drive, then PERMANENTLY DELETED', r.deleted,
+            JSON.stringify(r.c.calls.map(x => x.op)));
+      const ops2 = r.c.calls.map(x => x.op);
+      check('RECHECK: ...archive BEFORE delete, and the summary says 1 deleted, 0 held',
+            ops2.indexOf('driveCreateFile') !== -1 && ops2.indexOf('driveCreateFile') < ops2.indexOf('batchDelete') &&
+            r.logs.some(l => /1 newly-matching.*1 deleted.*0 held/.test(l)), JSON.stringify({ ops: ops2, logs: r.logs }));
+    }
     {
       // Panel (v6.84.0): only messages[0] is judged, so in a longer thread a later
       // message may be the user's own reply. Held, never deleted.
@@ -2515,6 +2557,25 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   check('R2 Reply-To: a duplicate header uses the first', !rt('Reply-To: a@x.org\r\nReply-To: support@trendwatcherslab.com'));
   check('R2 Reply-To: a non-ASCII host never matches the ASCII local part', !rt('Reply-To: support@trendwatcherslab.c\u00f6m'));
   check('R2 Reply-To: a folded header is unfolded', rt('Reply-To: support@trendwatcherslab.com,\r\n other@x.org'));
+
+  // v6.85.0: the "Ad by" credit label, STRICT only (the 2026-10-26 miss).
+  const ADBY = 'Ad by A. Ad by B.';
+  check('strict shape: "Ad by" credits fire (disclaimer + advertiser sentence + heading + 2 credits)',
+        fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' ' + ADBY)));
+  check('strict shape: one "Ad by" credit does not fire',
+        !fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' Ad by A.')));
+  check('RELAY keeps the tight label: three "Ad by" credits on a relay sender with no sentence do NOT fire',
+        !relayFires(DISC + ' ' + HEAD + ' Ad by A. Ad by B. Ad by C.'));
+  check('...while three "Sponsored by" credits on the same relay sender still fire',
+        relayFires(DISC + ' ' + HEAD + ' ' + CRED + ' Sponsored by C.'));
+  check('a digit before "ad by" ("1ad by") is not a credit',
+        !fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' 1ad by A. 2ad by B.')));
+  check('word-internal "ad by" ("bad by", "head by", "read by") is not a credit',
+        !fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' Bad by A. Head by B. Read by C.')));
+  check('"promoted by" is not a credit label (ordinary English)',
+        !fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' Promoted by A. Promoted by B.')));
+  check('case, double space and hyphen in the "ad by" label still count',
+        fires(T(DISC + ' ' + ADV + ' ' + HEAD + ' AD  BY A. ad-by B.')));
 
   // Linear on sender-controlled text: 100 KB of the phrases and of whitespace.
   const t0 = Date.now();

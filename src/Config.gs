@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.84.0
+ * @version 6.85.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -51,7 +51,7 @@
  *   Rule 10: Unknown-sender calendar invite with a voicemail/fax lure in the title
  *           and an off-domain link → phishing
  *   Rule 11: Ad disclaimer + the ad network's advertiser sentence + a "Sponsored
- *           Content" block + 2 "Sponsored by" credits → spam
+ *           Content" block + 2 "Sponsored by"/"Ad by" credits → spam
  *
  * Changelog: see CHANGELOG.md. It is not reproduced here — it reached 459
  * lines and three consecutive entries described three incompatible designs for
@@ -92,7 +92,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.84.0';
+const SCRIPT_VERSION = '6.85.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */

@@ -118,7 +118,7 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * It closed "CHARITY AND ORPHANAGE HOMES.", which scored zero elsewhere.
  *
  * sponsoredAdTemplate (v6.81.0) is STRONG on its own and is Rule 11: an ad
- * disclaimer, a "Sponsored Content" block and two "Sponsored by" credits. It
+ * disclaimer, a "Sponsored Content" block and two "Sponsored by"/"Ad by" credits. It
  * closed "The 1973 Loophole", which scored zero on every other signal. Its false
  * positive class is a legitimate sender carrying all three phrases AND that
  * Gmail already filed as spam; the cost is that message losing its 7-day grace

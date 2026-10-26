@@ -1275,7 +1275,8 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         if n[0] < 1 or n[2] < 1:
             return False
         # STRICT: advertiser sentence + 2 credits. RELAY: sender shape + 3 credits.
-        return (n[1] >= 1 and n[3] >= 2) or (n[3] >= 3 and _relay_shape())
+        # STRICT counts the wider credit label (index 4); RELAY keeps the tight one (3).
+        return (n[1] >= 1 and n[4] >= 2) or (n[3] >= 3 and _relay_shape())
     # JS stripHtmlTags() collapses /\s+/, which is wider than the ASCII+NBSP class
     # the normaliser above applies; spell the JS \s set out so the HTML path agrees
     # (Python's \s differs: it adds U+001C-1F and U+0085, and lacks U+FEFF).
@@ -2796,12 +2797,15 @@ def run_edge_case_tests():
     # Signal 14 (v6.81.0): the JS side pins every conjunct in test_disposition.js;
     # the mirror needs its own, or a phrase or count changed in one language only
     # passes parity (the one fixture sits nowhere near a boundary).
-    check('SPONSORED_AD_PATTERNS loaded from the source: four, in order',
-          len(SPONSORED_AD_PATTERNS) == 4 and
+    check('SPONSORED_AD_PATTERNS loaded from the source: five, in order',
+          len(SPONSORED_AD_PATTERNS) == 5 and
           [bool(p.search(x)) for p, x in zip(SPONSORED_AD_PATTERNS, [
               'this is an advertisement', 'promotional messages from this advertiser',
-              'sponsored content', 'sponsored by'])] == [True] * 4,
+              'sponsored content', 'sponsored by', 'ad by'])] == [True] * 5,
           str([p.pattern for p in SPONSORED_AD_PATTERNS]))
+    check('credit patterns: 3 is the tight label, 4 also takes "ad by"',
+          not SPONSORED_AD_PATTERNS[3].search('ad by') and SPONSORED_AD_PATTERNS[4].search('sponsored by') and
+          SPONSORED_AD_PATTERNS[4].search('ad by') and not SPONSORED_AD_PATTERNS[4].search('promoted by'))
     # v6.83.0 review: split() splices capture groups into its result, which would
     # corrupt every count. Pin "none" so nobody adds one.
     check('SPONSORED_AD_PATTERNS have no capture groups (split-based counting)',
@@ -2820,7 +2824,7 @@ def run_edge_case_tests():
         sig, _, _ = analyze_email('hello', frm, False, body=body, html=html, raw=raw)
         return sig['sponsored_ad_template']
     for body, expect, why in [
-        (f'{_DISC} {_ADV} {_HEAD} {_CRED}', True, 'strict: all four patterns, credit twice'),
+        (f'{_DISC} {_ADV} {_HEAD} {_CRED}', True, 'strict: disclaimer, sentence, heading, credit twice'),
         (f'{_DISC}\n\n{_ADV}\n{_HEAD}\u00a0 Sponsored\tby A. Sponsored   by B.', True, 'whitespace is collapsed'),
         (f'THIS IS AN ADVERTISEMENT. {_ADV.upper()} SPONSORED CONTENT sponsored BY A. Sponsored by B.', True, 'case-insensitive'),
         (f'This is a paid advertisement. {_HEAD} {_CRED3}', True, 'relay: paid-ad wording, no advertiser sentence (the AutoCamp miss)'),
@@ -2837,6 +2841,14 @@ def run_edge_case_tests():
         (f'{_DISC} {_ADV} Sponsored&nbsp;Content Sponsored&#160;by A. Sponsored&nbsp;by B.', True, 'entities are decoded (review evasion)'),
         (f'{_DISC} {_ADV} Sponsored\u2009Content Sponsored\u202fby A. Sponsored\u3000by B.', True, 'thin/narrow/ideographic spaces are collapsed'),
         (f'This is an ad. {_HEAD} {_CRED3}', True, 'relay: the short form ends its clause'),
+        (f'{_DISC} {_ADV} {_HEAD} Ad by A. Ad by B.', True, 'strict: the "Ad by" credit label (the 2026-10-26 miss)'),
+        (f'{_DISC} {_ADV} {_HEAD} AD  BY A. ad-by B.', True, 'strict: case, double space and hyphen in the credit label'),
+        (f'{_DISC} {_ADV} {_HEAD} Ad by A.', False, 'strict: one "Ad by" credit is not enough'),
+        (f'{_DISC} {_HEAD} Ad by A. Ad by B. Ad by C.', False, 'relay keeps the TIGHT label: three "Ad by" credits + relay sender, no sentence'),
+        (f'{_DISC} {_ADV} {_HEAD} Pre-ad by A. Pre-ad by B.', False, 'a leading hyphen is not an "ad by" label'),
+        (f'{_DISC} {_ADV} {_HEAD} 1ad by A. 2ad by B.', False, 'a digit before "ad by" is not a label'),
+        (f'{_DISC} {_ADV} {_HEAD} Bad by A. Head by B. Read by C.', False, 'word-internal "ad by" is not a credit'),
+        (f'{_DISC} {_ADV} {_HEAD} Promoted by A. Promoted by B.', False, '"promoted by" is ordinary English, not a credit label'),
         (f'This is an ad {_HEAD} {_CRED3}', False, 'short form with nothing ending the clause (ad + more words)'),
         (f'This is an ad-free edition. {_HEAD} {_CRED3}', False, 'REVIEW: "ad-free" is not a disclaimer'),
         (f'This is an ad blocker tip. {_HEAD} {_CRED3}', False, 'REVIEW: "ad blocker" is not a disclaimer'),

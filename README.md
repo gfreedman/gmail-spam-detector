@@ -43,13 +43,13 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - Free-mail sender with a machine-generated address + 2 spam behaviours = SPAM
 - Free-mail sender invoicing as a brand it doesn't control, with a phone number to call = PHISHING (quarantined, not deleted)
 - Calendar invite from an unknown organiser with a voicemail/fax lure in the title and an off-domain link = PHISHING
-- Ad disclaimer + a "Sponsored Content" block + "Sponsored by" credits (2, or 3 on the relay shape) + EITHER the ad network's "promotional messages from this advertiser" sentence OR the ad-mill sender shape (From mailbox ends in the Reply-To brand domain, on an ESP relay) = SPAM (deletes; Rule 11)
+- Ad disclaimer + a "Sponsored Content" block + "Sponsored by" or "Ad by" credits (2 on the strict shape, which takes either label; 3 "Sponsored by" on the relay shape) + EITHER the ad network's "promotional messages from this advertiser" sentence OR the ad-mill sender shape (From mailbox ends in the Reply-To brand domain, on an ESP relay) = SPAM (deletes; Rule 11)
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
 
 ## 📊 Results
 
-- ✅ **100% detection** on 60/60 spam + 8/8 scam (.eml files)
+- ✅ **100% detection** on 61/61 spam + 8/8 scam (.eml files)
 - ✅ **0% false positives** on 28/28 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
@@ -269,7 +269,7 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
 **16. Sponsored-Ad Template (Content Signal)**
 - The body carries an ad disclaimer ("This is an advertisement" / "a paid
   advertisement"), a "Sponsored Content" block heading, and at least two
-  "Sponsored by ..." credit lines (regexes, v6.83.0; checked on the plain body,
+  "Sponsored by ..." or "Ad by ..." credit lines (regexes, v6.83.0/v6.85.0; checked on the plain body,
   then on the tag-stripped HTML, after decoding entities), PLUS either the ad
   network's "promotional messages from this advertiser" unsubscribe sentence or
   the ad-mill sender shape: a From mailbox like `brand.com@esp-relay` whose
@@ -330,7 +330,7 @@ if (callbackPhishing) { return SPAM; }
 if (calendarLure) { return SPAM; }
 
 // RULE 11: Ad disclaimer + advertiser unsubscribe sentence + "Sponsored
-// Content" block + 2 "Sponsored by" credit lines. DELETES (archived to Drive first).
+// Content" block + 2 "Sponsored by"/"Ad by" credit lines. DELETES (archived to Drive first).
 if (sponsoredAdTemplate) { return SPAM; }
 
 return NOT_SPAM;
@@ -458,7 +458,7 @@ addToWhitelist('domain.com');
 │   ├── test_disposition.js      # Quarantine-vs-delete routing (Node)
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
-│   ├── spam_examples/           # Real spam .eml files (60)
+│   ├── spam_examples/           # Real spam .eml files (61)
 │   ├── scam_examples/           # Scam .eml files (8)
 │   ├── ham_examples/            # Legitimate .eml files (28)
 │   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)

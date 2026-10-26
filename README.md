@@ -49,7 +49,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 ## 📊 Results
 
-- ✅ **100% detection** on 60/60 spam + 8/8 scam (.eml files)
+- ✅ **100% detection** on 61/61 spam + 8/8 scam (.eml files)
 - ✅ **0% false positives** on 28/28 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
@@ -458,7 +458,7 @@ addToWhitelist('domain.com');
 │   ├── test_disposition.js      # Quarantine-vs-delete routing (Node)
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
-│   ├── spam_examples/           # Real spam .eml files (60)
+│   ├── spam_examples/           # Real spam .eml files (61)
 │   ├── scam_examples/           # Scam .eml files (8)
 │   ├── ham_examples/            # Legitimate .eml files (28)
 │   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)

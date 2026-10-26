@@ -477,6 +477,20 @@ const HEADLINE_NAME_SEPARATORS = Object.freeze([
  * splices captured text into its result and would corrupt every count (a test
  * asserts it). No quantifier is nested, so each scan is linear.
  *
+ * Index 4 (v6.85.0) is the credit label for the STRICT shape only: "sponsored by"
+ * OR "ad by". The same mill reworded its credits from "Sponsored by <name>" to
+ * "Ad by <name>" and kept everything else, including the advertiser sentence, so
+ * the strict shape (which that sentence guards) must accept the new label. It is
+ * deliberately NOT used by the relay shape, which has no such sentence: three
+ * "Ad by Fidelity" credits in a finance newsletter on a relay sender would
+ * otherwise convict (reproduced in review). "promoted by" is left out for the
+ * same reason (ordinary English: local-paper and event digests). The lookbehind
+ * sits on "ad" ONLY: it blocks word-internal matches ("bad by", "head by") and a
+ * leading hyphen. It is NOT on "sponsored", which keeps matching exactly as index
+ * 3 does, including when two credits are glued together in the tags-deleted view
+ * ("...Aasponsored by B"); a pinned test needs that. Valid in V8 and in Python's
+ * re, no capture group. Index 3 stays the tight "sponsored by", for the relay shape.
+ *
  * Signal 14 fires on EITHER of two shapes (see there): the strict one needs all
  * four patterns; the relay one drops the advertiser sentence but needs the
  * brand-on-an-ESP-relay sender shape. The sentence is what editorial sponsor
@@ -490,7 +504,8 @@ const SPONSORED_AD_PATTERNS = Object.freeze([
   /this is an? (?:paid |sponsored )?(?:advertisement(?![a-z0-9-]| blocker)|ad(?= ?[.!:,;)]| ?$))/,
   /(?:promotional|marketing|advertising) (?:messages?|emails?) from (?:this|the) (?:advertiser|sponsor)/,
   /sponsored[ -](?:content|stories)/,
-  /sponsored[ -]by/
+  /sponsored[ -]by/,
+  /(?:sponsored|(?<![a-z0-9-])ad)[ -]by/
 ]);
 
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

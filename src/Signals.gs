@@ -359,7 +359,9 @@ function collectSignals(message)
       if (count(0) < 1 || count(2) < 1) return false;
       // STRICT: the advertiser sentence, 2 credits. RELAY: the sender shape
       // and 3 credits - one more than strict, because the sentence is gone.
-      return (count(1) >= 1 && count(3) >= 2) || (count(3) >= 3 && relayShape());
+      // STRICT counts the wider credit label (index 4: "sponsored by" or "ad by"); RELAY
+      // keeps the tight one (index 3) because it has no advertiser sentence to guard it.
+      return (count(1) >= 1 && count(4) >= 2) || (count(3) >= 3 && relayShape());
     };
     // Three views of the same message: the plain body, the HTML with tags turned
     // into spaces, and the HTML with tags DELETED (a tag inside a word, "adver<b>

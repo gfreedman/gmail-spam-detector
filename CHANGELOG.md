@@ -20,6 +20,50 @@ detail plus the diffs.
 
 ---
 
+## v6.85.0
+
+**Rule 11 now accepts the "Ad by <name>" credit label. It is the third reword of this mill's template in four days.**
+
+2026-10-26 10:34 PDT: "Trump Doesn't Want You To Know This..." (Trend Watchers Lab,
+via Cyberimpact, the same sender as the v6.81.0 and v6.83.0 misses) reached the
+inbox and was stamped `SpamChecked`. It carried the disclaimer, the advertiser
+sentence and the "Sponsored Content" heading, so the strict shape was one step
+short: its four credit lines read `Ad by Brownstone Research`, not `Sponsored by
+...`, and pattern 3 only knew the second. The real HTML, fetched from the live
+message (not the user's paste), shows `<i>Ad by <strong>Name</strong></i>` x4, zero
+`sponsored by`; the current code scored it not-spam with one clickbait point.
+
+**Design, after a review that had to construct false positives.** The first idea
+was one wider credit pattern for both shapes, `(sponsored|promoted|ad) by`. The
+reviewer reproduced legitimate bodies that it deleted: a finance newsletter with
+three "Ad by Fidelity/Schwab/Vanguard" credits and a local-paper digest with
+"Promoted by <business>" credits, both on a relay sender, which the RELAY shape
+(no advertiser sentence) would convict. So:
+
+1. **New pattern 4** (`/(?:sponsored|(?<![a-z0-9-])ad)[ -]by/`) is the credit label
+   for the STRICT shape only, where the advertiser sentence is the guard.
+   **RELAY keeps pattern 3** (`sponsored by`) and three of those. "promoted by" is
+   not added. The lookbehind is on `ad` alone ("bad by", "head by", "pre-ad by"
+   do not count); putting it on "sponsored" too broke a pinned case (two credits
+   glued together in the tags-deleted view), which a first build caught.
+2. The credit count for STRICT is `count(4) >= 2`; RELAY is unchanged.
+
+**Fixture, scrubbed by construction (the repo is public).** Built from the real
+message's HTML: CSS, comments, attributes, link paths and tokens removed, hosts
+kept (the link graph reads them), recipient replaced with `reader@example.com`.
+Proof it is the same message to the detector: the full signal set of the real HTML
+and of the scrubbed file are identical (clickbait + Rule 11). Audited for the
+recipient, base64/URL-encoded forms, long tokens, the client id: none present.
+Not verified: this message's `Reply-To` (the connector returns none); the fixture
+uses `support@trendwatcherslab.com`, as on the previous message from this sender.
+Strict shape does not read it.
+
+**End state.** The message is in the inbox with `SpamChecked`, one message, so it
+goes through the post-deploy RECHECK (v6.84.0 deletes Rule 11 there, archived to
+Drive first), not the live path. A test drives that path on the fixture. Whether
+the deployed recheck actually removed it is checked after the deploy, not claimed
+here. Evasion remains rewording: this fix is one label wide.
+
 ## v6.84.0
 
 **The post-deploy re-check now deletes a Rule 11 match instead of only holding it.**

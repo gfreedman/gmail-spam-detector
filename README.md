@@ -43,6 +43,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - Free-mail sender with a machine-generated address + 2 spam behaviours = SPAM
 - Free-mail sender invoicing as a brand it doesn't control, with a phone number to call = PHISHING (quarantined, not deleted)
 - Calendar invite from an unknown organiser with a voicemail/fax lure in the title and an off-domain link = PHISHING
+- A blacklisted brand domain behind an ESP relay (mailbox embeds the Reply-To host, which is a full-domain blacklist entry) = SPAM, wording-independent
 - Ad disclaimer + a "Sponsored Content" block + "Sponsored by" or "Ad by" credits (2 on the strict shape, which takes either label; 3 "Sponsored by" on the relay shape) + EITHER the ad network's "promotional messages from this advertiser" sentence OR the ad-mill sender shape (From mailbox ends in the Reply-To brand domain, on an ESP relay) = SPAM (deletes; Rule 11)
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
@@ -286,7 +287,8 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
   substring). Every Reply-To address is read. The sender blacklist cannot see
   this because it matches the *sending* domain, which here is the ESP's
 - Deletes (Rule 12) on arrival, archived to Drive first, like Rule 1; the post-deploy
-  recheck only *holds* it, because the blacklist is editable at runtime. Wording-
+  recheck also deletes it (archived first, single-message threads), so mill mail
+  already in the inbox when a blacklist line lands is removed too. Wording-
   independent: a new brand is one blacklist line (no deploy), not a new pattern.
   Built after the same ad mill reworded its template three times in four days
 

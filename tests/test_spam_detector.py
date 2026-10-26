@@ -1200,7 +1200,6 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'attachment_payload_scam': False,
                     'sponsored_ad_template': False,
                     'blacklisted_relay_identity': False,
-                    'blacklisted_relay_identity': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -2960,6 +2959,7 @@ def run_edge_case_tests():
         ('Pat <pat@gmail.com>', _RT, False, 'a colleague on Gmail (the Reply-To-alone false positive)'),
         ('A Friend <friend@example.org>', _RT, False, 'someone forwarding a mill mail'),
         ('x <x@trendwatcherslab.com>', _RT, False, 'the mill sending from its own domain is not relay-shaped'),
+        ('X <xtrendwatcherslab.com@email.cyberimpact.com>', _RT, False, 'the mailbox must end with ".<host>" (no dot boundary)'),
         ('x <x.trendwatcherslab.com@trendwatcherslab.com>', _RT, False, 'a mailbox embedding its OWN sending domain is not behind a relay'),
         ('Local News <localnews.ca@email.cyberimpact.com>', 'Reply-To: info@localnews.ca', False, 'an unlisted ESP tenant'),
         ('x <a.nottrendwatcherslab.com@email.cyberimpact.com>', 'Reply-To: help@nottrendwatcherslab.com', False, 'look-alike host'),

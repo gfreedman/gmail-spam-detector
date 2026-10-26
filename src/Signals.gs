@@ -310,7 +310,7 @@ function collectSignals(message)
   // gates Rules 1-3, which delete, for every legitimate sender on that ESP.
   //
   // Convicts on its own (Rule 11, DELETES - the user's explicit call, including
-  // for the relay shape below) and is STRONG in hasCorroboratingSignal().
+  // for the relay shape below, which Signal 15 also reads for its own purpose) and is STRONG in hasCorroboratingSignal().
   // Text goes through normalizeAdText() first (entities, NFKC, lookalike letters,
   // dashes, zero-width characters, spaces). Two shapes, both needing the
   // disclaimer and the block heading:

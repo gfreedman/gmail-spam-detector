@@ -35,7 +35,8 @@ every legitimate tenant to Rules 1-3).
 
 **Design, after a review that had to construct false positives** (22 messages run
 through the shipped code): Signal 15 `blacklistedRelayIdentity` fires when a
-Reply-To host is on the blacklist AND the sender has the relay shape (the From
+Reply-To host (any address in the first `Reply-To:` header, within `getRawHeader()`'s
+200-char cap) is on the blacklist AND the sender has the relay shape (the From
 mailbox is, or ends with `.`, that host, which is not the sending host). The shape
 stands in for Rule 1's bulk prerequisite. Rejected, with the reproduced reason:
 
@@ -51,10 +52,15 @@ one blacklist line, addable at runtime with `addToBlacklist()` and no deploy.**
 
 **Disposition.** The reviewer recommended quarantine; this deletes, like Rule 1 (the
 other blacklist rule) and as the user has asked of every rule like it, behind the
-same Drive-archive gate (no archive: quarantined). It is deliberately NOT in
-`RECHECK_DELETE_RULES`: the blacklist is user-editable, so an entry added today must
-hold, not delete, mail the user has already read. On the live path mail is new, so
-the first message from a listed mill is deleted on arrival.
+same Drive-archive gate (no archive: quarantined). On the live path the first message
+from a listed mill is deleted on arrival. It is ALSO in `RECHECK_DELETE_RULES`, so mill
+mail already in the inbox when a blacklist line lands is removed by the post-deploy
+recheck (single-message threads only, archived first); a first draft HELD it there,
+reasoning that a runtime entry must not retroactively delete mail already read, and
+the outcome review showed that leaves such mail for the user to trash by hand and
+does not hold for the entry this ships. The cost is accepted and bounded: mail from the
+last 2 days that the script itself stamped, from a relay-shaped sender whose Reply-To
+host is a FULL-DOMAIN blacklist entry.
 
 **Attacker review, then fixes.** Reproduced against the shipped code: dotless
 blacklist entries (`financebuzz`, `investorplace`, `weissratings`, ...) have

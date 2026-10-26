@@ -848,6 +848,21 @@
           <td><strong>Free-mail sender invoicing as a brand it does not control, with a phone number to call</strong></td>
           <td>A callback scam carries <em>no link at all</em>, so every signal that reads a link graph or marketing vocabulary scores it zero &mdash; and it passes SPF, DKIM and DMARC, because the free-mail provider really did send it. The payload is a phone number, which moves the victim to a call where no email filter follows. Detected by anatomy rather than wording: a free-mail sender <em>and</em> a named brand it provably is not <em>and</em> billing language <em>and</em> a phone number. A four-way conjunction, because no single part is rare. <strong>Quarantines rather than deletes.</strong></td>
         </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 10</span></td>
+          <td><strong>Unknown-sender calendar invite with a voicemail/fax lure in the title and an off-domain link</strong></td>
+          <td>A compromised Workspace account sent &ldquo;New Voice Message Notification&rdquo; invites pointing at a typosquat. Deletes.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 11</span></td>
+          <td><strong>Ad disclaimer + a &ldquo;Sponsored Content&rdquo; block + sponsor credit lines</strong></td>
+          <td>One ad mill sends through a shared ESP and rewords its template; the template shape is what stays. Deletes, archived to Drive first.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 12</span></td>
+          <td><strong>A blacklisted brand domain behind an ESP relay</strong></td>
+          <td>The mailbox embeds the brand and the Reply-To is on a blacklisted full domain. Wording-independent: a new mill is one blacklist line. Deletes, archived to Drive first.</td>
+        </tr>
       </tbody>
     </table>
   </div>

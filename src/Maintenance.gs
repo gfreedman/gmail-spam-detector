@@ -426,10 +426,15 @@ function recheckRecentSpamChecked(widen)
   // The only rules this path may delete (see the comment at the match below).
   // An allowlist, so a new rule defaults to HOLD here as it does in
   // disposeDetectedMessage().
-  // Rule 12 (blacklisted brand behind a relay) is deliberately ABSENT: the blacklist is
-  // user-editable at runtime, so an entry added today must hold, not delete, mail the
-  // user has already read. It still deletes on the live path, where mail is new.
-  const RECHECK_DELETE_RULES = ['Rule 11'];
+  // Rule 12 (a full-domain blacklist entry behind an ESP relay) is here too (v6.86.0).
+  // A first draft held it, reasoning that a runtime blacklist entry must not
+  // retroactively delete mail already read; review showed that does not hold for the
+  // entry this ships, and leaves mill mail already in the inbox for the user to trash
+  // by hand, which CLAUDE.md's "done means the email is gone" rules out. The cost is
+  // accepted and bounded: only mail from the last 2 days that the script itself
+  // stamped, only single-message threads, only after a Drive archive, only a
+  // relay-shaped sender whose Reply-To host is a FULL-DOMAIN blacklist entry.
+  const RECHECK_DELETE_RULES = ['Rule 11', 'Rule 12'];
   const startedAt            = Date.now();
 
   try

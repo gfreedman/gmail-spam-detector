@@ -2653,15 +2653,43 @@ console.log('\n=== Signal 15 / Rule 12: blacklisted brand behind an ESP relay (v
           !c2.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c2.calls.map(x => x.op)));
     // RECHECK: held, not deleted (RECHECK_DELETE_RULES is Rule 11 only).
     const c3 = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const realFolder3 = c3.DriveApp.getFolderById;   // record Drive writes in the SAME ordered log
+    c3.DriveApp.getFolderById = (id) => {
+      const f = realFolder3(id), cf = f.createFile;
+      f.createFile = function() { c3.calls.push({ op: 'driveCreateFile' }); return cf.apply(this, arguments); };
+      return f;
+    };
     const m3 = phishMessage('mR15fx3');
     m3.getFrom = () => h('From'); m3.getSubject = () => h('Subject');
     m3.getRawContent = () => fx; m3.getPlainBody = () => fx.slice(cut).trim(); m3.getBody = () => '<p>x</p>';
     const th3 = fakeThread([m3], c3.calls);
     c3.GmailApp.search = () => [th3]; c3.GmailApp.getMessagesForThreads = () => [[m3]];
     c3.recheckRecentSpamChecked(true);
-    check('the post-deploy RECHECK HOLDS a Rule 12 match and does NOT delete it',
-          !c3.calls.some(x => x.op === 'batchDelete') && th3.__labels.indexOf('SuspectedSpam') !== -1,
-          JSON.stringify({ ops: c3.calls.map(x => x.op), labels: th3.__labels }));
+    // ...but only single-message threads, and only behind the archive gate.
+    const c4 = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m4a = phishMessage('mR15fx4a'), m4b = phishMessage('mR15fx4b');
+    [m4a, m4b].forEach(x => { x.getFrom = () => h('From'); x.getSubject = () => h('Subject');
+      x.getRawContent = () => fx; x.getPlainBody = () => fx.slice(cut).trim(); x.getBody = () => '<p>x</p>'; });
+    const th4 = fakeThread([m4a, m4b], c4.calls);
+    c4.GmailApp.search = () => [th4]; c4.GmailApp.getMessagesForThreads = () => [[m4a, m4b]];
+    c4.recheckRecentSpamChecked(true);
+    check('a Rule 12 match in a thread with MORE than one message is HELD, never deleted',
+          !c4.calls.some(x => x.op === 'batchDelete') && th4.__labels.indexOf('SuspectedSpam') !== -1,
+          JSON.stringify({ ops: c4.calls.map(x => x.op), labels: th4.__labels }));
+    const c5 = makeCtx({ props: {} });   // no SPAM_LOG_FOLDER_ID: no Drive archive
+    const m5 = phishMessage('mR15fx5');
+    m5.getFrom = () => h('From'); m5.getSubject = () => h('Subject');
+    m5.getRawContent = () => fx; m5.getPlainBody = () => fx.slice(cut).trim(); m5.getBody = () => '<p>x</p>';
+    const th5 = fakeThread([m5], c5.calls);
+    c5.GmailApp.search = () => [th5]; c5.GmailApp.getMessagesForThreads = () => [[m5]];
+    c5.recheckRecentSpamChecked(true);
+    check('a Rule 12 match with NO Drive archive is held on the recheck, not deleted (the archive gate)',
+          !c5.calls.some(x => x.op === 'batchDelete') && th5.__labels.indexOf('SuspectedSpam') !== -1,
+          JSON.stringify({ ops: c5.calls.map(x => x.op), labels: th5.__labels }));
+    const ops3 = c3.calls.map(x => x.op);
+    check('the post-deploy RECHECK archives a Rule 12 match to Drive, then DELETES it (mill mail already in the inbox is removed)',
+          c3.calls.some(x => x.op === 'batchDelete') && ops3.indexOf('driveCreateFile') !== -1 &&
+          ops3.indexOf('driveCreateFile') < ops3.indexOf('batchDelete'), JSON.stringify(ops3));
   }
 
   // Each guard closes a reproduced false positive.
@@ -2688,6 +2716,8 @@ console.log('\n=== Signal 15 / Rule 12: blacklisted brand behind an ESP relay (v
     check('an address-fragment entry ("a@b.com") does not fire',
           !rfires({ from: 'A <b.com@e.esp.com>', reply: 'Reply-To: a@b.com' }, c2));
   }
+  check('the mailbox must END WITH ".<host>": "xtrendwatcherslab.com" (no dot boundary) does not fire',
+        !rfires({ from: 'X <xtrendwatcherslab.com@email.cyberimpact.com>', reply: RT }));
   check('a mailbox that embeds its OWN sending domain is not "behind a relay" (Signal 1b\'s territory)',
         !rfires({ from: 'x <x.trendwatcherslab.com@trendwatcherslab.com>', reply: RT }));
   check('an unlisted ESP tenant with the same shape does NOT fire',

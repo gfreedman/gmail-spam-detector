@@ -2516,9 +2516,11 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
   }
   // v6.89.0: HELD mail (SuspectedSpam, out of the inbox) that now matches a delete rule.
   {
-    const held = (msgs, props) => {
+    const held = (msgs, props, pre) => {
       const c = makeCtx({ props: props });
       const th = fakeThread(msgs, c.calls);
+      // a real held thread carries the script's own labels; `pre` adds more
+      (pre || ['SuspectedSpam', 'SpamChecked']).forEach(n => th.__labels.push(n));
       const realFolder = c.DriveApp.getFolderById;
       c.DriveApp.getFolderById = (id) => {
         const f = realFolder(id), cf = f.createFile;
@@ -2544,7 +2546,18 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
           /-in:trash/.test(r.queries[0]) && /-in:spam/.test(r.queries[0]) && /newer_than:2d/.test(r.queries[0]),
           JSON.stringify(r.queries));
     const noArc = held([blacklistMessage('mH2')], {});
-    check('HELD: with NO Drive archive a held Rule 1 match is not deleted', !noArc.deleted, JSON.stringify(noArc.ops));
+    check('HELD: with NO Drive folder configured the pass stands down: nothing deleted, NOTHING written or logged',
+          !noArc.deleted && noArc.ops.length === 0, JSON.stringify(noArc.ops));
+    const starMsg = blacklistMessage('mH2star'); starMsg.isStarred = () => true;
+    const star = held([starMsg], A);
+    check('HELD: a STARRED held thread is never deleted and nothing is written to it',
+          !star.deleted && star.ops.length === 0, JSON.stringify(star.ops));
+    const userLab = held([blacklistMessage('mH2lab')], A, ['SuspectedSpam', 'SpamChecked', 'Taxes 2026']);
+    check('HELD: a thread carrying a label the USER applied is never deleted and nothing is written',
+          !userLab.deleted && userLab.ops.length === 0, JSON.stringify(userLab.ops));
+    const scriptOnly = held([blacklistMessage('mH2ok')], A, ['SuspectedSpam', 'SpamChecked', 'Phishing', 'SpamDetectorPurge']);
+    check('HELD: the detector\'s OWN labels do not count as user labels (still deleted)',
+          scriptOnly.deleted, JSON.stringify(scriptOnly.ops));
     const rep = phishMessage('mH3reply');
     rep.getFrom = () => 'Geoff Freedman <geoff.c.freedman@gmail.com>';
     const multi = held([blacklistMessage('mH3'), rep], A);

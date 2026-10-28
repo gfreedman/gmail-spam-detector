@@ -413,6 +413,19 @@ function recheckHeldMail()
 
   try
   {
+    // No Drive archive possible -> nothing here may delete, and accumulateLogEntry()
+    // below would write a fresh FALSE_NEGATIVE row for the same held thread on every
+    // cycle for HELD_DAYS (coach audit, 2026-10-28). Stand down instead.
+    if (!PropertiesService.getScriptProperties().getProperty('SPAM_LOG_FOLDER_ID'))
+    {
+      logDebug('Held-mail recheck skipped: SPAM_LOG_FOLDER_ID unset (no Drive archive)');
+      return;
+    }
+    // Labels the detector itself applies (and the user's SpamMissed): anything else
+    // is a label the USER put on the thread, which is a decision this pass must not
+    // overrule. Derived from CONFIG so a new script label cannot be forgotten.
+    const scriptLabels = Object.keys(CONFIG).filter(function(k) { return /Label$/.test(k); })
+                               .map(function(k) { return CONFIG[k]; });
     const query = 'label:' + CONFIG.reviewLabel + ' -in:inbox -in:trash -in:spam' +
                   ' newer_than:' + HELD_DAYS + 'd';
     const threads = GmailApp.search(query, 0, HELD_LIMIT);
@@ -434,6 +447,13 @@ function recheckHeldMail()
         const messages = allMessages[i];
         if (!messages || messages.length !== 1) continue;   // a reply is the owner's engagement
         const message = messages[0];
+
+        // The owner kept this one: starred, or labelled by hand. Leave it alone.
+        if (typeof message.isStarred === 'function' && message.isStarred()) continue;
+        const userLabelled = (threads[i].getLabels() || []).some(function(l) {
+          return scriptLabels.indexOf(l.getName()) === -1;
+        });
+        if (userLabelled) continue;
 
         const verdict = analyzeMessage(message);
         if (!verdict.isSpam) continue;

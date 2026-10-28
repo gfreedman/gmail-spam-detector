@@ -20,6 +20,20 @@ detail plus the diffs.
 
 ---
 
+## v6.90.0
+
+**The held-mail pass leaves alone what the owner touched, and stops re-logging.**
+
+A post-v6.89.0 audit found three gaps in `recheckHeldMail()`. It would delete a
+held thread the owner had starred, or labelled by hand (any label that is not one
+of the detector's own `CONFIG.*Label` names); only moving the mail back to the
+inbox exempted it. And with no `SPAM_LOG_FOLDER_ID` it still called
+`accumulateLogEntry()` before the archive gate, writing a fresh `FALSE_NEGATIVE`
+row for the same held thread on every cycle for two days. Now: a starred message
+or a user-applied label skips the thread with no write, and an unset archive
+folder stands the whole pass down. Each guard was fault-injected and fails its own
+test when removed.
+
 ## v6.89.0
 
 **Held mail that now matches a delete rule is deleted.**

@@ -2514,6 +2514,53 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
             !multi.deleted, JSON.stringify(multi.c.calls.map(x => x.op)));
     }
   }
+  // v6.89.0: HELD mail (SuspectedSpam, out of the inbox) that now matches a delete rule.
+  {
+    const held = (msgs, props) => {
+      const c = makeCtx({ props: props });
+      const th = fakeThread(msgs, c.calls);
+      const realFolder = c.DriveApp.getFolderById;
+      c.DriveApp.getFolderById = (id) => {
+        const f = realFolder(id), cf = f.createFile;
+        f.createFile = function() { c.calls.push({ op: 'driveCreateFile' }); return cf.apply(this, arguments); };
+        return f;
+      };
+      const queries = [];
+      c.GmailApp.search = (q) => { queries.push(q); return [th]; };
+      c.GmailApp.getMessagesForThreads = () => [msgs];
+      const logs = [];
+      c.logInfo = (l) => logs.push(String(l));
+      c.recheckHeldMail();
+      return { c, th, logs, queries, ops: c.calls.map(x => x.op),
+               deleted: c.calls.some(x => x.op === 'batchDelete') };
+    };
+    const A = { SPAM_LOG_FOLDER_ID: 'folder123' };
+    const r = held([blacklistMessage('mH1')], A);
+    check('HELD: a held Rule 1 match is archived to Drive FIRST, then deleted',
+          r.deleted && r.ops.indexOf('driveCreateFile') !== -1 &&
+          r.ops.indexOf('driveCreateFile') < r.ops.indexOf('batchDelete'), JSON.stringify(r.ops));
+    check('HELD: the query reads SuspectedSpam threads OUT of the inbox, trash and spam, 2 days',
+          r.queries.length === 1 && /label:SuspectedSpam/.test(r.queries[0]) && /-in:inbox/.test(r.queries[0]) &&
+          /-in:trash/.test(r.queries[0]) && /-in:spam/.test(r.queries[0]) && /newer_than:2d/.test(r.queries[0]),
+          JSON.stringify(r.queries));
+    const noArc = held([blacklistMessage('mH2')], {});
+    check('HELD: with NO Drive archive a held Rule 1 match is not deleted', !noArc.deleted, JSON.stringify(noArc.ops));
+    const rep = phishMessage('mH3reply');
+    rep.getFrom = () => 'Geoff Freedman <geoff.c.freedman@gmail.com>';
+    const multi = held([blacklistMessage('mH3'), rep], A);
+    check('HELD: a multi-message thread is never deleted, and nothing is written to it',
+          !multi.deleted && multi.ops.length === 0, JSON.stringify(multi.ops));
+    const phish = held([phishMessage('mH4')], A);
+    check('HELD: a rule outside RECHECK_DELETE_RULES (Rule 7, quarantine) is left alone, no writes',
+          !phish.deleted && phish.ops.length === 0, JSON.stringify(phish.ops));
+    const cleanMsg = blacklistMessage('mH5');
+    cleanMsg.getFrom = () => 'Alice <alice@example.org>';
+    cleanMsg.getSubject = () => 'Lunch on Thursday?';
+    cleanMsg.getRawContent = () => '\r\nbody';
+    const clean = held([cleanMsg], A);
+    check('HELD: a held thread that no longer scores as spam is left alone, no writes',
+          !clean.deleted && clean.ops.length === 0, JSON.stringify(clean.ops));
+  }
   const MILLRAW = 'Reply-To: support@trendwatcherslab.com\r\n\r\nhi';
   const PAID = 'This is a paid advertisement. ' + HEAD + ' ' + CRED3;
   check('relay shape: paid-ad wording fires with the real sender shape',

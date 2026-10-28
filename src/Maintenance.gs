@@ -216,7 +216,7 @@ function runPeriodicMaintenance()
   if (versionChanged || Date.now() - lastRecheck >= RECHECK_INTERVAL_MS)
   {
     runMaintenanceStep('recheckRecentSpamChecked',
-                       function() { recheckRecentSpamChecked(versionChanged); });
+                       function() { recheckRecentSpamChecked(versionChanged); recheckHeldMail(); });
     props.setProperty('LAST_RECHECK_TS', String(Date.now()));
   }
 
@@ -372,6 +372,96 @@ function checkFalseNegatives()
   }
 }
 
+// The only rules this path may delete (see the comment at the match below).
+// An allowlist, so a new rule defaults to HOLD here as it does in
+// disposeDetectedMessage().
+// Rule 12 (a full-domain blacklist entry behind an ESP relay) is here too (v6.86.0).
+// A first draft held it, reasoning that a runtime blacklist entry must not
+// retroactively delete mail already read; review showed that does not hold for the
+// entry this ships, and leaves mill mail already in the inbox for the user to trash
+// by hand, which CLAUDE.md's "done means the email is gone" rules out. The cost is
+// accepted and bounded: only mail from the last 2 days that the script itself
+// stamped, only single-message threads, only after a Drive archive, only a
+// relay-shaped sender whose Reply-To host is a FULL-DOMAIN blacklist entry.
+// Rule 1 (bulk + blacklisted sender) is here too (v6.88.0): v6.87.0 blacklisted
+// dailyfinbrief.com and the reported email, already in the inbox, was HELD, so the
+// user had to trash it by hand. Same archive gate and single-message guard apply.
+const RECHECK_DELETE_RULES = ['Rule 1', 'Rule 11', 'Rule 12'];
+
+/**
+ * Delete HELD mail that now matches a delete rule (v6.89.0).
+ *
+ * holdForReview() archives a thread out of the inbox and labels it SuspectedSpam,
+ * and the recheck above searches the inbox only - so mail HELD by one release was
+ * never seen again by the release that would have deleted it (v6.87.0 held the
+ * reported dailyfinbrief.com ad; v6.88.0 added Rule 1 to RECHECK_DELETE_RULES and
+ * could not reach it). This pass looks at SuspectedSpam threads that are out of the
+ * inbox, from the last HELD_DAYS days, and applies the same policy: only the rules in
+ * RECHECK_DELETE_RULES, only single-message threads, archive to Drive first
+ * (disposeDetectedMessage() quarantines instead when there is no copy).
+ *
+ * It does NOTHING to a thread that does not qualify - no log row, no relabel - so a
+ * held thread that stays held costs one analyzeMessage() per cycle and no writes.
+ * Mail the user moved back to the inbox is out of scope (-in:inbox).
+ */
+function recheckHeldMail()
+{
+  const HELD_DAYS = 2;
+  const HELD_LIMIT = 20;
+  const HELD_BUDGET_MS = 60 * 1000;
+  const startedAt = Date.now();
+
+  try
+  {
+    const query = 'label:' + CONFIG.reviewLabel + ' -in:inbox -in:trash -in:spam' +
+                  ' newer_than:' + HELD_DAYS + 'd';
+    const threads = GmailApp.search(query, 0, HELD_LIMIT);
+    if (threads.length === 0) return;
+
+    const allMessages = GmailApp.getMessagesForThreads(threads);
+    let deletedCount = 0;
+
+    for (let i = 0; i < threads.length; i++)
+    {
+      if (Date.now() - startedAt > HELD_BUDGET_MS)
+      {
+        logInfo('Held-mail recheck stopped at ' + i + ' of ' + threads.length +
+                ' threads: budget spent');
+        break;
+      }
+      try
+      {
+        const messages = allMessages[i];
+        if (!messages || messages.length !== 1) continue;   // a reply is the owner's engagement
+        const message = messages[0];
+
+        const verdict = analyzeMessage(message);
+        if (!verdict.isSpam) continue;
+        const rule = getRuleFromSignals(verdict.signals).rule;
+        if (RECHECK_DELETE_RULES.indexOf(rule) === -1) continue;
+
+        logInfo('Held mail now matches ' + rule + ': ' + sanitizeForLog(message.getSubject()));
+        const archived = accumulateLogEntry(message, verdict.signals, 'FALSE_NEGATIVE');
+        if (disposeDetectedMessage(message, threads[i], verdict.signals, archived)) deletedCount++;
+      }
+      catch (threadError)
+      {
+        logError('recheckHeldMail thread error: ' + threadError.toString());
+      }
+    }
+
+    if (deletedCount > 0)
+    {
+      logInfo('Held-mail recheck: ' + deletedCount + ' held email(s) deleted (' +
+              RECHECK_DELETE_RULES.join(', ') + ' only, archived first)');
+    }
+  }
+  catch (error)
+  {
+    logError('recheckHeldMail failed: ' + error.toString());
+  }
+}
+
 /**
  * Re-evaluate recently SpamChecked inbox emails against the current patterns.
  *
@@ -423,21 +513,6 @@ function recheckRecentSpamChecked(widen)
   // limit, which skips the heartbeat in `finally` while LAST_SEEN_VERSION is
   // already recorded, so nothing retries it at all.
   const RECHECK_BUDGET_MS    = 120 * 1000;
-  // The only rules this path may delete (see the comment at the match below).
-  // An allowlist, so a new rule defaults to HOLD here as it does in
-  // disposeDetectedMessage().
-  // Rule 12 (a full-domain blacklist entry behind an ESP relay) is here too (v6.86.0).
-  // A first draft held it, reasoning that a runtime blacklist entry must not
-  // retroactively delete mail already read; review showed that does not hold for the
-  // entry this ships, and leaves mill mail already in the inbox for the user to trash
-  // by hand, which CLAUDE.md's "done means the email is gone" rules out. The cost is
-  // accepted and bounded: only mail from the last 2 days that the script itself
-  // stamped, only single-message threads, only after a Drive archive, only a
-  // relay-shaped sender whose Reply-To host is a FULL-DOMAIN blacklist entry.
-  // Rule 1 (bulk + blacklisted sender) is here too (v6.88.0): v6.87.0 blacklisted
-  // dailyfinbrief.com and the reported email, already in the inbox, was HELD, so the
-  // user had to trash it by hand. Same archive gate and single-message guard apply.
-  const RECHECK_DELETE_RULES = ['Rule 1', 'Rule 11', 'Rule 12'];
   const startedAt            = Date.now();
 
   try

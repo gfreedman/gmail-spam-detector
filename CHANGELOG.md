@@ -20,6 +20,21 @@ detail plus the diffs.
 
 ---
 
+## v6.89.0
+
+**Held mail that now matches a delete rule is deleted.**
+
+The reported dailyfinbrief.com ad was HELD by v6.87.0's recheck, which archives
+a thread out of the inbox under `SuspectedSpam`. v6.88.0 made the recheck delete
+Rule 1, but that recheck searches the inbox only, so it never saw the held copy
+and the user had to trash it by hand. New `recheckHeldMail()` runs in the same
+maintenance step and applies the same policy to `SuspectedSpam` threads that are
+out of the inbox, from the last 2 days: only the rules in `RECHECK_DELETE_RULES`
+(now a file-scope constant shared by both passes), only single-message threads,
+archive to Drive first. A thread that does not qualify is left alone with no log
+row and no relabel. Older held mail and mail the user moved back to the inbox are
+out of scope.
+
 ## v6.88.0
 
 **The post-deploy recheck deletes Rule 1 matches, not only Rules 11 and 12.**

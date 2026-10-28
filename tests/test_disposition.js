@@ -2498,9 +2498,20 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
     }
     {
       const r = recheck([blacklistMessage('mRC1')], { SPAM_LOG_FOLDER_ID: 'folder123' });
-      check('RECHECK: a Rule 1 match is still only HELD, never deleted (v6.48.0 policy intact)',
-            !r.deleted && r.archivedOut && r.th.__labels.indexOf('SuspectedSpam') !== -1,
+      check('RECHECK: a Rule 1 match is archived to Drive FIRST, then deleted (v6.88.0)',
+            r.deleted && r.c.calls.map(x => x.op).join() === 'driveCreateFile,modify,batchDelete',
             JSON.stringify({ calls: r.c.calls.map(x => x.op), labels: r.th.__labels }));
+      // Archive gate: with no Drive folder there is no copy, so it must be held, not deleted.
+      const noArc = recheck([blacklistMessage('mRC1noarc')], {});
+      check('RECHECK: ...and with NO Drive archive a Rule 1 match is held, never deleted',
+            !noArc.deleted && noArc.th.__labels.indexOf('SuspectedSpam') !== -1,
+            JSON.stringify({ calls: noArc.c.calls.map(x => x.op), labels: noArc.th.__labels }));
+      // A reply in the thread is evidence the owner engaged with it: held.
+      const rep = phishMessage('mRC1reply');
+      rep.getFrom = () => 'Geoff Freedman <geoff.c.freedman@gmail.com>';
+      const multi = recheck([blacklistMessage('mRC1multi'), rep], { SPAM_LOG_FOLDER_ID: 'folder123' });
+      check('RECHECK: ...and a Rule 1 match in a MULTI-message thread is held, never deleted',
+            !multi.deleted, JSON.stringify(multi.c.calls.map(x => x.op)));
     }
   }
   const MILLRAW = 'Reply-To: support@trendwatcherslab.com\r\n\r\nhi';

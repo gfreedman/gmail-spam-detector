@@ -20,6 +20,20 @@ detail plus the diffs.
 
 ---
 
+## v6.88.0
+
+**The post-deploy recheck deletes Rule 1 matches, not only Rules 11 and 12.**
+
+v6.87.0 blacklisted `dailyfinbrief.com`, but the reported email was already in
+the inbox, so it took the recheck, which HELD it (only Rules 11 and 12 delete
+there) and left the user to trash it by hand. `RECHECK_DELETE_RULES` now also
+holds `'Rule 1'` (bulk + blacklisted sender). The guards are unchanged: the
+message is archived to Drive first (no copy: quarantined and held), only
+single-message threads are deleted, and only mail from the recheck window.
+
+Cost, accepted at the user's explicit request: a blacklist entry added later now
+also deletes matching mail from the last 2 days that was already read.
+
 ## v6.87.0
 
 **`dailyfinbrief.com` is blacklisted.**

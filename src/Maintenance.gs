@@ -434,7 +434,10 @@ function recheckRecentSpamChecked(widen)
   // accepted and bounded: only mail from the last 2 days that the script itself
   // stamped, only single-message threads, only after a Drive archive, only a
   // relay-shaped sender whose Reply-To host is a FULL-DOMAIN blacklist entry.
-  const RECHECK_DELETE_RULES = ['Rule 11', 'Rule 12'];
+  // Rule 1 (bulk + blacklisted sender) is here too (v6.88.0): v6.87.0 blacklisted
+  // dailyfinbrief.com and the reported email, already in the inbox, was HELD, so the
+  // user had to trash it by hand. Same archive gate and single-message guard apply.
+  const RECHECK_DELETE_RULES = ['Rule 1', 'Rule 11', 'Rule 12'];
   const startedAt            = Date.now();
 
   try

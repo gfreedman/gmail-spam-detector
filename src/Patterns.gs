@@ -508,4 +508,40 @@ const SPONSORED_AD_PATTERNS = Object.freeze([
   /(?:sponsored|(?<![a-z0-9-])ad)[ -]by/
 ]);
 
+/**
+ * SHADOW OBSERVER data (v6.91.0) - LOG-ONLY, read by observeShadow() in Thread.gs and
+ * by nothing that decides a verdict. Six theme families a finance-ad mill stacks in one
+ * email. Reviewed 2026-10-28 (L7, reformed-spammer, first-principles): counting themes
+ * is wording-bound and the families overlap ordinary finance news ("$10 trillion",
+ * "executive order"), so this must NOT convict until real-mailbox data says otherwise.
+ *
+ * Every pattern is bounded: no unbounded gap, no nested quantifier, no \b (JS \b is
+ * ASCII-only; Python's is not), so a scan is linear at the 100 KB input cap. Run
+ * against normalizeAdText() output plus the extra strip in observeShadow().
+ * @const {Object<string, RegExp>}
+ */
+const SHADOW_THEME_PATTERNS = Object.freeze({
+  moneyFear:  /(?:your|if you (?:have|own|hold)(?: an?)?) (?:401 ?\(?k\)?|ira|retirement|savings|pension|nest egg|social security|brokerage|portfolio)/,
+  authority:  /executive order|new law|federal reserve|treasury|white house|supreme court|congress|(?:^|[ ,.])the fed(?:[ ,.]|$)/,
+  suppressed: /(?:left|kept|leave|leaving|keep|keeping) (?:[a-z]{1,12} ){0,3}(?:off|out of) (?:the )?(?:front page|headlines|news)|(?:don|doesn)['\u2019]?t want you to (?:know|see)|do not want you to (?:know|see)|won['\u2019]?t tell you|mainstream media|cover-?up|banned|censor/,
+  deadline:   /before (?:we|they|it|this|midnight|tonight)(?: [a-z]{1,12}){0,3} (?:take|taken|pull|pulled|remove|removed|delete|deleted|shut|down|ends?|expires?)|(?:expires?|ends?) (?:tonight|today|soon|friday|at midnight)|last chance|take (?:it|this) down|act (?:now|fast|today)/,
+  scale:      /\$ ?\d{1,3}(?:\.\d{1,2})? ?(?:trillion|billion)|\d{1,3}(?:,\d{3}){0,2} million (?:people|americans|accounts|investors|workers)/,
+  upside:     /(?:^|[^a-z0-9])\d{1,3}x(?:[^a-z0-9]|$)|millionaire|skyrocket|explode|life-?changing|windfall/
+});
+
+/**
+ * Footer postal addresses seen on 4+ spam fixtures across several brand domains
+ * (one street address behind five sender domains - the cheap-to-match,
+ * costly-to-change tell). Normalised: lower-case, letters and digits, single spaces.
+ * Registered-agent addresses (Wilmington 9th St, 222 Delaware St New Castle) are LEFT
+ * OUT on purpose: thousands of legitimate firms share them. LOG-ONLY.
+ * @const {Array<string>}
+ */
+const SHADOW_POSTAL_NEEDLES = Object.freeze([
+  '200 broadway blvd ne albuquerque',
+  '74 e glenwood ave smyrna',
+  '111 e atlantic ave suite 200 delray beach',
+  '5005 lyndon b johnson fwy'
+]);
+
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

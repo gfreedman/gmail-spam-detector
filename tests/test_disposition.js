@@ -2574,6 +2574,83 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
     check('HELD: a held thread that no longer scores as spam is left alone, no writes',
           !clean.deleted && clean.ops.length === 0, JSON.stringify(clean.ops));
   }
+  // v6.91.0: the LOG-ONLY shadow observer. It may log; it may never act.
+  {
+    const mk = (body, o) => {
+      o = o || {};
+      const m = blacklistMessage(o.id || 'mSH');
+      m.getSubject = () => o.subject || 'Weekly update';
+      m.getFrom = () => o.from || 'Daily Brief <mail@signal.example-brief.com>';
+      m.getPlainBody = () => body;
+      return m;
+    };
+    const run = (m, sig, props, searchFn) => {
+      const c = makeCtx({ props: props || {} });
+      const logs = [];
+      c.logInfo = (l) => logs.push(String(l));
+      const searches = [];
+      c.GmailApp.search = (q) => { searches.push(q); return searchFn ? searchFn(q) : []; };
+      c.observeShadow(m, { isSpam: false, signals: Object.assign({ clickbaitCount: 0, fearMongering: false,
+        marketingFormat: false, suspiciousFromName: false, headlineFromName: false, bulkEmailService: false }, sig || {}) });
+      return { c, logs, searches, shadow: logs.filter(l => l.indexOf('SHADOW') === 0), calls: c.calls.map(x => x.op) };
+    };
+    const EO = 'If you have a 401(k), this is your account. Executive Order 14330 is already signed. ' +
+               '70 million accounts. Almost $10 trillion. See what they left off the front page before we take it down.';
+    const r1 = run(mk(EO));
+    check('SHADOW: the E.O. 14330 pitch hits >= 3 themes and is logged', r1.shadow.length === 1 && /themes=[3-6]/.test(r1.shadow[0]), JSON.stringify(r1.shadow));
+    const r2 = run(mk('Lunch on Thursday? I booked the usual place at noon.'));
+    check('SHADOW: ordinary mail logs nothing', r2.shadow.length === 0, JSON.stringify(r2.shadow));
+    check('SHADOW: it makes no Gmail write, delete or label call', r1.calls.length === 0, JSON.stringify(r1.calls));
+    // evasions from the reformed-spammer review
+    // EXACTLY three themes, so hiding any one of them drops the count below the line:
+    // moneyFear + authority + scale. The strip is the only thing that lets this pass.
+    const THREE = 'If you have a 401(k), read this. Exec\u034futive Or\u0301der 14330 is signed. Almost $10 trillion.';
+    check('SHADOW: a grapheme joiner + combining acute inside "executive order" do not hide the theme',
+          run(mk(THREE)).shadow.length === 1, JSON.stringify(run(mk(THREE)).shadow));
+    const VSEL = 'If you have a 401(k), read this. Executive Order 14330 is signed. Almost $10 trill\ufe0fion.';
+    check('SHADOW: a variation selector inside "trillion" does not hide the theme',
+          run(mk(VSEL)).shadow.length === 1, JSON.stringify(run(mk(VSEL)).shadow));
+    const TAGC = 'If you have a 401(k), read this. Execu\udb40\udc41tive Order 14330 is signed. Almost $10 trillion.';
+    check('SHADOW: a Unicode tag character inside "executive" does not hide the theme',
+          run(mk(TAGC)).shadow.length === 1, JSON.stringify(run(mk(TAGC)).shadow));
+    const TG = EO.replace('trillion', 'tri\u00adllion').replace('401(k)', '401(k\u200b)');
+    check('SHADOW: soft hyphen / zero-width space do not hide a theme', run(mk(TG)).shadow.length === 1, JSON.stringify(run(mk(TG)).shadow));
+    // postal needle, log-only
+    const r3 = run(mk('Sent by Foo LLC, 200 Broadway Blvd NE, Albuquerque, NM 87102. Unsubscribe.'));
+    check('SHADOW: a known mill footer address is logged', r3.shadow.length === 1 && /postal=albuquerque/.test(r3.shadow[0]), JSON.stringify(r3.shadow));
+    const r4 = run(mk('Sent by Foo LLC, 9 W 9th St, Wilmington, DE 19801.'));
+    check('SHADOW: a shared registered-agent address (Wilmington) is NOT a needle', r4.shadow.length === 0, JSON.stringify(r4.shadow));
+    // engagement: bulk + 2 weak + no relationship
+    const weak = { bulkEmailService: true, marketingFormat: true, headlineFromName: true };
+    const r5 = run(mk('Hello.'), weak, {}, () => []);
+    check('SHADOW: bulk + 2 weak + no history with the domain logs "unsolicited"', r5.shadow.length === 1 && /unsolicited/.test(r5.shadow[0]), JSON.stringify(r5.shadow));
+    const r6 = run(mk('Hello.'), weak, {}, (q) => /in:sent/.test(q) ? [{}] : []);
+    check('SHADOW: a domain the owner has SENT to is not "unsolicited"', r6.shadow.length === 0, JSON.stringify(r6.shadow));
+    const r7 = run(mk('Hello.'), { bulkEmailService: true, marketingFormat: true }, {}, () => []);
+    check('SHADOW: bulk + only 1 weak point is not a candidate and costs no search', r7.shadow.length === 0 && r7.searches.length === 0, JSON.stringify(r7.searches));
+    const r8 = run(mk('Hello.'), weak, { ['SHADOW_HIST_signal.example-brief.com']: 'N:' + Date.now() }, () => { throw new Error('searched'); });
+    check('SHADOW: a cached answer is used without searching (30-day cache)', r8.shadow.length === 1 && r8.searches.length === 0, JSON.stringify(r8.searches));
+    // budget: 4th new domain in one execution is unknown, so not logged and not searched
+    const cb = makeCtx({ props: {} });
+    const bl = []; cb.logInfo = (l) => bl.push(String(l)); let nsearch = 0;
+    cb.GmailApp.search = () => { nsearch++; return []; };
+    for (let i = 0; i < 6; i++) {
+      const m = mk('Hello.', { from: 'X <a@d' + i + '.example.org>' });
+      cb.observeShadow(m, { isSpam: false, signals: Object.assign({ clickbaitCount: 0 }, weak) });
+    }
+    check('SHADOW: history lookups are capped per execution (3 domains x 2 searches max)', nsearch <= 6 && bl.filter(l => /unsolicited/.test(l)).length === 3,
+          JSON.stringify({ nsearch, logged: bl.length }));
+    // never throws, even on a broken message
+    let threw = false;
+    try { const c = makeCtx({}); c.observeShadow({ getSubject() { throw new Error('boom'); } }, { isSpam: false, signals: { clickbaitCount: 0 } }); }
+    catch (e) { threw = true; }
+    check('SHADOW: an error inside the observer is swallowed', !threw);
+    // performance at the 100 KB cap, adversarial shapes
+    const big = ['left ' + 'a '.repeat(50000), 'before we ' + 'x '.repeat(50000), '$' + '1,'.repeat(50000), '1'.repeat(100000), 'your ' + ' '.repeat(100000)];
+    const t0 = Date.now();
+    big.forEach(b => run(mk(b)));
+    check('SHADOW: five adversarial 100 KB bodies scan in < 1.5 s total', Date.now() - t0 < 1500, String(Date.now() - t0) + ' ms');
+  }
   const MILLRAW = 'Reply-To: support@trendwatcherslab.com\r\n\r\nhi';
   const PAID = 'This is a paid advertisement. ' + HEAD + ' ' + CRED3;
   check('relay shape: paid-ad wording fires with the real sender shape',

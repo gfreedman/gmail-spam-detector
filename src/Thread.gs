@@ -80,6 +80,7 @@ function processThread(thread, messages)
       }
 
       logDebug('Email: "' + sanitizeForLog(message.getSubject()) + '" - Spam: ' + verdict.isSpam);
+      if (!verdict.isSpam) observeShadow(message, verdict);   // log-only; cannot change the outcome
 
       // Only mark thread as spam once, even if multiple messages trigger detection.
       // This prevents duplicate API calls and redundant log entries.
@@ -199,4 +200,96 @@ function isBulkEmail(rawContent)
   return BULK_EMAIL_FINGERPRINTS.some(function(fingerprint) {
     return lower.includes(fingerprint);
   });
+}
+
+/**
+ * Log-only observer (v6.91.0): records, never decides. For mail judged NOT spam it
+ * writes ONE logInfo line ("SHADOW ...") when the mail looks like the finance-ad family:
+ *   themes=N        >= 3 of SHADOW_THEME_PATTERNS fire
+ *   postal=...      a footer address in SHADOW_POSTAL_NEEDLES
+ *   unsolicited     bulk + 2 weak points + no relationship with the sender's domain
+ *                   (nothing sent to it, no mail from it older than 2 days)
+ * so a few weeks of the Executions log show what a theme rule or an engagement rule
+ * would have done to REAL mail before either is allowed to act. It reads the same
+ * message the verdict already read, writes nothing but a log line (and a cached
+ * history answer in Script Properties), and swallows its own errors: it cannot change
+ * a verdict, a label or a delete. The history lookup is the only API cost: at most
+ * SHADOW_HISTORY_BUDGET searches' worth of new domains per execution, each cached
+ * 30 days per domain.
+ */
+const SHADOW_HISTORY_BUDGET = 3;
+let shadowHistoryLookups = 0;
+
+function senderHasHistory(domain)
+{
+  const props = PropertiesService.getScriptProperties();
+  const key   = 'SHADOW_HIST_' + domain;
+  const now   = Date.now();
+  const cached = props.getProperty(key);
+  if (cached)
+  {
+    const parts = cached.split(':');
+    if (now - Number(parts[1]) < 30 * 24 * 3600 * 1000) return parts[0] === 'Y';
+  }
+  if (shadowHistoryLookups >= SHADOW_HISTORY_BUDGET) return null;   // unknown this run
+  shadowHistoryLookups++;
+  const known = GmailApp.search('in:sent to:' + domain, 0, 1).length > 0 ||
+                GmailApp.search('from:' + domain + ' older_than:2d -in:spam -in:trash', 0, 1).length > 0;
+  props.setProperty(key, (known ? 'Y' : 'N') + ':' + now);
+  return known;
+}
+
+function observeShadow(message, verdict)
+{
+  try
+  {
+    const signals = verdict && verdict.signals;
+    if (!signals) return;                                     // whitelisted or unevaluated
+    const tags = [];
+    const subject = message.getSubject() || '';
+    const body    = (message.getPlainBody() || '').substring(0, LIMITS.maxRawScanChars);
+    // normalizeAdText() plus what it misses: combining marks, variation selectors,
+    // the grapheme joiner, the Hangul filler and tag characters, each of which broke
+    // "executive order" in the reformed-spammer review.
+    // NFD first: normalizeAdText()'s NFKC FUSES "r" + U+0301 into one letter, which a
+    // strip afterwards cannot undo (found by fault-injecting this very test).
+    const text = normalizeAdText(subject + ' ' + body).normalize('NFD')
+      .replace(/[\u0300-\u036f\u3164\ufe00-\ufe0f]|\udb40[\udc00-\udc7f]/g, '')
+      .replace(/ +/g, ' ');
+
+    let themes = 0;
+    const names = Object.keys(SHADOW_THEME_PATTERNS);
+    for (let i = 0; i < names.length; i++)
+    {
+      if (SHADOW_THEME_PATTERNS[names[i]].test(text)) themes++;
+    }
+    if (themes >= 3) tags.push('themes=' + themes);
+
+    const flat = ' ' + text.replace(/[^a-z0-9 ]/g, ' ').replace(/ +/g, ' ') + ' ';
+    for (let i = 0; i < SHADOW_POSTAL_NEEDLES.length; i++)
+    {
+      if (flat.indexOf(' ' + SHADOW_POSTAL_NEEDLES[i] + ' ') !== -1) { tags.push('postal=' + SHADOW_POSTAL_NEEDLES[i].split(' ').slice(-1)[0]); break; }
+    }
+
+    const weak = (signals.clickbaitCount > 0 ? 1 : 0) + (signals.fearMongering ? 1 : 0) +
+                 (signals.marketingFormat ? 1 : 0) + (signals.suspiciousFromName ? 1 : 0) +
+                 (signals.headlineFromName ? 1 : 0);
+    const addr = extractEmailAddress(message.getFrom() || '');
+    const domain = addr.substring(addr.lastIndexOf('@') + 1).toLowerCase();
+    if (signals.bulkEmailService && weak >= 2 && domain.indexOf('.') > 0 &&
+        senderHasHistory(domain) === false)
+    {
+      tags.push('unsolicited');
+    }
+
+    if (tags.length > 0)
+    {
+      logInfo('SHADOW ' + tags.join(' ') + ' from=' + sanitizeForLog(domain) +
+              ' subject=' + sanitizeForLog(subject));
+    }
+  }
+  catch (shadowError)
+  {
+    logDebug('observeShadow skipped: ' + shadowError.toString());
+  }
 }

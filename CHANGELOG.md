@@ -20,6 +20,36 @@ detail plus the diffs.
 
 ---
 
+## v6.91.0
+
+**A log-only shadow observer for the finance-ad family. It changes no verdict.**
+
+After the dailyfinbrief.com miss, four reviewers (an L7 engineer, a reformed
+spammer, a first-principles pass and an audit) agreed that a theme-counting RULE
+is wording-bound, overlaps ordinary finance news, and cannot be measured: every
+spam fixture is already convicted by another rule, and the 28-fixture ham set is
+synthetic. So nothing here convicts, labels or deletes. For mail judged NOT spam,
+`observeShadow()` (Thread.gs) writes one `SHADOW` line to the execution log when:
+
+- `themes=N`: 3 or more of six bounded theme families fire (fear for your own
+  money, borrowed authority, suppressed truth, fake deadline, mass-scale numbers,
+  asymmetric upside), after NFKC, then NFD with combining marks, variation
+  selectors, the Hangul filler and tag characters stripped (a fault-injected test
+  found NFKC fuses `r` + U+0301 into one letter, so the strip must come after
+  decomposition);
+- `postal=...`: a footer address in `SHADOW_POSTAL_NEEDLES`, the four street
+  addresses that repeat across several brand domains in the spam fixtures
+  (registered-agent addresses such as Wilmington 9th St are left out: thousands of
+  legitimate firms share them);
+- `unsolicited`: bulk + 2 weak points + nothing ever sent to the sender's domain
+  and no mail from it older than 2 days. The lookup is cached 30 days per domain in
+  Script Properties and capped at 3 new domains per execution.
+
+Read the Executions log for `SHADOW` lines for a couple of weeks, then decide
+whether any of the three earns a rule. The observer swallows its own errors and
+makes no write other than the log line and the cached history answer. Every
+pattern is bounded; five adversarial 100 KB bodies scan in well under a second.
+
 ## v6.90.0
 
 **The held-mail pass leaves alone what the owner touched, and stops re-logging.**

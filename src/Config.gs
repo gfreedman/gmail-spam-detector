@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.86.0
+ * @version 6.87.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -94,7 +94,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.86.0';
+const SCRIPT_VERSION = '6.87.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -196,7 +196,9 @@ const DEFAULT_DOMAINS = Object.freeze({
     // v6.86.0: the Trend Watchers Lab ad mill. It sends through a shared ESP
     // (Cyberimpact), so this domain is never the SENDING domain and Signal 1b
     // cannot see it; Signal 15 matches it behind the relay, via Reply-To.
-    'trendwatcherslab.com'
+    'trendwatcherslab.com',
+    // v6.87.0: Daily Brief "in partnership with Brownstone Research" ad mill (SES).
+    'dailyfinbrief.com'
   ])
 });
 

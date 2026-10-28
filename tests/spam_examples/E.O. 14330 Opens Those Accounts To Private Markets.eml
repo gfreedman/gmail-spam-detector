@@ -1,0 +1,982 @@
+Delivered-To: user@example.com
+Received: by 2002:a05:7412:b814:b0:21a:e7d:218a with SMTP id iw20csp972072rdb;
+        Tue, 27 Oct 2026 18:50:02 -0700 (PDT)
+X-Received: by 2002:a05:6214:21c6:b0:917:acc4:abe3 with SMTP id 6a1803df08f44-91c7cf96f6emr17019536d6.15.1793152202515;
+        Tue, 27 Oct 2026 18:50:02 -0700 (PDT)
+ARC-Seal: i=1; a=rsa-sha256; t=1793152202; cv=none;
+        d=google.com; s=arc-20260327;
+        b=PDImTTqdB6sUZYTmMcoVezXB0Ns9KlP2QWzcmKbTbwsk0JafSlzH+J+77fYKs30h22
+         6rjxJe1slH9B3H0mMBWI79Bx9xIKZ+6EFKDBPtsBrpt0Te7KnnTeBOyr5Qf3A9Z9F3tp
+         VNlGW/oFRm95fqqe5zHRu39+NeSA6yhPPtFW6ctXfOZIi2OE3UyW+qlJJzDHeg4kcj9O
+         tmkKKO3IrHDsYv/cJ6twOjLPu5GKodN50XAJ5TARRoePSFKf3+KKyUGTVJH+PEN3DRFk
+         mR2uYyNiepPCYFJvWvOGn0SDr2/Y6QRPlMa+mX4COVsg8FaXAC9iSSyMriH+4iJYmkqB
+         jVGw==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=bqjlif/w3JYPhZ9M3UeLMe4joVR0oamFjHEF80+VRQw=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=iJNjsqagWhPo0P16/PWiHnHrSwIbyfOYvr63knrklTy32hTn6lhcgth63ENmzicsoF
+         GFe7eFQoaK9+APV31oQjIMD0LrmFbiXuWzRjbOJbsK4hhZmwscSWRsqeqAxXi/ZjPZCg
+         BdXW8JJ//q1w40GcDSoJk+Bs2bNjGmhSJuiWY2Mdx+F2GFDlO/ENDMrkVjfP0EyFdTYy
+         HEvSwu5l1dFUUcR/2SNgMtYho7/8UD8GPrrjm+UFfTENhR8hfrZgPmkyP+LXlaKhhUiV
+         qRbIzi3wdBGKymff9Ep0UBI0G/ovR8eBO04DXbu57z2uh/KQJXs1+cjG/87/aK4zZSYU
+         DcZA==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@signal.dailyfinbrief.com header.s=nbmr2mkuxqih3kuksvs2opjbwqg6vjok header.b=aKDIzpzr;
+       dkim=pass header.i=@amazonses.com header.s=224i4yxa5dv7c2xz3womw6peuasteono header.b=oLsd+Es8;
+       spf=pass (google.com: domain of REDACTED@amazonses.com designates 76.223.142.5 as permitted sender) smtp.mailfrom=REDACTED@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=signal.dailyfinbrief.com
+Return-Path: <REDACTED@amazonses.com>
+Received: from c142-5.smtp-out.amazonses.com (c142-5.smtp-out.amazonses.com. [76.223.142.5])
+        by mx.google.com with ESMTPS id 6a1803df08f44-91c47cd9f24si153069216d6.348.2026.10.27.18.50.02
+        for <user@example.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Tue, 27 Oct 2026 18:50:02 -0700 (PDT)
+Received-SPF: pass (google.com: domain of REDACTED@amazonses.com designates 76.223.142.5 as permitted sender) client-ip=76.223.142.5;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@signal.dailyfinbrief.com header.s=nbmr2mkuxqih3kuksvs2opjbwqg6vjok header.b=aKDIzpzr;
+       dkim=pass header.i=@amazonses.com header.s=224i4yxa5dv7c2xz3womw6peuasteono header.b=oLsd+Es8;
+       spf=pass (google.com: domain of REDACTED@amazonses.com designates 76.223.142.5 as permitted sender) smtp.mailfrom=REDACTED@amazonses.com;
+       dmarc=pass (p=REJECT sp=REJECT dis=NONE) header.from=signal.dailyfinbrief.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=nbmr2mkuxqih3kuksvs2opjbwqg6vjok; d=signal.dailyfinbrief.com;
+	t=1793152202;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=bqjlif/w3JYPhZ9M3UeLMe4joVR0oamFjHEF80+VRQw=;
+	b=aKDIzpzrfvvSCzlif66UzcR32K+ssfpxRQXB7h8dBcHFLiFTheIHhHIiD1Cu56Fj
+	E7kwUiaz+UF5uHoy6oQsM6aVtSc0BTOMdw2AvnE2homRqufPBTO05zNzgD8IEZ7iSvq
+	kz5a+cCCvjo01MZu/Q1qnqL5kIaHJ0IyFyME4sPTO1BWbDum9GCiVAKFjq3HqcQ5h8t
+	kdzzFSlGC0fqvGxPoNWIFk3W9hiqtVVzYEBgCUjGR3YePn/EC9P6jgWqmDCbVPUeuZ6
+	HJD06CISuNHwVW51LlW8DNs3AIb+DQab9AYji/RGkDczTbfv+IkbSGaWl0NlAwtyBG4
+	Ul0YQE308g==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=224i4yxa5dv7c2xz3womw6peuasteono; d=amazonses.com; t=1793152202;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=bqjlif/w3JYPhZ9M3UeLMe4joVR0oamFjHEF80+VRQw=;
+	b=oLsd+Es8ViyueTHEOa1zwo55tnCYoQSDPN9mcui+mHnJNqZPMyClWnXub3FyFi1i
+	PKV0zpwjNaWKAnrdH/m6Dm6QzTvUy7YI1iLR/LG6D/ogtpJLLJvZy1pUTF3J+hQtNbL
+	PUGEkDzIojS3Etb7O5MHpH1aN2z3EpuKB1A85e5U=
+Date: Wed, 28 Oct 2026 01:50:02 +0000
+From: "401k Rule Live - Daily Brief | Evening Ed." <mail@signal.dailyfinbrief.com>
+Reply-To: support@dailyfinbrief.com
+To: user@example.com
+Message-ID: <REDACTED@email.amazonses.com>
+Subject: E.O. 14330 Opens Those Accounts To Private Markets
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_8407_598291832.1793152202040"
+X-Campaign-ID: 20584449
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=REDACTED&_s=REDACTED&_t=REDACTED>,<mailto:unsubscribe+20584449+27279581@unsubscribe.iterable.com>
+X-Feedback-ID: 27279581:20584449:126170:iterable
+X-Message-ID: 00000000000000000000000000000000
+X-SES-Outgoing: 2026.10.28-76.223.142.5
+
+------=_Part_8407_598291832.1793152202040
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+If you have a 401(k), this is your account. Executive Order 14330 is alread=
+y=20
+signed. It opens retirement money to private markets.
+
+
+
+
+October 28 | Unsubscribe=20
+<https://links.signal.dailyfinbrief.com/e/encryptedUnsubscribe?_r=3D2c56233=
+7774f4fcc862747e53aef7914&_s=REDACTED&_t=3DQfbkVw=
+Gyg6CNTGhzgW3_TTOD4eZ4tScVK6TnVnq6csQ-HEUqq6fIcoUkg_tNRDHo3gOogPPT8J0fcarvn=
+TwTYCkd1MLa9eqqUqDHu88s4Ms6VxejWuyigPiPf038kMkuC00_u10RgNGhUVWxrrmIUw%3D%3D=
+>
+
+
+
+ <https://dailyfinbrief.com/>
+
+=E2=80=8A
+
+
+
+E.O. 14330 OPENS THOSE ACCOUNTS TO PRIVATE MARKETS
+
+
+
+
+
+=E2=80=8A=20
+
+
+
+
+
+ This message contains promotional content in partnership with Brownstone=
+=20
+Research.=20
+ If you have a 401(k), this is your account. Executive Order 14330 is alrea=
+dy=20
+signed. It opens retirement money to private markets.
+
+ 70 million accounts. Almost $10 trillion. Most of those people have not he=
+ard=20
+a word.
+
+See what they left off the front page=20
+<https://click.dailyfinbrief.com/g1obrak/REDACTED>=
+=20
+before we take it down.=20
+
+ You can unsubscribe=20
+<https://click.dailyfinbrief.com/unsubg1obrak/user@example.com/df=
+b-ltr/unsub>
+ from our mailing list if you'd prefer
+=E2=80=8A=20
+
+
+
+
+
+
+
+DAILY BRIEF =C2=B7 SEMICONDUCTORS=20
+Lam Research hit a 40% operating margin for the first time and still fell 7=
+%=20
+Revenue rose 54% to a record $8.22 billion on memory-chip demand. Guidance=
+=20
+only matched forecasts, supply constraints limited the outlook, and China=
+=E2=80=99s=20
+share of sales is expected to fall.=20
+Lam Research reported record revenue of $8.22 billion for its September=20
+quarter on Wednesday, up 54% from a year earlier, and adjusted earnings of=
+=20
+$2.20 a share, slightly above consensus, according to 24/7 Wall St. Its=20
+operating margin =E2=80=9Cexceeded 40% for the first time in our history,=
+=E2=80=9D Lam=E2=80=99s chief=20
+financial officer, Doug Bettinger, said, and its adjusted gross margin of 5=
+2.4%=20
+was a record. For the December quarter, Lam forecast revenue of $8.6 billio=
+n,=20
+plus or minus $400 million, against a consensus of about $8.54 billion, and=
+=20
+earnings of $2.33 a share, plus or minus 15 cents. Bettinger said guidance=
+=20
+=E2=80=9Cwould have been a bit higher if not for some near-term supply chai=
+n=20
+constraints.=E2=80=9D The shares, up about 81% over the past year, fell 7.4=
+% after=20
+hours to $241.57. Chief Executive Tim Archer said the industry=E2=80=99s sp=
+ending on=20
+wafer fabrication equipment would be in the mid-$150 billion range in 2026 =
+and=20
+more than $200 billion in 2027, led by memory chips.=20
+The latest dashboard=20
+
+$8.22B Record quarterly revenue, up 54% 40.0% Operating margin, a company f=
+irst
+=E2=88=927.4% Shares after hours >$200B Lam=E2=80=99s preliminary 2027 chip=
+-equipment market=20
+outlook=20
+Why a record quarter sold off=20
+Expectations were high. Lam=E2=80=99s stock had risen about 81% in a year, =
+and=20
+investors had likely expected a forecast well above consensus. Instead, the=
+=20
+midpoint of guidance roughly matched estimates, and the low ends of the rev=
+enue=20
+and earnings ranges fell below them, 24/7 Wall St. noted. China is a second=
+=20
+factor. China accounted for 35% of Lam=E2=80=99s revenue in the quarter, up=
+ from 26% in=20
+June, and Bettinger said he expects China=E2=80=99s share to be =E2=80=9Cme=
+aningfully down=E2=80=9D in=20
+December. Sales to China have been volatile because of U.S. export=20
+restrictions, and Chinese chipmakers such as CXMT are expanding fast. The=
+=20
+selloff also reflects the broader nervousness in chip stocks. The semicondu=
+ctor=20
+index fell more than 15% over eight sessions earlier this month before=20
+rebounding, as investors questioned AI spending and financing.=20
+The demand signal is still strong=20
+Lam makes etch and deposition equipment used heavily in memory chip=20
+production, including the high-bandwidth memory used alongside AI processor=
+s.=20
+Archer=E2=80=99s forecast that equipment spending will exceed $200 billion =
+in 2027, up=20
+from about $150 billion this year, is one of the most bullish industry outl=
+ooks=20
+yet, and it is led by DRAM memory. The limit is physical capacity. Archer=
+=20
+warned that limited clean room space and component shortages will cap how m=
+uch=20
+of 2027 demand can be met, which supports pricing but limits volume growth.=
+ For=20
+investors in AI, Lam=E2=80=99s outlook suggests chipmakers are still planni=
+ng to expand=20
+capacity aggressively next year. That is a different message from the credi=
+t=20
+market worries that hit CoreWeave and other AI infrastructure companies las=
+t=20
+week.=20
+What would change this reading=20
+Watch memory prices, Lam=E2=80=99s China sales in the December quarter and =
+spending=20
+plans from memory makers such as SK Hynix, Samsung and Micron. Confirmation=
+ of=20
+a $200 billion-plus equipment market in 2027 would support the stock; cuts =
+to=20
+memory spending would undercut it. The practical monitoring rule is to sepa=
+rate=20
+three stages. First comes the signal reported now. Second comes confirmatio=
+n=20
+from a different source or design. Third comes evidence that the signal cha=
+nges=20
+outcomes, behavior or resource allocation in the expected direction. Keepin=
+g=20
+those stages distinct prevents an interesting association, estimate or poli=
+cy=20
+statement from being promoted too quickly into a universal rule. It also ma=
+kes=20
+the editorial useful after the next headline arrives, because readers know=
+=20
+exactly what evidence should update the view.=20
+
+DIAGNOSTIC Lam=E2=80=99s business is at record strength, driven by memory d=
+emand, but=20
+the stock had priced in more. Supply limits and a China pullback tempered t=
+he=20
+outlook.=20
+A five-part reading framework=20
+1 Results
+Revenue $8.22B, +54%; adjusted EPS $2.20; operating margin 40%.=20
+2 Guidance
+$8.6B =C2=B1 $400M revenue; EPS $2.33 =C2=B1 $0.15; near consensus.=20
+3 China
+35% of revenue, expected to fall =E2=80=9Cmeaningfully=E2=80=9D in December=
+.=20
+4 Industry outlook
+Equipment spending mid-$150B in 2026, above $200B in 2027.=20
+5 Constraints
+Clean room space and component shortages.=20
+
+DAILY BRIEF TAKEAWAY Lam delivered its best quarter ever, and investors sol=
+d=20
+because it was not better. Its outlook still points to a large expansion in=
+=20
+chipmaking capacity next year.=20
+Source: 24/7 Wall St., Oct. 22, 2026, citing Lam Research results and=20
+Investing.com consensus.
+Note: General economic information only; not investment, tax, legal or=20
+individualized financial advice.=20
+
+
+
+This message was sent by Daily Fin Brief (DFB), a service of TerraTrance=20
+Technologies, LLC.
+
+
+Questions? Just hit reply =E2=80=94 or write to us at support@dailyfinbrief=
+.com=20
+<mailto:support@dailyfinbrief.com>.
+
+ =C2=A9 2026 Daily Fin Brief. All rights reserved.
+200 Broadway Blvd NE, Albuquerque, NM 87102
+
+
+
+Unsubscribe=20
+<https://links.signal.dailyfinbrief.com/e/encryptedUnsubscribe?_r=3D2c56233=
+7774f4fcc862747e53aef7914&_s=REDACTED&_t=3DQfbkVw=
+Gyg6CNTGhzgW3_TTOD4eZ4tScVK6TnVnq6csQ-HEUqq6fIcoUkg_tNRDHo3gOogPPT8J0fcarvn=
+TwTYCkd1MLa9eqqUqDHu88s4Ms6VxejWuyigPiPf038kMkuC00_u10RgNGhUVWxrrmIUw%3D%3D=
+>
+ |Privacy Policy <https://dailyfinbrief.com/privacy-policy/> | Terms &=20
+Conditions <https://dailyfinbrief.com/terms-conditions/>
+
+All content in this message is the sole property of TerraTrance Technologie=
+s,=20
+LLC and may not be copied, shared, or distributed without prior written=20
+permission.
+
+
+
+
+ <https://dailyfinbrief.com/>
+------=_Part_8407_598291832.1793152202040
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: bo=
+rder-box;"><head><title></title><meta http-equiv=3D"Content-Type" content=
+=3D"text/html; charset=3Dutf-8"><meta name=3D"viewport" content=3D"width=3D=
+device-width,initial-scale=3D1"><!--[if mso]><xml><w:WordDocument xmlns:w=
+=3D"urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyRead=
+ingMail/></w:WordDocument> <o:OfficeDocumentSettings><o:PixelsPerInch>96</o=
+:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]--><s=
+tyle>*{box-sizing:border-box}body{margin:0;padding:0}a[x-apple-data-detecto=
+rs]{color:inherit!important;text-decoration:inherit!important}#MessageViewB=
+ody a{color:inherit;text-decoration:none}p{line-height:inherit}.desktop_hid=
+e,.desktop_hide table{mso-hide:all;display:none;max-height:0;overflow:hidde=
+n}.image_block img+div{display:none}sub,sup{font-size:75%;line-height:0}@me=
+dia(max-width:620px){.row-content{width:100%!important}.stack .column{width=
+:100%!important;display:block}.mobile_hide{min-height:0;max-height:0;max-wi=
+dth:0;display:none;overflow:hidden;font-size:0}.desktop_hide,.desktop_hide =
+table{display:table!important;max-height:none!important}.row-4 .column-1 .b=
+lock-1.heading_block h1{text-align:left!important;font-size:26px!important}=
+.row-4 .column-1 .block-1.heading_block td.pad{padding:20px 30px 10px 30px!=
+important}.row-10 .column-1 .block-1.image_block td.pad{padding:0 20px!impo=
+rtant}.row-9 .column-1 .block-1.text_block td.pad{padding:30px 30px 20px 30=
+px!important}.row-2 .column-1,.row-4 .column-1{padding:0!important}}</style=
+><!--[if mso ]><style>sup,sub{font-size:100%!important}sup{mso-text-raise:1=
+0%}sub{mso-text-raise:-10%}</style><![endif]--></head><body class=3D"body" =
+style=3D"box-sizing: border-box; margin: 0; padding: 0; -webkit-text-size-a=
+djust: none; text-size-adjust: none; background-color: #fff;"><span style=
+=3D"color:transparent;visibility:hidden;display:none;opacity:0;height:0;wid=
+th:0;font-size:0;">If you have a 401(k), this is your account. Executive Or=
+der 14330 is already signed. It opens retirement money to private markets.<=
+/span><img src=3D"https://links.signal.dailyfinbrief.com/e/eo?_t=3D2c562337=
+774f4fcc862747e53aef7914&amp;_m=REDACTED&amp;_e=
+=3DQfbkVwGyg6CNTGhzgW3_TTOD4eZ4tScVK6TnVnq6csQ-HEUqq6fIcoUkg_tNRDHo3gOogPPT=
+8J0fcarvnTwTYCkd1MLa9eqqUqDHu88s4MvPubhwel4MJE31ZATX77g3mAp0TUxjKEm8SUYDIgg=
+3pMe3ADhc0HHHfKtLS20KVlA%3D" style=3D"border:0;width:1px;height:1px;border-=
+width:0px!important;display:none!important;line-height:0!important;" width=
+=3D"1" height=3D"1"/><table class=3D"nl-container" width=3D"100%" border=3D=
+"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-=
+sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-co=
+lor: #fff;" bgcolor=3D"#fff"><tbody style=3D"box-sizing: border-box;"><tr s=
+tyle=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"><tab=
+le class=3D"row row-1" align=3D"center" width=3D"100%" border=3D"0" cellpad=
+ding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: bor=
+der-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color: #dde1e=
+e;" bgcolor=3D"#dde1ee"><tbody style=3D"box-sizing: border-box;"><tr style=
+=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"><table c=
+lass=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=3D"0" =
+cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; ms=
+o-table-lspace: 0; mso-table-rspace: 0; border-radius: 0; color: #000; widt=
+h: 600px; margin: 0 auto;" width=3D"600"><tbody style=3D"box-sizing: border=
+-box;"><tr style=3D"box-sizing: border-box;"><td class=3D"column column-1" =
+width=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-ta=
+ble-rspace: 0; font-weight: 400; text-align: left; vertical-align: top; wid=
+th: 100%;" align=3D"left" valign=3D"top"><table class=3D"text_block block-1=
+" width=3D"100%" border=3D"0" cellpadding=3D"5" cellspacing=3D"0" role=3D"p=
+resentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-tabl=
+e-rspace: 0; word-break: break-word;"><tr style=3D"box-sizing: border-box;"=
+><td class=3D"pad" style=3D"box-sizing: border-box;"><div style=3D"box-sizi=
+ng: border-box; font-family: sans-serif;"><div class style=3D"box-sizing: b=
+order-box; font-size: 14px; font-family: Arial,'Helvetica Neue',Helvetica,s=
+ans-serif; mso-line-height-alt: 16.8px; color: #4a5068; line-height: 1.2;">=
+<p style=3D"box-sizing: border-box; line-height: inherit; margin: 0; font-s=
+ize: 14px; text-align: right; mso-line-height-alt: 16.8px;"><u style=3D"box=
+-sizing: border-box;">October 28</u> | <a href=3D"https://links.signal.dail=
+yfinbrief.com/e/encryptedUnsubscribe?_r=REDACTED&=
+_s=REDACTED&_t=REDACTED
+K6TnVnq6csQ-HEUqq6fIcoUkg_tNRDHo3gOogPPT8J0fcarvnTwTYCkd1MLa9eqqUqDHu88s4Ms=
+6VxejWuyigPiPf038kMkuC00_u10RgNGhUVWxrrmIUw%3D%3D" target=3D"_blank" rel=3D=
+"noopener" style=3D"box-sizing: border-box; color: #4a5068;">Unsubscribe</a=
+>&nbsp;&nbsp;</p></div></div></td></tr></table></td></tr></tbody></table></=
+td></tr></tbody></table><table class=3D"row row-2" align=3D"center" width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspac=
+e: 0; background-color: #dde1ee;" bgcolor=3D"#dde1ee"><tbody style=3D"box-s=
+izing: border-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-=
+sizing: border-box;"><table class=3D"row-content stack" align=3D"center" bo=
+rder=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; backg=
+round-color: #fff; border-left: 1px solid #c5ccdd; border-radius: 0; border=
+-right: 1px solid #c5ccdd; color: #000; width: 600px; margin: 0 auto;" widt=
+h=3D"600" bgcolor=3D"#fff"><tbody style=3D"box-sizing: border-box;"><tr sty=
+le=3D"box-sizing: border-box;"><td class=3D"column column-1" width=3D"100%"=
+ style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;=
+ font-weight: 400; text-align: left; vertical-align: top; width: 100%;" ali=
+gn=3D"left" valign=3D"top"><table class=3D"image_block block-1" width=3D"10=
+0%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" =
+style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"=
+><tr style=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizin=
+g: border-box; width: 100%;" align=3D"center" width=3D"100%"><div style=3D"=
+box-sizing: border-box; max-width: 598px;"><a href=3D"https://links.signal.=
+dailyfinbrief.com/u/click?_t=REDACTED&_m=3D21ec05=
+feec70467ca10bd3858ef31bc3&_e=REDACTED
+R-imz7crgBn6ur8Lw4r1FnGtNh2EJ4bc-9of8Slifsg9k3Oh0LIvg8CB9JSPfdpqKaJUzr1mSqF=
+3rSByYT3SvQ4jwjqPkiVmkU5E793yXO9b1CeWpk2k-niNDWQMmB6IWfFBYCDjTvqwWQ1-7PTTkm=
+LBKPf8Q9eB-IBBYNlWDL3QZxuldTVcEntqifI6yULNKcMWr0z7nKZ38XT_xywmJJK_Oibk5KAFk=
+YMT9_18Qe2OsANli5WbQuZIuOOYrar5R_ORG2tH3u0z56o0I2S2nk5MkIy29sj9bPvg7zU48PQ%=
+3D%3D" target=3D"_blank" style=3D"box-sizing: border-box;"><img src=3D"http=
+s://library.iterable.com/2346/28323/00000000000000000000000000000000-034e67=
+01-9351-4b3d-82fc-d0e85773826d.jpg" style=3D"box-sizing: border-box; displa=
+y: block; height: auto; border: 0; width: 100%;" width=3D"598" alt=3D"Daily=
+ Brief | Morning Ed." title=3D"Daily Brief | Morning Ed." height=3D"auto"><=
+/a></div></td></tr></table></td></tr></tbody></table></td></tr></tbody></ta=
+ble><table class=3D"row row-3" align=3D"center" width=3D"100%" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color=
+: #dde1ee;" bgcolor=3D"#dde1ee"><tbody style=3D"box-sizing: border-box;"><t=
+r style=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"><=
+table class=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-=
+box; mso-table-lspace: 0; mso-table-rspace: 0; background-color: #fff; bord=
+er-left: 1px solid #c5ccdd; border-right: 1px solid #c5ccdd; color: #000; w=
+idth: 600px; margin: 0 auto;" width=3D"600" bgcolor=3D"#fff"><tbody style=
+=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td clas=
+s=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-box; mso-t=
+able-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; ve=
+rtical-align: top; width: 100%;" align=3D"left" valign=3D"top"><div class=
+=3D"spacer_block block-1" style=3D"box-sizing: border-box; height: 15px; li=
+ne-height: 15px; font-size: 1px;">&#8202;</div></td></tr></tbody></table></=
+td></tr></tbody></table><table class=3D"row row-4" align=3D"center" width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspac=
+e: 0; background-color: #dde1ee; background-size: auto;" bgcolor=3D"#dde1ee=
+"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-=
+box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-content sta=
+ck" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso=
+-table-rspace: 0; background-color: #fff; background-size: auto; border-lef=
+t: 1px solid #c5ccdd; border-radius: 0; border-right: 1px solid #c5ccdd; co=
+lor: #000; width: 600px; margin: 0 auto;" width=3D"600" bgcolor=3D"#fff"><t=
+body style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;=
+"><td class=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-=
+box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align=
+: left; vertical-align: middle; width: 100%;" align=3D"left" valign=3D"midd=
+le"><table class=3D"heading_block block-1" width=3D"100%" border=3D"0" cell=
+padding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: =
+border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-siz=
+ing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; width:=
+ 100%; padding-top: 20px; padding-bottom: 10px; padding-left: 30px; padding=
+-right: 30px;" align=3D"center" width=3D"100%"><h1 style=3D"box-sizing: bor=
+der-box; margin: 0; color: #111; direction: ltr; font-family: Arial,'Helvet=
+ica Neue',Helvetica,sans-serif; font-size: 30px; font-weight: 700; letter-s=
+pacing: normal; line-height: 1.2; text-align: left; margin-top: 0; margin-b=
+ottom: 0; mso-line-height-alt: 36px;">E.O. 14330 OPENS THOSE ACCOUNTS TO PR=
+IVATE MARKETS<br style=3D"box-sizing: border-box;"></h1></td></tr></table><=
+/td> </tr></tbody></table></td></tr></tbody></table><table class=3D"row row=
+-5" align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspac=
+ing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-=
+lspace: 0; mso-table-rspace: 0; background-color: #dde1ee;" bgcolor=3D"#dde=
+1ee"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: bord=
+er-box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-content =
+stack" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" ro=
+le=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; m=
+so-table-rspace: 0; background-color: #fff; border-left: 1px solid #c5ccdd;=
+ border-radius: 0; border-right: 1px solid #c5ccdd; color: #000; width: 600=
+px; margin: 0 auto;" width=3D"600" bgcolor=3D"#fff"><tbody style=3D"box-siz=
+ing: border-box;"><tr style=3D"box-sizing: border-box;"><td class=3D"column=
+ column-1" width=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace=
+: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; vertical-alig=
+n: top; width: 100%;" align=3D"left" valign=3D"top"><table class=3D"divider=
+_block block-1" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lsp=
+ace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td cla=
+ss=3D"pad" style=3D"box-sizing: border-box; padding-top: 10px; padding-bott=
+om: 10px; padding-left: 30px; padding-right: 30px;" align=3D"center"><table=
+ border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" wid=
+th=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table=
+-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"divider_inn=
+er" style=3D"box-sizing: border-box; font-size: 1px; line-height: 1px; bord=
+er-top: 2px solid #2b4f8e;"><span style=3D"box-sizing: border-box; word-bre=
+ak: break-word;">&#8202;</span></td></tr></table></td></tr></table></td></t=
+r></tbody> </table></td></tr></tbody></table><table class=3D"row row-6" ali=
+gn=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"=
+0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace:=
+ 0; mso-table-rspace: 0; background-color: #dde1ee;" bgcolor=3D"#dde1ee"><t=
+body style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;=
+"><td style=3D"box-sizing: border-box;"><table class=3D"row-content stack" =
+align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"p=
+resentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-tabl=
+e-rspace: 0; background-color: #fff; border-left: 1px solid #c5ccdd; border=
+-right: 1px solid #c5ccdd; color: #000; width: 600px; margin: 0 auto;" widt=
+h=3D"600" bgcolor=3D"#fff"><tbody style=3D"box-sizing: border-box;"><tr sty=
+le=3D"box-sizing: border-box;"><td class=3D"column column-1" width=3D"100%"=
+ style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;=
+ font-weight: 400; text-align: left; vertical-align: top; width: 100%;" ali=
+gn=3D"left" valign=3D"top"><table class=3D"html_block block-1" width=3D"100=
+%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" s=
+tyle=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;">=
+<tr style=3D"box-sizing: border-box;"> <td class=3D"pad" style=3D"box-sizin=
+g: border-box;"><div style=3D"box-sizing: border-box; font-family: Arial,'H=
+elvetica Neue',Helvetica,sans-serif; text-align: center;" align=3D"center">=
+<table width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; max-width: 100%; backgro=
+und-color: #ffffff; font-family: 'Arial', Arial, Helvetica, sans-serif; pad=
+ding-top: 20px; padding-right: 10px; padding-bottom: 20px; padding-left: 10=
+px;" bgcolor=3D"#ffffff"> <tbody style=3D"box-sizing: border-box;"> <tr sty=
+le=3D"box-sizing: border-box;"> <td align=3D"center" valign=3D"top" style=
+=3D"box-sizing: border-box; background-color: #ffffff; font-family: 'Arial'=
+, Arial, Helvetica, sans-serif;" bgcolor=3D"#ffffff"> <table class=3D"main-=
+table" border=3D"0" cellspacing=3D"0" cellpadding=3D"0" role=3D"presentatio=
+n" width=3D"100%" style=3D"box-sizing: border-box; max-width: 600px; backgr=
+ound-color: #ffffff; font-family: 'Arial', Arial, Helvetica, sans-serif;" b=
+gcolor=3D"#ffffff"> <tbody style=3D"box-sizing: border-box;"> <tr style=3D"=
+box-sizing: border-box;"> <td class=3D"content-wrapper" align=3D"center" st=
+yle=3D"box-sizing: border-box; padding-left: 21px; padding-right: 21px; bac=
+kground-color: #ffffff; font-family: 'Arial', Arial, Helvetica, sans-serif;=
+" bgcolor=3D"#ffffff"> <table class=3D"inner-content-wrapper" border=3D"0" =
+cellspacing=3D"0" role=3D"presentation" cellpadding=3D"0" width=3D"100%" st=
+yle=3D"box-sizing: border-box; width: 100%; background-color: #ffffff; font=
+-family: 'Arial', Arial, Helvetica, sans-serif;" bgcolor=3D"#ffffff"> <tbod=
+y style=3D"box-sizing: border-box;"> <tr style=3D"box-sizing: border-box;">=
+ <td style=3D"box-sizing: border-box; font-size: 12px; font-style: normal; =
+font-weight: normal; line-height: 1.5; text-align: left; color: #000000; pa=
+dding-top: 15px; padding-bottom: 15px; word-break: break-word; background-c=
+olor: #ffffff; font-family: 'Arial', Arial, Helvetica, sans-serif;" align=
+=3D"left" bgcolor=3D"#ffffff"> <div style=3D"box-sizing: border-box; font-s=
+ize: 12px; font-style: normal; font-weight: normal; line-height: 1.5; text-=
+align: left; color: #000000; word-break: break-word; font-family: 'Arial', =
+Arial, Helvetica, sans-serif;"> This message contains promotional content i=
+n partnership with Brownstone Research. </div> </td> </tr> <tr style=3D"box=
+-sizing: border-box;"> <td style=3D"box-sizing: border-box; font-style: nor=
+mal; font-weight: normal; line-height: 1.5; text-align: left; color: #00000=
+0; padding-top: 15px; padding-bottom: 15px; background-color: #ffffff; font=
+-family: 'Arial', Arial, Helvetica, sans-serif; font-size: 21px;" align=3D"=
+left" bgcolor=3D"#ffffff"> <div style=3D"box-sizing: border-box; font-style=
+: normal; font-weight: normal; line-height: 1.5; text-align: left; color: #=
+000000; font-family: 'Arial', Arial, Helvetica, sans-serif; font-size: 21px=
+;"> If you have a 401(k), this is your account. Executive Order 14330 is al=
+ready signed. It opens retirement money to private markets. <br style=3D"bo=
+x-sizing: border-box;"><br style=3D"box-sizing: border-box;"> 70 million ac=
+counts. Almost $10 trillion. Most of those people have not heard a word. <b=
+r style=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> =
+<a href=3D"https://links.signal.dailyfinbrief.com/u/click?_t=3D2c562337774f=
+4fcc862747e53aef7914&_m=REDACTED&_e=3DHtuzexKwuZ7=
+94p8pR1gLUK3yMTd1tOQHtHmU3Hk5oZSaVGA1mcI3EW6yWfXOba4e8iEfzPZoT44hghkbX-BOAf=
+fpyhbkDy0Vv1dhTfdgVB-szG_WqyC8kgqPBjOiHI8JJaD8DbZ-JnMXqrNK2B6Mpq8v9wLl6zOjy=
+m47vYugl_6_RDDviv_74QKM_ggi6Em5E06i9WmD-wh83Qr0QnQR8Z2_bTQdJKfyM23GVW8SOaxB=
+tvg497NkJCX3Z8Gl46TU8Mtvdcur6yv-Dc8wYDqTBy4J6iOT-QILmGXadv3PZfjd89aEjGz_wEI=
+mYGvAZbqdIwmMBqiJzQqmciY1Np2KQxDnI3K7gRU4Abm66c-BcPvpMOopWSYYNh6qWRg9yugqYS=
+1_uvdrkY8w4ZWwoJNRy_gWjekv_GnPGZ6G-QUAqCXJmtpHlGCfIRz4ysqr9aoi" style=3D"bo=
+x-sizing: border-box; text-decoration: underline; font-weight: 700; font-fa=
+mily: 'Arial', Arial, Helvetica, sans-serif; color: #175dc7;">See what they=
+ left off the front page</a> before we take it down. </div> </td> </tr> </t=
+body> </table> </td> </tr> </tbody> </table> </td> </tr> </tbody> </table> =
+<table role=3D"presentation" cellpadding=3D"0" cellspacing=3D"0" align=3D"l=
+eft" style=3D"box-sizing: border-box;"> <tbody style=3D"box-sizing: border-=
+box;"><tr style=3D"box-sizing: border-box;"> <td align=3D"left" style=3D"bo=
+x-sizing: border-box; text-align: left; padding: 20px 30px 30px 30px;"> <p =
+style=3D"box-sizing: border-box; color: #181818; font-weight: 400; font-siz=
+e: 12px; font-family: Arial; line-height: normal; margin: 0; padding: 0;"> =
+You can <a href=3D"https://links.signal.dailyfinbrief.com/u/click?_t=3D2c56=
+2337774f4fcc862747e53aef7914&_m=REDACTED&_e=3DHtu=
+zexKwuZ794p8pR1gLUK3yMTd1tOQHtHmU3Hk5oZSVuln7Wh51cVIeo3W-lWW1kmvseU5phE5_Nd=
+lzyz9u3CSo879xpZxhpHKivuGLlGNlwwvrumY5810Y6m2OwYjUyFP1p2Vxwju2AupbRLQkdrhm7=
+Kdx-TPE9h7RL6Q7ke4YfhhBTwDCWv8-CKcYobdIldrgVJac3U1C_zON3RBMKJ_zUMtiJa7ZSDMS=
+sHC6tFQK3CIpXtyf5uLQ8bnTWn78WUo2t7Bq20aNy0CjSpLUbZN-C-wUXW23bx21OA9qiLI3TvQ=
+gznYN-Jctf6opaze_PuklXeRhDjtptmRdKrvNM93US-KEqZbBkp8NPgf0pdhhN4UBrunmds7Goj=
+W9oq1xC7CmfFMuAfAlFjN47Cl-4-KEwICXVg7o2l9wshFfG6Plw007T4q2HMd9wGF5dXl_miFYN=
+jAaHCknObAuAMppsA8rdMMRCpoSWV7TJZzTJLE%3D" style=3D"box-sizing: border-box;=
+ font-weight: bold; text-decoration: underline; color: #000000; font-size: =
+12px; font-family: Arial;">unsubscribe</a> from our mailing list if you'd p=
+refer </p> </td> </tr> </tbody></table> </div></td></tr></table><div class=
+=3D"spacer_block block-2" style=3D"box-sizing: border-box; height: 100px; l=
+ine-height: 100px; font-size: 1px;">&#8202;</div></td></tr></tbody></table>=
+</td></tr></tbody></table><table class=3D"row row-7" align=3D"center" width=
+=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presenta=
+tion" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspac=
+e: 0; background-color: #dde1ee;" bgcolor=3D"#dde1ee"> <tbody style=3D"box-=
+sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box=
+-sizing: border-box;"><table class=3D"row-content stack" align=3D"center" b=
+order=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=
+=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; backg=
+round-color: #fff; border-left: 1px solid #c5ccdd; border-right: 1px solid =
+#c5ccdd; color: #000; width: 600px; margin: 0 auto;" width=3D"600" bgcolor=
+=3D"#fff"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing:=
+ border-box;"><td class=3D"column column-1" width=3D"100%" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400=
+; text-align: left; vertical-align: top; width: 100%;" align=3D"left" valig=
+n=3D"top"><table class=3D"image_block block-1" width=3D"100%" border=3D"0" =
+cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizi=
+ng: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box=
+-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; wi=
+dth: 100%; padding-top: 10px; padding-bottom: 10px; padding-left: 30px; pad=
+ding-right: 30px;" align=3D"center" width=3D"100%"><div style=3D"box-sizing=
+: border-box; max-width: 538px;"><img src=3D"https://library.iterable.com/2=
+346/28323/00000000000000000000000000000000-jfjw.png" style=3D"box-sizing: b=
+order-box; display: block; height: auto; border: 0; width: 100%;" width=3D"=
+538" alt=3D"Divider" title=3D"Divider" height=3D"auto"></div></td></tr> </t=
+able></td></tr></tbody></table></td></tr></tbody></table><table class=3D"ro=
+w row-8" align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cel=
+lspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-t=
+able-lspace: 0; mso-table-rspace: 0; background-color: #dde1ee;" bgcolor=3D=
+"#dde1ee"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing:=
+ border-box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-con=
+tent stack" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"=
+0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace:=
+ 0; mso-table-rspace: 0; background-color: #fff; border-left: 1px solid #c5=
+ccdd; border-right: 1px solid #c5ccdd; color: #000; width: 600px; margin: 0=
+ auto;" width=3D"600" bgcolor=3D"#fff"><tbody style=3D"box-sizing: border-b=
+ox;"><tr style=3D"box-sizing: border-box;"><td class=3D"column column-1" wi=
+dth=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-tabl=
+e-rspace: 0; font-weight: 400; text-align: left; vertical-align: top; width=
+: 100%;" align=3D"left" valign=3D"top"><table class=3D"html_block block-1" =
+width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"pre=
+sentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-=
+rspace: 0;"><tr style=3D"box-sizing: border-box;"> <td class=3D"pad" style=
+=3D"box-sizing: border-box;"><div style=3D"box-sizing: border-box; font-fam=
+ily: Arial,'Helvetica Neue',Helvetica,sans-serif; text-align: center;" alig=
+n=3D"center"><table align=3D"left !important" width=3D"100%" border=3D"0" c=
+ellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizin=
+g: border-box; width: 100%; max-width: 100%; margin: 0; background: #ffffff=
+; font-family: Montserrat,Arial,Helvetica,sans-serif; text-align: left !imp=
+ortant; text-align: left !important;"> <tbody style=3D"box-sizing: border-b=
+ox;"> <tr style=3D"box-sizing: border-box;"> <td align=3D"left !important" =
+valign=3D"top" style=3D"box-sizing: border-box; text-align: left !important=
+; padding-left: 0 !important; padding-right: 0 !important;"> <table align=
+=3D"left !important" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspac=
+ing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; width: 100=
+%; max-width: 600px; margin: 0; border-top: 7px solid #154a84; border-radiu=
+s: 18px 18px 0 0; background: #ffffff; font-family: Montserrat,Arial,Helvet=
+ica,sans-serif; text-align: left !important; text-align: left !important;">=
+ <tbody style=3D"box-sizing: border-box;"> <tr style=3D"box-sizing: border-=
+box;"> <td style=3D"box-sizing: border-box; padding: 25px 34px 7px 34px; te=
+xt-align: left !important; padding-left: 34px !important; padding-right: 34=
+px !important;" align=3D"left !important"> <div style=3D"box-sizing: border=
+-box; font-size: 12px; line-height: 17px; letter-spacing: 1.3px; font-weigh=
+t: bold; color: #154a84; text-align: left !important;">DAILY BRIEF =C2=B7 S=
+EMICONDUCTORS</div> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td =
+style=3D"box-sizing: border-box; padding: 4px 34px 8px 34px; text-align: le=
+ft !important; padding-left: 34px !important; padding-right: 34px !importan=
+t;" align=3D"left !important"> <div style=3D"box-sizing: border-box; font-s=
+ize: 27px; line-height: 34px; font-weight: bold; color: #102f52; text-align=
+: left !important;">Lam Research hit a 40% operating margin for the first t=
+ime and still fell 7%</div> </td> </tr> <tr style=3D"box-sizing: border-box=
+;"> <td style=3D"box-sizing: border-box; padding: 0 34px 17px 34px; text-al=
+ign: left !important; padding-left: 34px !important; padding-right: 34px !i=
+mportant;" align=3D"left !important"> <div style=3D"box-sizing: border-box;=
+ font-size: 20px; line-height: 31px; font-style: italic; color: #526b85; te=
+xt-align: left !important;">Revenue rose 54% to a record $8.22 billion on m=
+emory-chip demand. Guidance only matched forecasts, supply constraints limi=
+ted the outlook, and China=E2=80=99s share of sales is expected to fall.</d=
+iv> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-siz=
+ing: border-box; padding: 0 34px 18px 34px; font-size: 20px; line-height: 3=
+1px; color: #29445f; text-align: left !important; padding-left: 34px !impor=
+tant; padding-right: 34px !important;" align=3D"left !important"> <div styl=
+e=3D"box-sizing: border-box;">Lam Research reported record revenue of $8.22=
+ billion for its September quarter on Wednesday, up 54% from a year earlier=
+, and adjusted earnings of $2.20 a share, slightly above consensus, accordi=
+ng to 24/7 Wall St. Its operating margin =E2=80=9Cexceeded 40% for the firs=
+t time in our history,=E2=80=9D Lam=E2=80=99s chief financial officer, Doug=
+ Bettinger, said, and its adjusted gross margin of 52.4% was a record. For =
+the December quarter, Lam forecast revenue of $8.6 billion, plus or minus $=
+400 million, against a consensus of about $8.54 billion, and earnings of $2=
+.33 a share, plus or minus 15 cents. Bettinger said guidance =E2=80=9Cwould=
+ have been a bit higher if not for some near-term supply chain constraints.=
+=E2=80=9D The shares, up about 81% over the past year, fell 7.4% after hour=
+s to $241.57. Chief Executive Tim Archer said the industry=E2=80=99s spendi=
+ng on wafer fabrication equipment would be in the mid-$150 billion range in=
+ 2026 and more than $200 billion in 2027, led by memory chips.</div> </td> =
+</tr> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: borde=
+r-box; padding: 7px 34px 8px 34px; text-align: left !important; padding-lef=
+t: 34px !important; padding-right: 34px !important;" align=3D"left !importa=
+nt"> <div style=3D"box-sizing: border-box; font-size: 18px; line-height: 24=
+px; font-weight: bold; color: #102f52; text-align: left !important;">The la=
+test dashboard</div> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td=
+ style=3D"box-sizing: border-box; padding: 0 34px 22px 34px; text-align: le=
+ft !important; padding-left: 34px !important; padding-right: 34px !importan=
+t;" align=3D"left !important"> <table width=3D"100%" border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: borde=
+r-box; width: 100%; border-collapse: collapse; text-align: left !important;=
+" align=3D"left !important"> <tbody style=3D"box-sizing: border-box;"> <tr =
+style=3D"box-sizing: border-box;"> <td width=3D"50%" valign=3D"top" style=
+=3D"box-sizing: border-box; padding: 14px; border: 1px solid #d5e3f2; backg=
+round: #edf4fb; text-align: left !important;" align=3D"left !important"> <d=
+iv style=3D"box-sizing: border-box; font-size: 22px; line-height: 27px; fon=
+t-weight: bold; color: #154a84; text-align: left !important;">$8.22B</div> =
+<div style=3D"box-sizing: border-box; font-size: 14px; line-height: 20px; c=
+olor: #526b85; text-align: left !important;">Record quarterly revenue, up 5=
+4%</div> </td> <td width=3D"50%" valign=3D"top" style=3D"box-sizing: border=
+-box; padding: 14px; border: 1px solid #d5e3f2; background: #edf4fb; text-a=
+lign: left !important;" align=3D"left !important"> <div style=3D"box-sizing=
+: border-box; font-size: 22px; line-height: 27px; font-weight: bold; color:=
+ #154a84; text-align: left !important;">40.0%</div> <div style=3D"box-sizin=
+g: border-box; font-size: 14px; line-height: 20px; color: #526b85; text-ali=
+gn: left !important;">Operating margin, a company first</div> </td> </tr> <=
+tr style=3D"box-sizing: border-box;"> <td width=3D"50%" valign=3D"top" styl=
+e=3D"box-sizing: border-box; padding: 14px; border: 1px solid #d5e3f2; back=
+ground: #edf4fb; text-align: left !important;" align=3D"left !important"> <=
+div style=3D"box-sizing: border-box; font-size: 22px; line-height: 27px; fo=
+nt-weight: bold; color: #154a84; text-align: left !important;">=E2=88=927.4=
+%</div> <div style=3D"box-sizing: border-box; font-size: 14px; line-height:=
+ 20px; color: #526b85; text-align: left !important;">Shares after hours</di=
+v> </td> <td width=3D"50%" valign=3D"top" style=3D"box-sizing: border-box; =
+padding: 14px; border: 1px solid #d5e3f2; background: #edf4fb; text-align: =
+left !important;" align=3D"left !important"> <div style=3D"box-sizing: bord=
+er-box; font-size: 22px; line-height: 27px; font-weight: bold; color: #154a=
+84; text-align: left !important;">>$200B</div> <div style=3D"box-sizing: bo=
+rder-box; font-size: 14px; line-height: 20px; color: #526b85; text-align: l=
+eft !important;">Lam=E2=80=99s preliminary 2027 chip-equipment market outlo=
+ok</div> </td> </tr> </tbody> </table> </td> </tr> <tr style=3D"box-sizing:=
+ border-box;"> <td style=3D"box-sizing: border-box; padding: 8px 34px 8px 3=
+4px; text-align: left !important; padding-left: 34px !important; padding-ri=
+ght: 34px !important;" align=3D"left !important"> <div style=3D"box-sizing:=
+ border-box; font-size: 22px; line-height: 29px; font-weight: bold; color: =
+#102f52; text-align: left !important;">Why a record quarter sold off</div> =
+</td> </tr> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing:=
+ border-box; padding: 0 34px 23px 34px; font-size: 20px; line-height: 31px;=
+ color: #29445f; text-align: left !important; padding-left: 34px !important=
+; padding-right: 34px !important;" align=3D"left !important"> <div style=3D=
+"box-sizing: border-box; margin: 0 0 15px 0; text-align: left !important;">=
+Expectations were high. Lam=E2=80=99s stock had risen about 81% in a year, =
+and investors had likely expected a forecast well above consensus. Instead,=
+ the midpoint of guidance roughly matched estimates, and the low ends of th=
+e revenue and earnings ranges fell below them, 24/7 Wall St. noted.</div> <=
+div style=3D"box-sizing: border-box; margin: 0 0 15px 0; text-align: left !=
+important;">China is a second factor. China accounted for 35% of Lam=E2=80=
+=99s revenue in the quarter, up from 26% in June, and Bettinger said he exp=
+ects China=E2=80=99s share to be =E2=80=9Cmeaningfully down=E2=80=9D in Dec=
+ember. Sales to China have been volatile because of U.S. export restriction=
+s, and Chinese chipmakers such as CXMT are expanding fast.</div> <div style=
+=3D"box-sizing: border-box; margin: 0; text-align: left !important;">The se=
+lloff also reflects the broader nervousness in chip stocks. The semiconduct=
+or index fell more than 15% over eight sessions earlier this month before r=
+ebounding, as investors questioned AI spending and financing.</div> </td> <=
+/tr> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border=
+-box; padding: 8px 34px 8px 34px; text-align: left !important; padding-left=
+: 34px !important; padding-right: 34px !important;" align=3D"left !importan=
+t"> <div style=3D"box-sizing: border-box; font-size: 22px; line-height: 29p=
+x; font-weight: bold; color: #102f52; text-align: left !important;">The dem=
+and signal is still strong</div> </td> </tr> <tr style=3D"box-sizing: borde=
+r-box;"> <td style=3D"box-sizing: border-box; padding: 0 34px 23px 34px; fo=
+nt-size: 20px; line-height: 31px; color: #29445f; text-align: left !importa=
+nt; padding-left: 34px !important; padding-right: 34px !important;" align=
+=3D"left !important"> <div style=3D"box-sizing: border-box; margin: 0 0 15p=
+x 0; text-align: left !important;">Lam makes etch and deposition equipment =
+used heavily in memory chip production, including the high-bandwidth memory=
+ used alongside AI processors. Archer=E2=80=99s forecast that equipment spe=
+nding will exceed $200 billion in 2027, up from about $150 billion this yea=
+r, is one of the most bullish industry outlooks yet, and it is led by DRAM =
+memory.</div> <div style=3D"box-sizing: border-box; margin: 0 0 15px 0; tex=
+t-align: left !important;">The limit is physical capacity. Archer warned th=
+at limited clean room space and component shortages will cap how much of 20=
+27 demand can be met, which supports pricing but limits volume growth.</div=
+> <div style=3D"box-sizing: border-box; margin: 0; text-align: left !import=
+ant;">For investors in AI, Lam=E2=80=99s outlook suggests chipmakers are st=
+ill planning to expand capacity aggressively next year. That is a different=
+ message from the credit market worries that hit CoreWeave and other AI inf=
+rastructure companies last week.</div> </td> </tr> <tr style=3D"box-sizing:=
+ border-box;"> <td style=3D"box-sizing: border-box; padding: 8px 34px 8px 3=
+4px; text-align: left !important; padding-left: 34px !important; padding-ri=
+ght: 34px !important;" align=3D"left !important"> <div style=3D"box-sizing:=
+ border-box; font-size: 22px; line-height: 29px; font-weight: bold; color: =
+#102f52; text-align: left !important;">What would change this reading</div>=
+ </td> </tr> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing=
+: border-box; padding: 0 34px 23px 34px; font-size: 20px; line-height: 31px=
+; color: #29445f; text-align: left !important; padding-left: 34px !importan=
+t; padding-right: 34px !important;" align=3D"left !important"> <div style=
+=3D"box-sizing: border-box; margin: 0 0 15px 0; text-align: left !important=
+;">Watch memory prices, Lam=E2=80=99s China sales in the December quarter a=
+nd spending plans from memory makers such as SK Hynix, Samsung and Micron. =
+Confirmation of a $200 billion-plus equipment market in 2027 would support =
+the stock; cuts to memory spending would undercut it.</div> <div style=3D"b=
+ox-sizing: border-box; margin: 0; text-align: left !important;">The practic=
+al monitoring rule is to separate three stages. First comes the signal repo=
+rted now. Second comes confirmation from a different source or design. Thir=
+d comes evidence that the signal changes outcomes, behavior or resource all=
+ocation in the expected direction. Keeping those stages distinct prevents a=
+n interesting association, estimate or policy statement from being promoted=
+ too quickly into a universal rule. It also makes the editorial useful afte=
+r the next headline arrives, because readers know exactly what evidence sho=
+uld update the view.</div> </td> </tr> <tr style=3D"box-sizing: border-box;=
+"> <td style=3D"box-sizing: border-box; padding: 2px 34px 23px 34px; text-a=
+lign: left !important; padding-left: 34px !important; padding-right: 34px !=
+important;" align=3D"left !important"> <table width=3D"100%" border=3D"0" c=
+ellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizin=
+g: border-box; background: #102f52; border-radius: 10px; text-align: left !=
+important;" align=3D"left !important"> <tbody style=3D"box-sizing: border-b=
+ox;"> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: borde=
+r-box; padding: 18px 19px; color: #ffffff; text-align: left !important;" al=
+ign=3D"left !important"> <div style=3D"box-sizing: border-box; font-size: 1=
+2px; line-height: 17px; letter-spacing: 1.1px; font-weight: bold; color: #d=
+5e3f2; text-align: left !important;">DIAGNOSTIC</div> <div style=3D"box-siz=
+ing: border-box; margin-top: 7px; font-size: 20px; line-height: 31px; text-=
+align: left !important;">Lam=E2=80=99s business is at record strength, driv=
+en by memory demand, but the stock had priced in more. Supply limits and a =
+China pullback tempered the outlook.</div> </td> </tr> </tbody> </table> </=
+td> </tr> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: b=
+order-box; padding: 0 34px 22px 34px; text-align: left !important; padding-=
+left: 34px !important; padding-right: 34px !important;" align=3D"left !impo=
+rtant"> <div style=3D"box-sizing: border-box; font-size: 22px; line-height:=
+ 29px; font-weight: bold; color: #102f52; margin-bottom: 9px; text-align: l=
+eft !important;">A five-part reading framework</div> <table width=3D"100%" =
+border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" styl=
+e=3D"box-sizing: border-box; border: 1px solid #d5e3f2; border-collapse: co=
+llapse; text-align: left !important;" align=3D"left !important"> <tbody sty=
+le=3D"box-sizing: border-box;"> <tr style=3D"box-sizing: border-box;"> <td =
+width=3D"34" valign=3D"top" style=3D"box-sizing: border-box; padding: 11px =
+8px 11px 12px; border-top: 1px solid #d5e3f2; font-weight: bold; color: #15=
+4a84; text-align: left !important;" align=3D"left !important">1</td> <td va=
+lign=3D"top" style=3D"box-sizing: border-box; padding: 11px 12px 11px 4px; =
+border-top: 1px solid #d5e3f2; font-size: 20px; line-height: 31px; color: #=
+29445f; text-align: left !important;" align=3D"left !important"><strong sty=
+le=3D"box-sizing: border-box; color: #102f52; text-align: left !important;"=
+>Results</strong><br style=3D"box-sizing: border-box;">Revenue $8.22B, +54%=
+; adjusted EPS $2.20; operating margin 40%.</td> </tr> <tr style=3D"box-siz=
+ing: border-box;"> <td width=3D"34" valign=3D"top" style=3D"box-sizing: bor=
+der-box; padding: 11px 8px 11px 12px; border-top: 1px solid #d5e3f2; font-w=
+eight: bold; color: #154a84; text-align: left !important;" align=3D"left !i=
+mportant">2</td> <td valign=3D"top" style=3D"box-sizing: border-box; paddin=
+g: 11px 12px 11px 4px; border-top: 1px solid #d5e3f2; font-size: 20px; line=
+-height: 31px; color: #29445f; text-align: left !important;" align=3D"left =
+!important"><strong style=3D"box-sizing: border-box; color: #102f52; text-a=
+lign: left !important;">Guidance</strong><br style=3D"box-sizing: border-bo=
+x;">$8.6B =C2=B1 $400M revenue; EPS $2.33 =C2=B1 $0.15; near consensus.</td=
+> </tr> <tr style=3D"box-sizing: border-box;"> <td width=3D"34" valign=3D"t=
+op" style=3D"box-sizing: border-box; padding: 11px 8px 11px 12px; border-to=
+p: 1px solid #d5e3f2; font-weight: bold; color: #154a84; text-align: left !=
+important;" align=3D"left !important">3</td> <td valign=3D"top" style=3D"bo=
+x-sizing: border-box; padding: 11px 12px 11px 4px; border-top: 1px solid #d=
+5e3f2; font-size: 20px; line-height: 31px; color: #29445f; text-align: left=
+ !important;" align=3D"left !important"><strong style=3D"box-sizing: border=
+-box; color: #102f52; text-align: left !important;">China</strong><br style=
+=3D"box-sizing: border-box;">35% of revenue, expected to fall =E2=80=9Cmean=
+ingfully=E2=80=9D in December.</td> </tr> <tr style=3D"box-sizing: border-b=
+ox;"> <td width=3D"34" valign=3D"top" style=3D"box-sizing: border-box; padd=
+ing: 11px 8px 11px 12px; border-top: 1px solid #d5e3f2; font-weight: bold; =
+color: #154a84; text-align: left !important;" align=3D"left !important">4</=
+td> <td valign=3D"top" style=3D"box-sizing: border-box; padding: 11px 12px =
+11px 4px; border-top: 1px solid #d5e3f2; font-size: 20px; line-height: 31px=
+; color: #29445f; text-align: left !important;" align=3D"left !important"><=
+strong style=3D"box-sizing: border-box; color: #102f52; text-align: left !i=
+mportant;">Industry outlook</strong><br style=3D"box-sizing: border-box;">E=
+quipment spending mid-$150B in 2026, above $200B in 2027.</td> </tr> <tr st=
+yle=3D"box-sizing: border-box;"> <td width=3D"34" valign=3D"top" style=3D"b=
+ox-sizing: border-box; padding: 11px 8px 11px 12px; border-top: 1px solid #=
+d5e3f2; font-weight: bold; color: #154a84; text-align: left !important;" al=
+ign=3D"left !important">5</td> <td valign=3D"top" style=3D"box-sizing: bord=
+er-box; padding: 11px 12px 11px 4px; border-top: 1px solid #d5e3f2; font-si=
+ze: 20px; line-height: 31px; color: #29445f; text-align: left !important;" =
+align=3D"left !important"><strong style=3D"box-sizing: border-box; color: #=
+102f52; text-align: left !important;">Constraints</strong><br style=3D"box-=
+sizing: border-box;">Clean room space and component shortages.</td> </tr> <=
+/tbody> </table> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td sty=
+le=3D"box-sizing: border-box; padding: 0 34px 23px 34px; text-align: left !=
+important; padding-left: 34px !important; padding-right: 34px !important;" =
+align=3D"left !important"> <table width=3D"100%" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-=
+box; background: #102f52; border-radius: 10px; text-align: left !important;=
+" align=3D"left !important"> <tbody style=3D"box-sizing: border-box;"> <tr =
+style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border-box; pad=
+ding: 18px 19px; color: #ffffff; text-align: left !important;" align=3D"lef=
+t !important"> <div style=3D"box-sizing: border-box; font-size: 12px; line-=
+height: 17px; letter-spacing: 1.1px; font-weight: bold; color: #d5e3f2; tex=
+t-align: left !important;">DAILY BRIEF TAKEAWAY</div> <div style=3D"box-siz=
+ing: border-box; margin-top: 7px; font-size: 20px; line-height: 31px; text-=
+align: left !important;">Lam delivered its best quarter ever, and investors=
+ sold because it was not better. Its outlook still points to a large expans=
+ion in chipmaking capacity next year.</div> </td> </tr> </tbody> </table> <=
+/td> </tr> <tr style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: =
+border-box; padding: 0 34px 28px 34px; font-size: 11px; line-height: 17px; =
+color: #6f8194; border-top: 1px solid #d5e3f2; text-align: left !important;=
+ padding-left: 34px !important; padding-right: 34px !important;" align=3D"l=
+eft !important"> <div style=3D"box-sizing: border-box; padding-top: 14px; t=
+ext-align: left !important;"><strong style=3D"box-sizing: border-box;">Sour=
+ce:</strong> 24/7 Wall St., Oct. 22, 2026, citing Lam Research results and =
+Investing.com consensus.<br style=3D"box-sizing: border-box;"><strong style=
+=3D"box-sizing: border-box;">Note:</strong> General economic information on=
+ly; not investment, tax, legal or individualized financial advice.</div> </=
+td> </tr> </tbody> </table> </td> </tr> </tbody> </table></div></td></tr></=
+table></td></tr></tbody></table></td></tr></tbody></table><table class=3D"r=
+ow row-9" align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" ce=
+llspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-=
+table-lspace: 0; mso-table-rspace: 0; background-color: #dde1ee; background=
+-size: auto;" bgcolor=3D"#dde1ee"><tbody style=3D"box-sizing: border-box;">=
+<tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"=
+><table class=3D"row-content stack" align=3D"center" border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: borde=
+r-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color: #3f5f92;=
+ background-size: auto; border-left: 1px solid #c5ccdd; border-radius: 0; b=
+order-right: 1px solid #c5ccdd; color: #000; width: 600px; margin: 0 auto;"=
+ width=3D"600" bgcolor=3D"#3f5f92"><tbody style=3D"box-sizing: border-box;"=
+><tr style=3D"box-sizing: border-box;"><td class=3D"column column-1" width=
+=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-r=
+space: 0; font-weight: 400; text-align: left; vertical-align: top; width: 1=
+00%;" align=3D"left" valign=3D"top"><table class=3D"text_block block-1" wid=
+th=3D"100%" border=3D"0" cellpadding=3D"30" cellspacing=3D"0" role=3D"prese=
+ntation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rs=
+pace: 0; word-break: break-word;"><tr style=3D"box-sizing: border-box;"><td=
+ class=3D"pad" style=3D"box-sizing: border-box;"><div style=3D"box-sizing: =
+border-box; font-family: Arial,sans-serif;"><div class style=3D"box-sizing:=
+ border-box; font-size: 14px; font-family: Arial,'Helvetica Neue',Helvetica=
+,sans-serif; mso-line-height-alt: 16.8px; color: #fff; line-height: 1.2;"><=
+p style=3D"box-sizing: border-box; line-height: inherit; margin: 0; font-si=
+ze: 13px; mso-line-height-alt: 15.6px;"> <span style=3D"box-sizing: border-=
+box; word-break: break-word; font-size: 13px;">This message was sent by Dai=
+ly Fin Brief (DFB), a service of TerraTrance Technologies, LLC.<br style=3D=
+"box-sizing: border-box;"></span></p><p style=3D"box-sizing: border-box; li=
+ne-height: inherit; margin: 0; font-size: 13px; mso-line-height-alt: 15.6px=
+;"><span style=3D"box-sizing: border-box; word-break: break-word; font-size=
+: 13px;">Questions? Just hit reply =E2=80=94 or write to us at <strong styl=
+e=3D"box-sizing: border-box;"><a href=3D"mailto:support@dailyfinbrief.com" =
+style=3D"box-sizing: border-box; text-decoration: underline; color: #ffffff=
+;">support@dailyfinbrief.com</a></strong>.<br style=3D"box-sizing: border-b=
+ox;"><br style=3D"box-sizing: border-box;"> =C2=A9 2026 Daily Fin Brief. Al=
+l rights reserved.<br style=3D"box-sizing: border-box;">200 Broadway Blvd N=
+E, Albuquerque, NM 87102<br style=3D"box-sizing: border-box;"></span></p><p=
+ style=3D"box-sizing: border-box; line-height: inherit; margin: 0; font-siz=
+e: 13px; mso-line-height-alt: 15.6px;"><span style=3D"box-sizing: border-bo=
+x; word-break: break-word; font-size: 13px;"><br style=3D"box-sizing: borde=
+r-box;"> <strong style=3D"box-sizing: border-box;"><a href=3D"https://links=
+.signal.dailyfinbrief.com/e/encryptedUnsubscribe?_r=REDACTED
+7e53aef7914&_s=REDACTED&_t=REDACTED
+TTOD4eZ4tScVK6TnVnq6csQ-HEUqq6fIcoUkg_tNRDHo3gOogPPT8J0fcarvnTwTYCkd1MLa9eq=
+qUqDHu88s4Ms6VxejWuyigPiPf038kMkuC00_u10RgNGhUVWxrrmIUw%3D%3D" target=3D"_b=
+lank" rel=3D"noopener" style=3D"box-sizing: border-box; text-decoration: un=
+derline; color: #ffffff;">Unsubscribe</a> | <a href=3D"https://links.signal=
+.dailyfinbrief.com/u/click?_t=REDACTED&_m=3D21ec0=
+5feec70467ca10bd3858ef31bc3&_e=REDACTED
+OD6sLNa3Ckvo0IIVJynsRON83yturq3YktxNbj2aew4cyclskOGdaYaFnM6aB7YEjZ5_ZgcAyqV=
+9p2ca-IpRQa6O_EOp6vEVjCWovhqP8IKR_Ut1CpHWicwmPYPYL4nYRnyIkUVaM7r2k9dzMcD_Yd=
+XY8SeMAkGAwEbeDDEY0de1yozahfkiH9ky7x4Ne4aULRK1xx0_kexIe6KD9W1SHIEed8ADEIPgM=
+n1i9_p9N9-Y8ADsw9dTtyleEBkZPITuAGS5y7jwf1y2wxznfZ6vStunPzCr_vWXIA9jM9Zp0HUq=
+rVUxcWw6uhQcvXWuvDkLWDgFKrK_F4Dk6caQAKYzBh" target=3D"_blank" rel=3D"noopen=
+er" style=3D"box-sizing: border-box; text-decoration: underline; color: #ff=
+ffff;">Privacy Policy</a> | <a href=3D"https://links.signal.dailyfinbrief.c=
+om/u/click?_t=REDACTED&_m=REDACTED
+3858ef31bc3&_e=REDACTED
+Aj1AQRcnThxpMkfPbXdZ4_H4aV6TTz3YILhP_PzxCibaFJVzfeWjFydDRIa8WqZnmSPFQ63YoGq=
+jBdyxBNa03CVGOyqWv8BObtYFGQDXdxMsETeF4KJl4PhVz3DnnaNZzObzkvr6wFTUU3RzSFFV_r=
+TkhCECmlJoNKdecoX6dCBk1jJB5dBZbbZj6afc2Zm8PJsyOOFlIUoWVGZzQtX9cWbabHdnhpXTF=
+c89dkt0wunNuM5mmE1yUH5ygpEewV5KcCt3NVGFe9_cf6QBndmSoLn8VJILavWzE5piQWTT61BR=
+DF7X12RGrsDkc5rpegnxFfw5TG" target=3D"_blank" rel=3D"noopener" style=3D"box=
+-sizing: border-box; text-decoration: underline; color: #ffffff;">Terms & C=
+onditions</a><br style=3D"box-sizing: border-box;"><br style=3D"box-sizing:=
+ border-box;"> </strong>All content in this message is the sole property of=
+ TerraTrance Technologies, LLC and may not be copied, shared, or distribute=
+d without prior written permission.<br style=3D"box-sizing: border-box;"></=
+span></p></div></div></td></tr></table></td></tr></tbody></table></td></tr>=
+</tbody></table><table class=3D"row row-10" align=3D"center" width=3D"100%"=
+ border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" sty=
+le=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; bac=
+kground-color: #dde1ee;" bgcolor=3D"#dde1ee"><tbody style=3D"box-sizing: bo=
+rder-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"box-sizing: b=
+order-box;"><table class=3D"row-content stack" align=3D"center" border=3D"0=
+" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-si=
+zing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-colo=
+r: #fff; border-bottom: 1px solid #c5ccdd; border-left: 1px solid #c5ccdd; =
+border-radius: 0; border-right: 1px solid #c5ccdd; color: #000; width: 600p=
+x; margin: 0 auto;" width=3D"600" bgcolor=3D"#fff"><tbody style=3D"box-sizi=
+ng: border-box;"><tr style=3D"box-sizing: border-box;"><td class=3D"column =
+column-1" width=3D"100%" style=3D"box-sizing: border-box; mso-table-lspace:=
+ 0; mso-table-rspace: 0; font-weight: 400; text-align: left; vertical-align=
+: top; width: 100%;" align=3D"left" valign=3D"top"><table class=3D"image_bl=
+ock block-1" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0=
+" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: =
+0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D=
+"pad" style=3D"box-sizing: border-box; width: 100%; padding-top: 5px; paddi=
+ng-bottom: 5px; padding-left: 30px; padding-right: 30px;" align=3D"right" w=
+idth=3D"100%"><div style=3D"box-sizing: border-box; max-width: 149.5px;"><a=
+ href=3D"https://links.signal.dailyfinbrief.com/u/click?_t=3D2c562337774f4f=
+cc862747e53aef7914&_m=REDACTED&_e=3DHtuzexKwuZ794=
+p8pR1gLUDia-pDK0f2G1utMqzJxymMR-imz7crgBn6ur8Lw4r1Fi1b0LvkdHSerLj1Wayp_G1Jg=
+J9L61pa1zHaEY-b7nIRTGqWx1UxZf8lNdHsvdKcpU3CzBQb_TRgUsLh4tLoCl1yVshh0wgGiBVR=
+4TKSu2NBxpi5rwOJKC7BSExH-ERffAh9tBdITSvHH0jtUjItrHSXysnbCJhKOtO-pXUVkxz7gr-=
+KlF4Catocj95AXkBg6AmnpRgvxDfLQZljUrPA3upvk9AtaXXxF0Zod5pPz36p1dj6ltSBiJvihX=
+STU1InzDys_P0MHgAEDz1AqwS-ufA%3D%3D" target=3D"_blank" style=3D"box-sizing:=
+ border-box;"><img src=3D"https://library.iterable.com/2346/28323/2be74d6d3=
+208412cbc569611ed4cd5ff-63bec73f-28c9-483d-809e-688459cbf21d.png" style=3D"=
+box-sizing: border-box; display: block; height: auto; border: 0; width: 100=
+%;" width=3D"149.5" alt=3D"Daily Brief Logo" title=3D"Daily Brief Logo" hei=
+ght=3D"auto"></a></div></td></tr></table></td></tr></tbody></table></td></t=
+r></tbody></table></td></tr></tbody></table><!-- End --></body></html>
+------=_Part_8407_598291832.1793152202040--

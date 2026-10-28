@@ -20,6 +20,25 @@ detail plus the diffs.
 
 ---
 
+## v6.87.0
+
+**`dailyfinbrief.com` is blacklisted.**
+
+"E.O. 14330 Opens Those Accounts To Private Markets", From "401k Rule Live -
+Daily Brief | Evening Ed." <mail@signal.dailyfinbrief.com>, sat in the inbox. An
+ad for Brownstone Research ("This message contains promotional content in
+partnership with Brownstone Research", "before we take it down") sent through
+SES/Iterable. It scored `bulk`, `marketing` and `headlineFromName` and no
+rule: two weak behaviours, an unknown domain, an ad disclaimer Signal 14 does
+not match, and a Reply-To without the relay shape Signal 15 needs.
+
+The domain is an ad mill, so it joins `DEFAULT_DOMAINS.suspicious`: bulk +
+blacklist is Rule 1. No rule or signal changed. Fixture added.
+
+Mail already in the inbox takes the post-deploy recheck, which HOLDS Rule 1
+(only Rules 11 and 12 delete there); it is deleted by hand or on its next
+live evaluation.
+
 ## v6.86.0
 
 **Rule 12: a blacklisted brand domain hiding behind an ESP relay is deleted, whatever the email says.**

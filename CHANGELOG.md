@@ -20,6 +20,20 @@ detail plus the diffs.
 
 ---
 
+## v6.92.0
+
+**"Shared a *new* document with you" is now service impersonation.**
+
+A phish from a hijacked Kelowna workwear mailbox ("Kelowna shared a new document
+with you.", link to an unrelated domain) sat in Spam awaiting its 7-day grace
+period. Signal 6 matched `shared a (file|document|folder) with you`, and the one
+word "new" defeated it, so nothing corroborated Gmail's verdict. The pattern now
+allows an optional `new `. Senders at the Google/Microsoft/Dropbox/Box/Notion/
+Atlassian domains stay exempt. Adds the scrubbed email as a spam fixture.
+
+Not changed: other services that say "shared a file with you" from their own
+domains (Adobe, Canva) already matched the old pattern; "new" adds little to that.
+
 ## v6.91.0
 
 **A log-only shadow observer for the finance-ad family. It changes no verdict.**

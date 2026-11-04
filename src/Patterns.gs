@@ -157,7 +157,7 @@ const MARKETING_PATTERNS = Object.freeze([
 const IMPERSONATION_SUBJECT_PATTERNS = Object.freeze([
   /\bdocument shared with you\b/i,               // Google Docs share notification subject
   /\binvited you to (edit|view|comment)\b/i,      // Google Docs access invitation
-  /\bshared a (file|document|folder) with you\b/i // Google Drive / OneDrive share notification
+  /\bshared a (?:new )?(file|document|folder) with you\b/i // Google Drive / OneDrive share notification ("shared a new document with you" since v6.92.0)
 ]);
 
 /**

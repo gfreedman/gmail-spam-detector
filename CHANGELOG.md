@@ -20,6 +20,38 @@ detail plus the diffs.
 
 ---
 
+## v6.93.0
+
+**A log-only observer for brand-less "view the document" phish. It changes no verdict.**
+
+The Kelowna phish (v6.92.0) had a button reading "VIEW PDF ONLINE" and no brand, so
+Signal 7 (which needs a brand key in the link text) could not see it; v6.92.0 only
+widened the subject pattern by one word. An L7 security review of a generic Signal 7
+branch found the shape is identical to legitimate white-label portal mail (a CPA's
+"Jane sent you a document" with a button to `firm.taxdome.com`), that bank and
+accounting senders use sibling domains the suffix-based alignment test calls
+unrelated, and that button text, `bit.ly` and a sender-aligned host each evade it for
+free. It was validated on n=1 across 103 fixtures. So nothing convicts, labels or
+deletes. `observeShadow()` adds `doclure=<root>` to the existing `SHADOW` line when:
+
+- a lure phrase is in the subject or first 2000 plain-text characters;
+- an anchor's normalized text is a document-viewing button (verb + pdf/document/file/
+  statement, whole string, <= 40 characters; bare "online" is not a noun);
+- its host is http(s), not an IP, not a link wrapper, and its registrable root differs
+  from the sender's (`registrableRoot()`, not host suffix);
+- neither sender nor link is in `DOC_LURE_TRUSTED_ROOTS` (about 45 portal, accounting,
+  e-sign and transfer roots); the sender is not free-mail; the subject is not Re:/Fwd:;
+  and the mail is not bulk-service (real portal mail from a firm's own domain is).
+
+Read the Executions log for `SHADOW ... doclure=` lines for a couple of weeks; promote
+to a QUARANTINE rule (never delete, and not the `brandMismatchedCta` flag, which is a
+strong Spam-folder corroborator) only if it never hits wanted mail. Only the Kelowna
+fixture fires across the 64 spam, 8 scam, 28 ham and 3 Spam-folder fixtures. Three
+guards were fault-injected (trusted roots, root comparison, Re:/Fwd: skip); each failed.
+
+Limit: it observes mail judged NOT spam in the inbox. A phish Gmail sends straight to
+Spam is never shown to it.
+
 ## v6.92.0
 
 **"Shared a *new* document with you" is now service impersonation.**

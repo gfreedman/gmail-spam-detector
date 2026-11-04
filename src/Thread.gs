@@ -282,6 +282,16 @@ function observeShadow(message, verdict)
       tags.push('unsolicited');
     }
 
+    // v6.92.0: brand-less "view the document" button to an unrelated domain. Skipped for
+    // bulk-service mail (real portal mail from a firm's own domain goes through the
+    // vendor's SMTP, so it is bulk=true and is the legitimate majority).
+    if (!signals.bulkEmailService)
+    {
+      const lureRoot = docLureHost(subject, body,
+        (message.getBody() || '').substring(0, LIMITS.maxHtmlScanChars), addr);
+      if (lureRoot) tags.push('doclure=' + sanitizeForLog(lureRoot));
+    }
+
     if (tags.length > 0)
     {
       logInfo('SHADOW ' + tags.join(' ') + ' from=' + sanitizeForLog(domain) +

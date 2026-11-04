@@ -2640,6 +2640,37 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
     }
     check('SHADOW: history lookups are capped per execution (3 domains x 2 searches max)', nsearch <= 6 && bl.filter(l => /unsolicited/.test(l)).length === 3,
           JSON.stringify({ nsearch, logged: bl.length }));
+    // v6.92.0: brand-less "view the document" button to an unrelated domain (doclure)
+    {
+      const lure = (o) => {
+        o = o || {};
+        const m = mk(o.body || 'Kelowna has sent you a document\nPDF\nDOCSX_eStmt_2026-11-03_8052126', {
+          from: o.from || '"Reddhart Workwear, Kelowna" <rwss936@reddhart.ca>',
+          subject: o.subject || 'Kelowna shared a new document with you.' });
+        m.getBody = () => o.html || '<p>Kelowna has sent you a document</p><a href="https://mhwilson1988.org/aa.html">VI​EW​ P​DF O​NLI​NE</a>';
+        return run(m, o.sig);
+      };
+      const hit = lure();
+      check('DOCLURE: the Kelowna phish is logged with the unrelated link root',
+            hit.shadow.length === 1 && /doclure=mhwilson1988\.org/.test(hit.shadow[0]), JSON.stringify(hit.shadow));
+      check('DOCLURE: it makes no Gmail write, delete or label call', hit.calls.length === 0, JSON.stringify(hit.calls));
+      const none = (name, o) => { const r = lure(o); check('DOCLURE: ' + name, r.shadow.filter(l => /doclure/.test(l)).length === 0, JSON.stringify(r.shadow)); };
+      none('a link on the sender\'s own domain is not logged', { html: '<a href="https://files.reddhart.ca/x">View PDF online</a>' });
+      none('the same registrable root with a different subdomain is not logged',
+           { from: 'Xero <messaging-service@post.acme.com>', html: '<a href="https://go.acme.com/x">View document</a>' });
+      none('a trusted portal as the link host (TaxDome) is not logged', { html: '<a href="https://smithcpa.taxdome.com/x">View document</a>' });
+      none('a trusted sender (Xero) is not logged', { from: 'Xero <a@post.xero.com>', html: '<a href="https://evil.example.org/x">View document</a>' });
+      none('a free-mail sender is not logged', { from: 'Bob <bob@gmail.com>', html: '<a href="https://evil.example.org/x">Download file</a>' });
+      none('a Re: thread is not logged', { subject: 'Re: Kelowna shared a new document with you.' });
+      none('a Fwd: thread is not logged', { subject: 'Fwd: Kelowna shared a new document with you.' });
+      none('a link wrapper (bit.ly) is not logged', { html: '<a href="https://bit.ly/abc">View PDF online</a>' });
+      none('an IP literal host is not logged', { html: '<a href="http://203.0.113.9/x">View PDF online</a>' });
+      none('a prose-length button is not logged', { html: '<a href="https://evil.example.org/x">Please click here to view the document that was shared with you today</a>' });
+      none('bare "online" with no document noun is not logged', { html: '<a href="https://evil.example.org/x">View online</a>' });
+      none('no lure phrase is not logged', { subject: 'Weekly update', body: 'Hello.', html: '<a href="https://evil.example.org/x">View PDF online</a>' });
+      none('bulk-service mail is not logged', { sig: { bulkEmailService: true } });
+      none('a mailto: button is not logged', { html: '<a href="mailto:a@b.org">View PDF online</a>' });
+    }
     // never throws, even on a broken message
     let threw = false;
     try { const c = makeCtx({}); c.observeShadow({ getSubject() { throw new Error('boom'); } }, { isSpam: false, signals: { clickbaitCount: 0 } }); }

@@ -518,6 +518,97 @@ function hasBrandMismatchedCta(html, senderAddress)
 }
 
 /**
+ * Registrable root of a host, approximated without a public-suffix list: the last two
+ * labels, or the last three when the second-level label is a common generic one under a
+ * two-letter country code ("example.co.uk"). Good enough to tell "go.xero.com" from
+ * "post.xero.com" (same root) and "reddhart.ca" from "mhwilson1988.org" (different).
+ *
+ * @param {string} host - Lowercase host from extractUrlHost().
+ * @return {string} The root, or the host itself when it has fewer than two labels.
+ */
+function registrableRoot(host)
+{
+  if (!host) return '';
+  const labels = host.split('.');
+  if (labels.length <= 2) return host;
+  const tld = labels[labels.length - 1];
+  const sld = labels[labels.length - 2];
+  const generic = sld === 'co' || sld === 'com' || sld === 'org' || sld === 'net' ||
+                  sld === 'gov' || sld === 'ac' || sld === 'edu';
+  const take = (tld.length === 2 && generic) ? 3 : 2;
+  return labels.slice(-take).join('.');
+}
+
+/**
+ * LOG-ONLY (v6.92.0). If this mail is a "document shared with you" notice whose
+ * brand-less view button links to a registrable domain unrelated to the sender, return
+ * that domain; otherwise ''. Never changes a verdict: the caller only logs it.
+ *
+ * All must hold: a lure phrase in subject or the first 2000 chars of plain text; an
+ * anchor whose normalized text is a "view the document" button; the host is http(s), not
+ * an IP, not a link wrapper; its root differs from the sender's root; neither sender nor
+ * host is a trusted portal/cloud root; the sender is not free-mail; the subject is not a
+ * Re:/Fwd: thread.
+ *
+ * @param {string} subject      - Message subject.
+ * @param {string} plainBody    - Plain-text body.
+ * @param {string} html         - HTML body.
+ * @param {string} senderAddress - Lowercase sender address.
+ * @return {string} The unrelated link root, or ''.
+ */
+function docLureHost(subject, plainBody, html, senderAddress)
+{
+  if (!html || html.indexOf('<a') === -1) return '';
+  if (/^\s*(?:re|fwd?)\s*:/i.test(subject || '')) return '';
+
+  const at = senderAddress ? senderAddress.lastIndexOf('@') : -1;
+  const senderHost = at === -1 ? '' : senderAddress.substring(at + 1);
+  if (!senderHost) return '';
+  const senderRoot = registrableRoot(senderHost);
+  for (let i = 0; i < FREE_MAIL_DOMAINS.length; i++)
+  {
+    if (hostMatchesDomain(senderHost, FREE_MAIL_DOMAINS[i])) return '';
+  }
+  for (let i = 0; i < DOC_LURE_TRUSTED_ROOTS.length; i++)
+  {
+    if (hostMatchesDomain(senderHost, DOC_LURE_TRUSTED_ROOTS[i])) return '';
+  }
+
+  const lureText = ((subject || '') + ' ' + (plainBody || '').substring(0, 2000))
+    .replace(/[­​-‏⁠﻿]/g, '');
+  let lure = false;
+  for (let i = 0; i < DOC_LURE_PATTERNS.length; i++)
+  {
+    if (DOC_LURE_PATTERNS[i].test(lureText)) { lure = true; break; }
+  }
+  if (!lure) return '';
+
+  const anchors = extractAnchors(html);
+  for (let a = 0; a < anchors.length; a++)
+  {
+    const text = anchors[a].text;
+    if (!text) continue;
+    const norm = text.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (norm.length > 40 || !DOC_LURE_CTA_PATTERN.test(norm)) continue;
+
+    const host = extractUrlHost(anchors[a].href);
+    if (!host) continue;
+    if (/^[0-9.]+$/.test(host) || host.indexOf(':') !== -1) continue;   // IP literal
+    if (isLinkWrapperHost(host, senderHost)) continue;
+    const root = registrableRoot(host);
+    if (root === senderRoot) continue;
+    let trusted = false;
+    for (let d = 0; d < DOC_LURE_TRUSTED_ROOTS.length; d++)
+    {
+      if (hostMatchesDomain(host, DOC_LURE_TRUSTED_ROOTS[d])) { trusted = true; break; }
+    }
+    if (trusted) continue;
+    return root;
+  }
+  return '';
+}
+
+/**
  * Extract the email address from a From header value.
  *
  * Handles both "Display Name <user@domain.com>" and bare "user@domain.com".

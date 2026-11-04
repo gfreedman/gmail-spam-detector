@@ -544,4 +544,49 @@ const SHADOW_POSTAL_NEEDLES = Object.freeze([
   '5005 lyndon b johnson fwy'
 ]);
 
+/**
+ * DOCUMENT-LURE SHADOW data (v6.92.0) - LOG-ONLY, read by docLureHost() in LinkGraph.gs
+ * and observeShadow() in Thread.gs; nothing that decides a verdict reads it.
+ *
+ * A "X shared a document with you" notice whose only button ("VIEW PDF ONLINE") names no
+ * brand, so Signal 7 cannot see it, and which links to a host unrelated to the sender.
+ * Reviewed 2026-11-04 (L7 security): the same shape is what a CPA, law firm or realtor
+ * on a white-label portal sends legitimately, so this must NOT convict until the log
+ * shows real mail. Bounded: no unbounded gap, no nested quantifier.
+ * Run against subject + the first 2000 chars of plain text, zero-width characters
+ * stripped.
+ * @const {Array<RegExp>}
+ */
+const DOC_LURE_PATTERNS = Object.freeze([
+  /(?:shared|sent)[^.\n]{0,40}(?:document|file|folder|pdf)[^.\n]{0,20}with you/i,
+  /has sent you an? (?:document|pdf|file)/i,
+  /(?:^|[^a-z])estmt(?:[^a-z]|$)/i
+]);
+
+/**
+ * A button that says "view the document" without naming a brand. Tested against the
+ * anchor text with every non-alphanumeric stripped, so "VIEW PDF ONLINE", "View-PDF"
+ * and zero-width padding all collapse. Whole-string match, <= 40 characters: a
+ * sentence is not a button. A noun is REQUIRED; bare "online" is not one.
+ * @const {RegExp}
+ */
+const DOC_LURE_CTA_PATTERN = /^(?:view|open|download|access|review)(?:the|your|this)?(?:pdf|document|file|statement)(?:online)?$/;
+
+/**
+ * Registrable roots of services that legitimately send "view your document" mail from
+ * one domain and link to another (portals, accounting, e-sign, transfer). Either the
+ * sender or the link landing on one of these abstains. Matched with hostMatchesDomain().
+ * @const {Array<string>}
+ */
+const DOC_LURE_TRUSTED_ROOTS = Object.freeze([
+  'xero.com', 'intuit.com', 'quickbooks.com', 'stripe.com', 'squareup.com', 'paypal.com',
+  'freshbooks.com', 'waveapps.com', 'bill.com', 'taxdome.com', 'smartvault.com',
+  'sharefile.com', 'liscio.me', 'canopytax.com', 'karbonhq.com', 'clio.com', 'mycase.com',
+  'dotloop.com', 'skyslope.com', 'zoho.com', 'zohosign.com', 'wetransfer.com', 'we.tl',
+  'icloud.com', 'apple.com', 'adobe.com', 'adobesign.com', 'docusign.net', 'docusign.com',
+  'dropboxsign.com', 'pandadoc.com', 'canva.com', 'figma.com', 'slack.com', 'hubspot.com',
+  'docsend.com', 'google.com', 'googleusercontent.com', 'microsoft.com', 'office.com',
+  'sharepoint.com', 'live.com', 'onedrive.com', 'dropbox.com', 'box.com'
+]);
+
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

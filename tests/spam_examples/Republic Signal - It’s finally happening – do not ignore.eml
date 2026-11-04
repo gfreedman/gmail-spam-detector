@@ -1,0 +1,978 @@
+Delivered-To: recipient@example.com
+Received: by 2002:a05:7412:3011:b0:239:3bc6:72ff with SMTP id eq17csp932562rdb;
+        Wed, 4 Nov 2026 12:16:01 -0800 (PST)
+X-Received: by 2002:a05:620a:6290:b0:93f:34b0:4880 with SMTP id af79cd13be357-94421659b61mr2844443685a.22.1793823361171;
+        Wed, 04 Nov 2026 12:16:01 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1793823361; cv=none;
+        d=google.com; s=arc-20260327;
+        b=LH9ZaOha6tumy2Avds5AVBxWJs0VJrqYFc1nTOibKIePLfL1yWGo1bLxMzgKNu0kpO
+         DI9gutwZbpFi3YwpMSAABvn/UjgFJ5VMow9vIyU1NzJtT5OtYgrffn22gDOBouc/Mfau
+         MCPnGkodo3OaZmu0kfab24x1d0TUyev0RT1KLR5gPFiVHi4gbbGI88gM95Ovz88Zzq4M
+         jphbv/ZpHvVE0gfDBjpVvh8lncTkFD7aIP4Y9jLxqumLPRXzWAXv5r+opOHnYsRIGOmW
+         xzepDGIdIfvXIZcf3yHeFIC53OgtYUCxyEo0G3ZLYCTQat0ulHGDru3fVvDjtx71tVqV
+         Sbvg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=list-unsubscribe:feedback-id:list-unsubscribe-post:mime-version
+         :subject:message-id:to:reply-to:from:date:dkim-signature
+         :dkim-signature;
+        bh=hCIU1jAfrD3XvRwNU08Soz8EJEJBPmeEoSttj1xLGRA=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=s7InYpPolA7O0jU4LzVXmxjQD+K6QrqcpZTTv71NaJTdioUXKqW3tkxrNZlroFOBVh
+         wG3PddhiSTmL1djtyAuh8DvGP4m23aZ8hjPnOS4j7uW29tZ5kUkTnAh0Cp0/YIHNoCyo
+         KXpwZZtIfoT1K5CRf9d1QMybyeWE7lDepONzGjO5S5PEDdNeOd+zqeUkGoqniCTa+zfc
+         7VWNgI2qOToaDFh4uWj5cmLAGYEjwPN/7qwKVQlUPhRvrYchmwQvyl2Pr5kxHI0e0N8W
+         kDb/ryYHC2cmiLjXUrKZ11VInZJ+VXPX9ZmbBYQmkRiDhdqBT6Ue4ZUBTOcgOSqeqGPL
+         fjVg==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@liberty.republicsignal.com header.s=zxyfgkcpawzzrx55v4yz2e3ecuo5yb6c header.b="yKo/zbpT";
+       dkim=pass header.i=@amazonses.com header.s=224i4yxa5dv7c2xz3womw6peuasteono header.b=L0excYwu;
+       spf=pass (google.com: domain of scrubbed@amazonses.com designates 23.251.255.194 as permitted sender) smtp.mailfrom=scrubbed@amazonses.com;
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=republicsignal.com
+Return-Path: <scrubbed@amazonses.com>
+Received: from e255-194.smtp-out.amazonses.com (e255-194.smtp-out.amazonses.com. [23.251.255.194])
+        by mx.google.com with ESMTPS id af79cd13be357-945d49084c4si308267185a.487.2026.11.04.12.16.00
+        for <recipient@example.com>
+        (version=TLS1_3 cipher=TLS_AES_128_GCM_SHA256 bits=128/128);
+        Wed, 04 Nov 2026 12:16:01 -0800 (PST)
+Received-SPF: pass (google.com: domain of scrubbed@amazonses.com designates 23.251.255.194 as permitted sender) client-ip=23.251.255.194;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@liberty.republicsignal.com header.s=zxyfgkcpawzzrx55v4yz2e3ecuo5yb6c header.b="yKo/zbpT";
+       dkim=pass header.i=@amazonses.com header.s=224i4yxa5dv7c2xz3womw6peuasteono header.b=L0excYwu;
+       spf=pass (google.com: domain of scrubbed@amazonses.com designates 23.251.255.194 as permitted sender) smtp.mailfrom=scrubbed@amazonses.com;
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=republicsignal.com
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=zxyfgkcpawzzrx55v4yz2e3ecuo5yb6c; d=liberty.republicsignal.com;
+	t=1793823360;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:List-Unsubscribe;
+	bh=hCIU1jAfrD3XvRwNU08Soz8EJEJBPmeEoSttj1xLGRA=;
+	b=yKo/zbpT84d4Pv8Uy989GAmW05NJTMu5jb9VtaVZkyybw8lLaaSe2RrgyXYhQ2Uj
+	wey0dBWocftK/4D3Xoi0RW+xVAdAltoNnrm/UmFTVug1tdR3YMMGRQK509dYt/K+Ejb
+	ZLXn7ujAIM4b6bBzhWbbL+P0AVArIWz09jzRI2X8I+NfXH9wgQU01bN0XehDnaVaIjb
+	St7Zbaa4scCzwfk1s2l0vUK4ecpW+th9QvDvc9JyokyBoSIsTZU01EHSaVJ87vFYs4e
+	D1zEaY3O7baQD9n9KwVDpDCvTwpsr4FbBiLIlb2o4Oe6112J6LkY5QUhvAxlZ9i06Om
+	BRmdQ3Vk3A==
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/simple;
+	s=224i4yxa5dv7c2xz3womw6peuasteono; d=amazonses.com; t=1793823360;
+	h=Date:From:Reply-To:To:Message-ID:Subject:MIME-Version:Content-Type:List-Unsubscribe-Post:Feedback-ID:List-Unsubscribe;
+	bh=hCIU1jAfrD3XvRwNU08Soz8EJEJBPmeEoSttj1xLGRA=;
+	b=L0excYwuTafMhSfuFjm25vv3Kp+3hm9g5NzeLNKe7BQoxzICGmWR3wjUj+9OmouS
+	nBYFci/RKGhnnPbzg+FOVgj6eqt8KEqcSlzr3vlrEQGCBMOQLTyNrVs2eyomlFM8egx
+	0y0pgvzRpt/B+PX3UjrTM4j/1LGlHjnsk3O+UNWE=
+Date: Wed, 4 Nov 2026 20:16:00 +0000
+From: Republic Signal <the@liberty.republicsignal.com>
+Reply-To: support@republicsignal.com
+To: recipient@example.com
+Message-ID: <scrubbed@email.amazonses.com>
+Subject: =?UTF-8?Q?It=E2=80=99s_finally_happening_=E2=80=93_do_not_ignore?=
+MIME-Version: 1.0
+Content-Type: multipart/alternative; 
+	boundary="----=_Part_30440_755596470.1793823360692"
+X-Campaign-ID: 20698824
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+Feedback-ID: ::1.us-east-1.lCJVkz6+3S71MtYe1CeGk/9v1Z83C325jnahyIHJIg0=:AmazonSES
+List-Unsubscribe: <https://links.iterable.com/e/uh?_r=505979ffa9de48cdb5a64aa581c0f952&_s=f71f1fe84c0c4e8f84267097ff9f3b0d&_t=PgpX4a92Q0Zrxwto-SqTK88pArpcdxr1NbTKdbAKD7BLqVwqX-BC4ZWCz2JUFmHBlhRxL-hj3yIc8b3FZGUGwXBABMqpfwiuTsMigo042GDHbnUpodlUwWUQH_Uiwrno>,<mailto:unsubscribe+20698824+27486348@unsubscribe.iterable.com>
+X-Feedback-ID: 27486348:20698824:146061:iterable
+X-Message-ID: f71f1fe84c0c4e8f84267097ff9f3b0d
+X-SES-Outgoing: 2026.11.04-23.251.255.194
+
+------=_Part_30440_755596470.1793823360692
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+I wish this wasn=E2=80=99t the case=E2=80=A6 But it=E2=80=99s happening, ex=
+actly as I predicted. And=20
+now a colossal societal shift is about to upend everything. I first warned =
+my=20
+readers of this threat months ago. Many disregarded it.
+
+
+=E2=80=8A
+
+
+ <https://republicsignal.com/>
+
+MARKETS | POLITICS | ANALYSIS
+
+
+
+
+=E2=80=8A=20
+
+
+
+
+
+
+ I wish this wasn=E2=80=99t the case=E2=80=A6=20
+
+ But it=E2=80=99s happening, exactly as I predicted=20
+<https://lnk.republicsignal.com/6a799f174537a4124c16e0cd?email=3Drecipient@example.com&type=3DFAOPK13&uniquecode=3DRED-0000000000>
+.
+
+ And now a colossal societal shift is about to upend everything.=20
+
+ I first warned my readers of this threat months ago. Many disregarded it.=
+=20
+
+ It seemed too far off=E2=80=A6 too extreme=E2=80=A6 but now it=E2=80=99s h=
+appening=E2=80=A6 and mark my=20
+words: it=E2=80=99s going toaccelerate exponentially=20
+<https://lnk.republicsignal.com/6a799f174537a4124c16e0cd?email=3Drecipient@example.com&type=3DFAOPK13&uniquecode=3DRED-0000000000>
+ from here because the cat is now officially out of the bag.
+
+ Let me explain:=20
+
+ News just broke that Meta is laying off 10% of its employees (around 8,000=
+=20
+jobs) in a push for "efficiency."
+
+ On the same day Microsoft announced it will offer voluntary retirement to =
+7%=20
+of their U.S. workers (stated another way, quit now on your terms or we=E2=
+=80=99ll fire=20
+you).
+
+ Oracle, Block, Snap, Amazon, and others have all done the same.=20
+
+ Although most people think this is about AI=E2=80=A6 it=E2=80=99s not. The=
+ story goes far=20
+deeper and is far more consequential. It=E2=80=99s something that I=E2=80=
+=99ve been warning off=20
+for months now.
+
+ And I=E2=80=99m not the only one.=20
+
+ Two Nobel Prize winners have warned of this Final Displacement=20
+<https://lnk.republicsignal.com/6a799f174537a4124c16e0cd?email=3Drecipient@example.com&type=3DFAOPK13&uniquecode=3DRED-0000000000>
+.
+
+ Because they know, as I do, this event could trigger a once-in-a-generatio=
+n=20
+wealth shift.
+
+ A transfer of wealth that=E2=80=99s already begun with Goldman Sachs estim=
+ating=20
+12,400 Americans are being financially destroyedevery day =E2=80=A6 while o=
+thers grow=20
+richer than ever before.
+
+ Which side you=E2=80=99re on could depend on what you do next.=20
+
+ Because for those who understand what=E2=80=99s unfolding, this could be o=
+ne of the=20
+greatest wealth-building phenomena of their lives.
+
+ But for those who bury their head in the sand=E2=80=A6 this force threaten=
+s to wipe=20
+outyears of investment returns and could even destroy their financial futur=
+e.=20
+
+Here=E2=80=99s the full story for you.=20
+<https://lnk.republicsignal.com/6a799f174537a4124c16e0cd?email=3Drecipient@example.com&type=3DFAOPK13&uniquecode=3DRED-0000000000>
+
+=20
+<https://lnk.republicsignal.com/6a799f174537a4124c16e0cd?email=3Drecipient@example.com&type=3DFAOPK13&uniquecode=3DRED-0000000000>
+
+ 26 years ago, I started telling friends, family, and anyone who would list=
+en=20
+about an unprecedented societal shift that was barreling down on us.
+
+ I=E2=80=99d discovered that a new technology was about to unleash massive,=
+ almost=20
+unimaginable, changes. I likened the impact to the railroad boom, the=20
+Industrial Revolution, and the rise of personal computing.
+
+ At the time, I was working as an investment analyst for an elite research=
+=20
+group, but my colleagues and bosses refused to listen to me.
+
+ No matter what I said, they simply would not acknowledge the sands shiftin=
+g=20
+beneath their feet.
+
+ The legendary Dr. Kurt Richeb=C3=A4cher =E2=80=93 one of the world=E2=80=
+=99s leading Austrian=20
+economists =E2=80=93 even called me and my ideas =E2=80=9Cradical.=E2=80=9D
+
+ But I was certain this new technology would trigger a transformation that =
+was=20
+simply unfathomable to most people=E2=80=A6 and those on the frontier could=
+ reap=20
+financial returns unlike any the world had ever seen before.
+
+ So, I decided to put my entire career =E2=80=93 not to mention every cent =
+I had =E2=80=93 on=20
+the line to spread the story myself.
+
+ I left my job as a research analyst=E2=80=A6 went home to my third-floor a=
+partment in=20
+one of Baltimore=E2=80=99s worst neighborhoods=E2=80=A6 and with a borrowed=
+ laptop, I wrote my=20
+first financial prophecy.
+
+ And in an investment paper that=E2=80=99s now been read by more than one h=
+undred=20
+thousand people=E2=80=A6
+
+ I explained how the endless miles of new fiber optic cables being laid was=
+=20
+creating a new railroad across America.
+
+ And that this new =E2=80=9Crailroad=E2=80=9D was going to upend the teleco=
+mmunications=20
+industry and pave the way for a new internet economy.
+
+ I also warned it would decimate some of America's most dominant companies=
+=20
+like AT&T.
+
+ At the time, this was an outlandish idea, with analysts calling AT&T=20
+=E2=80=9Cdominant=E2=80=9D, =E2=80=9Cunstoppable=E2=80=9D, and =E2=80=9Cthe=
+ giant that no other company can topple.=E2=80=9D
+
+ But those who were willing to open their minds to my so-called =E2=80=9Cra=
+dical=E2=80=9D=20
+ideas were not only able to sell these companies before they collapsed=E2=
+=80=A6
+
+ They also had the chance to get in early on the firms that would go on to=
+=20
+command this new internet economy:
+
+ Amazon, Adobe, Qualcomm, SunMicrosystems, Uniphase, Texas Instruments=E2=
+=80=A6 These=20
+are household names now, but when I first recommended them in the late 90s,=
+=20
+they were complete unknowns.
+
+ Since then, I=E2=80=99ve issued a number of other financial prophecies, ma=
+ny of which=20
+have come to pass precisely as I predicted.
+
+But today, I=E2=80=99m stepping forward with a new expos=C3=A9=20
+<https://lnk.republicsignal.com/6a799f174537a4124c16e0cd?email=3Drecipient@example.com&type=3DFAOPK13&uniquecode=3DRED-0000000000>
+that I believe could surpass anything I=E2=80=99ve ever done=E2=80=A6=20
+
+ It=E2=80=99s an investigation into what I call The Final Displacement =E2=
+=80=A6 and I don=E2=80=99t=20
+think we will ever again see a story that rivals the magnitude of this duri=
+ng=20
+my lifetime.
+
+ I=E2=80=99m not talking about AI=E2=80=A6 quantum computing=E2=80=A6 augme=
+nted reality=E2=80=A6 the=20
+blockchain=E2=80=A6 or anything else you might be thinking of.
+
+ No. This is far bigger than them all. In fact=E2=80=A6=20
+
+ It=E2=80=99s the cornerstone that all our recent technological innovations=
+ have been=20
+built upon and the future will be built upon too.=20
+
+Yet you=E2=80=99ve likely never heard of it before.=20
+<https://lnk.republicsignal.com/6a799f174537a4124c16e0cd?email=3Drecipient@example.com&type=3DFAOPK13&uniquecode=3DRED-0000000000>
+
+ Outside of the labs in the world=E2=80=99s most prestigious universities a=
+nd tech=20
+companies, almost nobody has.
+
+ But those who have =E2=80=A6 those who can see the writing on the wall=E2=
+=80=A6 they=E2=80=99re=20
+investing billions of dollars, as they know this will transform everything.
+
+ Marc Andreessen=E2=80=A6 Ben Horowitz=E2=80=A6 Elon Musk=E2=80=A6 Jeff Bez=
+os=E2=80=A6 Mark Zuckerberg=E2=80=A6Jensen=20
+Huang=E2=80=A6 Bill Gates=E2=80=A6 the list goes on and on.
+
+ They know, as I do, that in a few years from now, we will not recognize th=
+e=20
+world we live in.
+
+ How we work, live, communicate, transact=E2=80=A6 it will all be completel=
+y upended=20
+by what=E2=80=99s coming next.
+
+ Today, I=E2=80=99m going to share it all with you=E2=80=A6 and I promise y=
+ou=E2=80=99ve never heard=20
+anything like this before.=20
+<https://lnk.republicsignal.com/6a799f174537a4124c16e0cd?email=3Drecipient@example.com&type=3DFAOPK13&uniquecode=3DRED-0000000000>
+
+ You see, despite the magnitude of this story, nobody is openly and freely=
+=20
+discussing this turning point. And that deeply concerns me, because I belie=
+ve=20
+its emergence will draw an indelible demarcation line in society.
+
+ On one side, you=E2=80=99ll have those who understand it, invest in it, an=
+d who are=20
+greatly enriched by it.
+
+ On the other side=E2=80=A6 you=E2=80=99ll have those who underestimate it,=
+ turn a blind eye=20
+and are unfortunately impoverished by the sweeping changes it ushers in.
+
+ I know what side I=E2=80=99ll be on.=20
+
+ And I know what side I want you to be on.=20
+
+So go here to watch=20
+<https://lnk.republicsignal.com/6a799f174537a4124c16e0cd?email=3Drecipient@example.com&type=3DFAOPK13&uniquecode=3DRED-0000000000>
+ my full investigation into this story.
+
+ Including the names of the companies to buy and sell if you want to=20
+capitalize on the impending multi-trillion-dollar displacement.
+
+ Good investing,=20
+
+ Porter Stansberry=20
+
+
+If you no longer wish to receive this offer, please click here=20
+<https://lnk.republicsignal.com/6a79e743cdee6859f634a956?email=3Drecipient@example.com&type=3Dunsub&uniquecode=3DRED-0000000000>
+ to unsubscribe.
+
+
+
+
+
+
+Coverage that respects uncertainty.
+
+Independent analysis for a complex financial world.
+
+
+
+We are not responsible for financial decisions based on this email. Please=
+=20
+seek professional advice before taking action.
+
+About this market update
+
+
+
+Sent by Republic Signal (published by Red Eagle Group, LLC).
+
+
+
+202 South 2nd Avenue, Suite A, Laramie, WY 82070=20
+
+
+
+For any questions or assistance, you can reach us at:=20
+support@republicsignal.com <mailto:support@republicsignal.com>.=20
+
+
+Unsubscribe=20
+<https://links.liberty.republicsignal.com/e/encryptedUnsubscribe?_r=3D50597=
+9ffa9de48cdb5a64aa581c0f952&_s=3Df71f1fe84c0c4e8f84267097ff9f3b0d&_t=3DPgpX=
+4a92Q0Zrxwto-SqTK88pArpcdxr1NbTKdbAKD7BLqVwqX-BC4ZWCz2JUFmHBlhRxL-hj3yIc8b3=
+FZGUGwXBABMqpfwiuTsMigo042GDHbnUpodlUwWUQH_Uiwrno>
+ |Privacy Policy <https://republicsignal.com/privacy-policy/>
+
+
+
+=C2=A9 2026 Republic Signal. All rights reserved.
+
+
+
+
+=E2=80=8A
+------=_Part_30440_755596470.1793823360692
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+
+<!DOCTYPE html><html xmlns:v=3D"urn:schemas-microsoft-com:vml" xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office" lang=3D"en" style=3D"box-sizing: bo=
+rder-box;"><head><title></title><meta http-equiv=3D"Content-Type" content=
+=3D"text/html; charset=3Dutf-8"><meta name=3D"viewport" content=3D"width=3D=
+device-width,initial-scale=3D1"><!--[if mso]><xml><w:WordDocument xmlns:w=
+=3D"urn:schemas-microsoft-com:office:word"><w:DontUseAdvancedTypographyRead=
+ingMail/></w:WordDocument> <o:OfficeDocumentSettings><o:PixelsPerInch>96</o=
+:PixelsPerInch><o:AllowPNG/></o:OfficeDocumentSettings></xml><![endif]--><!=
+--[if !mso]><!--><link href=3D"https://fonts.googleapis.com/css2?family=3DM=
+ontserrat:wght@100;400;700;900&amp;display=3Dswap" rel=3D"stylesheet" type=
+=3D"text/css"><!--<![endif]--><style>*{box-sizing:border-box}body{margin:0;=
+padding:0}a[x-apple-data-detectors]{color:inherit!important;text-decoration=
+:inherit!important}#MessageViewBody a{color:inherit;text-decoration:none}p{=
+line-height:inherit}.desktop_hide,.desktop_hide table{mso-hide:all;display:=
+none;max-height:0;overflow:hidden}.image_block img+div{display:none}sub,sup=
+{font-size:75%;line-height:0}@media(max-width:660px){.row-content{width:100=
+%!important}.stack .column{width:100%!important;display:block}.mobile_hide{=
+min-height:0;max-height:0;max-width:0;display:none;overflow:hidden;font-siz=
+e:0}.desktop_hide,.desktop_hide table{display:table!important;max-height:no=
+ne!important}}</style><!--[if mso ]><style>sup,sub{font-size:100%!important=
+}sup{mso-text-raise:10%}sub{mso-text-raise:-10%}</style><![endif]--></head>=
+<body class=3D"body" style=3D"box-sizing: border-box; margin: 0; padding: 0=
+; -webkit-text-size-adjust: none; text-size-adjust: none; background-color:=
+ #fff;"><span style=3D"color:transparent;visibility:hidden;display:none;opa=
+city:0;height:0;width:0;font-size:0;">I wish this wasn=E2=80=99t the case=
+=E2=80=A6 But it=E2=80=99s happening, exactly as I predicted. And now a col=
+ossal societal shift is about to upend everything. I first warned my reader=
+s of this threat months ago. Many disregarded it.</span><img src=3D"https:/=
+/links.liberty.republicsignal.com/e/eo?_t=3D505979ffa9de48cdb5a64aa581c0f95=
+2&amp;_m=3Df71f1fe84c0c4e8f84267097ff9f3b0d&amp;_e=3DPgpX4a92Q0Zrxwto-SqTK8=
+8pArpcdxr1NbTKdbAKD7BLqVwqX-BC4ZWCz2JUFmHBlhRxL-hj3yIc8b3FZGUGwXBABMqpfwiuT=
+sMigo042GC7HLUbirW-7djmGzUy6907rsg0R2WpDv6xMHp_XmLSPQ%3D%3D" style=3D"borde=
+r:0;width:1px;height:1px;border-width:0px!important;display:none!important;=
+line-height:0!important;" width=3D"1" height=3D"1"/><table class=3D"nl-cont=
+ainer" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso=
+-table-rspace: 0; background-color: #fff;" bgcolor=3D"#fff"><tbody style=3D=
+"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td style=
+=3D"box-sizing: border-box;"><table class=3D"row row-1" align=3D"center" wi=
+dth=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"prese=
+ntation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rs=
+pace: 0; background-color: #eaecef;" bgcolor=3D"#eaecef"><tbody style=3D"bo=
+x-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td style=3D"b=
+ox-sizing: border-box;"><table class=3D"row-content stack" align=3D"center"=
+ border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" sty=
+le=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; col=
+or: #000; width: 640px; margin: 0 auto;" width=3D"640"><tbody style=3D"box-=
+sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td class=3D"col=
+umn column-1" width=3D"100%" style=3D"box-sizing: border-box; mso-table-lsp=
+ace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; padding-bo=
+ttom: 5px; padding-top: 5px; vertical-align: top; width: 100%;" align=3D"le=
+ft" valign=3D"top"><div class=3D"spacer_block block-1" style=3D"box-sizing:=
+ border-box; height: 20px; line-height: 20px; font-size: 1px;">&#8202;</div=
+></td></tr></tbody></table></td></tr></tbody></table><table class=3D"row ro=
+w-2" align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspa=
+cing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table=
+-lspace: 0; mso-table-rspace: 0; background-color: #eaecef;" bgcolor=3D"#ea=
+ecef"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: bor=
+der-box;"><td style=3D"box-sizing: border-box;"> <table class=3D"row-conten=
+t stack" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" =
+role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0;=
+ mso-table-rspace: 0; background-color: #fff; border-radius: 24px 24px 0 0;=
+ color: #000; width: 640px; margin: 0 auto;" width=3D"640" bgcolor=3D"#fff"=
+><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-b=
+ox;"><td class=3D"column column-1" width=3D"50%" style=3D"box-sizing: borde=
+r-box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-ali=
+gn: left; padding-bottom: 15px; padding-top: 20px; vertical-align: middle; =
+width: 50%;" align=3D"left" valign=3D"middle"><table class=3D"image_block b=
+lock-1" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; ms=
+o-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad"=
+ style=3D"box-sizing: border-box; width: 100%; padding-left: 25px;" align=
+=3D"left" width=3D"100%"><div style=3D"box-sizing: border-box; max-width: 1=
+92px;"><a href=3D"https://links.liberty.republicsignal.com/u/click?_t=3D505=
+979ffa9de48cdb5a64aa581c0f952&_m=3Df71f1fe84c0c4e8f84267097ff9f3b0d&_e=3Di2=
+MxM7_NWgiqJT29mPYstMZ6dfftuGuuYKR4O0SUal_Hg0ckpdxCudG95GAT9iGRi0T0k-sxZzHnW=
+EJDT4dTuqM2JSkjVqBAEjRMYmYMWBkYxTNY1Tx6-f9Qx1DLlMdcXORC2MQyVXUhowzIeQHdsvde=
+MHatWGBl3RjhouXJA2AkmD4znvrIBffNrwuI9kG5JLrqGJwibuX7QuAurQtflx8Pr0106cbX0ZX=
+jbQZmrG3DkWi29VdjHdaErUb71juZkSCobFge0GF9xsDLTrsjxbKTog3qVdOjHbP03pRg_uPCoz=
+yQ1HvhzgeX8clfDNLLAILmxPxwBUyzv8lTSXBoEg%3D%3D" target=3D"_blank" style=3D"=
+box-sizing: border-box;"><img src=3D"https://library.iterable.com/2798/3223=
+8/0fe369f7e8694a89892766dde2135f58-edited-image-1785514186917.png" style=3D=
+"box-sizing: border-box; display: block; height: auto; border: 0; width: 10=
+0%;" width=3D"192" alt=3D"RS-main" title=3D"RS-main" height=3D"auto"></a></=
+div></td></tr></table></td><td class=3D"column column-2" width=3D"50%" styl=
+e=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font=
+-weight: 400; text-align: left; padding-bottom: 15px; padding-top: 20px; ve=
+rtical-align: middle; width: 50%;" align=3D"left" valign=3D"middle"><table =
+class=3D"text_block block-1" width=3D"100%" border=3D"0" cellpadding=3D"0" =
+cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; ms=
+o-table-lspace: 0; mso-table-rspace: 0; word-break: break-word;"><tr style=
+=3D"box-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-=
+box; padding-left: 10px; padding-right: 25px;"><div style=3D"box-sizing: bo=
+rder-box; font-family: 'Trebuchet MS',Tahoma,sans-serif;"><div class style=
+=3D"box-sizing: border-box; font-size: 14px; font-family: Montserrat,'Trebu=
+chet MS','Lucida Grande','Lucida Sans Unicode','Lucida Sans',Tahoma,sans-se=
+rif; mso-line-height-alt: 21px; color: #555; line-height: 1.5;"><p style=3D=
+"box-sizing: border-box; line-height: inherit; margin: 0; font-size: 14px; =
+text-align: right; mso-line-height-alt: 22.5px; letter-spacing: 1px;"><span=
+ style=3D"box-sizing: border-box; word-break: break-word; font-size: 15px;"=
+>MARKETS | POLITICS | ANALYSIS</span></p></div></div></td></tr></table></td=
+></tr></tbody></table> </td></tr></tbody></table><table class=3D"row row-3"=
+ align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=
+=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-lsp=
+ace: 0; mso-table-rspace: 0; background-color: #eaecef;" bgcolor=3D"#eaecef=
+"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: border-=
+box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-content sta=
+ck" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso=
+-table-rspace: 0; background-color: #fff; border-radius: 0; color: #000; wi=
+dth: 640px; margin: 0 auto;" width=3D"640" bgcolor=3D"#fff"><tbody style=3D=
+"box-sizing: border-box;"><tr style=3D"box-sizing: border-box;"><td class=
+=3D"column column-1" width=3D"100%" style=3D"box-sizing: border-box; mso-ta=
+ble-lspace: 0; mso-table-rspace: 0; font-weight: 400; text-align: left; pad=
+ding-bottom: 5px; vertical-align: top; width: 100%;" align=3D"left" valign=
+=3D"top"><table class=3D"divider_block block-1" width=3D"100%" border=3D"0"=
+ cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-siz=
+ing: border-box; mso-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"bo=
+x-sizing: border-box;"><td class=3D"pad" style=3D"box-sizing: border-box; p=
+adding-top: 5px; padding-bottom: 5px; padding-left: 25px; padding-right: 25=
+px;" align=3D"center"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"=
+0" role=3D"presentation" width=3D"100%" style=3D"box-sizing: border-box; ms=
+o-table-lspace: 0; mso-table-rspace: 0;"><tr style=3D"box-sizing: border-bo=
+x;"><td class=3D"divider_inner" style=3D"box-sizing: border-box; font-size:=
+ 1px; line-height: 1px; border-top: 2px solid #000;"><span style=3D"box-siz=
+ing: border-box; word-break: break-word;">&#8202;</span></td></tr></table><=
+/td></tr></table></td></tr></tbody></table></td></tr></tbody></table><table=
+ class=3D"row row-4" align=3D"center" width=3D"100%" border=3D"0" cellpaddi=
+ng=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: borde=
+r-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color: #eaecef;=
+" bgcolor=3D"#eaecef"> <tbody style=3D"box-sizing: border-box;"><tr style=
+=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"><table c=
+lass=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=3D"0" =
+cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; ms=
+o-table-lspace: 0; mso-table-rspace: 0; background-color: #fff; border-radi=
+us: 0; color: #000; width: 640px; margin: 0 auto;" width=3D"640" bgcolor=3D=
+"#fff"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: bo=
+rder-box;"><td class=3D"column column-1" width=3D"100%" style=3D"box-sizing=
+: border-box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; t=
+ext-align: left; padding-bottom: 5px; padding-top: 5px; vertical-align: top=
+; width: 100%;" align=3D"left" valign=3D"top"><table class=3D"html_block bl=
+ock-1" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso=
+-table-rspace: 0;"><tr style=3D"box-sizing: border-box;"><td class=3D"pad" =
+style=3D"box-sizing: border-box;"><div style=3D"box-sizing: border-box; fon=
+t-family: Arial,Helvetica Neue,Helvetica,sans-serif; text-align: center;" a=
+lign=3D"center"><table width=3D"100%" border=3D"0" cellpadding=3D"0" cellsp=
+acing=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; font-fam=
+ily: 'Montserrat', Arial, Helvetica, sans-serif; max-width: 640px;"> <tbody=
+ style=3D"box-sizing: border-box; max-width: 640px;"> <tr style=3D"box-sizi=
+ng: border-box;"> <td align=3D"center" valign=3D"top" style=3D"box-sizing: =
+border-box; font-family: 'Montserrat', Arial, Helvetica, sans-serif; max-wi=
+dth: 640px;"> <table class=3D"layout-table-wrapper" bgcolor=3D"#FFFFFF" bor=
+der=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" width=
+=3D"100%" style=3D"box-sizing: border-box; font-family: 'Montserrat', Arial=
+, Helvetica, sans-serif; max-width: 640px;"> <tbody style=3D"box-sizing: bo=
+rder-box; max-width: 640px;"> <tr style=3D"box-sizing: border-box;"> <td cl=
+ass=3D"layout-content-wrapper" align=3D"center" style=3D"box-sizing: border=
+-box; padding-left: 18px; padding-right: 18px; font-family: 'Montserrat', A=
+rial, Helvetica, sans-serif; max-width: 640px;"> <table class=3D"layout-inn=
+er-block" border=3D"0" cellspacing=3D"0" role=3D"presentation" cellpadding=
+=3D"0" width=3D"100%" style=3D"box-sizing: border-box; width: 100%; font-fa=
+mily: 'Montserrat', Arial, Helvetica, sans-serif; max-width: 640px;"> <tbod=
+y style=3D"box-sizing: border-box; max-width: 640px;"> <tr style=3D"box-siz=
+ing: border-box;"> <td height=3D"14" width=3D"100%" style=3D"box-sizing: bo=
+rder-box; font-family: 'Montserrat', Arial, Helvetica, sans-serif; max-widt=
+h: 640px;" class=3D"section-gap"></td> </tr> <tr style=3D"box-sizing: borde=
+r-box;"> <td style=3D"box-sizing: border-box; font-style: normal; font-weig=
+ht: normal; line-height: 1.5; text-align: left; color: #000000; padding-top=
+: 16px; padding-bottom: 16px; font-family: 'Montserrat', Arial, Helvetica, =
+sans-serif; font-size: 20px; max-width: 640px;" align=3D"left"> <span style=
+=3D"box-sizing: border-box; font-style: normal; font-weight: normal; line-h=
+eight: 1.5; text-align: left; color: #000000; font-family: 'Montserrat', Ar=
+ial, Helvetica, sans-serif; font-size: 20px;"> I wish this wasn=E2=80=99t t=
+he case=E2=80=A6 <br style=3D"box-sizing: border-box;"><br style=3D"box-siz=
+ing: border-box;"> But it=E2=80=99s happening, <a href=3D"https://links.lib=
+erty.republicsignal.com/u/click?_t=3D505979ffa9de48cdb5a64aa581c0f952&_m=3D=
+f71f1fe84c0c4e8f84267097ff9f3b0d&_e=3Di2MxM7_NWgiqJT29mPYstPUlqN5T1oUEzD_P-=
+5dqzzq8_koQY-MmEfvsLm9gceY3xeZ1F1W56vnejtSTUxu4GSSXI891h8u5JL3ro8DT-gxIszUN=
+2Fg0BALywNXLjNqRev9Ytt2WDw0Nieh-YUNmHh8UaPR_XJQ3m62Xm1SfdFWJfBqUpnM4vMy8Pfy=
+IVx3tYWsZBmoraoUFRMMIoyfAzOCv_83CPNrV6ZmRCSvlwFW4-s3sSQ1qZrk-PY-pCdkTC9uKPV=
+YZlf9G0pQpIVf9idYjzGh38wziYW4Ry-TGMVp0o8hAavaJNk9eeJH7Y0wyL8-JulmLH6Zli0l9X=
+cx-tENPc1YWEaUTjtK0A0BoVdEwulanQG0lQhyQ2YHlp11Hxn_k5Nw8h8_j5EI26MSTkqH3T3Vl=
+Sm6rNqBtsHJASRL55vE2j2hrCTJLFX-hTpmHT9zlx3JX50sHDpFPJtS8qAl_2jH5RI1oEpJYCQE=
+w4Bf48FP1Lv644Ln58zA3PvAuC267fEX6O8dAbZxnt2tTn7_B7LW3A7VIzCIFst7T9D9lYQqxD5=
+zeMp4Pcz0y6ekxia1GmawvUxPgs-X80ieqzQ%3D%3D" style=3D"box-sizing: border-box=
+; font-weight: 700; text-decoration: underline; font-family: 'Montserrat', =
+Arial, Helvetica, sans-serif; color: #0f71ce;">exactly as I predicted</a>. =
+<br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"=
+> And now a colossal societal shift is about to upend everything. <br style=
+=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> I first=
+ warned my readers of this threat months ago. Many disregarded it. <br styl=
+e=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> It see=
+med too far off=E2=80=A6 too extreme=E2=80=A6 but now it=E2=80=99s happenin=
+g=E2=80=A6 and mark my words: it=E2=80=99s going to <a href=3D"https://link=
+s.liberty.republicsignal.com/u/click?_t=3D505979ffa9de48cdb5a64aa581c0f952&=
+_m=3Df71f1fe84c0c4e8f84267097ff9f3b0d&_e=3Di2MxM7_NWgiqJT29mPYstPUlqN5T1oUE=
+zD_P-5dqzzq8_koQY-MmEfvsLm9gceY3xeZ1F1W56vnejtSTUxu4GSSXI891h8u5JL3ro8DT-gx=
+IszUN2Fg0BALywNXLjNqRev9Ytt2WDw0Nieh-YUNmHh8UaPR_XJQ3m62Xm1SfdFWJfBqUpnM4vM=
+y8PfyIVx3tX1z6JLLxh6ibr5Q5HEoS2PGqNy-IOz5YjIbdx-kexEe5lIZEPE7qH9vc1teh9yyqa=
+DecWD8E0lw541jxSdzunRaqRRg6VhVillIdlc1NNUFsM0dyzypKyMfK98TdPYDQy3Bab3Sn8T7i=
+Hmn6zIxVpEAE99T6N1DB4p5rakE_cy0s9V41z4qmUHosftikdSOG0qyKnQEGigEak6o-aKL95Oa=
+GftOZXlbGQQ-1TfEXozbnT1kuU2e4fmfO3PXUcCf_so7KG1-nHwMcMxHIKFTWb_ioe6gNvQobog=
+iGFoip1-pGqQgHSJRM1X8dpIzMxMAJqjCboKKY6xgs2i0PpI5YbB8coWnxdpgjPFGfh6LU01n37=
+NqTK66BEVX0fKKYSTLiqxr8ntiWuYtPBKfeGls0ag%3D%3D" style=3D"box-sizing: borde=
+r-box; font-weight: 700; text-decoration: underline; font-family: 'Montserr=
+at', Arial, Helvetica, sans-serif; color: #0f71ce;">accelerate exponentiall=
+y</a> from here because the cat is now officially out of the bag. <br style=
+=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> Let me =
+explain: <br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: bor=
+der-box;"> News just broke that Meta is laying off 10% of its employees (ar=
+ound 8,000 jobs) in a push for "efficiency." <br style=3D"box-sizing: borde=
+r-box;"><br style=3D"box-sizing: border-box;"> On the same day Microsoft an=
+nounced it will offer voluntary retirement to 7% of their U.S. workers (sta=
+ted another way, quit now on your terms or we=E2=80=99ll fire you). <br sty=
+le=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> Oracl=
+e, Block, Snap, Amazon, and others have all done the same. <br style=3D"box=
+-sizing: border-box;"><br style=3D"box-sizing: border-box;"> Although most =
+people think this is about AI=E2=80=A6 it=E2=80=99s not. The story goes far=
+ deeper and is far more consequential. It=E2=80=99s something that I=E2=80=
+=99ve been warning off for months now. <br style=3D"box-sizing: border-box;=
+"><br style=3D"box-sizing: border-box;"> And I=E2=80=99m not the only one. =
+<br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"=
+> Two Nobel Prize winners have warned of <a href=3D"https://links.liberty.r=
+epublicsignal.com/u/click?_t=3D505979ffa9de48cdb5a64aa581c0f952&_m=3Df71f1f=
+e84c0c4e8f84267097ff9f3b0d&_e=3Di2MxM7_NWgiqJT29mPYstPUlqN5T1oUEzD_P-5dqzzq=
+8_koQY-MmEfvsLm9gceY3xeZ1F1W56vnejtSTUxu4GSSXI891h8u5JL3ro8DT-gxIszUN2Fg0BA=
+LywNXLjNqRev9Ytt2WDw0Nieh-YUNmHh8UaPR_XJQ3m62Xm1SfdFWJfBqUpnM4vMy8PfyIVx3tt=
+J4xMfuDXkS_Cb8NqTXhi9GPFm_9ZBsNgzm1llBXPuT9NbgIns8w7i8mIykoBCKcKN3dIZLZGKOz=
+KvFDJ2K4blled2FRqMuyGNAUYh4hOprHlMwmAjvMvNvO1Acy3_yfa6hqavMYUlFimgF1wiaj-r-=
+UIxX20Uoz5fKaLG4lzstubbpSQ25JFYxCAEzjT7CGTkyJyuXujZvnLByy0JTHy9Cr7Fm87w9eEd=
+wieKX9X2Z3H6Vz_Q5U8-A0v0oQWrYAxUdVJSnwAOn20HFFbGojI8_3d2Z_E29x0dF454BzROqWU=
+g8mei_-7V4Dy6hEPqZaYJ6IckjrBjtYggiPO58SjFd-QMyLWvEsfTNz8uqR9HlaRmJaptbeOMeK=
+G2zbfdKFCAP1QGXi2YrSXVaBzWOgsQ%3D%3D" style=3D"box-sizing: border-box; font=
+-weight: 700; text-decoration: underline; font-family: 'Montserrat', Arial,=
+ Helvetica, sans-serif; color: #0f71ce;"><em style=3D"box-sizing: border-bo=
+x;">this Final Displacement</em></a>. <br style=3D"box-sizing: border-box;"=
+><br style=3D"box-sizing: border-box;"> Because they know, as I do, this ev=
+ent could trigger a once-in-a-generation wealth shift. <br style=3D"box-siz=
+ing: border-box;"><br style=3D"box-sizing: border-box;"> A transfer of weal=
+th that=E2=80=99s already begun with Goldman Sachs estimating 12,400 Americ=
+ans are being financially destroyed <i style=3D"box-sizing: border-box;">ev=
+ery day</i> =E2=80=A6 while others grow richer than ever before. <br style=
+=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> Which s=
+ide you=E2=80=99re on could depend on what you do next. <br style=3D"box-si=
+zing: border-box;"><br style=3D"box-sizing: border-box;"> Because for those=
+ who understand what=E2=80=99s unfolding, this could be one of the greatest=
+ wealth-building phenomena of their lives. <br style=3D"box-sizing: border-=
+box;"><br style=3D"box-sizing: border-box;"> But for those who bury their h=
+ead in the sand=E2=80=A6 this force threatens to wipe out <i style=3D"box-s=
+izing: border-box;">years</i> of investment returns and could even destroy =
+their financial future. <br style=3D"box-sizing: border-box;"><br style=3D"=
+box-sizing: border-box;"> <a href=3D"https://links.liberty.republicsignal.c=
+om/u/click?_t=3D505979ffa9de48cdb5a64aa581c0f952&_m=3Df71f1fe84c0c4e8f84267=
+097ff9f3b0d&_e=3Di2MxM7_NWgiqJT29mPYstPUlqN5T1oUEzD_P-5dqzzq8_koQY-MmEfvsLm=
+9gceY3xeZ1F1W56vnejtSTUxu4GSSXI891h8u5JL3ro8DT-gxIszUN2Fg0BALywNXLjNqRev9Yt=
+t2WDw0Nieh-YUNmHh8UaPR_XJQ3m62Xm1SfdFWJfBqUpnM4vMy8PfyIVx3tMVt1afJa54qQTON1=
+TBo4hMJknMs_Gm9huGvP4p0d33-oBRH44lH2kGfEOK2YLiRY2jjpbQCaOAiiv5YKMmzbLQ8RLBH=
+LZOIakBWcgMRwaG0CUw3EL0vGQnuScvadcubIRWS5aqPYsLhmEHfHqLfN4UsgU1y8Ka_jgh5vMy=
+eY6cHAaFp9JhAoU8xFG5nesMYLPgAbcMkBRf7symD3L2jqpTMDHMGkOzM8t7Gw9BRZAFw0aHpy1=
+QqcGmsBTNlNGF-4Bhz1UPAAkknd06c0SHSBxrdpHk7co4z6SfHyaEZ2OoeaMuAMQQH2OCqsdrqw=
+B0CW3z7gFHX9i1Lsi7wRci-6_neQZpoOIpgufLLyMK_dc4Fno4MGr-G11P4JqWj4qZ9cWLe_IaD=
+U21o8qhLv9SgBAA%3D%3D" style=3D"box-sizing: border-box; font-weight: 700; t=
+ext-decoration: underline; font-family: 'Montserrat', Arial, Helvetica, san=
+s-serif; color: #0f71ce;">Here=E2=80=99s the full story for you.</a> </span=
+> </td> </tr> <tr style=3D"box-sizing: border-box;"> <td align=3D"center" s=
+tyle=3D"box-sizing: border-box; font-style: normal; font-weight: normal; li=
+ne-height: 1.5; text-align: center; color: #000000; padding-top: 16px; padd=
+ing-bottom: 16px; font-family: 'Montserrat', Arial, Helvetica, sans-serif; =
+font-size: 20px; max-width: 640px;"> <span style=3D"box-sizing: border-box;=
+ font-style: normal; font-weight: normal; line-height: 1.5; text-align: cen=
+ter; color: #000000; font-family: 'Montserrat', Arial, Helvetica, sans-seri=
+f; font-size: 20px;"></span> </td> </tr> <tr style=3D"box-sizing: border-bo=
+x;"> <td class=3D"full-img-block" align=3D"center" style=3D"box-sizing: bor=
+der-box; padding-top: 16px; padding-bottom: 16px; font-family: 'Montserrat'=
+, Arial, Helvetica, sans-serif; max-width: 640px;"> <a href=3D"https://link=
+s.liberty.republicsignal.com/u/click?_t=3D505979ffa9de48cdb5a64aa581c0f952&=
+_m=3Df71f1fe84c0c4e8f84267097ff9f3b0d&_e=3Di2MxM7_NWgiqJT29mPYstPUlqN5T1oUE=
+zD_P-5dqzzq8_koQY-MmEfvsLm9gceY3xeZ1F1W56vnejtSTUxu4GSSXI891h8u5JL3ro8DT-gx=
+IszUN2Fg0BALywNXLjNqRev9Ytt2WDw0Nieh-YUNmHh8UaPR_XJQ3m62Xm1SfdFWJfBqUpnM4vM=
+y8PfyIVx3ta65AB90gZQjjRA_tUrEoE4p3f4OjQmr8aL6xUSHsoDJr6WCG7Uk3_Vbni-9AAbcU3=
+92s0qamLqeGW0v02kYb3sWEhW8slovEpeHCdQtX0esXME3NXxf-fvtZEEy9FVnsKf-24janGgK5=
+lz2D2zluJrNEAIzkymud6rp_1ukEcze9ygFAIlpyayNmM2f8Mu8MfqrmVeD7HotOkF2k_PK3c6m=
+8qLGGrFxTW6epdzshZcb31O1fikvf3n9w6ZxzuEsUxSlxAQNE_iSYnTrifUDKyPex9YrxOGFFHs=
+i5H80P1_9CHr8Sqm_kpmz8HMLstgmuiNXfLpqtKg08Z6zY8_2RZC8nVQYk-lIYlkL45k4z9L9j5=
+c9Xppd29k_IQBqTHUGv0ZCSHMy-ZUBZftZpnfK_9A%3D%3D" target=3D"_blank" style=3D=
+"box-sizing: border-box; font-family: 'Montserrat', Arial, Helvetica, sans-=
+serif;"><img alt=3D"Best Viewed In Inbox" height=3D"auto" src=3D"https://li=
+brary.iterable.com/2798/32238/1005b45c083747e3a4ea093bc1e5d487-dxfxgcfhgvjb=
+jk.png" style=3D"box-sizing: border-box; border: 0; display: block; outline=
+: none; text-decoration: none; height: auto; width: 100%; max-width: 564px;=
+ font-size: 12px;" width=3D"564"></a> </td> </tr> <tr style=3D"box-sizing: =
+border-box;"> <td style=3D"box-sizing: border-box; font-style: normal; font=
+-weight: normal; line-height: 1.5; text-align: left; color: #000000; paddin=
+g-top: 16px; padding-bottom: 16px; font-family: 'Montserrat', Arial, Helvet=
+ica, sans-serif; font-size: 20px; max-width: 640px;" align=3D"left"> <span =
+style=3D"box-sizing: border-box; font-style: normal; font-weight: normal; l=
+ine-height: 1.5; text-align: left; color: #000000; font-family: 'Montserrat=
+', Arial, Helvetica, sans-serif; font-size: 20px;"></span> </td> </tr> <tr =
+style=3D"box-sizing: border-box;"> <td style=3D"box-sizing: border-box; fon=
+t-style: normal; font-weight: normal; line-height: 1.5; text-align: left; c=
+olor: #000000; padding-top: 16px; padding-bottom: 16px; font-family: 'Monts=
+errat', Arial, Helvetica, sans-serif; font-size: 20px; max-width: 640px;" a=
+lign=3D"left"> <span style=3D"box-sizing: border-box; font-style: normal; f=
+ont-weight: normal; line-height: 1.5; text-align: left; color: #000000; fon=
+t-family: 'Montserrat', Arial, Helvetica, sans-serif; font-size: 20px;"> 26=
+ years ago, I started telling friends, family, and anyone who would listen =
+about an unprecedented societal shift that was barreling down on us. <br st=
+yle=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> I=E2=
+=80=99d discovered that a new technology was about to unleash massive, almo=
+st unimaginable, changes. I likened the impact to the railroad boom, the In=
+dustrial Revolution, and the rise of personal computing. <br style=3D"box-s=
+izing: border-box;"><br style=3D"box-sizing: border-box;"> At the time, I w=
+as working as an investment analyst for an elite research group, but my col=
+leagues and bosses refused to listen to me. <br style=3D"box-sizing: border=
+-box;"><br style=3D"box-sizing: border-box;"> No matter what I said, they s=
+imply would not acknowledge the sands shifting beneath their feet. <br styl=
+e=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> The le=
+gendary Dr. Kurt Richeb=C3=A4cher =E2=80=93 one of the world=E2=80=99s lead=
+ing Austrian economists =E2=80=93 even called me and my ideas =E2=80=9Cradi=
+cal.=E2=80=9D <br style=3D"box-sizing: border-box;"><br style=3D"box-sizing=
+: border-box;"> But I was certain this new technology would trigger a trans=
+formation that was simply unfathomable to most people=E2=80=A6 and those on=
+ the frontier could reap financial returns unlike any the world had ever se=
+en before. <br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: b=
+order-box;"> So, I decided to put my entire career =E2=80=93 not to mention=
+ every cent I had =E2=80=93 on the line to spread the story myself. <br sty=
+le=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> I lef=
+t my job as a research analyst=E2=80=A6 went home to my third-floor apartme=
+nt in one of Baltimore=E2=80=99s worst neighborhoods=E2=80=A6 and with a bo=
+rrowed laptop, I wrote my first financial prophecy. <br style=3D"box-sizing=
+: border-box;"><br style=3D"box-sizing: border-box;"> And in an investment =
+paper that=E2=80=99s now been read by more than one hundred thousand people=
+=E2=80=A6 <br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: bo=
+rder-box;"> I explained how the endless miles of new fiber optic cables bei=
+ng laid was creating a new railroad across America. <br style=3D"box-sizing=
+: border-box;"><br style=3D"box-sizing: border-box;"> And that this new =E2=
+=80=9Crailroad=E2=80=9D was going to upend the telecommunications industry =
+and pave the way for a new internet economy. <br style=3D"box-sizing: borde=
+r-box;"><br style=3D"box-sizing: border-box;"> I also warned it would decim=
+ate some of America's most dominant companies like AT&T. <br style=3D"box-s=
+izing: border-box;"><br style=3D"box-sizing: border-box;"> At the time, thi=
+s was an outlandish idea, with analysts calling AT&T =E2=80=9Cdominant=E2=
+=80=9D, =E2=80=9Cunstoppable=E2=80=9D, and =E2=80=9Cthe giant that no other=
+ company can topple.=E2=80=9D <br style=3D"box-sizing: border-box;"><br sty=
+le=3D"box-sizing: border-box;"> But those who were willing to open their mi=
+nds to my so-called =E2=80=9Cradical=E2=80=9D ideas were not only able to s=
+ell these companies before they collapsed=E2=80=A6 <br style=3D"box-sizing:=
+ border-box;"><br style=3D"box-sizing: border-box;"> They also had the chan=
+ce to get in early on the firms that would go on to command this new intern=
+et economy: <br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: =
+border-box;"> Amazon, Adobe, Qualcomm, SunMicrosystems, Uniphase, Texas Ins=
+truments=E2=80=A6 These are household names now, but when I first recommend=
+ed them in the late 90s, they were complete unknowns. <br style=3D"box-sizi=
+ng: border-box;"><br style=3D"box-sizing: border-box;"> Since then, I=E2=80=
+=99ve issued a number of other financial prophecies, many of which have com=
+e to pass precisely as I predicted. <br style=3D"box-sizing: border-box;"><=
+br style=3D"box-sizing: border-box;"> <b style=3D"box-sizing: border-box;">=
+But today,</b> <a href=3D"https://links.liberty.republicsignal.com/u/click?=
+_t=3D505979ffa9de48cdb5a64aa581c0f952&_m=3Df71f1fe84c0c4e8f84267097ff9f3b0d=
+&_e=3Di2MxM7_NWgiqJT29mPYstPUlqN5T1oUEzD_P-5dqzzq8_koQY-MmEfvsLm9gceY3xeZ1F=
+1W56vnejtSTUxu4GSSXI891h8u5JL3ro8DT-gxIszUN2Fg0BALywNXLjNqRev9Ytt2WDw0Nieh-=
+YUNmHh8UaPR_XJQ3m62Xm1SfdFWJfBqUpnM4vMy8PfyIVx3tBo7njtAjKgFhhAfS0DJmQarwq1A=
+UuJXPijWE5DNX78e4sKyJIZ08tbtUnwXUYsIrFmN9v3DlRcpsx0IYujdSOrvkDTyUdrN3MthOZn=
+l4_UpIvJNbDNqTY3dfpHtAj2WTTxig21s3bGMGvkfGU08IZN82QVqhOdWDULn6HH3KvNEoXYM2B=
+Wd4CaAJ-jqEQ6ASRis8yQgzjLlmcvRmQ_1XOlfLrCANUzIjU38QGwdp1M_YN_dMLVW_bz753ZZM=
+dfGcf0sd8W1UPIKeju1gtSZlMCGbIBhRGyMaZBgBnn88yJ8X4lg6aTfWUaqog-d8QFFJRpzeYeg=
+DnxlccSDRIRuHuMvQv5cCJ6hHHgYPWJpcNeKQhzPM46PEmxU74fA33Ul1daSfb8fm1MzK_sGvT3=
+xkIA%3D%3D" style=3D"box-sizing: border-box; font-weight: 700; text-decorat=
+ion: underline; font-family: 'Montserrat', Arial, Helvetica, sans-serif; co=
+lor: #0f71ce;">I=E2=80=99m stepping forward with a new expos=C3=A9</a> <b s=
+tyle=3D"box-sizing: border-box;">that I believe could surpass anything I=E2=
+=80=99ve ever done=E2=80=A6</b> <br style=3D"box-sizing: border-box;"><br s=
+tyle=3D"box-sizing: border-box;"> It=E2=80=99s an investigation into what I=
+ call <i style=3D"box-sizing: border-box;">The Final Displacement</i> =E2=
+=80=A6 and I don=E2=80=99t think we will ever again see a story that rivals=
+ the magnitude of this during my lifetime. <br style=3D"box-sizing: border-=
+box;"><br style=3D"box-sizing: border-box;"> I=E2=80=99m not talking about =
+AI=E2=80=A6 quantum computing=E2=80=A6 augmented reality=E2=80=A6 the block=
+chain=E2=80=A6 or anything else you might be thinking of. <br style=3D"box-=
+sizing: border-box;"><br style=3D"box-sizing: border-box;"> No. This is far=
+ bigger than them all. In fact=E2=80=A6 <br style=3D"box-sizing: border-box=
+;"><br style=3D"box-sizing: border-box;"> <b style=3D"box-sizing: border-bo=
+x;"> It=E2=80=99s the cornerstone that all our recent technological innovat=
+ions have been built upon and the future will be built upon too. </b> <br s=
+tyle=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> <a =
+href=3D"https://links.liberty.republicsignal.com/u/click?_t=3D505979ffa9de4=
+8cdb5a64aa581c0f952&_m=3Df71f1fe84c0c4e8f84267097ff9f3b0d&_e=3Di2MxM7_NWgiq=
+JT29mPYstPUlqN5T1oUEzD_P-5dqzzq8_koQY-MmEfvsLm9gceY3xeZ1F1W56vnejtSTUxu4GSS=
+XI891h8u5JL3ro8DT-gxIszUN2Fg0BALywNXLjNqRev9Ytt2WDw0Nieh-YUNmHh8UaPR_XJQ3m6=
+2Xm1SfdFWJfBqUpnM4vMy8PfyIVx3t2wALJ6o_w66fjEPV-x6K2J5DNpaOzmWAgyfUyr0VuSMxE=
+SzIi3tJnvzn3Cv8oYVtJlqjnpN2DNr3sYdneCI02Pjy_zeS98Y7CEcvUfk6_SOS1r5hz7W5EM7F=
+A9lF_NKEVZItAsO1V5aqnp6KJXRAQUgsfLn5TPT_ERvmPumqeOA49rW2ROf1dChaYTTBoUZ_PtS=
+uf-3c8V5zJFBlgHMjL7IkMRnu5xfwTXZmUAtFstcZONcOU1b4T3vivRIEfepq0jk-R34-IlTALE=
+R3CfhJLq3AcV76gXfwFHhkFXAaWVWi1FdTrPLZPM5tGhIAYmMEI7S0g0oC21cSGHRp6sWWhw3vT=
+ciuFMkmwkXGHaAt0VBSvb3beFtbx-ytTCPPdq58vquUT1wxa18Ls2xCM1rHYQ%3D%3D" style=
+=3D"box-sizing: border-box; font-weight: 700; text-decoration: underline; f=
+ont-family: 'Montserrat', Arial, Helvetica, sans-serif; color: #0f71ce;">Ye=
+t you=E2=80=99ve likely never heard of it before.</a> <br style=3D"box-sizi=
+ng: border-box;"><br style=3D"box-sizing: border-box;"> Outside of the labs=
+ in the world=E2=80=99s most prestigious universities and tech companies, a=
+lmost nobody has. <br style=3D"box-sizing: border-box;"><br style=3D"box-si=
+zing: border-box;"> But those who <i style=3D"box-sizing: border-box;">have=
+</i> =E2=80=A6 those who <i style=3D"box-sizing: border-box;">can</i> see t=
+he writing on the wall=E2=80=A6 they=E2=80=99re investing billions of dolla=
+rs, as they know this will transform everything. <br style=3D"box-sizing: b=
+order-box;"><br style=3D"box-sizing: border-box;"> Marc Andreessen=E2=80=A6=
+ Ben Horowitz=E2=80=A6 Elon Musk=E2=80=A6 Jeff Bezos=E2=80=A6 Mark Zuckerbe=
+rg=E2=80=A6Jensen Huang=E2=80=A6 Bill Gates=E2=80=A6 the list goes on and o=
+n. <br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-bo=
+x;"> They know, as I do, that in a few years from now, we will not recogniz=
+e the world we live in. <br style=3D"box-sizing: border-box;"><br style=3D"=
+box-sizing: border-box;"> How we work, live, communicate, transact=E2=80=A6=
+ it will all be completely upended by what=E2=80=99s coming next. <br style=
+=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> Today, =
+I=E2=80=99m going to share it all with you=E2=80=A6 <a href=3D"https://link=
+s.liberty.republicsignal.com/u/click?_t=3D505979ffa9de48cdb5a64aa581c0f952&=
+_m=3Df71f1fe84c0c4e8f84267097ff9f3b0d&_e=3Di2MxM7_NWgiqJT29mPYstPUlqN5T1oUE=
+zD_P-5dqzzq8_koQY-MmEfvsLm9gceY3xeZ1F1W56vnejtSTUxu4GSSXI891h8u5JL3ro8DT-gx=
+IszUN2Fg0BALywNXLjNqRev9Ytt2WDw0Nieh-YUNmHh8UaPR_XJQ3m62Xm1SfdFWJfBqUpnM4vM=
+y8PfyIVx3t1UUFVOP5x-470g00Hv6m-PZeKAgwncZZnvFA06ffrTNeebEt8ht-4n3NYAFfvKCHy=
+k4ZnqNQtiU2sQozJm55UFwyGE43KhkUkEiybslA90Cxw-bliPdywKfLrHOHJlu8FQ_n5PmVVh7c=
+gwlRap_-sCSc4wZnoHmtn8mrWo57pGcCdFsDIg5SqqYBdKcPaaoAmZlRJiBEh66irFPcHQPxlO-=
+IMMOi5FQdSiPTjpxF3NBvOzWcR0c_j4wk5SePZxJy27ver6ca7Ht4ko3buBLoZxOpG89euYg59B=
+hhFqj7SuV89jyq8PjO8a4FShAg8yCCI2EKu57ooxjj_daKGAQKKJH4SDaxn9ZQQuGTLQS0PU82e=
+V2F-abnRusHYBMS1TxpQEf1GBnpovsJsc5Dqo-qOg%3D%3D" style=3D"box-sizing: borde=
+r-box; font-weight: 700; text-decoration: underline; font-family: 'Montserr=
+at', Arial, Helvetica, sans-serif; color: #0f71ce;">and I promise you=E2=80=
+=99ve <em style=3D"box-sizing: border-box;">never</em> heard anything like =
+this before.</a> <br style=3D"box-sizing: border-box;"><br style=3D"box-siz=
+ing: border-box;"> You see, despite the magnitude of this story, nobody is =
+openly and freely discussing this turning point. And that deeply concerns m=
+e, because I believe its emergence will draw an indelible demarcation line =
+in society. <br style=3D"box-sizing: border-box;"><br style=3D"box-sizing: =
+border-box;"> On one side, you=E2=80=99ll have those who understand it, inv=
+est in it, and who are greatly enriched by it. <br style=3D"box-sizing: bor=
+der-box;"><br style=3D"box-sizing: border-box;"> On the other side=E2=80=A6=
+ you=E2=80=99ll have those who underestimate it, turn a blind eye and are u=
+nfortunately impoverished by the sweeping changes it ushers in. <br style=
+=3D"box-sizing: border-box;"><br style=3D"box-sizing: border-box;"> I know =
+what side I=E2=80=99ll be on. <br style=3D"box-sizing: border-box;"><br sty=
+le=3D"box-sizing: border-box;"> And I know what side I want <i style=3D"box=
+-sizing: border-box;">you</i> to be on. <br style=3D"box-sizing: border-box=
+;"><br style=3D"box-sizing: border-box;"> <a href=3D"https://links.liberty.=
+republicsignal.com/u/click?_t=3D505979ffa9de48cdb5a64aa581c0f952&_m=3Df71f1=
+fe84c0c4e8f84267097ff9f3b0d&_e=3Di2MxM7_NWgiqJT29mPYstPUlqN5T1oUEzD_P-5dqzz=
+q8_koQY-MmEfvsLm9gceY3xeZ1F1W56vnejtSTUxu4GSSXI891h8u5JL3ro8DT-gxIszUN2Fg0B=
+ALywNXLjNqRev9Ytt2WDw0Nieh-YUNmHh8UaPR_XJQ3m62Xm1SfdFWJfBqUpnM4vMy8PfyIVx3t=
+3F5KI-YqqNcZavoBJkbIe7s6FATjZ-o3v_xzAekc60bEHkmCnbVOxozceHxBc8NILh8MXqTIPGF=
+ksoUzqnCE8dGI05YJU-LaB0CSmZRUfR0TBzlwGClbG7rWgzUuDDQEqQFxI4VwXd-XeUCmuywGik=
+kCa5Q1dy6tQ4C6U3nhERTD6XM6wo2Dmpt9nCnMbQtw5t2FEHb8q7yd9bOQYmqPFoybCJ_O85Bno=
+ThJuZN0Ff-eIMoqwvQ7qGEQVL9TSVLBqsx-YspcDHgI7nzdS31yLIV1H-wXrcnY0qQGic2qhAWI=
+FI4KjezqgLQc9s3PjHouZmNIzeIfb9TLx1jXNbsy9vYw3ZNMIpgOgOQ5uxCKeT9oxerLIzrTpu7=
+TsCUSWhglt7Uk0rm8z7geJzHTOL4mRQ%3D%3D" style=3D"box-sizing: border-box; fon=
+t-weight: 700; text-decoration: underline; font-family: 'Montserrat', Arial=
+, Helvetica, sans-serif; color: #0f71ce;">So go here to watch</a> my full i=
+nvestigation into this story. <br style=3D"box-sizing: border-box;"><br sty=
+le=3D"box-sizing: border-box;"> Including the names of the companies to buy=
+ and sell if you want to capitalize on the impending multi-trillion-dollar =
+displacement. <br style=3D"box-sizing: border-box;"><br style=3D"box-sizing=
+: border-box;"> Good investing, <br style=3D"box-sizing: border-box;"><br s=
+tyle=3D"box-sizing: border-box;"> Porter Stansberry </span> </td> </tr> <tr=
+ style=3D"box-sizing: border-box;"> <td height=3D"14" width=3D"100%" style=
+=3D"box-sizing: border-box; font-family: 'Montserrat', Arial, Helvetica, sa=
+ns-serif; max-width: 640px;" class=3D"section-gap"></td> </tr> </tbody> </t=
+able> </td> </tr> </tbody> </table> </td> </tr> </tbody> </table> <table ro=
+le=3D"presentation" cellpadding=3D"0" cellspacing=3D"0" align=3D"center" st=
+yle=3D"box-sizing: border-box;"> <tr style=3D"box-sizing: border-box;"> <td=
+ align=3D"center" style=3D"box-sizing: border-box; text-align: center; padd=
+ing: 20px 20px 20px 20px;"> <p style=3D"box-sizing: border-box; color: #000=
+000; font-weight: 400; font-size: 12px; font-family: Montserrat; line-heigh=
+t: normal; margin: 0; padding: 0;">If you no longer wish to receive this of=
+fer, please click <a href=3D"https://links.liberty.republicsignal.com/u/cli=
+ck?_t=3D505979ffa9de48cdb5a64aa581c0f952&_m=3Df71f1fe84c0c4e8f84267097ff9f3=
+b0d&_e=3Di2MxM7_NWgiqJT29mPYstPUlqN5T1oUEzD_P-5dqzzq0hCLpDRqD2Qnt-EnEEkXVLG=
+HuIy7krKNQeazcW7nSA8ieTTZOc1gzqWsB62HJdQTuRnkvRgurD4DwJ6CIIMTDvzyIpg8uLTH45=
+lxTS2VY8zNV1iGPqSvIRNVzD1lkocjuuGcPkJJQxH85UzuOPQVrTm-8qNzmCrjiPR87qQ9txpRx=
+McpbvlwegBEveYb2HD2a7zFFtrYImy54gIhSkS-3nFBJyU4z74ctyawZ-qM7u7WOK-qlXc20JuE=
+3Xs8GPxHuCl2fljK6kAYdh2pYHzmh4IfcKzf_QVwcfELqigqNZmcoKMO31ESQX3m0IMBpOs10CH=
+VEZM_sZJS8WSvpEbvFhmD0GAcmEqXURHweE7t-2i5ijXV4IcQ5ng4RR2pbO88MgqdjYg5X-PJbi=
+MZi3F4PbOuzxFu39l8TGfnMmh7yuFZCRqlbDv1RzeqsLkVEP-FU30_edcfTilUJ04O9mfj8ujst=
+MMqwCv-NBUhj3TR2GGhPqs0CpVBDe5JOCj4X4wEksmhIKgxdOMEzD3ojPN1xmHTVSNrWfUOk0BF=
+gCJk8XA%3D%3D" style=3D"box-sizing: border-box; font-weight: bold; text-dec=
+oration: underline; color: #000000; font-size: 12px; font-family: Montserra=
+t;">here</a> to unsubscribe.</p></td></tr></table></div></td></tr></table><=
+/td></tr></tbody></table></td></tr></tbody></table><table class=3D"row row-=
+5" align=3D"center" width=3D"100%" border=3D"0" cellpadding=3D"0" cellspaci=
+ng=3D"0" role=3D"presentation" style=3D"box-sizing: border-box; mso-table-l=
+space: 0; mso-table-rspace: 0; background-color: #eaecef;" bgcolor=3D"#eaec=
+ef"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: borde=
+r-box;"><td style=3D"box-sizing: border-box;"><table class=3D"row-content s=
+tack" align=3D"center" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" rol=
+e=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; ms=
+o-table-rspace: 0; background-color: #0d141d; border-radius: 0 0 24px 24px;=
+ color: #000; width: 640px; margin: 0 auto;" width=3D"640" bgcolor=3D"#0d14=
+1d"><tbody style=3D"box-sizing: border-box;"><tr style=3D"box-sizing: borde=
+r-box;"><td class=3D"column column-1" width=3D"100%" style=3D"box-sizing: b=
+order-box; mso-table-lspace: 0; mso-table-rspace: 0; font-weight: 400; text=
+-align: left; padding-bottom: 5px; padding-top: 5px; vertical-align: top; w=
+idth: 100%;" align=3D"left" valign=3D"top"><table class=3D"text_block block=
+-1" width=3D"100%" border=3D"0" cellpadding=3D"10" cellspacing=3D"0" role=
+=3D"presentation" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso=
+-table-rspace: 0; word-break: break-word;"><tr style=3D"box-sizing: border-=
+box;"><td class=3D"pad" style=3D"box-sizing: border-box;"><div style=3D"box=
+-sizing: border-box; font-family: 'Trebuchet MS',Tahoma,sans-serif;"><div c=
+lass style=3D"box-sizing: border-box; font-size: 14px; font-family: Montser=
+rat,'Trebuchet MS','Lucida Grande','Lucida Sans Unicode','Lucida Sans',Taho=
+ma,sans-serif; mso-line-height-alt: 16.8px; color: #9cacc2; line-height: 1.=
+2;"><p style=3D"box-sizing: border-box; line-height: inherit; margin: 0; te=
+xt-align: center; font-size: 11px; mso-line-height-alt: 16.8px;">&nbsp;</p>=
+<p style=3D"box-sizing: border-box; line-height: inherit; margin: 0; text-a=
+lign: center; font-size: 11px; mso-line-height-alt: 13.2px;"><span style=3D=
+"box-sizing: border-box; word-break: break-word; font-size: 11px;">Coverage=
+ that respects uncertainty.</span></p><p style=3D"box-sizing: border-box; l=
+ine-height: inherit; margin: 0; text-align: center; font-size: 11px; mso-li=
+ne-height-alt: 13.2px;"><span style=3D"box-sizing: border-box; word-break: =
+break-word; font-size: 11px;">Independent analysis for a complex financial =
+world.</span></p><p style=3D"box-sizing: border-box; line-height: inherit; =
+margin: 0; text-align: center; font-size: 11px; mso-line-height-alt: 16.8px=
+;">&nbsp;</p><p style=3D"box-sizing: border-box; line-height: inherit; marg=
+in: 0; text-align: center; font-size: 11px; mso-line-height-alt: 13.2px;"> =
+<span style=3D"box-sizing: border-box; word-break: break-word; font-size: 1=
+1px;">We are not responsible for financial decisions based on this email. P=
+lease seek professional advice before taking action.</span></p><p style=3D"=
+box-sizing: border-box; line-height: inherit; margin: 0; text-align: center=
+; font-size: 11px; mso-line-height-alt: 13.2px;"><span style=3D"box-sizing:=
+ border-box; word-break: break-word; font-size: 11px; color: #94a3b8;">Abou=
+t this market update</span></p><p style=3D"box-sizing: border-box; line-hei=
+ght: inherit; margin: 0; text-align: center; font-size: 11px; mso-line-heig=
+ht-alt: 16.8px;">&nbsp;</p><p style=3D"box-sizing: border-box; line-height:=
+ inherit; margin: 0; text-align: center; font-size: 11px; mso-line-height-a=
+lt: 13.2px;"><span style=3D"box-sizing: border-box; word-break: break-word;=
+ font-size: 11px; color: #94a3b8;">Sent by Republic Signal (published by Re=
+d Eagle Group, LLC).</span></p><p style=3D"box-sizing: border-box; line-hei=
+ght: inherit; margin: 0; text-align: center; font-size: 11px; mso-line-heig=
+ht-alt: 16.8px;">&nbsp;</p><p style=3D"box-sizing: border-box; line-height:=
+ inherit; margin: 0; text-align: center; font-size: 11px; mso-line-height-a=
+lt: 13.2px;"><span style=3D"box-sizing: border-box; word-break: break-word;=
+ font-size: 11px;">202 South 2nd Avenue, Suite A, Laramie, WY 82070</span> =
+</p><p style=3D"box-sizing: border-box; line-height: inherit; margin: 0; te=
+xt-align: center; font-size: 11px; mso-line-height-alt: 16.8px;">&nbsp;</p>=
+<p style=3D"box-sizing: border-box; line-height: inherit; margin: 0; text-a=
+lign: center; font-size: 11px; mso-line-height-alt: 13.2px;"><span style=3D=
+"box-sizing: border-box; word-break: break-word; font-size: 11px; color: #9=
+4a3b8;">For any questions or assistance, you can reach us at: <a href=3D"ma=
+ilto:support@republicsignal.com" target=3D"_blank" style=3D"box-sizing: bor=
+der-box; text-decoration: underline; color: #9cacc2;" rel=3D"noopener"><str=
+ong style=3D"box-sizing: border-box;">support@republicsignal.com</strong></=
+a>.</span> </p><p style=3D"box-sizing: border-box; line-height: inherit; ma=
+rgin: 0; text-align: center; font-size: 11px; mso-line-height-alt: 13.2px;"=
+><span style=3D"box-sizing: border-box; word-break: break-word; font-size: =
+11px; color: #94a3b8;"><br style=3D"box-sizing: border-box;"><a href=3D"htt=
+ps://links.liberty.republicsignal.com/e/encryptedUnsubscribe?_r=3D505979ffa=
+9de48cdb5a64aa581c0f952&_s=3Df71f1fe84c0c4e8f84267097ff9f3b0d&_t=3DPgpX4a92=
+Q0Zrxwto-SqTK88pArpcdxr1NbTKdbAKD7BLqVwqX-BC4ZWCz2JUFmHBlhRxL-hj3yIc8b3FZGU=
+GwXBABMqpfwiuTsMigo042GDHbnUpodlUwWUQH_Uiwrno" target=3D"_blank" rel=3D"noo=
+pener" style=3D"box-sizing: border-box; color: #9cacc2;"><strong style=3D"b=
+ox-sizing: border-box;">Unsubscribe</strong></a>&nbsp;| <a href=3D"https://=
+links.liberty.republicsignal.com/u/click?_t=3D505979ffa9de48cdb5a64aa581c0f=
+952&_m=3Df71f1fe84c0c4e8f84267097ff9f3b0d&_e=3Di2MxM7_NWgiqJT29mPYstMZ6dfft=
+uGuuYKR4O0SUal_hKsI4Phc9EjfaFGJq9rxK3pw_1_RYSoOahSdLfM5qGztzni_QimgFM3KBDkq=
+uTdgi4Du3OhH4CXh0v8JFjApaNgUDVeN6L8PEtQ9jkcxLLeKpj4xSrNwNcCKlM_zG95NA6zTCcD=
+vsFRzUw2IyDwmLVfro4TgiSQmcMxzY3Tj3zySnaIliJCRrEJZWQZlRVHQs-jI_TOBBhWXu-SiOK=
+Eb2C84cVZ3dpfyPQiA8lPdHE2XrqiKaVRIe47is-WaSZbck-flPxAAhDFjoih3mr27cLz2OB8eI=
+lV-5OOCJtujwYCKQ4mtfYdFdLqRVwaYhJfEF557AFF9dyJbzzG71L3Sp" target=3D"_blank"=
+ style=3D"box-sizing: border-box; text-decoration: underline; color: #9cacc=
+2;" rel=3D"noopener"><strong style=3D"box-sizing: border-box;">Privacy Poli=
+cy</strong></a></span></p><p style=3D"box-sizing: border-box; line-height: =
+inherit; margin: 0; text-align: center; font-size: 11px; mso-line-height-al=
+t: 16.8px;">&nbsp;</p><p style=3D"box-sizing: border-box; line-height: inhe=
+rit; margin: 0; text-align: center; font-size: 11px; mso-line-height-alt: 1=
+3.2px;"><span style=3D"box-sizing: border-box; word-break: break-word; font=
+-size: 11px;">=C2=A9 2026 Republic Signal. All rights reserved.</span></p><=
+p style=3D"box-sizing: border-box; line-height: inherit; margin: 0; text-al=
+ign: center; font-size: 11px; mso-line-height-alt: 16.8px;">&nbsp;</p></div=
+></div></td></tr></table></td></tr></tbody></table></td></tr></tbody></tabl=
+e><table class=3D"row row-6" align=3D"center" width=3D"100%" border=3D"0" c=
+ellpadding=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizin=
+g: border-box; mso-table-lspace: 0; mso-table-rspace: 0; background-color: =
+#eaecef;" bgcolor=3D"#eaecef"><tbody style=3D"box-sizing: border-box;"><tr =
+style=3D"box-sizing: border-box;"><td style=3D"box-sizing: border-box;"><ta=
+ble class=3D"row-content stack" align=3D"center" border=3D"0" cellpadding=
+=3D"0" cellspacing=3D"0" role=3D"presentation" style=3D"box-sizing: border-=
+box; mso-table-lspace: 0; mso-table-rspace: 0; color: #000; width: 640px; m=
+argin: 0 auto;" width=3D"640"><tbody style=3D"box-sizing: border-box;"><tr =
+style=3D"box-sizing: border-box;"><td class=3D"column column-1" width=3D"10=
+0%" style=3D"box-sizing: border-box; mso-table-lspace: 0; mso-table-rspace:=
+ 0; font-weight: 400; text-align: left; padding-bottom: 5px; padding-top: 5=
+px; vertical-align: top; width: 100%;" align=3D"left" valign=3D"top"><div c=
+lass=3D"spacer_block block-1" style=3D"box-sizing: border-box; height: 20px=
+; line-height: 20px; font-size: 1px;">&#8202;</div></td></tr></tbody></tabl=
+e></td></tr></tbody></table></td></tr></tbody></table><!-- End --></body></=
+html>
+------=_Part_30440_755596470.1793823360692--

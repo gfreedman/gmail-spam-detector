@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.94.0
+ * @version 6.95.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -94,7 +94,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.94.0';
+const SCRIPT_VERSION = '6.95.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -198,7 +198,10 @@ const DEFAULT_DOMAINS = Object.freeze({
     // cannot see it; Signal 15 matches it behind the relay, via Reply-To.
     'trendwatcherslab.com',
     // v6.87.0: Daily Brief "in partnership with Brownstone Research" ad mill (SES).
-    'dailyfinbrief.com'
+    'dailyfinbrief.com',
+    // v6.95.0: Republic Signal (Stansberry "Final Displacement" pitch, Red Eagle Group;
+    // SES via Iterable). Zero vocabulary signals; only bulk fired, so it sat in the inbox.
+    'republicsignal.com'
   ])
 });
 

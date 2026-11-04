@@ -20,6 +20,15 @@ detail plus the diffs.
 
 ---
 
+## v6.95.0
+
+Blacklist `republicsignal.com`. A Stansberry investment pitch ("It's finally happening –
+do not ignore") reached the inbox: bulk via SES/Iterable, but zero clickbait, fear,
+marketing or from-name hits, so no rule fired. Blacklisted + bulk is Rule 1, which
+the post-deploy recheck deletes (`RECHECK_DELETE_RULES`), so mail already in the
+inbox is removed within one trigger cycle. Fixture added (scrubbed). The structural
+tell for this ad-mill family follows separately.
+
 ## v6.94.0
 
 **Shadow hits are written to a "Shadow" tab in the Spam Intelligence Log, so they can be read.**

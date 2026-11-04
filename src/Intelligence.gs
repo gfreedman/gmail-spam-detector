@@ -356,24 +356,72 @@ function writeHealthRow(stats)
  */
 const SHADOW_SHEET_MAX_ROWS = 1000;
 const SHADOW_RUN_MAX_ROWS   = 50;
-const SHADOW_HEADER = ['DetectedAt', 'Version', 'Tags', 'FromDomain', 'Subject', 'MessageId'];
-let shadowBuffer = [];
+const SHADOW_HEADER = ['DetectedAt', 'Version', 'Tags', 'FromDomain', 'Subject', 'MessageId',
+                       'Repeat', 'RepeatHost', 'Hist', 'Src'];
+let shadowBuffer  = [];
+let shadowDropped = 0;
 
-function queueShadowRow(tags, domain, subject, messageId)
+/**
+ * v6.96.0 - a log nobody can read is worthless, so the writer proves itself:
+ *  - 'extra' = [Repeat, RepeatHost, Hist, Src] for the repeated-link tag; blank otherwise.
+ *  - Rows over the per-run cap are COUNTED and written as one DROPPED=n row (they were
+ *    silently discarded before).
+ *  - A 'selftest' row is written once per SCRIPT_VERSION through this same path, so the
+ *    tab exists and the write can be read back within one trigger cycle; its tag says
+ *    whether the repeat counter still counts (selftest ok / selftest FAIL).
+ *  - The grid is grown before writing: a new sheet has 1000 rows and the cap is 1000
+ *    data rows + a header, so the last write used to land off the grid and throw.
+ *  - Every early exit says so in the Executions log.
+ */
+function queueShadowRow(tags, domain, subject, messageId, extra)
 {
-  if (shadowBuffer.length >= SHADOW_RUN_MAX_ROWS) return;
-  shadowBuffer.push([new Date().toISOString(), SCRIPT_VERSION, tags, domain, subject, messageId]);
+  if (shadowBuffer.length >= SHADOW_RUN_MAX_ROWS) { shadowDropped++; return; }
+  const e = extra || [];
+  shadowBuffer.push([new Date().toISOString(), SCRIPT_VERSION, tags, domain, subject, messageId,
+                     e[0] || '', e[1] || '', e[2] || '', e[3] || '']);
+}
+
+function shadowSelftestRow()
+{
+  const probe = 'https://t.example/x?e=1';
+  const st = repeatStats([probe, probe, probe, probe, probe, probe]);
+  const ok = st.exact === SHADOW_CTA_REPEAT_MIN && st.host === 't.example';
+  return [new Date().toISOString(), SCRIPT_VERSION, ok ? 'selftest ok' : 'selftest FAIL ctarep=' + st.exact,
+          'selftest', 'shadow writer self-test', '', '', '', '', ''];
 }
 
 function flushShadowRows()
 {
-  if (shadowBuffer.length === 0) return;
-  const rows = shadowBuffer;
-  shadowBuffer = [];
   try
   {
-    const sheetId = PropertiesService.getScriptProperties().getProperty('SPAM_LOG_SHEET_ID');
-    if (!sheetId) return;
+    const props = PropertiesService.getScriptProperties();
+    let selftest = null;
+    if (props.getProperty('SHADOW_SELFTEST_VERSION') !== SCRIPT_VERSION)
+    {
+      const tried = String(props.getProperty('SHADOW_SELFTEST_TRY') || '').split('|');
+      const recent = tried[0] === SCRIPT_VERSION && Date.now() - Number(tried[1]) < 3600 * 1000;
+      if (!recent) selftest = shadowSelftestRow();
+    }
+    if (shadowBuffer.length === 0 && shadowDropped === 0 && !selftest) return;
+
+    const rows = shadowBuffer;
+    const dropped = shadowDropped;
+    shadowBuffer = [];
+    shadowDropped = 0;
+    if (dropped > 0)
+    {
+      logInfo('flushShadowRows: ' + dropped + ' observation(s) over the ' + SHADOW_RUN_MAX_ROWS + '-row run cap');
+      rows.push([new Date().toISOString(), SCRIPT_VERSION, 'DROPPED=' + dropped, '', 'over the per-run cap', '', '', '', '', '']);
+    }
+    if (selftest) rows.push(selftest);
+
+    const sheetId = props.getProperty('SPAM_LOG_SHEET_ID');
+    if (!sheetId)
+    {
+      logInfo('flushShadowRows: SPAM_LOG_SHEET_ID is unset, ' + rows.length + ' row(s) not written');
+      return;
+    }
+    if (selftest) props.setProperty('SHADOW_SELFTEST_TRY', SCRIPT_VERSION + '|' + Date.now());
     const ss = SpreadsheetApp.openById(sheetId);
     let sheet = ss.getSheetByName('Shadow');
     if (!sheet)
@@ -384,7 +432,13 @@ function flushShadowRows()
     sheet.getRange(1, 1, 1, SHADOW_HEADER.length).setValues([SHADOW_HEADER]);
     const last  = Math.max(sheet.getLastRow(), 1);
     const clean = rows.map(function(r) { return r.map(escapeSheetCell); });
+    const needed = last + clean.length;
+    if (typeof sheet.getMaxRows === 'function' && sheet.getMaxRows() < needed)
+    {
+      sheet.insertRowsAfter(sheet.getMaxRows(), needed - sheet.getMaxRows());
+    }
     sheet.getRange(last + 1, 1, clean.length, SHADOW_HEADER.length).setValues(clean);
+    if (selftest) props.setProperty('SHADOW_SELFTEST_VERSION', SCRIPT_VERSION);
     const dataRows = last - 1 + clean.length;
     if (dataRows > SHADOW_SHEET_MAX_ROWS) sheet.deleteRows(2, dataRows - SHADOW_SHEET_MAX_ROWS);
   }

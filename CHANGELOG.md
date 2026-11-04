@@ -20,6 +20,34 @@ detail plus the diffs.
 
 ---
 
+## v6.96.0
+
+Log-only observer for the repeated-link tell, and a Shadow-tab writer that proves itself.
+Changes no verdict, label or delete.
+
+The Republic Signal pitch (v6.95.0) scored zero on every behaviour signal; what it had was
+structure: one tracking link repeated 9 times through the prose. `observeShadow()` now tags
+`ctarep=<exact>/<host+path>` when one URL repeats 6+ times in a bulk-service mail from a sender
+with no history (plain body first, HTML anchors only if the plain body is under the bar,
+compared not summed; counted by exact URL AND by host+path so a per-link token in the query
+cannot dodge it; a spent history budget logs `hist=unk` instead of dropping the hit). Only the
+HOST is recorded, never the URL (recipient address and tokens). Panel of four reviewers
+(false-positive constructor, reformed spammer, implementation, observability) on 2026-11-04:
+log-only, threshold 6, no Python mirror (an observer tag is not a signal, so Phase 7 does not
+see it).
+
+The Shadow tab had never been created in production, so nothing proved its writer worked.
+Now: one `selftest` row per SCRIPT_VERSION written through the real path (its tag says
+whether the repeat counter still counts); rows over the 50-per-run cap are counted into a
+`DROPPED=n` row instead of vanishing; the grid is grown before writing (a new sheet has 1000
+rows and the cap is 1000 data rows + header, so the last write landed off the grid and threw
+into a catch that counts nothing); a missing `SPAM_LOG_SHEET_ID` says so in the log; new
+columns Repeat, RepeatHost, Hist, Src. A broken sheet is retried hourly, not every cycle.
+
+Nine faults injected into a scratch copy (threshold, fragment strip, summed sources, counter
+off by one, key set before write, no grid growth, no DROPPED row, null history dropped, no
+host+path key); each turned a check red.
+
 ## v6.95.0
 
 Blacklist `republicsignal.com`. A Stansberry investment pitch ("It's finally happening –

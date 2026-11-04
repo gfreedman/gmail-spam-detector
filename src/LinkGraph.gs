@@ -756,3 +756,55 @@ function sanitizeForLog(text)
   if (text == null) return '';
   return String(text).substring(0, LIMITS.maxLogChars).replace(/[\n\r]/g, ' ');
 }
+
+/**
+ * Repeated-link counting for the log-only shadow observer (v6.96.0).
+ *
+ * plainTextUrls(): http(s) URLs in a text body, at most 2000. One literal prefix plus a
+ * single character class and lastIndex advancing on every match, so it is linear.
+ * normalizeRepeatUrl(): fragment and trailing punctuation dropped, scheme and host
+ * lower-cased, path and query left case-sensitive, capped at 512 chars.
+ * repeatStats(): the largest repeat count by exact URL and by host+path (query dropped),
+ * and the host of the most-repeated one. The caller logs only the HOST: the full URL
+ * carries the recipient's address and tokens.
+ */
+function plainTextUrls(text)
+{
+  const out = [];
+  if (!text) return out;
+  const re = /https?:\/\/[^\s<>"'\])}]+/gi;
+  let m;
+  while ((m = re.exec(text)) !== null && out.length < 2000) out.push(m[0]);
+  return out;
+}
+
+function normalizeRepeatUrl(url)
+{
+  let u = String(url || '').substring(0, 512);
+  const hash = u.indexOf('#');
+  if (hash !== -1) u = u.substring(0, hash);
+  u = u.replace(/[.,;:!?]+$/, '');
+  const m = /^(https?:\/\/)([^\/?]*)([\s\S]*)$/i.exec(u);
+  return m ? m[1].toLowerCase() + m[2].toLowerCase() + m[3] : u;
+}
+
+function repeatStats(urls)
+{
+  const exact = new Map();
+  const path  = new Map();
+  let bestExact = 0, bestPath = 0, bestUrl = '';
+  for (let i = 0; i < urls.length; i++)
+  {
+    const u = normalizeRepeatUrl(urls[i]);
+    if (!u) continue;
+    const e = (exact.get(u) || 0) + 1;
+    exact.set(u, e);
+    if (e > bestExact) { bestExact = e; bestUrl = u; }
+    const q = u.indexOf('?');
+    const pk = q === -1 ? u : u.substring(0, q);
+    const c = (path.get(pk) || 0) + 1;
+    path.set(pk, c);
+    if (c > bestPath) bestPath = c;
+  }
+  return { exact: bestExact, path: bestPath, host: bestUrl ? extractUrlHost(bestUrl) : '' };
+}

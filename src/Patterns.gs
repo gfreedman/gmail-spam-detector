@@ -530,6 +530,15 @@ const SHADOW_THEME_PATTERNS = Object.freeze({
 });
 
 /**
+ * REPEATED-LINK observer threshold (v6.96.0) - LOG-ONLY, read by observeShadow() in
+ * Thread.gs. One URL repeated this many times in a bulk-service mail from a sender the
+ * owner has no history with. Panel 2026-11-04: 6 (5 touches multi-CTA text mail);
+ * counting is exact-URL AND host+path, so a per-link token in the query cannot dodge it.
+ * @const {number}
+ */
+const SHADOW_CTA_REPEAT_MIN = 6;
+
+/**
  * Footer postal addresses seen on 4+ spam fixtures across several brand domains
  * (one street address behind five sender domains - the cheap-to-match,
  * costly-to-change tell). Normalised: lower-case, letters and digits, single spaces.

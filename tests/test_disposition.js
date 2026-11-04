@@ -2695,14 +2695,17 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
       const before = st.writes.length; c.flushShadowRows();
       check('SHADOWTAB: a second flush with nothing buffered makes no Sheets call', st.writes.length === before);
       const cap = mkSheet(1000);
-      const c2 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); c2.SpreadsheetApp = cap.ss; c2.logInfo = () => {};
+      const VER = require('vm').runInContext('SCRIPT_VERSION', c);   // seeds the once-per-version self-test row as already written
+      const c2 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1', SHADOW_SELFTEST_VERSION: VER } }); c2.SpreadsheetApp = cap.ss; c2.logInfo = () => {};
       for (let i = 0; i < 3; i++) c2.queueShadowRow('themes=3', 'd.example', 's' + i, 'id' + i);
       c2.flushShadowRows();
       check('SHADOWTAB: the oldest rows are dropped to hold the cap', cap.st.deleted && cap.st.deleted.a === 2 && cap.st.deleted.n === 3, JSON.stringify(cap.st.deleted));
-      const c3 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); c3.SpreadsheetApp = mkSheet().ss; c3.logInfo = () => {};
+      const c3 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1', SHADOW_SELFTEST_VERSION: VER } }); c3.SpreadsheetApp = mkSheet().ss; c3.logInfo = () => {};
       for (let i = 0; i < 80; i++) c3.queueShadowRow('themes=3', 'd.example', 's' + i, 'id' + i);
       const w3 = mkSheet(); c3.SpreadsheetApp = w3.ss; c3.flushShadowRows();
-      check('SHADOWTAB: one run writes at most 50 rows', w3.st.writes.length && w3.st.writes[w3.st.writes.length - 1].nr === 50, JSON.stringify(w3.st.writes.map(x => x.nr)));
+      const w3rows = w3.st.writes.length ? w3.st.writes[w3.st.writes.length - 1].v : [];
+      check('SHADOWTAB: one run writes at most 50 observations, plus one DROPPED row counting the 30 it refused',
+            w3rows.length === 51 && w3rows[50][2] === 'DROPPED=30' && w3rows.filter(r => /themes/.test(r[2])).length === 50, JSON.stringify(w3.st.writes.map(x => x.nr)));
       const c4 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); c4.SpreadsheetApp = { openById: () => { throw new Error('sheet down'); } };
       c4.queueShadowRow('x', 'd', 's', 'i'); let t4 = false; try { c4.flushShadowRows(); } catch (e) { t4 = true; }
       check('SHADOWTAB: a Sheets failure is swallowed', !t4);
@@ -2713,6 +2716,73 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
       const w6 = mkSheet(); c6.SpreadsheetApp = w6.ss; c6.flushShadowRows();
       const sub = w6.st.writes.length ? w6.st.writes[w6.st.writes.length - 1].v[0][4] : '';
       check('SHADOWTAB: a formula-looking subject is escaped', sub.charAt(0) === "'", sub);
+    }
+    // v6.96.0: repeated-link observer + a Shadow writer that proves itself
+    {
+      const VER = require('vm').runInContext('SCRIPT_VERSION', makeCtx({}));
+      const U = 'https://lnk.mill.example/6a79?email=x@y.org&uniquecode=RED-1';
+      const rep = (n, u) => Array.from({ length: n }, (_, i) => 'Read this ' + (u || U)).join('\n');
+      const obs = (body, o) => {
+        o = o || {};
+        const c = makeCtx({ props: o.props || {} });
+        const logs = []; c.logInfo = (l) => logs.push(String(l));
+        const searches = []; c.GmailApp.search = (q) => { searches.push(q); return o.hist ? [1] : []; };
+        if (o.exhaust) require('vm').runInContext('shadowHistoryLookups = SHADOW_HISTORY_BUDGET', c);
+        const m = mk(body, { from: 'Newsletter <the@liberty.mill.example>' });
+        if (o.html) m.getBody = () => o.html;
+        c.observeShadow(m, { isSpam: false, signals: { clickbaitCount: 0, bulkEmailService: o.bulk !== false } });
+        return { c, searches, shadow: logs.filter(l => l.indexOf('SHADOW') === 0), calls: c.calls.map(x => x.op) };
+      };
+      const r1 = obs(rep(9));
+      check('CTAREP: one link x9 in a bulk mail from an unknown sender is logged', r1.shadow.length === 1 && /ctarep=9\/9/.test(r1.shadow[0]), JSON.stringify(r1.shadow));
+      check('CTAREP: it makes no Gmail write, label or delete call', r1.calls.length === 0, JSON.stringify(r1.calls));
+      check('CTAREP: 5 repeats is under the bar', obs(rep(5)).shadow.length === 0);
+      const r3 = obs(rep(9), { bulk: false });
+      check('CTAREP: non-bulk mail is not observed and costs no search', r3.shadow.length === 0 && r3.searches.length === 0, JSON.stringify(r3.searches));
+      check('CTAREP: a sender the owner has history with is not logged', obs(rep(9), { hist: true }).shadow.length === 0);
+      const r5 = obs(rep(9), { exhaust: true });
+      check('CTAREP: a spent history budget is logged as hist=unk, not dropped', r5.shadow.length === 1 && /ctarep=9\/9 hist=unk/.test(r5.shadow[0]), JSON.stringify(r5.shadow));
+      const tok = Array.from({ length: 9 }, (_, i) => 'Read ' + 'https://lnk.mill.example/6a79?slot=' + i).join('\n');
+      check('CTAREP: a per-link token in the query does not dodge it (host+path count)', /ctarep=1\/9/.test(obs(tok).shadow[0] || ''), JSON.stringify(obs(tok).shadow));
+      const four = Array.from({ length: 4 }, () => '<a href="' + U.replace(/&/g, '&amp;') + '">go</a>').join('');
+      check('CTAREP: the same link 4x in plain AND 4x in HTML is compared, not summed',
+            obs(rep(4), { html: four }).shadow.length === 0);
+      check('CTAREP: HTML anchors alone can reach the bar', /ctarep=6\/6.*/.test(obs('Hello', { html: Array.from({ length: 6 }, () => '<a href="' + U + '">go</a>').join('') }).shadow[0] || ''));
+      const mixed = ['HTTPS://Lnk.Mill.Example/a#x', 'https://lnk.mill.example/a.', 'https://lnk.mill.example/a', 'https://LNK.mill.example/a,', 'https://lnk.mill.example/a#y', 'https://lnk.mill.example/a'].join(' ');
+      check('CTAREP: case, fragment and trailing punctuation normalise to one link', /ctarep=6\/6/.test(obs(mixed).shadow[0] || ''), JSON.stringify(obs(mixed).shadow));
+      check('CTAREP: the log line carries the host only, never the recipient or token', !/x@y\.org|RED-1|uniquecode/.test(r1.shadow[0]), r1.shadow[0]);
+      const t0 = Date.now(); obs('http://'.repeat(9000)); obs(('http://a.example/' + 'x'.repeat(40) + ' ').repeat(1400));
+      check('CTAREP: adversarial 64 KB URL bodies scan in < 1 s', Date.now() - t0 < 1000, String(Date.now() - t0) + ' ms');
+
+      // --- writer: self-test, overflow, failure paths ---
+      const mkS = (rows, maxRows, failSet) => {
+        const st = { rows, maxRows, writes: [], inserted: null, created: false, opens: 0 };
+        const sheet = {
+          getRange: (r, c, nr) => ({ setValues: v => { if (failSet) throw new Error('write down'); if (r + nr - 1 > st.maxRows) throw new Error('off the grid'); st.writes.push({ r, nr, v }); if (r > 1) st.rows = r - 1 + v.length; } }),
+          getLastRow: () => st.rows + 1, getMaxRows: () => st.maxRows, insertRowsAfter: (a, n) => { st.inserted = { a, n }; st.maxRows += n; },
+          deleteRows() {}, setFrozenRows() {} };
+        return { st, ss: { openById: () => { st.opens++; return { getSheetByName: () => (rows === undefined ? null : sheet), insertSheet: () => { st.created = true; return sheet; } }; } } };
+      };
+      const cs = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); const ws = mkS(); cs.SpreadsheetApp = ws.ss; cs.logInfo = () => {};
+      cs.flushShadowRows();
+      const srow = ws.st.writes.length ? ws.st.writes[ws.st.writes.length - 1].v[0] : [];
+      check('SELFTEST: a quiet first run creates the tab and writes one "selftest ok" row', ws.st.created && srow[2] === 'selftest ok' && srow[3] === 'selftest', JSON.stringify(ws.st.writes));
+      check('SELFTEST: every row is as wide as the header', ws.st.writes[0].v.every(r => r.length === 10));
+      const n0 = ws.st.opens; cs.flushShadowRows();
+      check('SELFTEST: written once per version - the next quiet run makes no Sheets call', ws.st.opens === n0);
+      const cf = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); const wf = mkS(0, 1000, true); cf.SpreadsheetApp = wf.ss; cf.logInfo = () => {};
+      cf.flushShadowRows();
+      check('SELFTEST: a failed write leaves the version unmarked (it will be retried)', cf.PropertiesService.getScriptProperties().getProperty('SHADOW_SELFTEST_VERSION') !== VER);
+      const o1 = wf.st.opens; cf.flushShadowRows();
+      check('SELFTEST: ...but a broken sheet is retried at most hourly, not every 10 minutes', wf.st.opens === o1);
+      const cg = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1', SHADOW_SELFTEST_VERSION: VER } }); const wg = mkS(1000, 1000); cg.SpreadsheetApp = wg.ss; cg.logInfo = () => {};
+      for (let i = 0; i < 3; i++) cg.queueShadowRow('themes=3', 'd.example', 's' + i, 'id' + i);
+      cg.flushShadowRows();
+      check('SHADOWTAB: a full 1000-row grid is grown before the write (it used to land off the grid and throw)',
+            wg.st.inserted && wg.st.writes.length >= 2 && wg.st.writes[wg.st.writes.length - 1].nr === 3, JSON.stringify([wg.st.inserted, wg.st.writes.map(x => x.nr)]));
+      const ch = makeCtx({ props: { SHADOW_SELFTEST_VERSION: VER } }); const logsH = []; ch.logInfo = (l) => logsH.push(String(l));
+      ch.queueShadowRow('themes=3', 'd', 's', 'i'); ch.flushShadowRows();
+      check('SHADOWTAB: a missing SPAM_LOG_SHEET_ID is said so in the log', logsH.some(l => /SPAM_LOG_SHEET_ID is unset/.test(l)), JSON.stringify(logsH));
     }
     // never throws, even on a broken message
     let threw = false;

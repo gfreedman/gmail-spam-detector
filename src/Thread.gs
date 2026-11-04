@@ -276,10 +276,40 @@ function observeShadow(message, verdict)
                  (signals.headlineFromName ? 1 : 0);
     const addr = extractEmailAddress(message.getFrom() || '');
     const domain = addr.substring(addr.lastIndexOf('@') + 1).toLowerCase();
-    if (signals.bulkEmailService && weak >= 2 && domain.indexOf('.') > 0 &&
-        senderHasHistory(domain) === false)
+    // One history answer per message, shared by 'unsolicited' and 'ctarep'.
+    let histMemo;
+    const history = function() { if (histMemo === undefined) histMemo = senderHasHistory(domain); return histMemo; };
+    if (signals.bulkEmailService && weak >= 2 && domain.indexOf('.') > 0 && history() === false)
     {
       tags.push('unsolicited');
+    }
+
+    // v6.96.0: ONE link repeated through the prose (the direct-response tell: the mail
+    // exists to get one click). Plain body first; the HTML anchors only when the plain
+    // body is under the bar (a multipart mail repeats every link in both parts, so the
+    // two are compared, never summed). Bulk-service mail from a sender with no history
+    // only. history() === null (lookup budget spent) is logged as hist=unk, not dropped:
+    // this message is never observed again.
+    let shadowExtra = null;
+    if (signals.bulkEmailService && domain.indexOf('.') > 0)
+    {
+      let best = repeatStats(plainTextUrls(body));
+      let src  = 'plain';
+      if (Math.max(best.exact, best.path) < SHADOW_CTA_REPEAT_MIN && typeof message.getBody === 'function')
+      {
+        const html = (message.getBody() || '').substring(0, LIMITS.maxHtmlScanChars);
+        const fromHtml = repeatStats(extractAnchors(html).map(function(a) { return a.href; }));
+        if (Math.max(fromHtml.exact, fromHtml.path) > Math.max(best.exact, best.path)) { best = fromHtml; src = 'html'; }
+      }
+      if (Math.max(best.exact, best.path) >= SHADOW_CTA_REPEAT_MIN)
+      {
+        const h = history();
+        if (h !== true)
+        {
+          tags.push('ctarep=' + best.exact + '/' + best.path + (h === null ? ' hist=unk' : ''));
+          shadowExtra = [best.exact + '/' + best.path, sanitizeForLog(best.host), h === null ? '?' : 'N', src];
+        }
+      }
     }
 
     // v6.92.0: brand-less "view the document" button to an unrelated domain. Skipped for
@@ -296,7 +326,7 @@ function observeShadow(message, verdict)
     {
       logInfo('SHADOW ' + tags.join(' ') + ' from=' + sanitizeForLog(domain) +
               ' subject=' + sanitizeForLog(subject));
-      queueShadowRow(tags.join(' '), domain, subject, message.getId());   // v6.94.0: readable copy in the Shadow tab
+      queueShadowRow(tags.join(' '), domain, subject, message.getId(), shadowExtra);   // v6.94.0: readable copy in the Shadow tab
     }
   }
   catch (shadowError)

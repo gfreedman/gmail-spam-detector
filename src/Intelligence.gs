@@ -345,6 +345,56 @@ function writeHealthRow(stats)
 }
 
 /**
+ * SHADOW rows (v6.94.0). The log-only observers (v6.91.0, v6.93.0) wrote only to the
+ * Executions log, which nothing outside the Apps Script editor can read, so their
+ * output never reached anyone who could judge it. Each hit is also buffered here and
+ * written to the "Shadow" tab once per run, where it is readable like the other tabs.
+ *
+ * One Sheets call per run, and none when nothing was observed. Capped at
+ * SHADOW_SHEET_MAX_ROWS (oldest rows dropped) and SHADOW_RUN_MAX_ROWS per run, so a
+ * flood cannot grow the sheet or the execution without bound. Swallows its own errors.
+ */
+const SHADOW_SHEET_MAX_ROWS = 1000;
+const SHADOW_RUN_MAX_ROWS   = 50;
+const SHADOW_HEADER = ['DetectedAt', 'Version', 'Tags', 'FromDomain', 'Subject', 'MessageId'];
+let shadowBuffer = [];
+
+function queueShadowRow(tags, domain, subject, messageId)
+{
+  if (shadowBuffer.length >= SHADOW_RUN_MAX_ROWS) return;
+  shadowBuffer.push([new Date().toISOString(), SCRIPT_VERSION, tags, domain, subject, messageId]);
+}
+
+function flushShadowRows()
+{
+  if (shadowBuffer.length === 0) return;
+  const rows = shadowBuffer;
+  shadowBuffer = [];
+  try
+  {
+    const sheetId = PropertiesService.getScriptProperties().getProperty('SPAM_LOG_SHEET_ID');
+    if (!sheetId) return;
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('Shadow');
+    if (!sheet)
+    {
+      sheet = ss.insertSheet('Shadow');
+      sheet.setFrozenRows(1);
+    }
+    sheet.getRange(1, 1, 1, SHADOW_HEADER.length).setValues([SHADOW_HEADER]);
+    const last  = Math.max(sheet.getLastRow(), 1);
+    const clean = rows.map(function(r) { return r.map(escapeSheetCell); });
+    sheet.getRange(last + 1, 1, clean.length, SHADOW_HEADER.length).setValues(clean);
+    const dataRows = last - 1 + clean.length;
+    if (dataRows > SHADOW_SHEET_MAX_ROWS) sheet.deleteRows(2, dataRows - SHADOW_SHEET_MAX_ROWS);
+  }
+  catch (e)
+  {
+    logError('flushShadowRows failed (non-fatal): ' + e.toString());
+  }
+}
+
+/**
  * Publish health into a Drive file's NAME, so it can be read with no setup.
  *
  * The Health tab is the surface a human reads. This is the one a script can

@@ -296,6 +296,7 @@ function observeShadow(message, verdict)
     {
       logInfo('SHADOW ' + tags.join(' ') + ' from=' + sanitizeForLog(domain) +
               ' subject=' + sanitizeForLog(subject));
+      queueShadowRow(tags.join(' '), domain, subject, message.getId());   // v6.94.0: readable copy in the Shadow tab
     }
   }
   catch (shadowError)

@@ -20,6 +20,21 @@ detail plus the diffs.
 
 ---
 
+## v6.94.0
+
+**Shadow hits are written to a "Shadow" tab in the Spam Intelligence Log, so they can be read.**
+
+The v6.91.0 and v6.93.0 observers wrote only to the Apps Script Executions log, which
+nothing outside the Apps Script editor can read (the `script.processes` scope is not
+on the clasp login; see apps-script-has-no-readable-log-channel). Their output reached
+nobody who could judge it. Each hit is now also buffered and written once per run to
+the `Shadow` tab: DetectedAt, Version, Tags (`themes=`, `postal=`, `unsolicited`,
+`doclure=`), FromDomain, Subject, MessageId. One Sheets call per run and none when
+nothing was observed; at most 50 rows per run; the tab is trimmed to the newest 1000
+rows; cells go through `escapeSheetCell`; `flushShadowRows()` swallows its own errors
+and runs before the heartbeat in `processInbox()`'s `finally`. No verdict, label or
+delete changes. The `SHADOW` log line is kept.
+
 ## v6.93.0
 
 **A log-only observer for brand-less "view the document" phish. It changes no verdict.**

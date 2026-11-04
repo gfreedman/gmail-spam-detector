@@ -203,6 +203,7 @@ function processInbox()
     //
     // Runs before releaseLock() so the write happens while this execution still
     // holds the lock, and cannot interleave with the next trigger's row.
+    flushShadowRows();   // v6.94.0: never throws; one Sheets call, none when nothing was observed
     logRunHeartbeat({ processed: processedCount, spam: spamCount,
                       errors: errorCount, auditFindings: auditFindings,
                       runError: runError });

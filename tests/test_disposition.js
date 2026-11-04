@@ -2671,6 +2671,49 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
       none('bulk-service mail is not logged', { sig: { bulkEmailService: true } });
       none('a mailto: button is not logged', { html: '<a href="mailto:a@b.org">View PDF online</a>' });
     }
+    // v6.94.0: hits are also written to the "Shadow" tab (the Executions log is unreadable)
+    {
+      const mkSheet = (existing) => {
+        const st = { rows: existing || 0, writes: [], deleted: null, created: false };
+        const sheet = {
+          getRange: (r, c, nr, nc) => ({ setValues: v => { st.writes.push({ r, nr, v }); if (r > 1) st.rows = r - 1 + v.length; } }),
+          getLastRow: () => st.rows + 1, deleteRows: (a, n) => { st.deleted = { a, n }; }, setFrozenRows() {} };
+        return { st, ss: { openById: () => ({ getSheetByName: () => (existing === undefined ? null : sheet),
+                                              insertSheet: () => { st.created = true; return sheet; } }) } };
+      };
+      const hitMsg = () => { const m = mk('Kelowna has sent you a document', { subject: 'Kelowna shared a new document with you.',
+        from: '"Reddhart" <rwss936@reddhart.ca>' }); m.getBody = () => '<a href="https://mhwilson1988.org/aa.html">View PDF online</a>'; return m; };
+      const c = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } });
+      const { st, ss } = mkSheet();
+      c.SpreadsheetApp = ss; c.logInfo = () => {};
+      c.observeShadow(hitMsg(), { isSpam: false, signals: { clickbaitCount: 0, bulkEmailService: false } });
+      check('SHADOWTAB: observing alone writes nothing until the run flushes', st.writes.length === 0);
+      c.flushShadowRows();
+      const row = st.writes.length ? st.writes[st.writes.length - 1].v[0] : [];
+      check('SHADOWTAB: the tab is created and one row is written with tags, domain and subject',
+            st.created && /doclure=mhwilson1988\.org/.test(row[2]) && row[3] === 'reddhart.ca' && /Kelowna/.test(row[4]), JSON.stringify(st.writes));
+      const before = st.writes.length; c.flushShadowRows();
+      check('SHADOWTAB: a second flush with nothing buffered makes no Sheets call', st.writes.length === before);
+      const cap = mkSheet(1000);
+      const c2 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); c2.SpreadsheetApp = cap.ss; c2.logInfo = () => {};
+      for (let i = 0; i < 3; i++) c2.queueShadowRow('themes=3', 'd.example', 's' + i, 'id' + i);
+      c2.flushShadowRows();
+      check('SHADOWTAB: the oldest rows are dropped to hold the cap', cap.st.deleted && cap.st.deleted.a === 2 && cap.st.deleted.n === 3, JSON.stringify(cap.st.deleted));
+      const c3 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); c3.SpreadsheetApp = mkSheet().ss; c3.logInfo = () => {};
+      for (let i = 0; i < 80; i++) c3.queueShadowRow('themes=3', 'd.example', 's' + i, 'id' + i);
+      const w3 = mkSheet(); c3.SpreadsheetApp = w3.ss; c3.flushShadowRows();
+      check('SHADOWTAB: one run writes at most 50 rows', w3.st.writes.length && w3.st.writes[w3.st.writes.length - 1].nr === 50, JSON.stringify(w3.st.writes.map(x => x.nr)));
+      const c4 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); c4.SpreadsheetApp = { openById: () => { throw new Error('sheet down'); } };
+      c4.queueShadowRow('x', 'd', 's', 'i'); let t4 = false; try { c4.flushShadowRows(); } catch (e) { t4 = true; }
+      check('SHADOWTAB: a Sheets failure is swallowed', !t4);
+      const c5 = makeCtx({ props: {} }); c5.queueShadowRow('x', 'd', '=HYPERLINK("http://e")', 'i');
+      const w5 = mkSheet(); c5.SpreadsheetApp = w5.ss; c5.flushShadowRows();
+      check('SHADOWTAB: no SPAM_LOG_SHEET_ID means no write and no throw', w5.st.writes.length === 0);
+      const c6 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 's' } }); c6.queueShadowRow('x', 'd', '=HYPERLINK("http://e")', 'i');
+      const w6 = mkSheet(); c6.SpreadsheetApp = w6.ss; c6.flushShadowRows();
+      const sub = w6.st.writes.length ? w6.st.writes[w6.st.writes.length - 1].v[0][4] : '';
+      check('SHADOWTAB: a formula-looking subject is escaped', sub.charAt(0) === "'", sub);
+    }
     // never throws, even on a broken message
     let threw = false;
     try { const c = makeCtx({}); c.observeShadow({ getSubject() { throw new Error('boom'); } }, { isSpam: false, signals: { clickbaitCount: 0 } }); }

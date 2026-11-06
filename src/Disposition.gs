@@ -86,7 +86,9 @@ function disposeDetectedMessage(message, thread, signals, archived)
   // Rules that quarantine BY DESIGN. Anything reaching the non-destructive
   // branch from outside this list is an unidentified verdict, which is worth
   // an error even though the disposition is the safe one.
-  const QUARANTINE_RULES = ['Rule 7', 'Rule 9'];
+  // Rule 13 (v6.98.0, known mill footer address) quarantines because a street address
+  // can be shared by a legitimate tenant of the same building.
+  const QUARANTINE_RULES = ['Rule 7', 'Rule 9', 'Rule 13'];
 
   if (QUARANTINE_RULES.indexOf(rule) === -1)
   {
@@ -197,6 +199,10 @@ function quarantineUnarchived(message, thread)
  * CONFIG.processedLabel. Performs NO batchDelete and never applies the SPAM
  * label. The message stays in All Mail indefinitely, under the Phishing label —
  * it is not subject to Gmail's 30-day spam purge, because it is not in Spam.
+ *
+ * (Rules 9 and 13 route here too: Rule 13, v6.98.0, is a mill footer address that a
+ * legitimate tenant of the same building could print, so it is recoverable for the
+ * same reason. It shares the Phishing label; its Raw Log row says SPAM_DETECTED.)
  *
  * Why Rule 7 does not delete, when Rules 1-6 do:
  *   Rule 7 has one residual false-positive class that cannot be driven to zero

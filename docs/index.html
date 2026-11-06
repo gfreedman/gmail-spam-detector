@@ -746,7 +746,7 @@
       <div class="step">
         <div class="step-num">Step 2</div>
         <div class="step-title">Analyze</div>
-        <p>Each message passes through independent signal detectors — bulk infrastructure check, domain blacklist, clickbait patterns, Unicode obfuscation, fear language, marketing sender format, service impersonation, link-graph analysis, free-mail sender shape, and callback-scam anatomy. Signals feed 12 rules evaluated in priority order. First match wins.</p>
+        <p>Each message passes through independent signal detectors — bulk infrastructure check, domain blacklist, clickbait patterns, Unicode obfuscation, fear language, marketing sender format, service impersonation, link-graph analysis, free-mail sender shape, and callback-scam anatomy. Signals feed 13 rules evaluated in priority order. First match wins.</p>
       </div>
       <div class="step">
         <div class="step-num">Step 3</div>
@@ -797,7 +797,7 @@
 <section id="rules">
   <div class="wrap">
     <h2>Rules</h2>
-    <p>Twelve rules, evaluated in priority order. The first rule that matches wins &mdash; no further rules are checked. Rules 1&ndash;3 all require bulk email infrastructure as a prerequisite, which eliminates virtually all false positives from personal senders. Rules 6&ndash;9 deliberately do <em>not</em>, because the phishing they target arrives through compromised legitimate accounts or throwaway free-mail addresses rather than bulk infrastructure.</p>
+    <p>Thirteen rules, evaluated in priority order. The first rule that matches wins &mdash; no further rules are checked. Rules 1&ndash;3 all require bulk email infrastructure as a prerequisite, which eliminates virtually all false positives from personal senders. Rules 6&ndash;9 deliberately do <em>not</em>, because the phishing they target arrives through compromised legitimate accounts or throwaway free-mail addresses rather than bulk infrastructure.</p>
     <table>
       <thead>
         <tr><th>Rule</th><th>Condition</th><th>Rationale</th></tr>
@@ -862,6 +862,11 @@
           <td><span class="rule-badge">Rule 12</span></td>
           <td><strong>A blacklisted brand domain behind an ESP relay</strong></td>
           <td>The mailbox embeds the brand and the Reply-To is on a blacklisted full domain. Wording-independent: a new mill is one blacklist line. Deletes, archived to Drive first.</td>
+        </tr>
+        <tr>
+          <td><span class="rule-badge">Rule 13</span></td>
+          <td><strong>A known mill footer address on bulk-marked mail</strong></td>
+          <td>The postal address a mill must print stays constant while its brand and wording change. Needs the address in text the sender wrote plus a List-Unsubscribe header. Quarantines (archived and labelled), never deletes: a legitimate tenant of the same building could print it.</td>
         </tr>
       </tbody>
     </table>

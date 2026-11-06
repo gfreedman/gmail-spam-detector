@@ -241,6 +241,11 @@ function getRuleFromSignals(signals)
     return { rule: 'Rule 12', description: 'Blacklisted brand domain behind an ESP relay (Reply-To on a listed mill, mailbox embeds it)' };
   }
 
+  if (signals.millFooterAddress)
+  {
+    return { rule: 'Rule 13', description: 'Known mill footer address on bulk-marked mail (quarantined, never deleted)' };
+  }
+
   return { rule: 'NONE', description: 'No rule triggered' };
 }
 
@@ -274,6 +279,7 @@ function buildSignalsCsv(signals)
   if (signals.attachmentPayloadScam)      parts.push('ATTACHMENT_PAYLOAD_SCAM');
   if (signals.sponsoredAdTemplate)        parts.push('SPONSORED_AD_TEMPLATE');
   if (signals.blacklistedRelayIdentity)   parts.push('BLACKLISTED_RELAY_IDENTITY');
+  if (signals.millFooterAddress)          parts.push('MILL_FOOTER_ADDRESS');
   // Surfaced in the Sheet so a degraded verdict is visible in the log, not
   // just in an execution transcript nobody reads.
   if (signals._degraded)                  parts.push('DEGRADED');

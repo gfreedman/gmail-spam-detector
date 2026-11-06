@@ -478,6 +478,7 @@ def _load_gs_constants(source):
         'CALENDAR_LURE_PATTERNS':       _load_regex_array(source, 'CALENDAR_LURE_PATTERNS'),
         'CALENDAR_SAFE_LINK_DOMAINS':   _load_string_array(source, 'CALENDAR_SAFE_LINK_DOMAINS'),
         'HEADLINE_NAME_SEPARATORS':     _load_string_array(source, 'HEADLINE_NAME_SEPARATORS'),
+        'MILL_POSTAL_NEEDLES':          _load_string_array(source, 'MILL_POSTAL_NEEDLES', allow_spaces=True),
         'SPONSORED_AD_PATTERNS':        _load_regex_array(source, 'SPONSORED_AD_PATTERNS'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
@@ -544,6 +545,7 @@ CALENDAR_LURE_PATTERNS          = _gs['CALENDAR_LURE_PATTERNS']
 CALENDAR_SAFE_LINK_DOMAINS      = _gs['CALENDAR_SAFE_LINK_DOMAINS']
 HEADLINE_NAME_SEPARATORS        = _gs['HEADLINE_NAME_SEPARATORS']
 SPONSORED_AD_PATTERNS           = _gs['SPONSORED_AD_PATTERNS']
+MILL_POSTAL_NEEDLES             = _gs['MILL_POSTAL_NEEDLES']
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -1138,6 +1140,31 @@ def _normalize_ad_text(text):
     return re.sub(r'[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ' ', t)
 
 
+def _strip_quoted_and_forwarded(text):
+    """Mirror of stripQuotedAndForwarded() (Text.gs): drop "> " quoted lines, cut at the
+    first forwarded/original-message/"On ... wrote:" marker or Outlook "From:/Sent:" block.
+    Lower-cased (not re.I) and [^\\n] (not ".") with an explicit whitespace class, exactly
+    as the JS, so the two cannot disagree on U+017F, U+212A, \\r, U+2028 or U+FEFF."""
+    if not text:
+        return ''
+    ws = '[ \\t\\r\\f\\v\\u00a0\\u2028\\u2029\\ufeff]*'
+    marker = re.compile('^' + ws + r'(?:-{2,} ?(?:forwarded message|original message) ?-{2,}|'
+                        r'begin forwarded message:?|on [^\n]{1,120} wrote:)' + ws + '$')
+    lines = str(text).split('\n')
+    kept = []
+    for i, raw_line in enumerate(lines):
+        line = raw_line.lower()
+        if marker.match(line):
+            break
+        if (re.match('^' + ws + 'from:', line) and i + 1 < len(lines) and
+                re.match('^' + ws + '(?:sent|date):', lines[i + 1].lower())):
+            break
+        if re.match('^' + ws + '>', line):
+            continue
+        kept.append(raw_line)
+    return '\n'.join(kept)
+
+
 def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=False, html='', raw=''):
     """
     Run the detection logic against a single email's fields.
@@ -1200,6 +1227,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'attachment_payload_scam': False,
                     'sponsored_ad_template': False,
                     'blacklisted_relay_identity': False,
+                    'mill_footer_address': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -1221,6 +1249,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'attachment_payload_scam': False,
         'sponsored_ad_template': False,
         'blacklisted_relay_identity': False,
+        'mill_footer_address': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1313,6 +1342,17 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                 signals['blacklisted_relay_identity'] = True
                 signals['matched_patterns'].append('blacklisted_relay_identity')
                 break
+
+    # ── Signal 16: Known mill footer address (v6.98.0) ──────────────────────
+    # QUARANTINES (Rule 13). Mirrors Signal 16 in Signals.gs: a MILL_POSTAL_NEEDLES
+    # address in the text the SENDER wrote (quoted lines and everything after a
+    # forwarded/original-message marker removed), AND a List-Unsubscribe header.
+    if _raw_header(raw, 'List-Unsubscribe'):
+        _authored = ' ' + re.sub(' +', ' ', re.sub('[^a-z0-9 ]', ' ',
+                    _normalize_ad_text(_strip_quoted_and_forwarded(body)))) + ' '
+        if any(' ' + _n + ' ' in _authored for _n in MILL_POSTAL_NEEDLES):
+            signals['mill_footer_address'] = True
+            signals['matched_patterns'].append('mill_footer_address')
 
     # ── Signal: Clickbait pattern count ────────────────────────────────────
     # Each matching pattern increments the counter independently — this allows
@@ -1688,6 +1728,12 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         elif signals['blacklisted_relay_identity']:
             is_spam = True
             rule = 'RULE 12: Blacklisted brand behind an ESP relay'
+
+        # Rule 13: a known mill footer address on bulk-marked mail. QUARANTINES in
+        #   production (in QUARANTINE_RULES, not DESTRUCTIVE_RULES, v6.98.0).
+        elif signals['mill_footer_address']:
+            is_spam = True
+            rule = 'RULE 13: Known mill footer address'
 
     return signals, is_spam, rule
 
@@ -2285,7 +2331,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 17
+    EXPECTED_SIGNAL_COUNT = 18
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '
@@ -2735,7 +2781,9 @@ def run_edge_case_tests():
           _decode_html_entities('a&#1114112;b') == 'ab')
 
     # ── spam_folder_examples/: Gmail already flagged these ─────────────────
-    # They need not convict in the inbox; they must CORROBORATE, so the
+    # They must CORROBORATE (v6.98.0: the Heart Doctor fixture now ALSO convicts in the
+    # inbox as Rule 13 - it prints a mill address - which is a quarantine, not a delete,
+    # and Rule 13 itself deliberately does not corroborate); so the
     # Spam-folder review deletes them now instead of after the grace period.
     # Mirrors hasCorroboratingSignal() in Cleanup.gs (test_disposition.js pins
     # the JS function itself).
@@ -2750,6 +2798,29 @@ def run_edge_case_tests():
                 sig['marketing_format'] +
                 (sig['suspicious_from_name'] or sig['headline_from_name']))
         return strong or weak >= 2
+    # Signal 16 (v6.98.0): the real Macro View fixture fires; a same-building tenant (ham) does not;
+    # and the strip corpus is the SAME table test_disposition.js pins against the shipped JS.
+    _mv, _, _ = analyze_email(*parse_eml(Path(__file__).parent / 'spam_examples' /
+                                         'Over 100 banks rigged - Macro View Digest.eml'))
+    check('Signal 16 fires on the real Macro View Digest fixture', _mv['mill_footer_address'])
+    _tn, _, _ = analyze_email(*parse_eml(Path(__file__).parent / 'ham_examples' /
+                                         "Tenant newsletter in the mill's building with List-Unsubscribe.eml"))
+    check('a same-building tenant newsletter (another suite, with List-Unsubscribe) does not fire',
+          not _tn['mill_footer_address'])
+    STRIP_CORPUS = [
+        ('a\n> b\nc', 'a\nc'),
+        ('a\n---------- Forwarded message ---------\nb', 'a'),
+        ('a\nOn Tue, 3 Nov 2026 at 9:00 Bob <b@x.example> wrote:\nb', 'a'),
+        ('a\nOn Tue\u2028x wrote:\nb', 'a'),
+        ('---- original me\u017fsage ----\nb', '---- original me\u017fsage ----\nb'),
+        ('\ufeff> q\nk', 'k'),
+        ('a\nFrom: x\nSent: y\nb', 'a'),
+        ('a\nFrom: x\nb', 'a\nFrom: x\nb'),
+        ('', ''),
+    ]
+    for _in, _want in STRIP_CORPUS:
+        check(f'strip corpus agrees with the JS table: {_in[:28]!r}',
+              _strip_quoted_and_forwarded(_in) == _want, repr(_strip_quoted_and_forwarded(_in)))
     sf_dir = Path(__file__).parent / 'spam_folder_examples'
     for f in sorted(sf_dir.glob('*.eml')):
         sig, _, _ = analyze_email(*parse_eml(f))

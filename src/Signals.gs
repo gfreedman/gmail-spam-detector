@@ -172,7 +172,8 @@ function collectSignals(message)
     headlineFromName: false,           // display name is "<headline> - <brand>"; Spam-folder corroboration only
     attachmentPayloadScam: false,      // Bcc'd free-mail ALL-CAPS note whose payload is an attachment; Spam-folder corroboration only
     sponsoredAdTemplate: false,        // ad disclaimer + advertiser sentence + "Sponsored Content" block + 2 credits; Rule 11
-    blacklistedRelayIdentity: false    // a blacklisted brand domain behind an ESP relay (From mailbox + Reply-To); Rule 12
+    blacklistedRelayIdentity: false,   // a blacklisted brand domain behind an ESP relay (From mailbox + Reply-To); Rule 12
+    millFooterAddress: false           // a known mill footer address in sender-authored text + List-Unsubscribe; Rule 13 (QUARANTINES)
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -464,6 +465,63 @@ function collectSignals(message)
     // rest still run, and signalsSkipped makes the gap visible.
     signalsSkipped++;
     logError('Signal 15 threw and was skipped: ' + signalError.toString());
+  }
+
+  // ── Signal 16: Known mill footer address (v6.98.0) ───────────────────────
+  // QUARANTINES (Rule 13), never deletes. The finance-ad mill rotates brand
+  // domains, templates and wording for free (Signals 14 and 15 were each beaten
+  // by a one-word change), but CAN-SPAM obliges every send to print a postal
+  // address, and that changes far more slowly. The observer that logged this
+  // address on the Macro View Digest miss (`postal=fwy`) took no action; this
+  // makes the same evidence act.
+  //
+  // Two conditions, both required:
+  //   (a) a MILL_POSTAL_NEEDLES address in the text the SENDER wrote
+  //       (stripQuotedAndForwarded(): a forwarded or quoted mill email does not
+  //       fire), matched on word boundaries after normalizeAdText() and a
+  //       non-alphanumeric fold;
+  //   (b) a List-Unsubscribe header. Mass mail carries one (Gmail requires it of
+  //       bulk senders) and a person forwarding or replying does not, which is
+  //       the stand-in for "bulk" on a shared ESP, where isBulkEmail() is false
+  //       on purpose (see Signal 15 / Rule 11).
+  // The rule is NOT bound to wording, brand or sending domain.
+  //
+  // Measured on the fixtures before shipping: the address alone matches 24/66
+  // spam, 0/28 ham, 0/8 scam. Panel review (Google, Yahoo, Stanford, Waterloo,
+  // 2026-11-06) scored the address+themes design 56/100 and asked for exactly
+  // these amendments; the "no sender history" condition it also asked for needs
+  // a Gmail search and so cannot live in a signal that the Python mirror and the
+  // parity phase must reproduce. It is not implemented.
+  //
+  // False positive classes, all RECOVERABLE (quarantine archives out of the
+  // inbox under a label): a legitimate sender in a shared building that
+  // prints the same address; a newsletter that lists scam addresses in its own
+  // text (an anti-fraud digest); a needle that goes stale when a mill leaves
+  // and a legitimate tenant arrives. Known evasions, cheap for the mill: a new
+  // address, the address as an image, dropping List-Unsubscribe.
+  try
+  {
+    if (getRawHeader(rawContent, 'List-Unsubscribe'))
+    {
+      const authored = ' ' + normalizeAdText(stripQuotedAndForwarded(body))
+        .replace(/[^a-z0-9 ]/g, ' ').replace(/ +/g, ' ') + ' ';
+      for (let i = 0; i < MILL_POSTAL_NEEDLES.length; i++)
+      {
+        if (authored.indexOf(' ' + MILL_POSTAL_NEEDLES[i] + ' ') !== -1)
+        {
+          signals.millFooterAddress = true;
+          logDebug('Mill footer address: ' + MILL_POSTAL_NEEDLES[i]);
+          break;
+        }
+      }
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 16 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 2: Clickbait / sensationalism patterns ───────────────────────

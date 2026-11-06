@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.97.0
+ * @version 6.98.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -35,7 +35,7 @@
  *      default), so this script is the only thing that can report it.
  *      sweepSpamFolderCopies() then expires old Drive copies.
  *
- * Decision logic (12 rules, evaluated in priority order — first match wins):
+ * Decision logic (13 rules, evaluated in priority order — first match wins):
  *   Rule 1: Bulk email + blacklisted sender domain → spam
  *   Rule 2: Bulk email + 2+ clickbait patterns → spam
  *   Rule 3: Bulk email + 2+ distinct spam behaviors → spam
@@ -54,6 +54,9 @@
  *           Content" block + 2 "Sponsored by"/"Ad by" credits → spam
  *   Rule 12: A blacklisted brand domain behind an ESP relay (the From mailbox embeds
  *           the Reply-To host, which is on the blacklist) → spam
+ *   Rule 13: A known mill footer postal address (MILL_POSTAL_NEEDLES) in text the
+ *           sender wrote, on mail carrying a List-Unsubscribe header → spam
+ *           (QUARANTINED: archived + labelled, never deleted; wording- and brand-independent)
  *
  * Changelog: see CHANGELOG.md. It is not reproduced here — it reached 459
  * lines and three consecutive entries described three incompatible designs for
@@ -94,7 +97,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.97.0';
+const SCRIPT_VERSION = '6.98.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */

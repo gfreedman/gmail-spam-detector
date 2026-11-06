@@ -99,7 +99,9 @@ function processThread(thread, messages)
         const archived = accumulateLogEntry(message, verdict.signals, detectionLogType);
 
         // Rule 7 (brand-mismatched CTA) quarantines rather than destroys — see
-        // quarantineAsPhishing(). Every other rule deletes permanently.
+        // quarantineAsPhishing(). Rule 9 and Rule 13 quarantine too; every other rule deletes
+        // permanently. (Rule 13 is logged SPAM_DETECTED, not PHISHING_DETECTED: it is a mill
+        // address, not phishing, even though it shares the Phishing label.)
         threadDestroyed = disposeDetectedMessage(message, thread, verdict.signals, archived);
         logDebug('SPAM DETECTED: ' + sanitizeForLog(message.getSubject()));
 
@@ -206,7 +208,7 @@ function isBulkEmail(rawContent)
  * Log-only observer (v6.91.0): records, never decides. For mail judged NOT spam it
  * writes ONE logInfo line ("SHADOW ...") when the mail looks like the finance-ad family:
  *   themes=N        >= 3 of SHADOW_THEME_PATTERNS fire
- *   postal=...      a footer address in SHADOW_POSTAL_NEEDLES
+ *   postal=...      a footer address in MILL_POSTAL_NEEDLES (also read by Signal 16, Rule 13)
  *   unsolicited     bulk + 2 weak points + no relationship with the sender's domain
  *                   (nothing sent to it, no mail from it older than 2 days)
  * so a few weeks of the Executions log show what a theme rule or an engagement rule
@@ -266,9 +268,9 @@ function observeShadow(message, verdict)
     if (themes >= 3) tags.push('themes=' + themes);
 
     const flat = ' ' + text.replace(/[^a-z0-9 ]/g, ' ').replace(/ +/g, ' ') + ' ';
-    for (let i = 0; i < SHADOW_POSTAL_NEEDLES.length; i++)
+    for (let i = 0; i < MILL_POSTAL_NEEDLES.length; i++)
     {
-      if (flat.indexOf(' ' + SHADOW_POSTAL_NEEDLES[i] + ' ') !== -1) { tags.push('postal=' + SHADOW_POSTAL_NEEDLES[i].split(' ').slice(-1)[0]); break; }
+      if (flat.indexOf(' ' + MILL_POSTAL_NEEDLES[i] + ' ') !== -1) { tags.push('postal=' + MILL_POSTAL_NEEDLES[i].split(' ').slice(-1)[0]); break; }
     }
 
     const weak = (signals.clickbaitCount > 0 ? 1 : 0) + (signals.fearMongering ? 1 : 0) +

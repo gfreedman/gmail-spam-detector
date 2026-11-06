@@ -20,6 +20,58 @@ detail plus the diffs.
 
 ---
 
+## v6.98.0
+
+**Rule 13: a known mill footer address now acts instead of being logged. It quarantines.**
+
+The v6.97.0 miss ("Over 100 banks already rigged against Americans") was tagged
+`themes=4 postal=fwy` by the log-only observers seven minutes after it arrived, and nothing
+acted on the tag. v6.97.0 only blacklisted that one brand: with a fresh brand the same email
+scores zero on every shipped signal (15/15 mutants of it did in review). Four reviewer
+personas (Google, Yahoo, Stanford, Waterloo) and two adversarial rounds killed sender-shape
+rules (8 of 12 constructed legitimate emails convicted: Constant Contact / Cyberimpact tenants
+share that shape) and wording rules (13/15 single-change evasions). What survived is the
+postal address CAN-SPAM requires the mill to print. A final panel (scored 71/100, conditional)
+and an L5 code review of the diff then forced the changes marked (review) below.
+
+- **Signal 16 `millFooterAddress`**: a `MILL_POSTAL_NEEDLES` address (renamed from
+  `SHADOW_POSTAL_NEEDLES`, now decision data) in text the sender wrote, AND a `List-Unsubscribe`
+  header. `stripQuotedAndForwarded()` (new, Text.gs) drops `>` lines and cuts at the first
+  forwarded / original-message / "On ... wrote:" marker or Outlook `From:`/`Sent:` block, so a
+  friend's "is this a scam?" forward or a Google Groups reply does not fire. Matched on word
+  boundaries after `normalizeAdText()`.
+- **Rule 13** (last in the cascade, in `makeVerdict()` and `getRuleFromSignals()`): in
+  `QUARANTINE_RULES`, not `DESTRUCTIVE_RULES`, so it archives under the `Phishing` label and
+  never deletes (its Raw Log row says `SPAM_DETECTED`). Not in `RECHECK_DELETE_RULES`, so the
+  post-deploy recheck only holds mail already in the inbox (under `SuspectedSpam`).
+- (review) **Rule 13 does NOT corroborate a Gmail Spam-folder verdict.** The first build
+  listed it as strong to keep "every inbox conviction corroborates" true; the L5 review showed
+  that turns a recoverable quarantine into a same-run permanent delete of Gmail-misfiled mail
+  with no 7-day grace. The exhaustive sweep now names Rule 13 as the single exemption.
+- (review) **The 5005 LBJ needle carries its suite** (`suite 350`): that address is a
+  multi-tenant tower, every mill fixture prints that suite, and a new ham fixture (a tax
+  firm in suite 1200 with `List-Unsubscribe`) pins that a neighbour does not fire. Each
+  needle now has a review date and a note on which are mail-drop addresses.
+- (review) **JS and Python `stripQuotedAndForwarded` were not equivalent** (`.` and `\s`, `/i`
+  folding of U+017F, the BOM). Both now lower-case, use `[^\n]` and an explicit whitespace
+  class, and a shared 9-case corpus is pinned in both test files.
+- Measured on the fixtures: the address alone matches 24/66 spam, 0/29 ham, 0/8 scam; Signal 16
+  fires on 22/66 spam, 0/29 ham, 0/8 scam, 1/3 Spam-folder (the Heart Doctor fixture: spam that
+  Gmail also flagged, now an inbox quarantine as well). No fixture is decided by Rule 13 alone
+  (earlier rules catch them); a fresh-brand rewrite is, in a unit test.
+- Tests: the exhaustive sweep grows to 17 booleans (655,360 combinations) and pins Rule 13's
+  name; targeted assertions cover fires-on-a-fresh-brand, never-deletes, quarantine ops,
+  forward / quote / Outlook block / no List-Unsubscribe / folded and lower-case header /
+  `List-Unsubscribe-Post` alone / header text in the body / other suite / word boundary /
+  size scaling. Fault-injected on a scratch copy, each turning the suite red: dropping the
+  `List-Unsubscribe` gate, the quote strip or the Outlook rule; making Rule 13 delete or
+  corroborate; removing the suite from the needle.
+- Known evasions, cheap for the mill and NOT closed: a new address; the address as an image;
+  no `List-Unsubscribe`; printing its footer as `> ` lines or putting a fake `On x wrote:` above
+  it; padding the body past the scan cap; HTML-only mail (newlines collapse, so quote stripping
+  does nothing). Not built: the panel's "no sender history" condition needs a Gmail search,
+  which a signal that the Python mirror must reproduce cannot make.
+
 ## v6.97.0
 
 Blacklist `macroviewdigest.com`. "Over 100 banks already rigged against Americans" reached

@@ -32,7 +32,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 12. **Your address used as your name** ("geoff.c.freedman, Claim Your Free…")
 13. **Survey-scam disclaimers** (a footer disclaiming the very brand it impersonates)
 
-**Detection Logic — 12 rules, first match wins:**
+**Detection Logic — 13 rules, first match wins:**
 - Bulk email + blacklisted sender = SPAM
 - Bulk email + 2+ clickbait patterns = SPAM
 - Bulk email + 2+ spam behaviors = SPAM
@@ -45,13 +45,14 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 - Calendar invite from an unknown organiser with a voicemail/fax lure in the title and an off-domain link = PHISHING
 - A blacklisted brand domain behind an ESP relay (mailbox embeds the Reply-To host, which is a full-domain blacklist entry) = SPAM, wording-independent
 - Ad disclaimer + a "Sponsored Content" block + "Sponsored by" or "Ad by" credits (2 on the strict shape, which takes either label; 3 "Sponsored by" on the relay shape) + EITHER the ad network's "promotional messages from this advertiser" sentence OR the ad-mill sender shape (From mailbox ends in the Reply-To brand domain, on an ESP relay) = SPAM (deletes; Rule 11)
+- A known mill footer postal address in text the sender wrote (quoted and forwarded text excluded), on mail with a List-Unsubscribe header = SPAM, quarantined not deleted (Rule 13). Brand-, domain- and wording-independent: a new brand from the same operator still prints the same CAN-SPAM address
 
 **Why this works:** Spammers need these patterns to make money. If they remove them, their business model breaks.
 
 ## 📊 Results
 
 - ✅ **100% detection** on 66/66 spam + 8/8 scam (.eml files)
-- ✅ **0% false positives** on 28/28 legitimate emails
+- ✅ **0% false positives** on 29/29 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
 - ✅ **CI asks prod whether it is healthy after every deploy** — the `verify-prod` job confirms the trigger is running, the live version matches the commit, and the last run was clean.
@@ -133,7 +134,7 @@ Mail already reviewed is normally skipped, so the folder is not re-fetched every
 | Label | Meaning | Action needed |
 |---|---|---|
 | `SpamChecked` | Evaluated; don't re-process | None — bookkeeping |
-| `Phishing` | Rule 7 / Rule 9 quarantine, archived not deleted | Review occasionally |
+| `Phishing` | Rule 7 / Rule 9 / Rule 13 quarantine, archived not deleted (Rule 13 mail already in the inbox when a fix deploys is held under `SuspectedSpam` instead) | Review occasionally |
 | `SuspectedSpam` | Flagged but **not** deleted — cleanse mode, a message too large to evaluate, one that couldn't be archived, or mail a newly deployed pattern re-flagged after you'd already kept it | Review; this is the "we weren't sure" pile |
 | `SpamDetectorPurge` | Internal marker so the sweep only touches our own verdicts | None — machinery |
 | `SpamMissed` | **You** apply this to spam that got through; it's logged and deleted on the next run — **unless the sender is whitelisted or the Drive archive is unreachable**, in which case it's refused and moved to `SuspectedSpam` | Apply it manually |
@@ -292,6 +293,19 @@ Signals 11–13 add to the clickbait count, so they reach deletion through Rule 
   independent: a new brand is one blacklist line (no deploy), not a new pattern.
   Built after the same ad mill reworded its template three times in four days
 
+**Known mill footer address (Signal 16 / Rule 13, v6.98.0).** The same mill beat Signals
+14 and 15 by changing one word or one brand domain. What it cannot drop is the postal
+address CAN-SPAM requires in every send, and that address stayed constant across brands
+(`MILL_POSTAL_NEEDLES`, recorded from 4+ spam fixtures; registered-agent addresses are left
+out). The signal needs the address in text the *sender* wrote (`stripQuotedAndForwarded()`
+removes `>` quotes and everything after a forward / original-message / "On ... wrote:"
+marker) AND a `List-Unsubscribe` header, the stand-in for "bulk" on a shared ESP, where
+the bulk fingerprint is off on purpose. It **quarantines** (archived out of the inbox
+under the `Phishing` label, never deleted): a street address can be shared by a legitimate
+tenant of the same building. On the fixtures the address fires on 22/66 spam and 0/29 ham (the address alone matches 24/66 spam).
+Known evasions, cheap for the mill: a new address, the address as an image, dropping
+`List-Unsubscribe`. Adding an address is one data line but ships through a release.
+
 ### Decision Rules
 
 **Conservative approach - requires multiple signals:**
@@ -349,6 +363,11 @@ if (sponsoredAdTemplate) { return SPAM; }
 // RULE 12: A blacklisted brand domain behind an ESP relay (the From mailbox embeds
 // the Reply-To host, which is on the blacklist). DELETES (archived to Drive first).
 if (blacklistedRelayIdentity) { return SPAM; }
+
+// RULE 13: A known mill footer postal address (MILL_POSTAL_NEEDLES) in text the
+// sender wrote + a List-Unsubscribe header. QUARANTINES (archived + labelled, never
+// deleted): a legitimate tenant of the same building could print the same address.
+if (millFooterAddress) { return SPAM; }
 
 return NOT_SPAM;
 ```
@@ -477,7 +496,7 @@ addToWhitelist('domain.com');
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
 │   ├── spam_examples/           # Real spam .eml files (65)
 │   ├── scam_examples/           # Scam .eml files (8)
-│   ├── ham_examples/            # Legitimate .eml files (28)
+│   ├── ham_examples/            # Legitimate .eml files (29)
 │   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)
 └── .github/workflows/           # CI/CD pipeline
 ```

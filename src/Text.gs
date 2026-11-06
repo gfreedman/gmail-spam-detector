@@ -164,6 +164,50 @@ function getRawHeader(rawContent, name)
 }
 
 /**
+ * The text of a message that its SENDER wrote: quoted lines ("> ...") dropped and
+ * everything from the first forwarded-message / original-message / "On ... wrote:"
+ * marker onward cut off (v6.98.0, for Signal 16).
+ *
+ * Why: a footer address is evidence about the sender only if the sender wrote it.
+ * A friend asking "is this a scam?" forwards the mill's whole footer, and a reply
+ * quotes it; both carry the address with nothing else in common with the mill.
+ * Line-based and linear: one split, one scan, each marker regex anchored at the
+ * start of a line and bounded (no nested quantifier).
+ *
+ * Known evasions, left open (cheap for a mill that controls its own plain-text part): it
+ * can print its footer as "> ..." lines, or put a fake "On x wrote:" line above the
+ * footer; a body padded past LIMITS.maxRawScanChars pushes the footer out of the scan;
+ * HTML-only mail reaches this as ONE line (stripHtmlTags collapses newlines), so the
+ * quote protection does nothing there. Known gap too: a forwarder that pastes the mill's text with no marker and
+ * no ">" is indistinguishable from the mill (it then also needs List-Unsubscribe,
+ * which a forward from a person does not carry).
+ *
+ * @param {string} text - Plain-text body.
+ * @return {string} The sender-authored text ('' for falsy input).
+ */
+function stripQuotedAndForwarded(text)
+{
+  if (!text) return '';
+  const lines = String(text).split('\n');
+  const kept = [];
+  for (let i = 0; i < lines.length; i++)
+  {
+    // Lower-cased instead of /i, and [^\n] instead of ".", so the Python mirror
+    // (re.I folds U+017F and U+212A, "." admits \r and U+2028) cannot disagree;
+    // the whitespace class is spelled out for the same reason (JS \s has U+FEFF).
+    const line = lines[i].toLowerCase();
+    if (/^[ \t\r\f\v\u00a0\u2028\u2029\ufeff]*(?:-{2,} ?(?:forwarded message|original message) ?-{2,}|begin forwarded message:?|on [^\n]{1,120} wrote:)[ \t\r\f\v\u00a0\u2028\u2029\ufeff]*$/.test(line)) break;
+    // Outlook / Google Groups quoting has no ">" and no marker line, only a header
+    // block: "From: x" immediately followed by "Sent:" or "Date:".
+    if (/^[ \t\r\f\v\u00a0\u2028\u2029\ufeff]*from:/.test(line) && i + 1 < lines.length &&
+        /^[ \t\r\f\v\u00a0\u2028\u2029\ufeff]*(?:sent|date):/.test(lines[i + 1].toLowerCase())) break;
+    if (/^[ \t\r\f\v\u00a0\u2028\u2029\ufeff]*>/.test(line)) continue;
+    kept.push(lines[i]);
+  }
+  return kept.join('\n');
+}
+
+/**
  * The display name of an address header, normalised for comparison.
  *
  * '"Freedman,  Geoff C." <a@b.com>' -> 'c freedman geoff'. Takes everything

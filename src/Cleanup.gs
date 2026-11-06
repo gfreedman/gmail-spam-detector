@@ -117,6 +117,15 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * its 7-day grace window (the Drive archive copy is still written first).
  * It closed "CHARITY AND ORPHANAGE HOMES.", which scored zero elsewhere.
  *
+ * millFooterAddress (v6.98.0, Rule 13) is deliberately NOT strong. It is the one inbox
+ * conviction that does not corroborate, and the exhaustive sweep in test_disposition.js
+ * names it as the sole exemption. Rule 13 QUARANTINES because a street address can be
+ * shared by a legitimate tenant of the same building; corroboration would turn that
+ * recoverable quarantine into a same-run PERMANENT delete of Gmail-misfiled mail,
+ * with no 7-day grace and no "Not spam" chance (L5 review, 2026-11-06). The cost of
+ * the exemption is that a Gmail-filed mill message waits out the grace period.
+ *
+ *
  * sponsoredAdTemplate (v6.81.0) is STRONG on its own and is Rule 11: an ad
  * disclaimer, a "Sponsored Content" block and two "Sponsored by"/"Ad by" credits. It
  * closed "The 1973 Loophole", which scored zero on every other signal. Its false

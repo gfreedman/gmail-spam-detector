@@ -542,15 +542,32 @@ const SHADOW_CTA_REPEAT_MIN = 6;
  * Footer postal addresses seen on 4+ spam fixtures across several brand domains
  * (one street address behind five sender domains - the cheap-to-match,
  * costly-to-change tell). Normalised: lower-case, letters and digits, single spaces.
- * Registered-agent addresses (Wilmington 9th St, 222 Delaware St New Castle) are LEFT
- * OUT on purpose: thousands of legitimate firms share them. LOG-ONLY.
+ * Registered-agent addresses (Wilmington 9th St, 222 Delaware St New Castle, and
+ * 1607 Capitol Ave Cheyenne, which this very mill prints as its own) are LEFT OUT
+ * on purpose: thousands of legitimate firms share them.
+ *
+ * DECISION DATA since v6.98.0: Signal 16 (millFooterAddress, Rule 13, QUARANTINES)
+ * reads this list, and observeShadow() still tags `postal=` from it. It was
+ * log-only through v6.97.0 and the Macro View Digest miss (v6.97.0) was tagged
+ * `postal=fwy` seven minutes after it arrived while nothing acted on the tag.
+ * Adding an address is a data line, but it ships through a release (the list is
+ * source, not a Script Property). A tenant that later moves into one of these
+ * buildings inherits the tell, so review the list when a quarantine looks wrong.
+ * REVIEW DATE: every entry was recorded 2026-10 and last reviewed 2026-11-06 against
+ * the fixtures (each hit appears with the same city/state tail shown below). The
+ * 5005 entry carries its suite ("suite 350") because 5005 LBJ Freeway is a
+ * multi-tenant tower: every mill fixture prints that suite, a legitimate tenant of
+ * another suite does not match (panel, 2026-11-06). 74 E Glenwood Ave (Smyrna DE) and
+ * 200 Broadway Blvd NE (Albuquerque) are mail-drop addresses shared by many small
+ * firms; they stay because every fixture hit is a mill, but they are the entries
+ * most likely to need removing.
  * @const {Array<string>}
  */
-const SHADOW_POSTAL_NEEDLES = Object.freeze([
+const MILL_POSTAL_NEEDLES = Object.freeze([
   '200 broadway blvd ne albuquerque',
   '74 e glenwood ave smyrna',
   '111 e atlantic ave suite 200 delray beach',
-  '5005 lyndon b johnson fwy'
+  '5005 lyndon b johnson fwy suite 350'
 ]);
 
 /**

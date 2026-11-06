@@ -165,6 +165,16 @@ function makeVerdict(signals)
     return true;
   }
 
+  // Rule 13: a known mill footer address on bulk-marked mail (v6.98.0). QUARANTINES
+  // (in QUARANTINE_RULES, not DESTRUCTIVE_RULES): the evidence is a street address a
+  // legitimate tenant of the same building could share, so the message is archived
+  // out of the inbox under a label, never deleted. See Signal 16.
+  if (signals.millFooterAddress)
+  {
+    logInfo('SPAM DETECTED: known mill footer address on bulk-marked mail (quarantined)');
+    return true;
+  }
+
   // No rule triggered — email is not spam
   logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
            ', blacklist=' + signals.blacklistedSender +
@@ -182,7 +192,8 @@ function makeVerdict(signals)
            ', headlineFromName=' + signals.headlineFromName +
            ', attachmentPayloadScam=' + signals.attachmentPayloadScam +
            ', sponsoredAdTemplate=' + signals.sponsoredAdTemplate +
-           ', blacklistedRelayIdentity=' + signals.blacklistedRelayIdentity);
+           ', blacklistedRelayIdentity=' + signals.blacklistedRelayIdentity +
+           ', millFooterAddress=' + signals.millFooterAddress);
   return false;
 }
 

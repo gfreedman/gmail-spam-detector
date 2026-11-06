@@ -1972,7 +1972,8 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
                  'emptySubjectWithAttachment', 'serviceImpersonation',
                  'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',
                  'selfNamedSender', 'calendarLure', 'headlineFromName',
-                 'attachmentPayloadScam', 'sponsoredAdTemplate', 'blacklistedRelayIdentity'];
+                 'attachmentPayloadScam', 'sponsoredAdTemplate', 'blacklistedRelayIdentity',
+                 'millFooterAddress'];
 
   // Guard the guard: if collectSignals() grows a signal this list does not
   // know about, the sweep below silently stops being exhaustive.
@@ -1995,7 +1996,9 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
       const rule   = ctx.getRuleFromSignals(sig).rule;
       const corroborated = ctx.hasCorroboratingSignal(sig) === true;
       // Anything the inbox would delete, the Spam folder must not make wait.
-      if (isSpam && !corroborated && uncorroborated.length < 5) {
+      // Rule 13 is the ONE named exemption: it quarantines, and corroboration would turn
+      // that into a same-run permanent delete of Gmail-misfiled mail (L5 review).
+      if (isSpam && !corroborated && rule !== 'Rule 13' && uncorroborated.length < 5) {
         uncorroborated.push('rule=' + rule + ' fired=' +
           BOOLS.filter(k => sig[k]).concat(cb ? ['clickbait=' + cb] : []).join('+'));
       }
@@ -2027,6 +2030,16 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
       if (rule === 'Rule 12' && !sig.blacklistedRelayIdentity && offSpec.length < 5) {
         offSpec.push('rule-name: Rule 12 without blacklistedRelayIdentity');
       }
+      // Rule 13 is last: millFooterAddress alone must be named Rule 13, and Rule 13
+      // must never be named without it.
+      const soleFooter = sig.millFooterAddress && cb === 0 &&
+                         BOOLS.every(k => k === 'millFooterAddress' || !sig[k]);
+      if (soleFooter && rule !== 'Rule 13' && offSpec.length < 5) {
+        offSpec.push('rule-name: millFooterAddress alone -> ' + rule);
+      }
+      if (rule === 'Rule 13' && !sig.millFooterAddress && offSpec.length < 5) {
+        offSpec.push('rule-name: Rule 13 without millFooterAddress');
+      }
       combos++;
       if (isSpam !== (rule !== 'NONE') && disagreements.length < 5) {
         disagreements.push('rule=' + rule + ' isSpam=' + isSpam + ' fired=' +
@@ -2037,7 +2050,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
   check('makeVerdict agrees with getRuleFromSignals on all ' + combos +
         ' signal combinations', disagreements.length === 0,
         disagreements.join(' | '));
-  check('every inbox conviction also corroborates a Gmail spam verdict (' +
+  check('every inbox conviction except the quarantine-only Rule 13 also corroborates a Gmail spam verdict (' +
         combos + ' combinations)', uncorroborated.length === 0,
         uncorroborated.join(' | '));
   check('corroboration = a strong signal or 2+ weak points, on all ' + combos +
@@ -3074,6 +3087,126 @@ console.log('\n=== Signal 15 / Rule 12: blacklisted brand behind an ESP relay (v
   check('trendwatcherslab.com is on the shipped blacklist',
         vm.runInContext("DEFAULT_DOMAINS.suspicious.indexOf('trendwatcherslab.com') !== -1", ctx));
 }
+
+console.log('\n=== Signal 16 / Rule 13: known mill footer address on bulk-marked mail (v6.98.0) ===');
+{
+  const fs = require('fs'), path = require('path');
+  // A fixed footer in the exact shape the real fixture prints (the Python suite asserts
+  // the real Macro View fixture fires, so this block need not parse MIME).
+  const mill = 'This is an advertisement.\nIf you no longer wish to receive promotional messages, ' +
+    'write to: 5005 Lyndon B. Johnson Fwy. Suite 350 Dallas, TX 75244\n';
+  // A FRESH brand: not blacklisted, so Signal 15 / Rule 12 cannot fire. Only the address can.
+  const FRESH = 'Fresh Brand News <daily.fresh.freshbrandnews.example@email.cyberimpact.com>';
+  const LU = 'List-Unsubscribe: <mailto:u@example.com>\r\n';
+  const mk = (o, id) => {
+    const m = phishMessage(id || 'mR16');
+    m.getFrom = () => FRESH;
+    m.getSubject = () => 'Your weekly market note';
+    m.getRawContent = () => (o.lu === false ? '' : LU) + 'Reply-To: support@freshbrandnews.example\r\n\r\n' + (o.body === undefined ? mill : o.body);
+    m.getPlainBody = () => (o.body === undefined ? mill : o.body);
+    m.getBody = () => '<p>x</p>';
+    return m;
+  };
+  const fires = (o, c) => (c || makeCtx()).collectSignals(mk(o)).millFooterAddress === true;
+
+  check('a fresh, unlisted brand carrying the mill address + List-Unsubscribe fires Signal 16', fires({}));
+  {
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const v = c.analyzeMessage(mk({}));
+    check('...and is named Rule 13, with Rule 12 and Rule 11 silent (wording- and brand-independent)',
+          v.isSpam === true && c.getRuleFromSignals(v.signals).rule === 'Rule 13' &&
+          v.signals.blacklistedRelayIdentity === false && v.signals.sponsoredAdTemplate === false,
+          JSON.stringify({ s: v.isSpam, r: c.getRuleFromSignals(v.signals).rule }));
+    const errs = [];
+    c.logError = (x) => errs.push(String(x));
+    const m = mk({}, 'mR16d');
+    c.disposeDetectedMessage(m, fakeThread([m], c.calls), v.signals, true);
+    check('Rule 13 NEVER permanently deletes, even with a Drive archive',
+          !c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c.calls.map(x => x.op)));
+    check('Rule 13 is archived out of the inbox under a label (quarantine)',
+          c.calls.some(x => x.op === 'modify' && x.rm.indexOf('INBOX') !== -1) &&
+        c.calls.some(x => x.op === 'addLabel' || (x.op === 'modify' && x.add.length > 0)),
+        JSON.stringify(c.calls));
+    check('Rule 13 is a KNOWN quarantine rule (no "Unidentified rule" error)',
+          !errs.some(e => /Unidentified rule/.test(e)), errs.join(' | '));
+  }
+  check('without a List-Unsubscribe header it does not fire (a person forwarding has none)', !fires({ lu: false }));
+  check('a forwarded copy (marker, then the mill text) does not fire',
+        !fires({ body: 'is this a scam?\n\n---------- Forwarded message ---------\n' + mill }));
+  check('an "Original Message" quote does not fire',
+        !fires({ body: 'thanks\n\n-----Original Message-----\n' + mill }));
+  check('an "On ... wrote:" reply quote does not fire',
+        !fires({ body: 'no idea\n\nOn Tue, Nov 3, 2026 at 9:00 AM Someone <s@x.example> wrote:\n' + mill }));
+  check('">"-quoted lines do not fire',
+        !fires({ body: mill.split('\n').map(l => '> ' + l).join('\n') }));
+  check('text the sender wrote BEFORE a forward marker still counts',
+        fires({ body: mill + '\n\n---------- Forwarded message ---------\nhi' }));
+  check('the address without the mill text around it, in sender text, fires (the signal is the address)',
+        fires({ body: 'unsub: 5005 Lyndon B. Johnson Fwy. Suite 350, Dallas TX' }));
+  check('a number glued before the street number is a different address (word boundary)',
+        !fires({ body: '15005 Lyndon B. Johnson Fwy Dallas' }));
+  check('another suite in the same tower does not fire (the needle carries the mill suite)',
+        !fires({ body: 'Lakeshore Tax Partners, 5005 Lyndon B. Johnson Fwy, Suite 1200, Dallas, TX 75244' }));
+  check('an Outlook-style quoted reply (From:/Sent: header block, no ">") does not fire',
+        !fires({ body: 'no idea what this is\n\nFrom: Someone <s@x.example>\nSent: Tuesday, November 3, 2026 9:00 AM\nTo: me\nSubject: fwd\n\n' + mill }));
+  check('a "From:" line NOT followed by Sent:/Date: is ordinary text and does not cut the scan',
+        fires({ body: 'From: our office\nQuestions?\n' + mill }));
+  check('the header name is matched case-insensitively and a folded value still counts',
+        (() => { const m = mk({}); m.getRawContent = () => 'list-unsubscribe:\r\n <mailto:u@example.com>\r\n\r\nbody'; return makeCtx().collectSignals(m).millFooterAddress === true; })());
+  check('List-Unsubscribe-Post alone is not List-Unsubscribe',
+        (() => { const m = mk({}); m.getRawContent = () => 'List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n\r\nbody'; return makeCtx().collectSignals(m).millFooterAddress !== true; })());
+  check('"List-Unsubscribe:" in the BODY is not a header',
+        (() => { const m = mk({}); m.getRawContent = () => 'Subject: x\r\n\r\nList-Unsubscribe: <mailto:u@example.com>'; return makeCtx().collectSignals(m).millFooterAddress !== true; })());
+  check('a similar address on a different street does not fire',
+        !fires({ body: '5005 Lyndon B. Johnson Blvd, Dallas, TX' }));
+  check('empty body does not fire', !fires({ body: '' }));
+  const t0 = Date.now();
+  fires({ body: ('x'.repeat(80) + '\n').repeat(1500) + mill });
+  check('a 120 KB body is scanned in under 1 s', Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
+  {
+    // Scaling, not an absolute bound: 8x the input must not cost 30x the time.
+    const timeIt = (n) => { const t = Date.now(); for (let r = 0; r < 3; r++) makeCtx().stripQuotedAndForwarded(('on ' + 'a '.repeat(50) + '\n').repeat(n)); return Date.now() - t + 1; };
+    const small = timeIt(500), big = timeIt(4000);
+    check('stripQuotedAndForwarded scales linearly (8x input, <30x time)', big < small * 30, small + ' ms -> ' + big + ' ms');
+  }
+  // Shared with test_spam_detector.py (STRIP_CORPUS): the JS and Python mirrors must agree.
+  for (const [name, input, expected] of [
+    ['quoted lines dropped', 'a\n> b\nc', 'a\nc'],
+    ['forward marker cuts', 'a\n---------- Forwarded message ---------\nb', 'a'],
+    ['On..wrote cuts', 'a\nOn Tue, 3 Nov 2026 at 9:00 Bob <b@x.example> wrote:\nb', 'a'],
+    ['U+2028 inside On..wrote matches in BOTH mirrors ([^\\n], not ".")', 'a\nOn Tue\u2028x wrote:\nb', 'a'],
+    ['long-s does not fold into "original message"', '---- original me\u017fsage ----\nb', '---- original me\u017fsage ----\nb'],
+    ['BOM before ">" counts as whitespace', '\ufeff> q\nk', 'k'],
+    ['Outlook From:/Sent: block cuts', 'a\nFrom: x\nSent: y\nb', 'a'],
+    ['From: alone is kept', 'a\nFrom: x\nb', 'a\nFrom: x\nb'],
+    ['empty', '', '']
+  ]) {
+    check('stripQuotedAndForwarded corpus: ' + name,
+          JSON.stringify(makeCtx().stripQuotedAndForwarded(input)) === JSON.stringify(expected),
+          JSON.stringify(makeCtx().stripQuotedAndForwarded(input)));
+  }
+
+  const alone = { clickbaitCount: 0, millFooterAddress: true };
+  check('millFooterAddress alone is an inbox conviction under Rule 13',
+        ctx0().makeVerdict(alone) === true && ctx0().getRuleFromSignals(alone).rule === 'Rule 13');
+  check('Rule 12 wins over Rule 13 when both hold',
+        ctx0().getRuleFromSignals({ clickbaitCount: 0, blacklistedRelayIdentity: true, millFooterAddress: true }).rule === 'Rule 12');
+  check('millFooterAddress does NOT corroborate a Gmail spam verdict (quarantine-only rule: no same-run delete)',
+        ctx0().hasCorroboratingSignal(alone) === false);
+  {
+    // Rule 13 is last: every OTHER signal that convicts on its own must outrank it.
+    const others = ['blacklistedRelayIdentity', 'sponsoredAdTemplate', 'calendarLure', 'callbackPhishing',
+                    'brandMismatchedCta', 'serviceImpersonation', 'emptySubjectWithAttachment'];
+    const wrong = others.filter(k => ctx0().getRuleFromSignals(Object.assign({ clickbaitCount: 0, millFooterAddress: true }, { [k]: true })).rule === 'Rule 13');
+    check('no standalone-convicting signal is outranked by Rule 13', wrong.length === 0, wrong.join(','));
+  }
+  check('MILL_FOOTER_ADDRESS appears in the signals CSV', ctx0().buildSignalsCsv(alone).indexOf('MILL_FOOTER_ADDRESS') !== -1);
+  check('mill-footer-address appears in the Spam-folder description',
+        ctx0().describeSignals(alone).indexOf('mill-footer-address') !== -1);
+  check('Rule 13 is not in the destructive list',
+        !/DESTRUCTIVE_RULES = \[[^\]]*Rule 13/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')));
+}
+function ctx0() { return ctx0._c || (ctx0._c = makeCtx()); }
 
 console.log('\n=== Signal 12: headline-then-brand From name (corroboration only) ===');
 {

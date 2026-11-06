@@ -1,0 +1,1020 @@
+Delivered-To: recipient@example.com
+Received: by 2002:a05:7412:3011:b0:239:3bc6:72ff with SMTP id eq17csp3186551rdb;
+        Fri, 6 Nov 2026 05:54:29 -0800 (PST)
+X-Received: by 2002:ac8:6f1a:0:b0:536:6ace:48b5 with SMTP id d75a77b69052e-54c9cc22d5amr78748361cf.38.1793973269321;
+        Fri, 06 Nov 2026 05:54:29 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1793973269; cv=none;
+        d=google.com; s=arc-20260327;
+        b=bdbJZPLETi4k0kALbcJOYFlDmmY54e5Zkn8tkf0ZbmaHUyTF7dw7evrrPHoFPaY7oS
+         gXsiMeS7TAnNYegYIyKsIdTt1XTWAVo+rsY2MM+dH/9gI+IYPFslkbZgce8OAn6lcUFK
+         iTMCMDabeTXtYacRJkFgbtSnmFhk9flsOfmdGNl3HDYCyZwMpUP9K9MhIKVAAUOGXvtV
+         kxG0qXKihbsdSQj+LyQLriBF3lVSYyCKTAKDDlMQ9djIHoM6E11Guo8KntR3sM7febvV
+         hZwQPp81RO5L9en8TkuINVZgQgskJAWKzSeHm2GaAp6yPHswGqx5DIpzlXQV3VWIRPyR
+         e7VA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=mime-version:dkim-signature:feedback-id:list-unsubscribe
+         :list-unsubscribe-post:precedence:message-id:date:subject:reply-to
+         :to:from;
+        bh=bzU8OVevTjmKuajb6UKMRD792Bcf679V714G3QUsAA4=;
+        fh=ViHSkiYhxmTHvIoYhTLpxtmQWRwHHZhlr4ss0AtFu5g=;
+        b=bkJNFwB1y0C/nPfUphbZrUa97ykerdPaC0CEeENcAsizrOU2sDXUT9FpSP2ywC58Kk
+         6uZWlTAshwnfHTH5et3Zp/qLGU3xmbzarOM2s1WL4pfwHoL3RILceqmhQYehxQb08ebg
+         VgxRYPmXn5fz4HAktp2HeuBTUTmoG4S7mlDt1ALSPvHC7FrtZqCBb7D/K5O4g8l/sYw2
+         RQwCrhTs+8arBAF0+/Zz2MucR0w9QhjTABn3pYPy9T9ahRiogb+FmD83P8nNE+o0ih0l
+         wEYaaKxDD4hrP4qFbb3O1dDp6Kp3sHWwyou1gZWTkEbLhMIA7Cn1bFl7DYIJe6rh4dPv
+         oEPg==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@email.cyberimpact.com header.s=default header.b=YYNxMsOh;
+       spf=pass (google.com: domain of REDACTED@email.cyberimpact.com designates 64.95.196.119 as permitted sender) smtp.mailfrom=REDACTED@email.cyberimpact.com;
+       dmarc=pass (p=REJECT sp=QUARANTINE dis=NONE) header.from=email.cyberimpact.com
+Return-Path: <REDACTED@email.cyberimpact.com>
+Received: from mta-t-95-196-119.mailer.cyberimpact.com (mta-t-95-196-119.mailer.cyberimpact.com. [64.95.196.119])
+        by mx.google.com with ESMTPS id 6a1803df08f44-91ea6947c4dsi26526026d6.110.2026.11.06.05.54.29
+        for <recipient@example.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Fri, 06 Nov 2026 05:54:29 -0800 (PST)
+Received-SPF: pass (google.com: domain of REDACTED@email.cyberimpact.com designates 64.95.196.119 as permitted sender) client-ip=64.95.196.119;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@email.cyberimpact.com header.s=default header.b=YYNxMsOh;
+       spf=pass (google.com: domain of REDACTED@email.cyberimpact.com designates 64.95.196.119 as permitted sender) smtp.mailfrom=REDACTED@email.cyberimpact.com;
+       dmarc=pass (p=REJECT sp=QUARANTINE dis=NONE) header.from=email.cyberimpact.com
+Received: from CIMAILBUILDER2 (unknown [172.20.175.111])
+	by mta-t-95-196-119.mailer.cyberimpact.com (Postfix) with SMTP id 4jLgZm3ShnzB2vvF
+	for <recipient@example.com>; Fri,  6 Nov 2026 08:51:44 -0500 (EST)
+From: "Macro View Digest" <daily.mvd.macroviewdigest.com@email.cyberimpact.com>
+To: recipient@example.com
+Reply-To: support@macroviewdigest.com
+Subject: Over 100 banks already rigged against Americans
+Date: Fri, 06 Nov 2026 08:51:14 -0500
+Message-ID: <20261106-08514378-71618c16-0@CIMAILBUILDER2>
+Precedence: bulk
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+List-Unsubscribe: <mailto:list-unsubscribe@cyberimpact.com?subject=REDACTED>, <https://app.cyberimpact.com/unsubscribe?ct=REDACTED>
+Feedback-ID: c64401:c64401-m66::ci-wl-1
+X-CI-TO: recipient@example.com
+X-CI-RP: REDACTED@email.cyberimpact.com
+DKIM-Signature: v=1; a=rsa-sha256; c=simple/simple;
+	d=email.cyberimpact.com; s=default;
+	h=From:To:Subject:Date:Message-ID:List-Unsubscribe-Post:List-Unsubscribe:Feedback-ID:MIME-Version:Content-Type;
+	bh=4+Q31DoAu400DJKKyntWky1j4Uuc553Qp95lG/ieFQg=;
+	b=YYNxMsOh6vOufzx/LuPrhsVn4IdANtUjOIGnMKIa7EfHnQf7tScBWupPR0PaiGn6
+		DHuD28qKGOnJNJxwYLFkGkWsUWmZfMxom1K2xNW032DafHLSngkZHVcVOCsIsAMj
+		rZzdZTHtTWH7SaxgVkbSZAcUEmtat8wXGkZGG9IXRFo5GBtVGjPg/tl+D9XNkymX
+		vVdy8E25tw7rA5pEbxK8EvFVG+6h2lEXEU/Z/suR0Fgu9mfW+DPDEGzMCqi35D4q
+		xgyu0XZx13gxb26dBzqpSheUqQbyDlwt6wZrskYMpxUvvpTCiY/ck6bxHfg3iT+w
+		GjxdMWFnnd/8Uj7PRZ4Fwg==
+MIME-Version: 1.0
+Content-Type: multipart/mixed;
+	boundary="--=628f434c_1d71_4923_b253_f76190359a77"
+
+----=628f434c_1d71_4923_b253_f76190359a77
+Content-Type: text/html;charset="UTF-8"
+Content-Transfer-Encoding: Quoted-Printable
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional //EN" "http:/=
+/www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">                 <ht=
+ml lang=3D"en" xmlns=3D"http://www.w3.org/1999/xhtml"                  =
+xmlns:v=3D"urn:schemas-microsoft-com:vml"                  xmlns:o=3D"u=
+rn:schemas-microsoft-com:office:office">                  <head>       =
+          <!--[if gte mso 9]><xml>                  <o:OfficeDocumentSe=
+ttings>                   <o:AllowPNG/>                   <o:PixelsPerI=
+nch>96</o:PixelsPerInch>                  </o:OfficeDocumentSettings>  =
+               </xml><![endif]-->                 <meta http-equiv=3D"C=
+ontent-Type" content=3D"text/html; charset=3Dutf-8">                 <s=
+tyle type=3D"text/css">/* everything mobile */ @media only screen and (=
+max-width: 480px) {      body {         width: 100% !important;        =
+ padding: 0 !important;     }      /* Button */     .bouton {         d=
+isplay: block !important;         margin: 1em 0;         text-align: ce=
+nter;     }      .bg-body .row.mobile-side-by-side table p span.bouton =
+{         display: inline-block !important;     }      /* resizes image=
+s and tables to fit */     .border-frame {         min-width: 0 !import=
+ant;         padding: 0 !important;     }      .bg-body { padding: 0 !i=
+mportant; }      .ci-mail-footer-root table,     .bg-body table {      =
+   max-width: 600px !important;         width: 100% !important;        =
+ height: auto !important;         border-collapse: collapse;     }     =
+ .bg-body img {         max-width: 100%;         height: auto !importan=
+t;     }      .bg-body img.responsiveImage {         width: 100% !impor=
+tant;     }      /* border-box everything so padding is included in the=
+ width */     .bg-body,     .bg-body td,     .texte, .image {         -=
+moz-box-sizing: border-box;         -webkit-box-sizing: border-box;    =
+     box-sizing: border-box;         max-width: 100% !important;       =
+  height: auto !important;         padding-left: 0 !important;         =
+padding-right: 0 !important;     }      td.row-inner-padding {         =
+padding-left: 18px !important;         padding-right: 18px !important; =
+    }      .row .texte a {         text-decoration: underline;     }   =
+   .row .texte,     .row .image {         padding-top: 9px !important; =
+        padding-bottom: 9px !important;         padding-left: 18px !imp=
+ortant;         padding-right: 18px !important;     }      .row .texte.=
+no-mobile-padding,     .row .image.no-mobile-padding {         padding-=
+top: 0px !important;         padding-bottom: 0px !important;     }     =
+ .row .image.full-width {         padding-top: 0 !important;         pa=
+dding-bottom: 0 !important;         padding-left: 0 !important;        =
+ padding-right: 0 !important;     }      .online-version-link-holder,  =
+   .rss-text {         padding: 18px;     }      .row .cols {         b=
+order-left: 9px solid transparent !important;         border-right: 9px=
+ solid transparent !important;     }      .row .cols .texte, .row .cols=
+ .image {         padding: 9px !important;     }      /* for rows with =
+small icons */     .bg-body .row-icon {         padding-left: 9px !impo=
+rtant;         padding-right: 9px !important;     }     .bg-body .row-i=
+con td {         box-sizing: content-box;         padding-left: 9px !im=
+portant;         padding-right: 9px !important;     }     .bg-body .row=
+-icon .image,     .bg-body .row-icon .texte { padding: 0 !important; } =
+     .row .video, .row .play {         display: block;         padding-=
+left: 18px !important;         padding-right: 18px !important;     }   =
+   .nopadding {         padding: 0 !important;     }      .rss-text {  =
+       padding: 18px;     }      .hide_from_mobile {         display: n=
+one !important;     }      /* social networks icons */     .social {   =
+      padding-left: 10px !important;     }      .social td {         pa=
+dding: 0 !important;     }      .social a {         display: inline-blo=
+ck;         padding: 6px 4px !important;     }      .social img {      =
+   width: 30px !important;         height: auto !important;     }      =
+/** NEW **/     .wrapper {         max-width: 100% !important;         =
+width: 100% !important;     } }     </style><style type=3D"text/css"> @=
+media only screen and (max-width: 480px) {     /* ---- MOBILE SIDE BY S=
+IDE ---- */     .bg-body .row.mobile-side-by-side table.converted-pt-to=
+-pct {         vertical-align: top;     }      .bg-body .row.mobile-sid=
+e-by-side table.converted-pt-to-pct:first-child {         margin-left: =
+auto !important;     }      .bg-body .row.mobile-side-by-side table.con=
+verted-pt-to-pct:last-child {         margin-right: auto !important;   =
+  }      /* Individual widths */     .bg-body .row.mobile-side-by-side =
+table.w99pt {         width: 22% !important;     }      .bg-body .row.m=
+obile-side-by-side table.w102pt {         width: 22.6% !important;     =
+}      .bg-body .row.mobile-side-by-side table.w108pt {         width: =
+24% !important;     }      .bg-body .row.mobile-side-by-side table.w108=
+_75pt {         width: 24.1% !important;     }      .bg-body .row.mobil=
+e-side-by-side table.w112pt {         width: 24.8% !important;     }   =
+   .bg-body .row.mobile-side-by-side table.w112_5pt {         width: 25=
+% !important;     }      .bg-body .row.mobile-side-by-side table.w120pt=
+ {         width: 26.6% !important;     }      .bg-body .row.mobile-sid=
+e-by-side table.w138_75pt {         width: 30.8% !important;     }     =
+ .bg-body .row.mobile-side-by-side table.w141_5pt {         width: 31.4=
+% !important;     }      .bg-body .row.mobile-side-by-side table.w144pt=
+ {         width: 32% !important;     }      .bg-body .row.mobile-side-=
+by-side table.w145pt {         width: 32.2% !important;     }      .bg-=
+body .row.mobile-side-by-side table.w145_5pt {         width: 32.3% !im=
+portant;     }      .bg-body .row.mobile-side-by-side table.w148_25pt {=
+         width: 32.9% !important;     }      .bg-body .row.mobile-side-=
+by-side table.w150pt {         width: 33.3% !important;     }      .bg-=
+body .row.mobile-side-by-side table.w159pt {         width: 35.3% !impo=
+rtant;     }      /* this one is used in a 2-column row with 67px side =
+paddings */     .bg-body .row.mobile-side-by-side table.w182_25pt {    =
+     width: 48.5% !important;     }      .bg-body .row.mobile-side-by-s=
+ide table.w211pt {         width: 46.8% !important;     }      .bg-body=
+ .row.mobile-side-by-side table.w215_25pt {         width: 47.8% !impor=
+tant;     }      .bg-body .row.mobile-side-by-side table.w217_5pt {    =
+     width: 48.3% !important;     }      .bg-body .row.mobile-side-by-s=
+ide table.w218_25pt {         width: 48.5% !important;     }      .bg-b=
+ody .row.mobile-side-by-side table.w220pt {         width: 48.8% !impor=
+tant;     }      .bg-body .row.mobile-side-by-side table.w225pt {      =
+   width: 50% !important;     }      .bg-body .row.mobile-side-by-side =
+table.w255pt {         width: 56.6% !important;     }      .bg-body .ro=
+w.mobile-side-by-side table.w284_25pt {         width: 63.1% !important=
+;     }      .bg-body .row.mobile-side-by-side table.w290_5pt {        =
+ width: 64.5% !important;     }      .bg-body .row.mobile-side-by-side =
+table.w291pt {         width: 64.6% !important;     }      .bg-body .ro=
+w.mobile-side-by-side table.w304pt {         width: 67.5% !important;  =
+   }      .bg-body .row.mobile-side-by-side table.w319_25pt {         w=
+idth: 70.9% !important;     }      .bg-body .row.mobile-side-by-side ta=
+ble.w323_5pt {         width: 71.8% !important;     }      .bg-body .ro=
+w.mobile-side-by-side table.w326pt {         width: 72.4% !important;  =
+   }      .bg-body .row.mobile-side-by-side table.w337pt {         widt=
+h: 74.8% !important;     }      .bg-body .row.mobile-side-by-side table=
+.w423pt {         width: 94% !important;     }      .bg-body .row.mobil=
+e-side-by-side table.w436_5pt {         width: 97% !important;     }   =
+   .bg-body .row.mobile-side-by-side table.w450pt {         width: 100%=
+ !important;     }      /* Exceptions for converted tables inside conve=
+rted tables. Width should double to fill the space */     .bg-body .row=
+.mobile-side-by-side table.converted-pt-to-pct table.w99pt {         wi=
+dth: 44% !important;     }      .bg-body .row.mobile-side-by-side table=
+.converted-pt-to-pct table.w102pt {         width: 45.2% !important;   =
+  }      .bg-body .row.mobile-side-by-side table.converted-pt-to-pct ta=
+ble.w108_75pt {         width: 48.2% !important;     }      .bg-body .r=
+ow.mobile-side-by-side table.converted-pt-to-pct table.w112_5pt {      =
+   width: 50% !important;     }      /* General styles         Not usin=
+g only ".mobile-side-by-size table" because we want to target         t=
+hese tables exclusively      */     .bg-body .row.mobile-side-by-side t=
+able.converted-pt-to-pct .texte,     .bg-body .row.mobile-side-by-side =
+table.cols.converted-pt-to-pct .texte,     .bg-body .row.mobile-side-by=
+-side table.converted-pt-to-pct .texte:first-child,     .bg-body .row.m=
+obile-side-by-side table.converted-pt-to-pct .texte:last-child,     .bg=
+-body .row.mobile-side-by-side table.converted-pt-to-pct:first-child .t=
+exte,     .bg-body .row.mobile-side-by-side table.converted-pt-to-pct:l=
+ast-child .texte,     .bg-body .row.mobile-side-by-side table.converted=
+-pt-to-pct .image,     .bg-body .row.mobile-side-by-side table.cols.con=
+verted-pt-to-pct .image,     .bg-body .row.mobile-side-by-side table.co=
+nverted-pt-to-pct .image:first-child,     .bg-body .row.mobile-side-by-=
+side table.converted-pt-to-pct .image:last-child {         padding: 6px=
+ !important;         padding-left: 6px !important;         padding-top:=
+ 6px !important;         padding-right: 6px !important;         padding=
+-bottom: 6px !important;         word-wrap: break-word;     }      .bg-=
+body .row.mobile-side-by-side table.converted-pt-to-pct .image.full-wid=
+th {         padding: 0 !important;     }      .bg-body .row.mobile-sid=
+e-by-side table.converted-pt-to-pct.cols {         border-left: 0 !impo=
+rtant;         border-right: 0 !important;     }      .bg-body .row.mob=
+ile-side-by-side.with-side-padding-18 > table.first-child {         mar=
+gin-left: 3.1% !important;     }      .bg-body .row.mobile-side-by-side=
+.with-side-padding-18 > table.last-child {         margin-right: 3.1% !=
+important;     }      .bg-body .row.mobile-side-by-side.with-side-paddi=
+ng-9 > table.first-child {         margin-left: 1.5% !important;     } =
+     .bg-body .row.mobile-side-by-side.with-side-padding-9 > table.last=
+-child {         margin-right: 1.5% !important;     } }  </style><style=
+ type=3D"text/css">  body {     margin: 0 !important; }  .bg-body {    =
+ line-height: normal; }  h1, h2, h3, h4 {     font-weight: normal !impo=
+rtant; }  td.row h1, td.row h2, td.row h3, td.row h4 {     font-weight:=
+ normal !important; }  td.row h1[style*=3D"font-weight: bold" i], td.ro=
+w h2[style*=3D"font-weight: bold" i], td.row h3[style*=3D"font-weight: =
+bold" i], td.row h4[style*=3D"font-weight: bold" i], td.row h1[style*=3D=
+"font-weight: 700" i], td.row h2[style*=3D"font-weight: 700" i], td.row=
+ h3[style*=3D"font-weight: 700" i], td.row h4[style*=3D"font-weight: 70=
+0" i], td.row h1 b, td.row h1 strong, td.row h2 b, td.row h2 strong, td=
+.row h3 b, td.row h3 strong, td.row h4 b, td.row h4 strong {     font-w=
+eight: 700 !important; }  p {     Margin-top: 0;     margin-bottom: 1em=
+; }  /* Fix image margin problem on several email platforms. We don't u=
+se "display:block" on img because this would prevent us to offer "left/=
+center/right alignment" setting for image blocks in editor */ .row .ima=
+ge {     font-size: 0px;     line-height: 0px; }  /* .row > table {    =
+ float: left; }*/  @media only screen and (min-width: 481px) {     img =
+{         max-width: 100%;         height: auto;     } }  /* hotmail */=
+ .ExternalClass * { line-height:normal; } .ExternalClass .ecxfixhotmail=
+margins p { display:inline; }  /* If something breaks bad on iPad, remo=
+ve this. * It's a patch for the weird borders that tend to show up when=
+ using a transparent png over a td with a bgcolor. * Please note: this =
+is NOT a good solution and it does not work 100% of the time. * But tes=
+ted over several models, it proved to be better than nothing. */ @media=
+ only screen and (-webkit-min-device-pixel-ratio: 1) and (min-device-wi=
+dth: 768px) and (device-width: 1024px) {     .border-frame > table  { b=
+order: 1px solid transparent; overflow:hidden; }     .bg-frame { positi=
+on: relative; margin: -1px; }      .bg-body > table,     .border-frame =
+{ width: 604px !important; } }  /* removes blue links on ios platforms =
+*/ a[x-apple-data-detectors] {     color: inherit !important;     text-=
+decoration: none !important;     font-size: inherit !important;     fon=
+t-family: inherit !important;     font-weight: inherit !important;     =
+line-height: inherit !important; }  grammarly-btn, grammarly-extension =
+{ display:none !important; }</style>                                   =
+ <title>Over 100 banks already rigged against Americans</title></head> =
+                <body>                 <div class=3D"preview-text" lang=
+=3D"en" dir=3D"ltr" data-version=3D"2" style=3D"display:none;font-size:=
+1px;color:#ffffff;line-height:1px;max-height:0px;max-width:0px;opacity:=
+0;overflow:hidden;">Washington&rsquo;s chilling plan to take control of=
+ YOUR money is no longer a rumor&mdash;it&rsquo;s already underway.</di=
+v><!--BOF sample code--> <table cellpadding=3D"0" cellspacing=3D"0" wid=
+th=3D"100%" border=3D"0" role=3D"presentation" dir=3D"ltr">     <tbody>=
+<tr>         <td align=3D"center" class=3D"bg-body" style=3D"padding:18=
+px 0px 0px 0px;background-color:rgb(14, 21, 39);" data-metadata=3D"{   =
+&quot;.bg-body&quot;: {     &quot;background-color&quot;: &quot;#0e1527=
+&quot;   },   &quot;.border-frame&quot;: {     &quot;background-color&q=
+uot;: &quot;#ffffff&quot;   },   &quot;.bg-frame&quot;: {     &quot;bac=
+kground-color&quot;: &quot;#ffffff&quot;   },   &quot;.row, .row td&quo=
+t;: {     &quot;font-family&quot;: &quot;Arial, sans-serif&quot;   } }"=
+>             <!--BOF table border-->                          <table c=
+ellpadding=3D"0" cellspacing=3D"0" width=3D"602" role=3D"presentation">=
+                 <tbody><tr>                     <td class=3D"border-fr=
+ame" style=3D"min-width: 600px; padding: 1px; background-color: rgb(255=
+, 255, 255);" align=3D"left">                         <!--BOF table fra=
+me-->                         <table cellpadding=3D"0" cellspacing=3D"0=
+" width=3D"100%" role=3D"presentation">                             <tb=
+ody><tr>                                 <td class=3D"bg-frame" style=3D=
+"background-color: rgb(255, 255, 255);">                               =
+      <!--BOF content-->                                     <table wid=
+th=3D"100%" cellpadding=3D"0" cellspacing=3D"0" border=3D"0" role=3D"pr=
+esentation">                                         <tbody><tr>       =
+                                      <td valign=3D"top" class=3D"conte=
+nt-holder">                                                 <div class=3D=
+"sortable ui-sortable"><div class=3D"option-holder">     <div class=3D"=
+canvas">         <table width=3D"100%" border=3D"0" cellpadding=3D"0" c=
+ellspacing=3D"0" role=3D"presentation">             <tbody><tr>        =
+         <td valign=3D"top" class=3D"row" style=3D"background-color: rg=
+b(14, 21, 39); text-align: center;">                     <div class=3D"=
+image full-width">                         <a href=3D"https://app.cyber=
+impact.com/redirect?ct=REDACTED
+XC7hHgvbpLh5cMV6G125uu_-uNdIga4Vbq9asegZvbhWOSbDBVZAQWqpR2AiKN-YiqaUnpy=
+kHq4JP2P31-" target=3D"_blank"><img src=3D"https://cdn.cyberimpact.com/=
+clients/64401/public/b322da49-9ea3-48d7-5126-e71333d5b784/image/LogoMac=
+roViewDigest.jpg?1793626342312" class=3D"responsiveImage" alt=3D"Header=
+Logo" border=3D"0" width=3D"530" style=3D"display: inline-block; vertic=
+al-align: bottom; width: 530px; height: auto;" data-width=3D"600" data-=
+height=3D"176"></a>                     </div>                 </td>   =
+          </tr>         </tbody></table>     </div> </div><div class=3D=
+"option-holder">     <div class=3D"canvas">         <table width=3D"100=
+%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentatio=
+n">             <tbody><tr>                 <td valign=3D"top" class=3D=
+"row" style=3D"padding: 18px 18px 0px; color: rgb(1, 1, 1); font-size: =
+12px; font-family: Arial; background-color: rgba(0, 0, 0, 0);">        =
+             <div class=3D"texte" lang=3D"en" dir=3D"ltr" role=3D"textb=
+ox" aria-label=3D"Rich Text Editor. Editing area: main. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help."  id=3D"ui-id-1"><div style=3D"=
+background-color:#0e1527;border-left:5px solid #8b3a42;box-sizing:borde=
+r-box;font-family:Arial, Helvetica, sans-serif;margin:0 auto 14px;max-w=
+idth:600px;width:100%;"><div style=3D"font-size:0;line-height:0;padding=
+:10px 16px 0;"><div style=3D"box-sizing:border-box;display:inline-block=
+;font-family:Arial, Helvetica, sans-serif;font-size:11px;line-height:14=
+px;vertical-align:middle;width:68%;"><span style=3D"color:#cbb3b7;font-=
+size:10px;letter-spacing:1px;text-transform:uppercase;">Sponsored by Gr=
+een Coffee Company</span></div><div style=3D"box-sizing:border-box;disp=
+lay:inline-block;font-family:Arial, Helvetica, sans-serif;text-align:ri=
+ght;vertical-align:middle;width:32%;"><span style=3D"border:1px solid #=
+d97d86;color:#d97d86;display:inline-block;font-size:11px;line-height:13=
+px;padding:3px 8px;white-space:nowrap;"><strong>$1.15/SHARE</strong></s=
+pan></div></div><div style=3D"color:#ffffff;font-size:20px;line-height:=
+25px;padding:7px 16px 0;"><strong>The Next Starbucks Is Still Pre-IPO</=
+strong></div><div style=3D"color:#f3e8e8;font-size:13px;line-height:18p=
+x;padding:5px 16px 0;">Green Coffee Company owns every step from Colomb=
+ian farm to U.S. shelf: 45 farms, 10,000=2B acres, and shares still at =
+$1.15.</div><div style=3D"font-size:0;line-height:0;padding:10px 13px 0=
+;"><div style=3D"box-sizing:border-box;display:inline-block;padding:0 3=
+px;vertical-align:top;width:33.33%;"><div style=3D"background-color:#22=
+1d2b;font-family:Arial, Helvetica, sans-serif;padding:6px 4px;text-alig=
+n:center;"><div style=3D"color:#d97d86;font-size:15px;line-height:18px;=
+"><strong>45</strong></div><div style=3D"color:#cbb3b7;font-size:10px;l=
+ine-height:12px;padding-top:2px;">Owned farms</div></div></div><div sty=
+le=3D"box-sizing:border-box;display:inline-block;padding:0 3px;vertical=
+-align:top;width:33.33%;"><div style=3D"background-color:#221d2b;font-f=
+amily:Arial, Helvetica, sans-serif;padding:6px 4px;text-align:center;">=
+<div style=3D"color:#d97d86;font-size:15px;line-height:18px;"><strong>1=
+,500=2B</strong></div><div style=3D"color:#cbb3b7;font-size:10px;line-h=
+eight:12px;padding-top:2px;">Partner growers</div></div></div><div styl=
+e=3D"box-sizing:border-box;display:inline-block;padding:0 3px;vertical-=
+align:top;width:33.33%;"><div style=3D"background-color:#221d2b;font-fa=
+mily:Arial, Helvetica, sans-serif;padding:6px 4px;text-align:center;"><=
+div style=3D"color:#d97d86;font-size:15px;line-height:18px;"><strong>1M=
+=2B lbs</strong></div><div style=3D"color:#cbb3b7;font-size:10px;line-h=
+eight:12px;padding-top:2px;">Weekly processing</div></div></div></div><=
+div style=3D"padding:10px 16px 0;"><a style=3D"background-color:#8b3a42=
+;color:#000099;display:block;font-size:14px;line-height:18px;padding:10=
+px 14px;text-align:center;text-decoration:underline;" href=3D"https://a=
+pp.cyberimpact.com/redirect?ct=REDACTED
+FGobm-9Y6_SBS0SzJTsN_deD9VSPsYy2o_dsG8IHJdBKe0brIYuochmnWE2TYb_g56E9Kme=
+v2r75-zWOy9sdhQjIPU" target=3D"_blank"><span style=3D"color:rgb(255,255=
+,255);"><strong><u>Invest at $1.15/Share =E2=86=92</u></strong></span><=
+/a></div><div style=3D"color:#cbb3b7;font-size:9px;line-height:12px;pad=
+ding:10px 16px 12px;word-break:break-word;">No IPO has been agreed to o=
+r scheduled, and there is no assurance that one will occur. Plans may c=
+hange at any time.<br>This is a paid advertisement for Green Coffee Com=
+pany's Regulation A offering. Read the offering circular at <a style=3D=
+"color:#000099;text-decoration:underline;" href=3D"https://app.cyberimp=
+act.com/redirect?ct=REDACTED
+BS0SzJTsN_deD9VSPsYy2o_dsG8IHJdBKe0brIYuochmnWE2TYb_g56E9Kmev2r75-zWOy9=
+sdhQjIPU" target=3D"_blank"><span style=3D"color:rgb(255,255,255);"><st=
+rong><u>https://invest.greencoffeecompany.com/</u></strong></span></a>.=
+ Timelines are subject to change. Listing on the NASDAQ is contingent u=
+pon necessary approvals, and reserving a ticker symbol does not mean th=
+e company will be publicly listed.<br>Bonus shares are subject to the t=
+erms and conditions described in the offering circular.<br>Starbucks is=
+ not affiliated with Green Coffee Company or this offering. Past perfor=
+mance of any company does not guarantee future results.</div></div><div=
+ style=3D"font-family:'Arial', Arial, Helvetica, sans-serif;margin:0;pa=
+dding:0;width:100%;"><div style=3D"background-color:#FFFFFF;box-sizing:=
+border-box;font-family:'Arial', Arial, Helvetica, sans-serif;margin:0 a=
+uto;max-width:600px;padding-right:0px;padding-left:0px;"><div style=3D"=
+font-family:'Arial', Arial, Helvetica, sans-serif;font-size:0px;height:=
+16px;line-height:0px;width:100%;">&nbsp;</div><div style=3D"color:#0101=
+01;font-family:'Arial', Arial, Helvetica, sans-serif;font-size:20px;fon=
+t-style:normal;font-weight:normal;line-height:1.5;padding-top:0px;paddi=
+ng-bottom:14px;text-align:left;"><p><span style=3D"color:#010101;font-f=
+amily:'Arial', Arial, Helvetica, sans-serif;font-size:20px;font-style:n=
+ormal;font-weight:normal;line-height:1.5;text-align:left;">Washington=E2=
+=80=99s chilling plan to take control of YOUR money is no longer a rumo=
+r=E2=80=94it=E2=80=99s already underway.&nbsp;</span></p><table border=3D=
+"0" cellpadding=3D"0" cellspacing=3D"0" width=3D"100%" style=3D"border-=
+collapse:collapse;" data-ci-img-type=3D"figure-outer"><tbody><tr><td al=
+ign=3D"center" style=3D"padding:0;"><table border=3D"0" cellpadding=3D"=
+0" cellspacing=3D"0" data-ci-img-type=3D"figure-inner" data-ci-fig-clas=
+s=3D"image image_resized" data-ci-fig-style=3D"height: auto; width: 100=
+%; display: block; margin-left: auto; margin-right: auto;"><tbody><tr><=
+td style=3D"padding:0;"><a href=3D"https://app.cyberimpact.com/redirect=
+?ct=REDACTED
+XPN7zXg1ComI_6iKHF2EsmaksO3-lFABc_ut0aA4WC_tR9SiUML1PAQecDslMlK"><img c=
+lass=3D"ck-img responsiveImage" style=3D"border-width: 0px; margin: 0px=
+ auto; max-width: 500px; outline: none; text-decoration: none; display:=
+ block;" src=3D"https://cdn.cyberimpact.com/clients/64401/public/b322da=
+49-9ea3-48d7-5126-e71333d5b784/image/SSEO620BT3_(1).jpg?1793960402851" =
+alt=3D"Image" width=3D"600" data-ci-orig-width=3D"500"></a></td></tr></=
+tbody></table></td></tr></tbody></table><p><span style=3D"color:#010101=
+;font-family:'Arial', Arial, Helvetica, sans-serif;font-size:20px;font-=
+style:normal;font-weight:normal;line-height:1.5;text-align:left;">Burie=
+d inside </span><a style=3D"color:#000099;font-family:'Arial', Arial, H=
+elvetica, sans-serif;text-decoration:underline;" href=3D"https://app.cy=
+berimpact.com/redirect?ct=REDACTED
+TPDVxpo1KNuDhyWXNTZ3U1XPN7zXg1ComI_6iKHF2EsmaksO3-lFABc_ut0aA4WC_tR9SiU=
+ML1PAQecDslMlK"><span style=3D"color:rgb(0,0,153);font-family:'Arial', =
+Arial, Helvetica, sans-serif;font-size:20px;font-style:normal;font-weig=
+ht:normal;line-height:1.5;text-align:left;"><strong><u>Executive Order =
+14028</u></strong></span></a><span style=3D"color:#010101;font-family:'=
+Arial', Arial, Helvetica, sans-serif;font-size:20px;font-style:normal;f=
+ont-weight:normal;line-height:1.5;text-align:left;">, the federal gover=
+nment laid the groundwork for a new system that lets them <strong>track=
+ every dollar you spend, freeze your accounts at will, and even cut you=
+ off completely.</strong>&nbsp;<br></span><span style=3D"color:#010101;=
+font-family:'Arial', Arial, Helvetica, sans-serif;font-size:20px;"><br>=
+</span><span style=3D"color:#010101;font-family:'Arial', Arial, Helveti=
+ca, sans-serif;font-size:20px;font-style:normal;font-weight:normal;line=
+-height:1.5;text-align:left;">Over <strong>100 banks have quietly signe=
+d on</strong>, preparing for the shift away from traditional cash into =
+a system you may not control.&nbsp;<br></span><span style=3D"color:#010=
+101;font-family:'Arial', Arial, Helvetica, sans-serif;font-size:20px;">=
+<br></span><span style=3D"color:#010101;font-family:'Arial', Arial, Hel=
+vetica, sans-serif;font-size:20px;font-style:normal;font-weight:normal;=
+line-height:1.5;text-align:left;">Your savings, your retirement, even y=
+our checking account could all be at risk.&nbsp;<br></span><span style=3D=
+"color:#010101;font-family:'Arial', Arial, Helvetica, sans-serif;font-s=
+ize:20px;"><br></span><span style=3D"color:#010101;font-family:'Arial',=
+ Arial, Helvetica, sans-serif;font-size:20px;font-style:normal;font-wei=
+ght:normal;line-height:1.5;text-align:left;"><u>Grab a </u></span><a st=
+yle=3D"color:#000099;font-family:'Arial', Arial, Helvetica, sans-serif;=
+text-decoration:underline;" href=3D"https://app.cyberimpact.com/redirec=
+t?ct=REDACTED
+1XPN7zXg1ComI_6iKHF2EsmaksO3-lFABc_ut0aA4WC_tR9SiUML1PAQecDslMlK"><span=
+ style=3D"color:rgb(0,0,153);font-family:'Arial', Arial, Helvetica, san=
+s-serif;font-size:20px;font-style:normal;font-weight:normal;line-height=
+:1.5;text-align:left;"><strong><u>FREE Wealth Kit</u></strong></span></=
+a><span style=3D"color:#010101;font-family:'Arial', Arial, Helvetica, s=
+ans-serif;font-size:20px;font-style:normal;font-weight:normal;line-heig=
+ht:1.5;text-align:left;"> that reveals <strong>3 urgent moves you can m=
+ake right now</strong> to shield your money from Washington=E2=80=99s g=
+rasp.&nbsp;<br></span><span style=3D"font-family:'Arial', Arial, Helvet=
+ica, sans-serif;font-size:20px;"><br></span><a style=3D"color:#000099;f=
+ont-family:'Arial', Arial, Helvetica, sans-serif;text-decoration:underl=
+ine;" href=3D"https://app.cyberimpact.com/redirect?ct=3DRIWNF5vZ5im5tgh=
+pQry3umL6vAOdYPEcQy4Uof9pMp5TPDVxpo1KNuDhyWXNTZ3U1XPN7zXg1ComI_6iKHF2Es=
+maksO3-lFABc_ut0aA4WC_tR9SiUML1PAQecDslMlK"><span style=3D"color:rgb(0,=
+0,153);font-family:'Arial', Arial, Helvetica, sans-serif;font-size:20px=
+;font-style:normal;font-weight:normal;line-height:1.5;text-align:left;"=
+><strong><u>Click here to claim your free kit today=E2=80=94before the =
+trap snaps shut.</u></strong></span></a><span style=3D"color:#010101;fo=
+nt-family:'Arial', Arial, Helvetica, sans-serif;font-size:20px;font-sty=
+le:normal;font-weight:normal;line-height:1.5;text-align:left;"><br></sp=
+an><span style=3D"font-family:'Arial', Arial, Helvetica, sans-serif;"><=
+br></span><span style=3D"color:#333333;font-family:'Arial', Arial, Helv=
+etica, sans-serif;font-size:12px;font-style:normal;font-weight:normal;l=
+ine-height:1.5;text-align:left;"><strong>This is an advertisement.</str=
+ong></span><span style=3D"color:#333333;font-family:'Arial', Arial, Hel=
+vetica, sans-serif;font-size:12px;"><br></span><span style=3D"color:#33=
+3333;font-family:'Arial', Arial, Helvetica, sans-serif;font-size:12px;f=
+ont-style:normal;font-weight:normal;line-height:1.5;text-align:left;">I=
+f you no longer wish to receive promotional messages from this advertis=
+er, please unsubscribe below. Or write to: 5005 Lyndon B. Johnson Fwy. =
+Suite 350 Dallas, TX 75244&nbsp;</span></p></div><div style=3D"font-fam=
+ily:'Arial', Arial, Helvetica, sans-serif;font-size:0px;height:16px;lin=
+e-height:0px;width:100%;">&nbsp;</div></div></div></div>               =
+  </td>             </tr>         </tbody></table>     </div> </div><di=
+v class=3D"option-holder">     <div class=3D"canvas">         <table wi=
+dth=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"p=
+resentation">             <tbody><tr>                 <td valign=3D"top=
+" class=3D"row mobile-side-by-side with-side-padding-9" style=3D"paddin=
+g: 4px 0px 0px 9px; background-color: rgba(0, 0, 0, 0); font-size: 18px=
+;">                     <!--[if (gte mso 9)|(IE)]>                     =
+<table cellpadding=3D"0" cellspacing=3D"0" border=3D"0" style=3D"width:=
+423pt;">                         <tr>                             <td w=
+idth=3D"50%" valign=3D"top">                     <![endif]-->          =
+           <table cellpadding=3D"0" cellspacing=3D"0" border=3D"0" alig=
+n=3D"left" style=3D"width:218.25pt;margin-right:0; margin-left:0; borde=
+r:0; mso-table-lspace:0pt; mso-table-rspace:0pt; border-collapse:collap=
+se;float: left" role=3D"presentation" class=3D"first-child w218_25pt co=
+nverted-pt-to-pct">                         <tbody><tr>                =
+             <td valign=3D"top" style=3D"color: rgb(1, 1, 1); font-size=
+: 18px; font-family: Arial; padding: 0px 9px;">                        =
+         <div class=3D"texte"  lang=3D"en" dir=3D"ltr" role=3D"textbox"=
+ aria-label=3D"Rich Text Editor. Editing area: main. Press =E2=8C=A50 f=
+or help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press=
+ =E2=8C=A50 for help." id=3D"ui-id-2"><div style=3D"background-color:#f=
+fffff;font-family:'Arial', Arial, Helvetica, sans-serif;margin:0;paddin=
+g:0;text-align:center;width:100%;"><div style=3D"background-color:#ffff=
+ff;box-sizing:border-box;display:inline-block;margin:0 auto;max-width:6=
+00px;text-align:left;width:100%;"><div style=3D"box-sizing:border-box;c=
+olor:#666666;font-size:12px;letter-spacing:0.5px;line-height:16px;paddi=
+ng:0 20px 10px;text-align:center;text-transform:uppercase;">Sponsored b=
+y Brownstone Research</div><table border=3D"0" cellpadding=3D"0" cellsp=
+acing=3D"0" width=3D"100%" style=3D"border-collapse:collapse;" data-ci-=
+img-type=3D"figure-outer"><tbody><tr><td align=3D"center" style=3D"padd=
+ing:0;"><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" data-ci=
+-img-type=3D"figure-inner" data-ci-fig-class=3D"image image_resized" da=
+ta-ci-fig-style=3D"height: auto; width: 100%; display: block; margin-le=
+ft: auto; margin-right: auto;"><tbody><tr><td style=3D"padding:0;"><a h=
+ref=3D"https://app.cyberimpact.com/redirect?ct=REDACTED
+UjizJINZCeUTkBfST7seaNFsOg4Or1taZCXmCbNrjZuVUKg71Mnl-9Hgf1kIBIupk0s_uJH=
+sP3JRj09VFJuy04DX7Yfz_2YdpSmLs0x1sh"><img style=3D"border-width: 0px; d=
+isplay: block; max-width: 100%; outline: none; text-decoration: none; m=
+argin-left: auto; margin-right: auto;" src=3D"https://cdn.cyberimpact.c=
+om/clients/64401/public/b322da49-9ea3-48d7-5126-e71333d5b784/image/PBRQ=
+Y615(UNIQUE).jpg?1793962458232" alt=3D"Crashed Tesla Cybertruck on a fl=
+atbed trailer" width=3D"600" data-ci-orig-width=3D"560" class=3D"ck-img=
+"></a></td></tr></tbody></table></td></tr></tbody></table><div style=3D=
+"box-sizing:border-box;padding:0 0px;"><a style=3D"color:#000099;displa=
+y:inline-block;max-width:560px;text-decoration:none;width:100%;" href=3D=
+"https://app.cyberimpact.com/redirect?ct=REDACTED
+NZCeUTkBfST7seaNFsOg4Or1taZCXmCbNrjZuVUKg71Mnl-9Hgf1kIBIupk0s_uJHsP3JRj=
+09VFJuy04DX7Yfz_2YdpSmLs0x1sh" target=3D"_blank">&nbsp;</a>Tesla Cybert=
+ruck exploded outside Trump=E2=80=99s Las Vegas hotel.<br><br><a style=3D=
+"color:#000099;font-family:'Arial', Arial, Helvetica, sans-serif;text-d=
+ecoration:none;" href=3D"https://app.cyberimpact.com/redirect?ct=3DrAnQ=
+U6SnuIib4sTlUsN-GgUjizJINZCeUTkBfST7seaNFsOg4Or1taZCXmCbNrjZuVUKg71Mnl-=
+9Hgf1kIBIupk0s_uJHsP3JRj09VFJuy04DX7Yfz_2YdpSmLs0x1sh" target=3D"_blank=
+"><strong><u>What happened BEFORE the explosion?</u></strong>&nbsp;</a>=
+<br><br><a style=3D"color:#000099;font-family:'Arial', Arial, Helvetica=
+, sans-serif;text-decoration:none;" href=3D"https://app.cyberimpact.com=
+/redirect?ct=REDACTED
+XmCbNrjZuVUKg71Mnl-9Hgf1kIBIupk0s_uJHsP3JRj09VFJuy04DX7Yfz_2YdpSmLs0x1s=
+h" target=3D"_blank"><strong><u>CLICK HERE to see what investigators un=
+covered.</u></strong>&nbsp;</a></div><div style=3D"font-size:1px;height=
+:14px;line-height:14px;">&nbsp;</div></div></div></div>                =
+             </td>                         </tr>                     </=
+tbody></table>                     <!--[if (gte mso 9)|(IE)]></td>     =
+            <td width=3D"50%" valign=3D"top"><![endif]-->              =
+       <table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" style=3D=
+"width:218.25pt;margin-right:0; margin-left:0; border:0; mso-table-lspa=
+ce:0pt; mso-table-rspace:0pt; border-collapse:collapse;float: left" rol=
+e=3D"presentation" class=3D"last-child w218_25pt converted-pt-to-pct"> =
+                        <tbody><tr>                             <td val=
+ign=3D"top" style=3D"color: rgb(1, 1, 1); font-size: 18px; font-family:=
+ Arial; padding: 0px 9px;">                                 <div class=3D=
+"texte"  lang=3D"en" dir=3D"ltr" role=3D"textbox" aria-label=3D"Rich Te=
+xt Editor. Editing area: main. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help."=
+ id=3D"ui-id-3"><div style=3D"background-color:#ffffff;font-family:'Ari=
+al', Arial, Helvetica, sans-serif;margin:0;padding:0;text-align:center;=
+width:100%;"><div style=3D"background-color:#ffffff;box-sizing:border-b=
+ox;display:inline-block;margin:0 auto;max-width:600px;text-align:left;w=
+idth:100%;"><div style=3D"box-sizing:border-box;color:#666666;font-size=
+:12px;letter-spacing:0.5px;line-height:16px;padding:0 20px 10px;text-al=
+ign:center;text-transform:uppercase;">Sponsored by Decentralized Master=
+s</div><table border=3D"0" cellpadding=3D"0" cellspacing=3D"0" width=3D=
+"100%" style=3D"border-collapse:collapse;" data-ci-img-type=3D"figure-o=
+uter"><tbody><tr><td align=3D"center" style=3D"padding:0;"><table borde=
+r=3D"0" cellpadding=3D"0" cellspacing=3D"0" data-ci-img-type=3D"figure-=
+inner" data-ci-fig-class=3D"image image_resized" data-ci-fig-style=3D"h=
+eight: auto; width: 100%; display: block; margin-left: auto; margin-rig=
+ht: auto;"><tbody><tr><td style=3D"padding:0;"><a href=3D"https://app.c=
+yberimpact.com/redirect?ct=REDACTED
+53JlvUthQO_HHm_HPP8gupDhfIIj0mywuk9T5B8uEjpAY6Pug3jtltQ8p-y98_TzBNwHonl=
+hNBwyW9ZKyYBaFl"><img style=3D"border-width: 0px; display: block; max-w=
+idth: 100%; outline: none; text-decoration: none; margin-left: auto; ma=
+rgin-right: auto;" src=3D"https://cdn.cyberimpact.com/clients/64401/pub=
+lic/b322da49-9ea3-48d7-5126-e71333d5b784/image/043_PDNFA_OZ1_(1).jpg?17=
+93962904543" alt=3D"Screenshot of Bloomberg news article headline" widt=
+h=3D"600" data-ci-orig-width=3D"560" class=3D"ck-img"></a></td></tr></t=
+body></table></td></tr></tbody></table><div style=3D"box-sizing:border-=
+box;padding:0 0px;"><a style=3D"color:#000099;display:inline-block;max-=
+width:560px;text-decoration:none;width:100%;" href=3D"https://app.cyber=
+impact.com/redirect?ct=REDACTED
+vUthQO_HHm_HPP8gupDhfIIj0mywuk9T5B8uEjpAY6Pug3jtltQ8p-y98_TzBNwHonlhNBw=
+yW9ZKyYBaFl" target=3D"_blank">&nbsp;</a>Over 4,500 investors have alre=
+ady used this method to <a style=3D"color:#000099;font-family:'Arial', =
+Arial, Helvetica, sans-serif;text-decoration:none;" href=3D"https://app=
+.cyberimpact.com/redirect?ct=REDACTED
+4A53JlvUthQO_HHm_HPP8gupDhfIIj0mywuk9T5B8uEjpAY6Pug3jtltQ8p-y98_TzBNwHo=
+nlhNBwyW9ZKyYBaFl" target=3D"_blank"><strong><u>hold assets the governm=
+ent can't freeze</u></strong></a> and generate yields the Federal Reser=
+ve can't touch.&nbsp;<br><br><a style=3D"color:#000099;font-family:'Ari=
+al', Arial, Helvetica, sans-serif;text-decoration:none;" href=3D"https:=
+//app.cyberimpact.com/redirect?ct=REDACTED
+v-6gR4A53JlvUthQO_HHm_HPP8gupDhfIIj0mywuk9T5B8uEjpAY6Pug3jtltQ8p-y98_Tz=
+BNwHonlhNBwyW9ZKyYBaFl" target=3D"_blank"><strong><u>Watch how to acces=
+s this escape hatch before it closes =E2=86=92</u></strong></a></div><d=
+iv style=3D"font-size:1px;height:14px;line-height:14px;">&nbsp;</div></=
+div></div></div>                             </td>                     =
+    </tr>                     </tbody></table>                     <!--=
+[if (gte mso 9)|(IE)]></td></tr></table><![endif]-->                 </=
+td>             </tr>         </tbody></table>     </div> </div><div cl=
+ass=3D"option-holder">     <div class=3D"canvas">         <table width=3D=
+"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"present=
+ation">             <tbody><tr>                 <td valign=3D"top" clas=
+s=3D"row" style=3D"padding: 0px 18px; color: rgb(1, 1, 1); font-size: 1=
+2px; font-family: Arial; background-color: rgba(0, 0, 0, 0);">         =
+            <div class=3D"texte"  lang=3D"en" dir=3D"ltr" role=3D"textb=
+ox" aria-label=3D"Rich Text Editor. Editing area: main. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help." id=3D"ui-id-4"><div style=3D"-webkit-font-smo=
+othing:antialiased;background-color:#ffffff;color:#0f172a;font-family:A=
+rial, Helvetica, sans-serif;margin:0;padding:24px 0;width:100%;"><div s=
+tyle=3D"background-color:#ffffff;box-sizing:border-box;font-family:Aria=
+l, Helvetica, sans-serif;margin:0 auto;max-width:600px;"><h1 style=3D"c=
+olor:#010101;font-family:Arial;font-size:26px;line-height:1.25;margin-l=
+eft:0;" id=3D"ef92e33474ec13826f79cbfdbb25b65a0"><strong>Gold Price For=
+ecast: Can the Rally Last as Oil Slides Before US Nonfarm Payrolls?</st=
+rong></h1><p style=3D"border-bottom:1px solid #e2e8f0;color:#475569;fon=
+t-family:Arial, Helvetica, sans-serif;font-size:15px;font-weight:500;li=
+ne-height:1.5;margin:0 0 24px;padding-bottom:20px;">Gold rebounds over =
+7% to $4,143 per ounce as collapsing crude prices and falling Treasury =
+yields follow the U.S. midterm elections, setting up a pivotal technica=
+l test ahead of October's nonfarm payrolls report.</p><table class=3D"t=
+able content-table" style=3D"background-color:#ffffff;border-collapse:c=
+ollapse;border-width:0px;font-family:Arial, Helvetica, sans-serif;margi=
+n-bottom:28px;width:100%;" role=3D"presentation" data-ci-table-type=3D"=
+content" width=3D"100%" data-ci-added-attrs=3D"width,align" align=3D"ce=
+nter"><tbody><tr><td style=3D"border:1px solid #e2e8f0;font-family:Aria=
+l, Helvetica, sans-serif;padding:14px;vertical-align:top;width:50%;"><d=
+iv style=3D"color:#64748b;font-family:Arial, Helvetica, sans-serif;font=
+-size:11px;letter-spacing:0.5px;text-transform:uppercase;"><strong>Spot=
+ Gold Price (XAU)</strong></div><div style=3D"color:#0f172a;font-family=
+:Arial, Helvetica, sans-serif;font-size:22px;margin-top:4px;"><strong>$=
+4,143 / oz</strong></div><div style=3D"color:#16a34a;font-family:Arial,=
+ Helvetica, sans-serif;font-size:12px;margin-top:2px;"><strong>=2B7.18%=
+ From November Low ($3,875)</strong></div></td><td style=3D"border:1px =
+solid #e2e8f0;font-family:Arial, Helvetica, sans-serif;padding:14px;ver=
+tical-align:top;width:50%;"><div style=3D"color:#64748b;font-family:Ari=
+al, Helvetica, sans-serif;font-size:11px;letter-spacing:0.5px;text-tran=
+sform:uppercase;"><strong>Brent Crude Retracement</strong></div><div st=
+yle=3D"color:#0f172a;font-size:22px;margin-top:4px;"><strong>$93.00 / b=
+bl</strong></div><div style=3D"color:#16a34a;font-family:Arial, Helveti=
+ca, sans-serif;font-size:12px;margin-top:2px;"><strong>WTI Tumbles to $=
+86.80</strong></div></td></tr><tr><td style=3D"border:1px solid #e2e8f0=
+;font-family:Arial, Helvetica, sans-serif;padding:14px;vertical-align:t=
+op;width:50%;"><div style=3D"color:#64748b;font-family:Arial, Helvetica=
+, sans-serif;font-size:11px;letter-spacing:0.5px;text-transform:upperca=
+se;"><strong>10-Year Treasury Yield</strong></div><div style=3D"color:#=
+0f172a;font-size:22px;margin-top:4px;"><strong>4.83%</strong></div><div=
+ style=3D"color:#16a34a;font-family:Arial, Helvetica, sans-serif;font-s=
+ize:12px;margin-top:2px;"><strong>Down From 5.0% Level (5-Yr at 4.60%)<=
+/strong></div></td><td style=3D"border:1px solid #e2e8f0;font-family:Ar=
+ial, Helvetica, sans-serif;padding:14px;vertical-align:top;width:50%;">=
+<div style=3D"color:#64748b;font-family:Arial, Helvetica, sans-serif;fo=
+nt-size:11px;letter-spacing:0.5px;text-transform:uppercase;"><strong>Co=
+nsensus October NFP</strong></div><div style=3D"color:#0f172a;font-size=
+:22px;margin-top:4px;"><strong>=2B67,000 Jobs</strong></div><div style=3D=
+"color:#64748b;font-family:Arial, Helvetica, sans-serif;font-size:12px;=
+font-weight:500;">Follows September Miss (29k vs. 89k)</div></td></tr><=
+/tbody></table><div style=3D"color:#334155;font-family:Arial, Helvetica=
+, sans-serif;font-size:20px;line-height:1.6;margin-bottom:24px;"><p sty=
+le=3D"font-family:Arial, Helvetica, sans-serif;margin:0 0 16px;">Spot g=
+old extended its sharp post-election rebound on Thursday, climbing to <=
+strong>$4,143 per ounce</strong>=E2=80=94its highest level since Octobe=
+r 22 and more than 7% above Monday's multi-month low of $3,875. The ral=
+ly accelerated as financial markets recalibrated macroeconomic expectat=
+ions in the wake of the U.S. midterm elections, where Democrats secured=
+ control of both the Senate and the House of Representatives.</p><p sty=
+le=3D"font-family:Arial, Helvetica, sans-serif;margin:0 0 16px;">The po=
+litical outcome has driven a steep retracement in global energy benchma=
+rks, with <strong>Brent crude sinking to $93 per barrel</strong> and We=
+st Texas Intermediate (WTI) falling to $86.80. Market participants anti=
+cipate that a divided government will limit further escalation in the M=
+iddle East conflict, prompting potential diplomatic de-escalation with =
+Iran. Declining energy prices have immediately cooled inflation expecta=
+tions, driving the benchmark <strong>10-year Treasury yield down to 4.8=
+3%</strong> and significantly lowering the opportunity cost of holding =
+non-yielding bullion.</p><div style=3D"background-color:#f8fafc;border-=
+left:3px solid #0f172a;font-family:Arial, Helvetica, sans-serif;margin:=
+20px 0;padding:14px 16px;"><p style=3D"color:#1e293b;font-family:Arial,=
+ Helvetica, sans-serif;font-size:18px;font-weight:500;line-height:1.5;m=
+argin:0;"><strong>Technical Breakout Confirmed:</strong> On the daily c=
+hart, gold has breached the upper boundary of its descending regression=
+ channel and reclaimed the $3,936 level (its June pivot low). A sustain=
+ed close above the 50-day moving average would clear the technical path=
+ toward the Major S/R pivot of the Murrey Math Lines tool at $4,375.</p=
+></div><h2 style=3D"color:#010101;font-family:Arial, sans-serif;font-si=
+ze:18px;line-height:19.8px;margin-left:0;" id=3D"e37348964a99cc473f85bf=
+5767820b4e8"><strong>Nonfarm Payrolls &amp; The Federal Reserve Decembe=
+r Dilemma</strong></h2><p style=3D"font-family:Arial, Helvetica, sans-s=
+erif;margin:0 0 16px;">Bullion traders are turning their full attention=
+ to Friday's Bureau of Labor Statistics employment scorecard, which wil=
+l serve as the primary policy guidepost:</p><ul style=3D"color:rgb(51, =
+65, 85);font-family:Arial, Helvetica, sans-serif;list-style-type:disc;m=
+argin:0px 0px 20px;padding-left:20px;"><li style=3D"font-family:Arial, =
+Helvetica, sans-serif;margin-bottom:8px;"><strong>Headline Jobs Forecas=
+t:</strong> Consensus estimates model 67,000 nonfarm payroll additions =
+for October. However, recent prints have shown chronic downside misses,=
+ illustrated by September=E2=80=99s meager 29,000 print against an expe=
+cted 89,000.</li><li style=3D"font-family:Arial, Helvetica, sans-serif;=
+margin-bottom:8px;"><strong>Fed Policy Sensitivity:</strong> An unexpec=
+ted surge in labor strength could solidify expectations for an 87% pric=
+ed December rate hike. Conversely, another sharp payroll miss would giv=
+e the FOMC cover to pause policy tightening, fueling further dollar wea=
+kness and boosting bullion.</li><li style=3D"font-family:Arial, Helveti=
+ca, sans-serif;margin-bottom:8px;"><strong>Geopolitical Negotiation Con=
+ditions:</strong> While diplomatic channels could reopen, Iran maintain=
+s strict preconditions=E2=80=94including the lifting of sanctions and t=
+he release of $13 billion in frozen funds=E2=80=94keeping an underlying=
+ geopolitical premium embedded in the metal.</li></ul><p style=3D"font-=
+family:Arial, Helvetica, sans-serif;margin:0;">With technical indicator=
+s shifting back into bullish alignment and bond yields pulling back fro=
+m cycle highs, gold enters Friday's macro data release with strong upsi=
+de momentum.</p></div></div></div></div>                 </td>         =
+    </tr>         </tbody></table>     </div> </div><div class=3D"optio=
+n-holder">     <div class=3D"canvas">         <table width=3D"100%" bor=
+der=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D"presentation">   =
+          <tbody><tr>                 <td valign=3D"top" class=3D"row" =
+style=3D"padding: 0px 18px; background-color: rgb(14, 21, 39);">       =
+              <table width=3D"100%" cellpadding=3D"0" cellspacing=3D"0"=
+ border=3D"0" style=3D"float: left" role=3D"presentation">             =
+            <tbody><tr>                             <td valign=3D"top" =
+style=3D"text-align: center;">                                 <div cla=
+ss=3D"image">                                     <a href=3D"https://ap=
+p.cyberimpact.com/redirect?ct=REDACTED
+-U-eXePXC7hHgvbpLh5cMV6G125uu_-uNdIga4Vbq9asegZvbhWOSbDBVZAQWqpR2AiKN-Y=
+iqaUnpykHq4JP2P31-" target=3D"_blank"><img src=3D"https://cdn.cyberimpa=
+ct.com/clients/64401/public/b322da49-9ea3-48d7-5126-e71333d5b784/image/=
+LogoMacroViewDigest.jpg?1793626404631" class=3D"noresize" alt=3D"Footer=
+Logo" border=3D"0" width=3D"230" style=3D"display: inline-block; vertic=
+al-align: bottom; width: 230px; height: auto;" data-width=3D"564" data-=
+height=3D"192"></a>                                 </div>             =
+                </td>                         </tr>                    =
+ </tbody></table>                 </td>             </tr>         </tbo=
+dy></table>     </div> </div><div class=3D"option-holder">     <div cla=
+ss=3D"canvas">         <table width=3D"100%" border=3D"0" cellpadding=3D=
+"0" cellspacing=3D"0" role=3D"presentation">             <tbody><tr>   =
+              <td valign=3D"top" class=3D"row" style=3D"padding: 0px 18=
+px; color: rgb(1, 1, 1); font-size: 12px; font-family: Arial; backgroun=
+d-color: rgb(14, 21, 39);">                     <div class=3D"texte" st=
+yle=3D"" lang=3D"en" dir=3D"ltr" role=3D"textbox" aria-label=3D"Rich Te=
+xt Editor. Editing area: main. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help."  id=3D"ui-id-5"><p style=3D=
+"text-align:center;"><span style=3D"color:rgb(255,255,255);">Email sent=
+ by Systems and Technologies LLC, owner and operator of MacroViewDigest=
+.com</span></p><p style=3D"text-align:center;"><span style=3D"color:rgb=
+(255,255,255);">For assistance, contact: </span><a href=3D"mailto:suppo=
+rt@macroviewdigest.com" target=3D"_self"><span style=3D"color:rgb(255,2=
+55,255);"><u>support@macroviewdigest.com</u></span></a></p><p style=3D"=
+text-align:center;"><span style=3D"color:rgb(255,255,255);">=C2=A9 2026=
+ Trend Watchers Lab. All Rights Reserved.</span></p></div>             =
+    </td>             </tr>         </tbody></table>     </div> </div><=
+div class=3D"option-holder">     <div class=3D"canvas">         <table =
+width=3D"100%" border=3D"0" cellpadding=3D"0" cellspacing=3D"0" role=3D=
+"presentation">             <tbody><tr>                 <td valign=3D"t=
+op" class=3D"row with-side-padding-9 mobile-side-by-side" style=3D"padd=
+ing: 0px 0px 0px 9px; background-color: rgb(14, 21, 39);">             =
+        <!--[if (gte mso 9)|(IE)]>                     <table cellpaddi=
+ng=3D"0" cellspacing=3D"0" border=3D"0" style=3D"width:423pt;">        =
+                 <tr>                             <td width=3D"50%" val=
+ign=3D"top">                     <![endif]-->                     <tabl=
+e cellpadding=3D"0" cellspacing=3D"0" border=3D"0" align=3D"left" style=
+=3D"width:218.25pt;margin-right:0; margin-left:0; border:0; mso-table-l=
+space:0pt; mso-table-rspace:0pt; border-collapse:collapse;float: left" =
+role=3D"presentation" class=3D"first-child w218_25pt converted-pt-to-pc=
+t">                         <tbody><tr>                             <td=
+ valign=3D"top" style=3D"color:#010101; font-size:12px; font-family: Ar=
+ial; padding: 0 9px; mso-padding-left-alt: 6.75pt; mso-padding-right-al=
+t: 6.75pt;">                                 <div class=3D"texte" style=
+=3D"" lang=3D"en" dir=3D"ltr" role=3D"textbox" aria-label=3D"Rich Text =
+Editor. Editing area: main. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help."  id=3D"ui-id-6"><p style=3D"ma=
+rgin-top:0px;margin-bottom:10px;text-align:right;"><a style=3D"color:#0=
+10101;" href=3D"https://app.cyberimpact.com/redirect?ct=3Dx7ip-2m1D7Ybq=
+h8fl7qDACySX8Pj05OiGC9tVIqJsSJijTmRGR-lQrQX7rHrnOwz2ZUHK_hGhx1saJA8RIMK=
+hWI3tqpSn-HxaYB0IMdyhQbqEcjcY6tc5M44ropogYan" target=3D"_self"><span st=
+yle=3D"color:rgb(255,255,255);"><u>Privacy Policy</u></span></a></p></d=
+iv>                             </td>                         </tr>    =
+                 </tbody></table>                     <!--[if (gte mso =
+9)|(IE)]></td>                 <td width=3D"50%" valign=3D"top"><![endi=
+f]-->                     <table border=3D"0" cellpadding=3D"0" cellspa=
+cing=3D"0" style=3D"width:218.25pt;margin-right:0; margin-left:0; borde=
+r:0; mso-table-lspace:0pt; mso-table-rspace:0pt; border-collapse:collap=
+se;float: left" role=3D"presentation" class=3D"last-child w218_25pt con=
+verted-pt-to-pct">                         <tbody><tr>                 =
+            <td valign=3D"top" style=3D"color:#010101; font-size:12px; =
+font-family: Arial; padding: 0 9px; mso-padding-left-alt: 6.75pt; mso-p=
+adding-right-alt: 6.75pt;">                                 <div class=3D=
+"texte" style=3D"" lang=3D"en" dir=3D"ltr" role=3D"textbox" aria-label=3D=
+"Rich Text Editor. Editing area: main. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 fo=
+r help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =
+=E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for =
+help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=
+=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for hel=
+p.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=
+=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help..=
+ Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A5=
+0 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pr=
+ess =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 =
+for help.. Press =E2=8C=A50 for help.. Press =E2=8C=A50 for help.. Pres=
+s =E2=8C=A50 for help.. Press =E2=8C=A50 for help."  id=3D"ui-id-7"><p =
+style=3D"margin-top:0;margin-bottom:10px;"><a style=3D"color:#010101;" =
+href=3D"https://app.cyberimpact.com/redirect?ct=REDACTED
+vz3QMjTOnevDBT-Axe6DpDcacX90zj6EQOE5wb4Qmwsze9nlKzy-UbCh0whj2LFjePaxsoS=
+HJvYRdC4GsI7wvy-6AzFiJNRPtA82hMeV8oz" target=3D"_self"><span style=3D"c=
+olor:rgb(255,255,255);"><u>Terms &amp; Conditions</u></span></a></p></d=
+iv>                             </td>                         </tr>    =
+                 </tbody></table>                     <!--[if (gte mso =
+9)|(IE)]></td></tr></table><![endif]-->                 </td>          =
+   </tr>         </tbody></table>     </div> </div></div>              =
+                               </td>                                   =
+      </tr>                                     </tbody></table>       =
+                              <!--EOF content-->                       =
+          </td>                             </tr>                      =
+   </tbody></table>                         <!--EOF table frame-->     =
+                </td>                 </tr>             </tbody></table=
+>             <!--EOF table border-->         </td>     </tr> </tbody><=
+/table> <!--EOF sample code //-->                 <table class=3D"ci-ma=
+il-footer-root" lang=3D"en" cellpadding=3D"0" cellspacing=3D"0" width=3D=
+"100%" align=3D"center" border=3D"0" dir=3D"ltr" style=3D"background-co=
+lor:#ffffff;">     <tr>         <td align=3D"center">             <styl=
+e type=3D"text/css">                 .ci-mail-footer-root a {     color=
+: #626264; }  .footer-outer-table.outside {     width: 602px; }  .foote=
+r-outer-table.inside {     width: 600px; }  .ci-mail-footer-root .ci_f-=
+email.desktop-long-email {     white-space: normal;     overflow-wrap: =
+anywhere;     display: block; }  .ci-mail-footer-root .recipient-email =
+{     overflow-wrap: anywhere; }  @media only screen and (max-width: 48=
+0px) {     .ci-mail-footer-root .footer-inner-table {         max-width=
+: 600px;         width: 100% !important;         height: auto !importan=
+t;         border-collapse: collapse;     }      .ci-mail-footer-root {=
+         width: 100% !important;     }      .footer-outer-table.outside=
+ {         width: 100%;     }      .footer-border-frame {         max-w=
+idth: 600px;     }      .ci-mail-footer-root .footer-content {         =
+padding: 30px 18px;     }      .ci-mail-footer-root .ci_f-address br { =
+        display: none;     }      .ci-mail-footer-root .ci_f-address .c=
+i_f_name {         display: block;     }      .ci-mail-footer-root .ci_=
+f-address .ci_f-tel1,     .ci-mail-footer-root .ci_f-address .ci_f-tel2=
+,     .ci-mail-footer-root .ci_f-address .ci_f-email {         white-sp=
+ace: nowrap;     }      .ci-mail-footer-root .ci_f-email.mobile-long-em=
+ail {         white-space: normal;         overflow-wrap: anywhere;    =
+     display: block;     }      .ci-mail-footer-root .recipient-email {=
+         display: block;     } }  @media only screen and (min-width: 48=
+0px) {     .ci-mail-footer-root .ci_f-sep-mobile {         display: non=
+e;     } }            </style>             <div class=3D"option-holder"=
+>                 <div class=3D"canvas">                     <table cla=
+ss=3D"footer-margin-top-table" cellpadding=3D"0" cellspacing=3D"0" bord=
+er=3D"0">                         <tr>                             <td =
+class=3D"footer-margin-cell" style=3D"padding-top:20px;">              =
+                   <table class=3D"footer-outer-table outside" cellpadd=
+ing=3D"0" cellspacing=3D"0" border=3D"0">                              =
+       <tr>                                         <td class=3D"footer=
+-border-frame">                                             <table clas=
+s=3D"footer-inner-table" cellpadding=3D"0" cellspacing=3D"0" width=3D"6=
+00" border=3D"0" style=3D"width: 600px;">     <tr>         <td align=3D=
+"left" valign=3D"top" class=3D"row footer-content footer-bg-frame" styl=
+e=3D"font-family:Arial, Helvetica, sans-serif;font-size:11px;line-heigh=
+t:1.4;color:#414042;padding:30px 18px;">             <p style=3D"margin=
+:0;text-align:right;color:#414042;font-size:11px;height:10px;font-famil=
+y:Arial, Helvetica, sans-serif;">     <a href=3D"https://app.cyberimpac=
+t.com/click-tracking?ct=REDACTED
+h6g3LfBmJe6hcsJJLqzcDWG-lhi8s0iSu9C8RlDKSS3SkGxWSFMcm5HK32kfDQ~" style=3D=
+"text-decoration:underline;font-size:11px;font-family:Arial, Helvetica,=
+ sans-serif;color:#414042;"><span style=3D"text-decoration: none"></spa=
+n></a> </p>             <p style=3D"margin:0 0 20px;text-align:center;c=
+olor:#414042;font-family:Arial, Helvetica, sans-serif;font-size:11px;">=
+                 Email sent to:                 <a class=3D"recipient-e=
+mail" href=3D"mailto:recipient@example.com" style=3D"font-family:A=
+rial, Helvetica, sans-serif;font-size:11px;color:#414042;text-decoratio=
+n:underline;">recipient@example.com</a>             </p>          =
+    <p class=3D"ci_f-address" style=3D"margin:0 0 20px;text-align:cente=
+r;color:#414042;font-family:Arial, Helvetica, sans-serif;font-size:11px=
+;">                 <span class=3D"ci_f_name">Macro View Digest</span><=
+br><span class=3D"ci_f-street">1607 Capitol Ave</span><![if !(gte mso 9=
+)&!(IE)]><span class=3D"ci_f-sep-mobile">&nbsp;| </span><![endif]><br><=
+span class=3D"ci_f-city">Cheyenne</span><span class=3D"ci_f-region">, W=
+yoming</span><span class=3D"ci_f-sep">&nbsp;| </span><span class=3D"ci_=
+f-zipcode">82001</span><span class=3D"ci_f-sep">&nbsp;| </span><span cl=
+ass=3D"ci_f-country">United States</span><![if !(gte mso 9)&!(IE)]><spa=
+n class=3D"ci_f-sep-mobile">&nbsp;| </span><![endif]><br>              =
+                       <span class=3D"ci_f-email"><a href=3D"mailto:sup=
+port@macroviewdigest.com" style=3D"text-decoration:underline;color:#414=
+042;font-family:Arial, Helvetica, sans-serif;font-size:11px;">support@m=
+acroviewdigest.com</a></span>                             </p>         =
+     <p style=3D"margin:0 0 25px;text-align:center;color:#414042;font-f=
+amily:Arial, Helvetica, sans-serif;font-size:11px;">                   =
+                  <a href=3D"https://app.cyberimpact.com/anti-spam-poli=
+cy?l=3Den_ca" style=3D"font-family:Arial, Helvetica, sans-serif;font-si=
+ze:11px;color:#414042;font-weight:normal;text-decoration:underline;">An=
+ti&#8209;spam policy</a>                                               =
+       |                    <a href=3D"https://app.cyberimpact.com/repo=
+rt-an-abuse?ct=REDACTED
+q8zmcVHTGJY_bngPFp5qBZp5UMWNkL37law_NY8q3h76wV4HvfjoFZ1c2QZj-R8vYbINMqR=
+O2CjJged6HmcKaF8TV9kBv9Hw~~" style=3D"font-family:Arial, Helvetica, san=
+s-serif;font-size:11px;color:#414042;font-weight:normal;text-decoration=
+:underline;">Report&nbsp;an&nbsp;abuse</a>                             =
+                         |                    <a href=3D"https://app.cy=
+berimpact.com/unsubscribe?ct=REDACTED
+gID137-tY3_7ODq8zmcVHTGJY_bngPFp5qBZp5UMWNkL37law_NY8q3h76wV4HvfjoFZ1c2=
+QZj-R8vYbINMqRO2CjJged6HmcKaF8TV9kBv9Hw~~" style=3D"font-family:Arial, =
+Helvetica, sans-serif;font-size:11px;color:#414042;font-weight:normal;t=
+ext-decoration:underline;">Unsubscribe</a>                             =
+                 </p>                             <p class=3D"wl-logo" =
+style=3D"margin:0;text-align:center;color:#414042;font-family:Arial, He=
+lvetica, sans-serif;font-size:11px;">                     <a href=3D"ht=
+tps://www.cyberimpact.com?utm_source=3Dcifooter&utm_medium=3Demail&utm_=
+campaign=3Dfooter_link" style=3D"font-family:Arial, Helvetica, sans-ser=
+if;font-size:11px;color:#414042;text-decoration:underline;">           =
+              <img src=3D"https://app.cyberimpact.com/footer-image/2022=
+0926%402x/d?ct=REDACTED
+q8zmcVHTGJY_bngPFp5qBZp5UMWNkL37law_NY8q3h76wV4HvfjoFZ1c2QZj-R8vYbINMqR=
+O2CjJged6HmcKaF8TV9kBv9Hw~~" width=3D"174" height=3D"37" alt=3D"Try Cyb=
+erimpact for free" style=3D"border:0;display:inline-block;width:174px;h=
+eight:37px;" class=3D"noresize"/>                     </a>             =
+    </p>                     </td>     </tr> </table>                  =
+                      </td>                                     </tr>  =
+                               </table>                             </t=
+d>                         </tr>                     </table>          =
+       </div>             </div>         </td>     </tr>     <!--/End o=
+f footer wrapper-->     </table></body>                 </html>
+
+----=628f434c_1d71_4923_b253_f76190359a77--

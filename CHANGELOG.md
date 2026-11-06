@@ -20,6 +20,15 @@ detail plus the diffs.
 
 ---
 
+## v6.97.0
+
+Blacklist `macroviewdigest.com`. "Over 100 banks already rigged against Americans" reached
+the inbox: the Trend Watchers Lab mill (its footer says so) under a new brand, with three
+"Sponsored by" credits but no "Sponsored Content" heading, so Signal 14 could not fire.
+Sends as `daily.mvd.macroviewdigest.com@email.cyberimpact.com`; Signal 15 matches the brand
+behind the relay (Rule 12, which `RECHECK_DELETE_RULES` deletes after a Drive archive), so
+the copy already in the inbox is removed within one trigger cycle.
+
 ## v6.96.0
 
 Log-only observer for the repeated-link tell, and a Shadow-tab writer that proves itself.

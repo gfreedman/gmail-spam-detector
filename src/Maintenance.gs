@@ -386,7 +386,9 @@ function checkFalseNegatives()
 // Rule 1 (bulk + blacklisted sender) is here too (v6.88.0): v6.87.0 blacklisted
 // dailyfinbrief.com and the reported email, already in the inbox, was HELD, so the
 // user had to trash it by hand. Same archive gate and single-message guard apply.
-const RECHECK_DELETE_RULES = ['Rule 1', 'Rule 11', 'Rule 12'];
+// Rules 13 and 14 (v6.100.0) are here too, so mill mail already in the inbox when a fix deploys
+// is removed rather than held.
+const RECHECK_DELETE_RULES = ['Rule 1', 'Rule 11', 'Rule 12', 'Rule 13', 'Rule 14'];
 
 /**
  * Delete HELD mail that now matches a delete rule (v6.89.0).
@@ -606,7 +608,12 @@ function recheckRecentSpamChecked(widen)
         // v6.84.0): only messages[0] is judged, so a later message may be the
         // user's own reply - evidence they engaged with it, which no ad earns.
         // Single-message ad mail, the case Rule 11 exists for, is unaffected.
-        if (RECHECK_DELETE_RULES.indexOf(rule) !== -1 && messages.length === 1 &&
+        // Rules 13 and 14 (v6.100.0) have the weakest evidence of any rule in the list, so on the
+        // recheck they delete only mail the user has NOT touched: unread and unstarred. A message
+        // the user read and starred is a decision already made (L5 review), and it is held instead.
+        const userEngaged = (rule === 'Rule 13' || rule === 'Rule 14') &&
+                            (!message.isUnread() || message.isStarred());
+        if (RECHECK_DELETE_RULES.indexOf(rule) !== -1 && messages.length === 1 && !userEngaged &&
             disposeDetectedMessage(message, thread, verdict.signals, archived))
         {
           deletedCount++;

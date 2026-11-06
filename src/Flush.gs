@@ -243,12 +243,12 @@ function getRuleFromSignals(signals)
 
   if (signals.millFooterAddress)
   {
-    return { rule: 'Rule 13', description: 'Known mill footer address on bulk-marked mail (quarantined, never deleted)' };
+    return { rule: 'Rule 13', description: 'Known mill footer address on bulk-marked mail (deleted after the Drive archive)' };
   }
 
   if (signals.pitchScore)
   {
-    return { rule: 'Rule 14', description: 'Finance-pitch score over the threshold on List-Unsubscribe mail from a sender with no history (quarantined, never deleted)' };
+    return { rule: 'Rule 14', description: 'Finance-pitch score over the threshold on List-Unsubscribe mail from a sender with no history (deleted after the Drive archive)' };
   }
 
   return { rule: 'NONE', description: 'No rule triggered' };

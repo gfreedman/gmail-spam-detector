@@ -173,8 +173,8 @@ function collectSignals(message)
     attachmentPayloadScam: false,      // Bcc'd free-mail ALL-CAPS note whose payload is an attachment; Spam-folder corroboration only
     sponsoredAdTemplate: false,        // ad disclaimer + advertiser sentence + "Sponsored Content" block + 2 credits; Rule 11
     blacklistedRelayIdentity: false,   // a blacklisted brand domain behind an ESP relay (From mailbox + Reply-To); Rule 12
-    millFooterAddress: false,          // a known mill footer address in sender-authored text + List-Unsubscribe; Rule 13 (QUARANTINES)
-    pitchScore: false                  // List-Unsubscribe + a finance-pitch word/link-host score over the threshold; Rule 14 (QUARANTINES, no-history gate in analyzeMessage)
+    millFooterAddress: false,          // a known mill footer address in sender-authored text + List-Unsubscribe; Rule 13 (DELETES, archived first)
+    pitchScore: false                  // List-Unsubscribe + a finance-pitch word/link-host score over the threshold; Rule 14 (DELETES, archived first; no-history gate in analyzeMessage)
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -469,7 +469,8 @@ function collectSignals(message)
   }
 
   // ── Signal 16: Known mill footer address (v6.98.0) ───────────────────────
-  // QUARANTINES (Rule 13), never deletes. The finance-ad mill rotates brand
+  // DELETES (Rule 13) since v6.100.0, after the Drive archive (v6.98.0 shipped it as a
+  // quarantine). The finance-ad mill rotates brand
   // domains, templates and wording for free (Signals 14 and 15 were each beaten
   // by a one-word change), but CAN-SPAM obliges every send to print a postal
   // address, and that changes far more slowly. The observer that logged this
@@ -494,8 +495,8 @@ function collectSignals(message)
   // a Gmail search and so cannot live in a signal that the Python mirror and the
   // parity phase must reproduce. It is not implemented.
   //
-  // False positive classes, all RECOVERABLE (quarantine archives out of the
-  // inbox under a label): a legitimate sender in a shared building that
+  // False positive classes, recoverable only from the Drive archive copy and the Raw Log row
+  // (the message itself is deleted): a legitimate sender in a shared building that
   // prints the same address; a newsletter that lists scam addresses in its own
   // text (an anti-fraud digest); a needle that goes stale when a mill leaves
   // and a legitimate tenant arrives. Known evasions, cheap for the mill: a new
@@ -526,7 +527,7 @@ function collectSignals(message)
   }
 
   // ── Signal 17: Finance-pitch score (v6.99.0) ─────────────────────────────
-  // QUARANTINES (Rule 14). Signals 14, 15 and 16 each test something the mill rotates (a
+  // DELETES (Rule 14) since v6.100.0, after the Drive archive. Signals 14, 15 and 16 each test something the mill rotates (a
   // phrase, a brand domain, an address); 11 releases in 14 days patched one sighting at a
   // time. This scores the whole mail instead: the words and link hosts of a direct-response
   // pitch, weighted by a table trained on the spam and ham fixtures (scripts/train_bayes.py;
@@ -550,8 +551,8 @@ function collectSignals(message)
   // here: this signal is pure and the Python mirror reproduces it exactly (numeric score
   // parity is asserted on every fixture). BAYES_RULE_ENABLED is the kill switch.
   // KNOWN WEAKNESS: a nonprofit newsletter on the same ESP scores 577 (leave-one-out) and
-  // would be quarantined if it carries the header and the sender is new to you; quarantine is
-  // recoverable. Known evasions: leave off List-Unsubscribe, or stop writing a pitch.
+  // would be DELETED (archived to Drive first) if it carries the header and the sender is new to
+  // you; recover it from the Raw Log row's Drive link. Known evasions: leave off List-Unsubscribe, or stop writing a pitch.
   try
   {
     if (BAYES_RULE_ENABLED && getRawHeader(rawContent, 'List-Unsubscribe') &&

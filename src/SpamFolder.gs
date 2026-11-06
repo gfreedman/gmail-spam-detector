@@ -134,7 +134,20 @@ function reviewGmailSpam(forceFullReview)
             continue;
           }
 
-          if (!hasCorroboratingSignal(signals))
+          // Rules 13 and 14 (millFooterAddress, pitchScore) corroborate only for a sender the user
+          // has NO history with: this path reads signals directly, so analyzeMessage()'s gate does
+          // not apply here. If one of them is the ONLY strong evidence and the history is not exactly
+          // "none", Gmail's word alone stands and the message waits out the grace period like any
+          // other uncorroborated one.
+          let corroborated = hasCorroboratingSignal(signals);
+          if (corroborated && (signals.pitchScore || signals.millFooterAddress) &&
+              !hasCorroboratingSignal(Object.assign({}, signals, { pitchScore: false, millFooterAddress: false })) &&
+              senderHistoryGate(message) !== false)
+          {
+            corroborated = false;
+          }
+
+          if (!corroborated)
           {
             // Gmail's word alone. Marked so it is judged once, then left for
             // phase 2 to remove after CONFIG.gmailSpamGraceDays.

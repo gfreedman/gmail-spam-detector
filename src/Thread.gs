@@ -99,9 +99,8 @@ function processThread(thread, messages)
         const archived = accumulateLogEntry(message, verdict.signals, detectionLogType);
 
         // Rule 7 (brand-mismatched CTA) quarantines rather than destroys — see
-        // quarantineAsPhishing(). Rule 9 and Rule 13 quarantine too; every other rule deletes
-        // permanently. (Rule 13 is logged SPAM_DETECTED, not PHISHING_DETECTED: it is a mill
-        // address, not phishing, even though it shares the Phishing label.)
+        // quarantineAsPhishing(). Rule 9 quarantines too; every other rule deletes
+        // permanently, Rules 13 and 14 included since v6.100.0 (all behind the Drive-archive gate).
         threadDestroyed = disposeDetectedMessage(message, thread, verdict.signals, archived);
         logDebug('SPAM DETECTED: ' + sanitizeForLog(message.getSubject()));
 
@@ -247,7 +246,10 @@ function senderHasHistory(domain)   // `domain` may also be a full address: Gmai
   if (cached)
   {
     const parts = cached.split(':');
-    if (now - Number(parts[1]) < 30 * 24 * 3600 * 1000) return parts[0] === 'Y';
+    // An ADDRESS answer (Rule 14's gate) expires in 3 days, a domain answer in 30: a cached "no
+    // history" must not outlive the user starting to read that sender while it guards a delete.
+    const ttlDays = domain.indexOf('@') !== -1 ? 3 : 30;
+    if (now - Number(parts[1]) < ttlDays * 24 * 3600 * 1000) return parts[0] === 'Y';
   }
   if (shadowHistoryLookups >= SHADOW_HISTORY_BUDGET) return null;   // unknown this run
   shadowHistoryLookups++;

@@ -144,7 +144,9 @@ function phishMessage(id) {
     // no archive, and the archive invariant then refused every delete.
     getThread: () => ({ getId: () => 't-' + id }),
     getReplyTo: () => '',
-    getHeader: () => ''
+    getHeader: () => '',
+    isUnread: () => true,
+    isStarred: () => false
   };
 }
 
@@ -1986,7 +1988,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
   const STRONG = ['blacklistedSender', 'serviceImpersonation', 'brandMismatchedCta',
                   'freeMailRandomLocal', 'callbackPhishing', 'emptySubjectWithAttachment',
                   'selfNamedSender', 'calendarLure', 'attachmentPayloadScam',
-                  'sponsoredAdTemplate', 'blacklistedRelayIdentity'];
+                  'sponsoredAdTemplate', 'blacklistedRelayIdentity', 'millFooterAddress', 'pitchScore'];
   let combos = 0, disagreements = [], uncorroborated = [], offSpec = [];
   for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
     for (let cb = 0; cb <= 4; cb++) {
@@ -1996,9 +1998,9 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
       const rule   = ctx.getRuleFromSignals(sig).rule;
       const corroborated = ctx.hasCorroboratingSignal(sig) === true;
       // Anything the inbox would delete, the Spam folder must not make wait.
-      // Rule 13 is the ONE named exemption: it quarantines, and corroboration would turn
-      // that into a same-run permanent delete of Gmail-misfiled mail (L5 review).
-      if (isSpam && !corroborated && rule !== 'Rule 13' && rule !== 'Rule 14' && uncorroborated.length < 5) {
+      // No exemptions since v6.100.0: Rules 13 and 14 DELETE like the other inbox convictions, so
+      // every one of them must also corroborate a Gmail Spam verdict.
+      if (isSpam && !corroborated && uncorroborated.length < 5) {
         uncorroborated.push('rule=' + rule + ' fired=' +
           BOOLS.filter(k => sig[k]).concat(cb ? ['clickbait=' + cb] : []).join('+'));
       }
@@ -2059,7 +2061,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
   check('makeVerdict agrees with getRuleFromSignals on all ' + combos +
         ' signal combinations', disagreements.length === 0,
         disagreements.join(' | '));
-  check('every inbox conviction except the quarantine-only Rules 13 and 14 also corroborates a Gmail spam verdict (' +
+  check('every inbox conviction also corroborates a Gmail spam verdict (' +
         combos + ' combinations)', uncorroborated.length === 0,
         uncorroborated.join(' | '));
   check('corroboration = a strong signal or 2+ weak points, on all ' + combos +
@@ -3114,6 +3116,7 @@ console.log('\n=== Signal 16 / Rule 13: known mill footer address on bulk-marked
     m.getRawContent = () => (o.lu === false ? '' : LU) + 'Reply-To: support@freshbrandnews.example\r\n\r\n' + (o.body === undefined ? mill : o.body);
     m.getPlainBody = () => (o.body === undefined ? mill : o.body);
     m.getBody = () => '<p>x</p>';
+    m.isUnread = () => true; m.isStarred = () => false;
     return m;
   };
   const fires = (o, c) => (c || makeCtx()).collectSignals(mk(o)).millFooterAddress === true;
@@ -3130,14 +3133,16 @@ console.log('\n=== Signal 16 / Rule 13: known mill footer address on bulk-marked
     c.logError = (x) => errs.push(String(x));
     const m = mk({}, 'mR16d');
     c.disposeDetectedMessage(m, fakeThread([m], c.calls), v.signals, true);
-    check('Rule 13 NEVER permanently deletes, even with a Drive archive',
-          !c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c.calls.map(x => x.op)));
-    check('Rule 13 is archived out of the inbox under a label (quarantine)',
-          c.calls.some(x => x.op === 'modify' && x.rm.indexOf('INBOX') !== -1) &&
-        c.calls.some(x => x.op === 'addLabel' || (x.op === 'modify' && x.add.length > 0)),
-        JSON.stringify(c.calls));
-    check('Rule 13 is a KNOWN quarantine rule (no "Unidentified rule" error)',
+    check('Rule 13 PERMANENTLY DELETES behind the Drive archive (v6.100.0)',
+          c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c.calls.map(x => x.op)));
+    check('Rule 13 is a KNOWN rule (no "Unidentified rule" error)',
           !errs.some(e => /Unidentified rule/.test(e)), errs.join(' | '));
+    // The archive gate: no Drive copy, no delete. The message is quarantined instead.
+    const c2 = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const m2 = mk({}, 'mR16e');
+    c2.disposeDetectedMessage(m2, fakeThread([m2], c2.calls), c2.analyzeMessage(m2).signals, false);
+    check('Rule 13 with NO Drive archive is quarantined, never deleted (the archive gate)',
+          !c2.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c2.calls.map(x => x.op)));
   }
   check('without a List-Unsubscribe header it does not fire (a person forwarding has none)', !fires({ lu: false }));
   check('a forwarded copy (marker, then the mill text) does not fire',
@@ -3200,8 +3205,73 @@ console.log('\n=== Signal 16 / Rule 13: known mill footer address on bulk-marked
         ctx0().makeVerdict(alone) === true && ctx0().getRuleFromSignals(alone).rule === 'Rule 13');
   check('Rule 12 wins over Rule 13 when both hold',
         ctx0().getRuleFromSignals({ clickbaitCount: 0, blacklistedRelayIdentity: true, millFooterAddress: true }).rule === 'Rule 12');
-  check('millFooterAddress does NOT corroborate a Gmail spam verdict (quarantine-only rule: no same-run delete)',
-        ctx0().hasCorroboratingSignal(alone) === false);
+  check('millFooterAddress corroborates a Gmail spam verdict (it deletes as an inbox conviction)',
+        ctx0().hasCorroboratingSignal(alone) === true);
+  {
+    // End to end: mill mail ALREADY in the inbox when the fix deploys is archived to Drive, then deleted.
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    c.props[c.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com')] = 'N:' + Date.now();
+    const realFolder = c.DriveApp.getFolderById;
+    c.DriveApp.getFolderById = (id) => { const f = realFolder(id), cf = f.createFile;
+      f.createFile = function() { c.calls.push({ op: 'driveCreateFile' }); return cf.apply(this, arguments); }; return f; };
+    const m = mk({}, 'mR16r'); const th = fakeThread([m], c.calls);
+    c.GmailApp.search = () => [th]; c.GmailApp.getMessagesForThreads = () => [[m]];
+    c.recheckRecentSpamChecked(true);
+    const ops = c.calls.map(x => x.op);
+    check('the post-deploy RECHECK archives a Rule 13 match to Drive, then DELETES it',
+          ops.indexOf('batchDelete') !== -1 && ops.indexOf('driveCreateFile') !== -1 &&
+          ops.indexOf('driveCreateFile') < ops.indexOf('batchDelete'), JSON.stringify(ops));
+  }
+  {
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    c.props[c.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com')] = 'N:' + Date.now();
+    const m = mk({}, 'mR16s'); m.isStarred = () => true; const th = fakeThread([m], c.calls);
+    c.GmailApp.search = () => [th]; c.GmailApp.getMessagesForThreads = () => [[m]];
+    c.recheckRecentSpamChecked(true);
+    check('recheck: a STARRED Rule 13 match is held, never deleted', !c.calls.some(x => x.op === 'batchDelete') && th.__labels.indexOf('SuspectedSpam') !== -1,
+          JSON.stringify({ ops: c.calls.map(x => x.op), labels: th.__labels }));
+  }
+  {
+    // Rule 13 has the same no-history gate as Rule 14, on every path.
+    const KEY = (c) => c.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com');
+    const run13 = (hist) => { const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+      if (hist === 'known') c.props[KEY(c)] = 'Y:' + Date.now(); if (hist === 'none') c.props[KEY(c)] = 'N:' + Date.now();
+      if (hist === 'unknown') vm.runInContext('shadowHistoryLookups = SHADOW_HISTORY_BUDGET', c);
+      return c.analyzeMessage(mk({}, 'mR16g')); };
+    let v = run13('none');
+    check('Rule 13: no history with the exact sender address => convicted', v.isSpam === true);
+    v = run13('known');
+    check('Rule 13: the owner HAS history with that address => not convicted (the gate)', v.isSpam === false && v.signals.millFooterAddress === true);
+    v = run13('unknown');
+    check('Rule 13: history unknown => not convicted and reported unevaluated (retried)', v.isSpam === false && v.unevaluated === 'error');
+    // Spam-folder path
+    const sf = (hist) => { const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+      c.props[KEY(c)] = (hist === 'known' ? 'Y:' : 'N:') + Date.now();
+      const m = mk({}, 'mR16f'); const t = fakeThread([m], c.calls);
+      c.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? [t] : []); c.GmailApp.getMessagesForThreads = ts => ts.map(x => x.__messages);
+      c.reviewGmailSpam(); return c.calls.some(x => x.op === 'batchDelete'); };
+    check('Spam folder: a Rule 13 match from a sender with no history is deleted now', sf('none') === true);
+    check('Spam folder: a Rule 13 match from a sender WITH history waits out the grace period', sf('known') === false);
+  }
+  {
+    // Circuit breaker: at most WEAK_RULE_DELETE_CAP Rule 13/14 deletes per execution.
+    const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
+    const cap = vm.runInContext('WEAK_RULE_DELETE_CAP', c);
+    let deletes = 0, quarantined = 0;
+    for (let i = 0; i < cap + 3; i++) {
+      const m = mk({}, 'mCAP' + i); const t = fakeThread([m], c.calls);
+      const sig = c.collectSignals(m);
+      if (c.disposeDetectedMessage(m, t, sig, true)) deletes++; else quarantined++;
+    }
+    check('delete cap: exactly ' + cap + ' Rule 13 deletes per run, the rest are quarantined (' + deletes + '/' + quarantined + ')',
+          deletes === cap && quarantined === 3 && c.calls.filter(x => x.op === 'batchDelete').length === cap);
+    const other = blacklistMessage('mCAPR1'); const to = fakeThread([other], c.calls);
+    const oSig = c.collectSignals(other);
+    check('the cap does not touch the other deleting rules (Rule 1 still deletes after the cap)',
+          c.disposeDetectedMessage(other, to, oSig, true) === true);
+  }
+  check('Rules 13 and 14 are in the recheck delete list, so mill mail already in the inbox is removed',
+        vm.runInContext("RECHECK_DELETE_RULES.indexOf('Rule 13') !== -1 && RECHECK_DELETE_RULES.indexOf('Rule 14') !== -1", ctx0()));
   {
     // Rule 13 outranks only Rule 14: every OTHER signal that convicts on its own must outrank it.
     const others = ['blacklistedRelayIdentity', 'sponsoredAdTemplate', 'calendarLure', 'callbackPhishing',
@@ -3212,12 +3282,13 @@ console.log('\n=== Signal 16 / Rule 13: known mill footer address on bulk-marked
   check('MILL_FOOTER_ADDRESS appears in the signals CSV', ctx0().buildSignalsCsv(alone).indexOf('MILL_FOOTER_ADDRESS') !== -1);
   check('mill-footer-address appears in the Spam-folder description',
         ctx0().describeSignals(alone).indexOf('mill-footer-address') !== -1);
-  check('Rule 13 is not in the destructive list',
-        !/DESTRUCTIVE_RULES = \[[^\]]*Rule 13/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')));
+  check('Rule 13 is in the destructive list and not in the quarantine list',
+        /DESTRUCTIVE_RULES = \[[^\]]*Rule 13/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')) &&
+        !/QUARANTINE_RULES = \[[^\]]*Rule 13/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')));
 }
 function ctx0() { return ctx0._c || (ctx0._c = makeCtx()); }
 
-console.log('\n=== Signal 17 / Rule 14: finance-pitch score, quarantine, no-history gate (v6.99.0) ===');
+console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the archive, no-history gate (v6.99.0, deletes v6.100.0) ===');
 {
   const fs = require('fs'), path = require('path');
   const base = makeCtx();
@@ -3289,10 +3360,14 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, quarantine, no-hist
     check('no history: convicted as Rule 14, even though the shared ESP domain itself has history (the key is the address)', r.v.isSpam === true && r.rule === 'Rule 14', JSON.stringify({ s: r.v.isSpam, r: r.rule }));
     const errs = []; r.c.logError = (x) => errs.push(String(x));
     r.c.disposeDetectedMessage(r.m, fakeThread([r.m], r.c.calls), r.v.signals, true);
-    check('Rule 14 never permanently deletes, even with a Drive archive', !r.c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(r.c.calls.map(x => x.op)));
-    check('Rule 14 is archived out of the inbox and labelled', r.c.calls.some(x => x.op === 'modify' && x.rm.indexOf('INBOX') !== -1) &&
-          r.c.calls.some(x => x.op === 'addLabel' || (x.op === 'modify' && x.add.length > 0)), JSON.stringify(r.c.calls));
-    check('Rule 14 is a KNOWN quarantine rule (no "Unidentified rule" error)', !errs.some(e => /Unidentified rule/.test(e)), errs.join(' | '));
+    check('Rule 14 PERMANENTLY DELETES behind the Drive archive (v6.100.0)', r.c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(r.c.calls.map(x => x.op)));
+    check('Rule 14 is a KNOWN rule (no "Unidentified rule" error)', !errs.some(e => /Unidentified rule/.test(e)), errs.join(' | '));
+    const c2 = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
+    c2.props[c2.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com')] = 'N:' + Date.now();
+    const m2 = mk({}); const v2 = c2.analyzeMessage(m2);
+    c2.disposeDetectedMessage(m2, fakeThread([m2], c2.calls), v2.signals, false);
+    check('Rule 14 with NO Drive archive is quarantined, never deleted (the archive gate)',
+          v2.isSpam === true && !c2.calls.some(x => x.op === 'batchDelete'), JSON.stringify(c2.calls.map(x => x.op)));
   }
   { const r = run('known');
     check('sender WITH history: not convicted (the gate)', r.v.isSpam === false && r.v.signals.pitchScore === true, JSON.stringify({ s: r.v.isSpam }));
@@ -3330,11 +3405,71 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, quarantine, no-hist
   }
   check('pitchScore alone is an inbox conviction under Rule 14',
         base.makeVerdict({ clickbaitCount: 0, pitchScore: true }) === true && base.getRuleFromSignals({ clickbaitCount: 0, pitchScore: true }).rule === 'Rule 14');
-  check('pitchScore does NOT corroborate a Gmail spam verdict', base.hasCorroboratingSignal({ clickbaitCount: 0, pitchScore: true }) === false);
+  check('pitchScore corroborates a Gmail spam verdict (it deletes as an inbox conviction)', base.hasCorroboratingSignal({ clickbaitCount: 0, pitchScore: true }) === true);
   check('PITCH_SCORE appears in the signals CSV', base.buildSignalsCsv({ pitchScore: true }).indexOf('PITCH_SCORE') !== -1);
   check('pitch-score appears in the Spam-folder description', base.describeSignals({ pitchScore: true }).indexOf('pitch-score') !== -1);
-  check('Rule 14 is not in the destructive list',
-        !/DESTRUCTIVE_RULES = \[[^\]]*Rule 14/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')));
+  {
+    const c = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
+    c.props[c.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com')] = 'N:' + Date.now();
+    const realFolder = c.DriveApp.getFolderById;
+    c.DriveApp.getFolderById = (id) => { const f = realFolder(id), cf = f.createFile;
+      f.createFile = function() { c.calls.push({ op: 'driveCreateFile' }); return cf.apply(this, arguments); }; return f; };
+    const m = mk({}); const th = fakeThread([m], c.calls);
+    c.GmailApp.search = () => [th]; c.GmailApp.getMessagesForThreads = () => [[m]];
+    c.recheckRecentSpamChecked(true);
+    const ops = c.calls.map(x => x.op);
+    check('the post-deploy RECHECK archives a Rule 14 match to Drive, then DELETES it',
+          ops.indexOf('batchDelete') !== -1 && ops.indexOf('driveCreateFile') !== -1 &&
+          ops.indexOf('driveCreateFile') < ops.indexOf('batchDelete'), JSON.stringify(ops));
+    // A sender WITH history is never deleted by the recheck either.
+    const k = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
+    k.props[k.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com')] = 'Y:' + Date.now();
+    const mk2 = mk({}); const th2 = fakeThread([mk2], k.calls);
+    k.GmailApp.search = () => [th2]; k.GmailApp.getMessagesForThreads = () => [[mk2]];
+    k.recheckRecentSpamChecked(true);
+    check('the recheck never deletes a Rule 14 candidate whose sender has history',
+          !k.calls.some(x => x.op === 'batchDelete'), JSON.stringify(k.calls.map(x => x.op)));
+  }
+  {
+    // Spam-folder review reads signals directly: the no-history gate must hold THERE too.
+    const spamFolder = (hist) => {
+      const c = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
+      const KEY = c.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com');
+      c.props[KEY] = (hist === 'known' ? 'Y:' : 'N:') + Date.now();
+      const m = mk({}); const t = fakeThread([m], c.calls);
+      c.GmailApp.search = (q) => (q.indexOf('older_than') === -1 ? [t] : []);
+      c.GmailApp.getMessagesForThreads = ts => ts.map(x => x.__messages);
+      c.reviewGmailSpam();
+      return c.calls.some(x => x.op === 'batchDelete');
+    };
+    check('Spam folder: a Rule 14 candidate from a sender with NO history is deleted now (corroborated)', spamFolder('none') === true);
+    check('Spam folder: the same mail from a sender WITH history is NOT deleted (waits out the grace period)', spamFolder('known') === false);
+    check('the address-history cache expires in 3 days, a domain answer in 30',
+          (() => { const c = makeCtx(); const a = c.historyCacheKey('a.b@c.example'), d = c.historyCacheKey('c.example');
+                   c.GmailApp.search = () => []; let n = 0; const real = c.GmailApp.search; c.GmailApp.search = (q) => { n++; return real(q); };
+                   c.props[a] = 'Y:' + (Date.now() - 4 * 24 * 3600 * 1000); c.props[d] = 'Y:' + (Date.now() - 4 * 24 * 3600 * 1000);
+                   const addr = c.senderHasHistory('a.b@c.example'); const afterAddr = n;
+                   const dom = c.senderHasHistory('c.example');
+                   return afterAddr > 0 && n === afterAddr && dom === true; })());
+    // Recheck: a message the owner already read, or starred, is held, never deleted.
+    const recheck = (touch) => {
+      const c = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
+      c.props[c.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com')] = 'N:' + Date.now();
+      const m = mk({}); touch(m); const t = fakeThread([m], c.calls);
+      c.GmailApp.search = () => [t]; c.GmailApp.getMessagesForThreads = () => [[m]];
+      c.recheckRecentSpamChecked(true);
+      return { deleted: c.calls.some(x => x.op === 'batchDelete'), held: t.__labels.indexOf('SuspectedSpam') !== -1 };
+    };
+    let r = recheck(m => { m.isUnread = () => false; });
+    check('recheck: a READ Rule 14 candidate is held, not deleted', !r.deleted && r.held, JSON.stringify(r));
+    r = recheck(m => { m.isStarred = () => true; });
+    check('recheck: a STARRED Rule 14 candidate is held, not deleted', !r.deleted && r.held, JSON.stringify(r));
+    r = recheck(() => {});
+    check('recheck: an unread, unstarred Rule 14 candidate is deleted', r.deleted && !r.held, JSON.stringify(r));
+  }
+  check('Rule 14 is in the destructive list and not in the quarantine list',
+        /DESTRUCTIVE_RULES = \[[^\]]*Rule 14/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')) &&
+        !/QUARANTINE_RULES = \[[^\]]*Rule 14/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')));
 }
 
 console.log('\n=== Signal 12: headline-then-brand From name (corroboration only) ===');

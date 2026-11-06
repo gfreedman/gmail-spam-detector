@@ -175,6 +175,16 @@ function makeVerdict(signals)
     return true;
   }
 
+  // Rule 14: a finance-pitch score over the threshold on List-Unsubscribe mail (v6.99.0).
+  // QUARANTINES (in QUARANTINE_RULES). analyzeMessage() additionally demands that the
+  // sender has NO history with the user; makeVerdict() stays pure so the exhaustive
+  // sweep and the Python mirror can pin it. See Signal 17.
+  if (signals.pitchScore)
+  {
+    logInfo('SPAM DETECTED: finance-pitch score over the threshold on bulk mail (quarantined)');
+    return true;
+  }
+
   // No rule triggered — email is not spam
   logDebug('Not spam - signals: bulk=' + signals.bulkEmailService +
            ', blacklist=' + signals.blacklistedSender +
@@ -193,7 +203,8 @@ function makeVerdict(signals)
            ', attachmentPayloadScam=' + signals.attachmentPayloadScam +
            ', sponsoredAdTemplate=' + signals.sponsoredAdTemplate +
            ', blacklistedRelayIdentity=' + signals.blacklistedRelayIdentity +
-           ', millFooterAddress=' + signals.millFooterAddress);
+           ', millFooterAddress=' + signals.millFooterAddress +
+           ', pitchScore=' + signals.pitchScore);
   return false;
 }
 
@@ -214,13 +225,41 @@ function analyzeMessage(message)
   {
     const signals = collectSignals(message);
     if (signals === null) return { isSpam: false, signals: null }; // whitelisted
-    const isSpam = makeVerdict(signals);
+    let isSpam = makeVerdict(signals);
+    let unknownHistory = false;
+
+    // Rule 14 (finance-pitch score) convicts only a sender the user has no history with:
+    // not mailed, not read, not already a regular. Done HERE, the one choke point every
+    // path goes through (live, cleanse, recheck, held-mail), because it needs a Gmail
+    // search that a pure signal cannot make. Only an answer of exactly "no history"
+    // convicts: "has history" or "unknown" (lookup budget spent) leaves the mail alone.
+    if (isSpam && getRuleFromSignals(signals).rule === 'Rule 14')
+    {
+      // Keyed on the exact ADDRESS, not the domain. A mill sends as
+      // "<name>.<brand>@email.cyberimpact.com": its domain is a shared ESP's, and the user
+      // has very likely read some other tenant's mail from it, which would make every
+      // mill on that ESP a "known sender" and switch this rule off for them.
+      // The address goes into a Gmail query, so it is allowlisted first: anything with a
+      // space or an operator character is treated as "cannot establish" and never queried.
+      const fromAddr = extractEmailAddress(message.getFrom() || '').toLowerCase();
+      let history = null;
+      if (/^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/.test(fromAddr)) history = senderHasHistory(fromAddr);
+      if (history !== false)
+      {
+        logInfo('Rule 14 skipped (' + (history === true ? 'sender has history' : 'history unknown') + '): ' + sanitizeForLog(fromAddr));
+        isSpam = false;
+        // UNKNOWN (lookup budget spent, or an address we will not query) is not a clean
+        // verdict: reported as unevaluated so processInbox() retries it once instead of
+        // stamping it SpamChecked for good (L5 review: a mill could spend the shared budget).
+        if (history === null) unknownHistory = true;
+      }
+    }
 
     // A clean verdict reached with a signal missing is not a clean verdict.
     // Spam is still acted on — missing signals can only cause a MISS, never a
     // false positive — but "not spam" from a degraded run is reported as
     // unevaluated so it gets retried rather than permanently exempted.
-    const unevaluated = (!isSpam && signals._degraded) ? 'error' : false;
+    const unevaluated = (!isSpam && (signals._degraded || unknownHistory)) ? 'error' : false;
     return { isSpam: isSpam, signals: signals, unevaluated: unevaluated };
   }
   catch (error)

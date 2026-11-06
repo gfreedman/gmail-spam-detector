@@ -96,6 +96,18 @@ Monitor so the `[███░░] 3/5` bar shows each change. Never pipe it (`| 
 buffers until exit and the bar disappears) and never run it as a plain
 background job (its output is only a file).
 
+## The finance-pitch table is generated, not written
+
+`BAYES_TABLE` in `src/Patterns.gs` (Signal 17, Rule 14) is output of
+`python3 scripts/train_bayes.py`. To fix a miss of that genre, add the scrubbed `.eml` to
+`tests/spam_examples`, run the script, and commit the regenerated block; do not hand-edit it.
+Accept a retrain only if `python3 scripts/train_bayes.py --holdout <date>` still catches the
+mail dated after `<date>` without having trained on it. The ham is mostly synthetic; run
+`exportHamScores()` (by hand, in the Apps Script editor) and read the `HamScores` tab before
+moving the threshold. Rule 14 quarantines and is not corroborating; keep it that way. `BAYES_RULE_ENABLED` is the kill switch; `train_bayes.py` preserves it unless `--enable` or
+`--disable` is given. The table holds POSITIVE weights only (padding cannot lower a score): do not
+add negative weights, a test and the Python loader reject them.
+
 ## Testing
 
 Five suites, all must pass:

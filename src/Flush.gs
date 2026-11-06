@@ -246,6 +246,11 @@ function getRuleFromSignals(signals)
     return { rule: 'Rule 13', description: 'Known mill footer address on bulk-marked mail (quarantined, never deleted)' };
   }
 
+  if (signals.pitchScore)
+  {
+    return { rule: 'Rule 14', description: 'Finance-pitch score over the threshold on List-Unsubscribe mail from a sender with no history (quarantined, never deleted)' };
+  }
+
   return { rule: 'NONE', description: 'No rule triggered' };
 }
 
@@ -280,6 +285,7 @@ function buildSignalsCsv(signals)
   if (signals.sponsoredAdTemplate)        parts.push('SPONSORED_AD_TEMPLATE');
   if (signals.blacklistedRelayIdentity)   parts.push('BLACKLISTED_RELAY_IDENTITY');
   if (signals.millFooterAddress)          parts.push('MILL_FOOTER_ADDRESS');
+  if (signals.pitchScore)                 parts.push('PITCH_SCORE');
   // Surfaced in the Sheet so a degraded verdict is visible in the log, not
   // just in an execution transcript nobody reads.
   if (signals._degraded)                  parts.push('DEGRADED');

@@ -115,6 +115,13 @@ for (const c of cases) {
       out.signals[k] = signals[k];
     }
     out.degraded = signals._degraded === true;
+    // The finance-pitch SCORE itself (not just the boolean), so JS and Python are compared
+    // numerically on every fixture. Same text collectSignals() scores, regardless of the
+    // BAYES_RULE_ENABLED flag. A number that drifts by one fails here long before it flips a verdict.
+    const bodyText = ctx.sanitizeInput(c.plainBody || '').trim() ||
+                     ctx.stripHtmlTags(ctx.sanitizeInput(c.html || ''));
+    out.pitchScoreValue = ctx.bayesScore(ctx.bayesTokens(c.subject || '', bodyText,
+                            !!ctx.getRawHeader(c.raw || '', 'List-Unsubscribe')));
     out.isSpam = ctx.makeVerdict(signals) === true;
     out.rule   = ctx.getRuleFromSignals(signals).rule;
     results[c.file] = out;

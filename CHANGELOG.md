@@ -20,6 +20,59 @@ detail plus the diffs.
 
 ---
 
+## v6.99.0
+
+**Rule 14: a trained finance-pitch score quarantines the genre instead of one more patch per sighting.**
+On. Quarantine only; never deletes.
+
+Eleven releases in 14 days (v6.81 to v6.98) each fixed one miss of one genre, and each keyed on something
+the mill rotates for free. Twenty specialist reviews and a mutation test (12% of 474 mutants of the six recent
+misses evade every shipped signal; a brand-plus-address swap alone beats 3 of 6) agreed: score the whole mail.
+
+- **Signal 17 `pitchScore`**: List-Unsubscribe present AND the score reaches 550. The score is the sum of the
+  20 largest weights among the mail's words (3+ letters; link hosts are tokens too, but the current table holds none) (`bayesTokens()` / `bayesScore()`,
+  Text.gs; table `BAYES_TABLE` in Patterns.gs: 121 tokens, 2.2 KB, **positive integers only**).
+- **`scripts/train_bayes.py` generates the table.** A miss is data: add the .eml, rerun, commit.
+  `--holdout 2026-10-23` trains only on mail dated before the cut and scores the rest.
+- **Rule 14** (last in the cascade): in `QUARANTINE_RULES`, not corroborating (same reason as Rule 13), and demands
+  in `analyzeMessage()` (the one choke point: live, cleanse, recheck, held-mail) that the sender has NO history with
+  you. Only an answer of exactly "no history" convicts; "has history" is left alone; "unknown" (lookup budget spent,
+  or an address we will not query) leaves it alone AND reports it unevaluated so it is retried, not stamped clean.
+- **The history key is the full sender ADDRESS**, not the domain (found by a test): a mill sends as
+  `<name>.<brand>@email.cyberimpact.com`, and you have very likely read another Cyberimpact tenant's mail, which would
+  have switched the rule off for every mill on that ESP. The address is allowlisted before it reaches a Gmail query,
+  cache keys are short hashes (a rotating local part cannot fill the Script Properties store),
+  `senderHasHistory()` now needs `is:read` and excludes the quarantine label.
+- **What two reviews found in the first build, and what changed.** The first table was signed and trained on 29
+  short, synthetic ham: it had learned length and boilerplate (heaviest tokens `llc`, `conditions`, `could`,
+  `company`), ten realistic marketing emails scored 536 to 598 (the mill's band), and appending five ordinary words
+  dropped a spam score from 616 to 317. Fixes: ten long realistic bulk ham fixtures
+  (`tests/ham_examples/Realistic bulk ham - *.eml`), a **positive-weights-only table** (padding cannot lower a
+  score: 623 stays 623), a leaner table (weights of 2.5 nats and up), and numeric JS/Python parity on every fixture.
+- **Measured, with the first build's mistake in mind.** (a) Temporal holdout, trained only on mail dated before
+  2026-10-23: the six misses since then score **587 to 609** against 550 (Republic Signal, which scores zero on
+  every other rule, 605); the two later spam it misses are other genres. (b) **Ten marketing emails the table never
+  saw** (the reviewers' false-positive set: brokerage promo, fundraiser, gold dealer, crypto digest, insurer, alumni
+  appeal, receipt-with-marketing...): **466 at most**. That is not a margin: a final review wrote ten dense marketing mails knowing the table and they scored 576 to 622, and ordinary long English sits near 400 to 500, so the bar is 550 and the no-history gate carries real weight. (c) Leave-one-out over the fixtures: 43/74
+  spam at or over 550; the one ham over 550 is the nonprofit-newsletter fixture (577), which has no
+  List-Unsubscribe header in the fixture and so is not convicted; a real one with the header and a new sender would be.
+- **`exportHamScores()`** (Maintenance.gs, run once by hand): scores up to 400 of your kept inbox threads inside Gmail,
+  on the same text Signal 17 scores, and writes a `HamScores` tab: bucket counts and, for scores >= 200, only the score,
+  sender domain and Gmail message id (no subject, body or address). It is the real false-positive measurement; run it
+  and read the tab if Rule 14 quarantines something you wanted, and move the threshold from that.
+- **Tests.** The exhaustive sweep is 18 booleans (1,310,720 combinations) with Rules 13 and 14 the only corroboration
+  exemptions; **numeric score parity JS vs Python on every fixture** (a tokenizer or sort drift turns it red, injected
+  and confirmed); padding resistance (appending 400 ordinary words never lowers a score; every table weight is
+  positive; the Python loader refuses a negative one); the kill switch; the gate (none, known, unknown, ESP-domain-known
+  but address unknown, address injection, hashed keys, the history query text); quarantine ops.
+- **Known weaknesses, stated plainly.** The score still measures length plus marketing vocabulary (a final adversarial review got 10 of 10 dense, table-aware marketing mails over the old bar of 500). A new nonprofit or marketing sender that carries List-Unsubscribe and has
+  written words like a pitch is quarantined until you restore it (it stays in All Mail under the `Phishing` label).
+  A mill that drops List-Unsubscribe or stops writing a finance pitch escapes. The 64 KB scan cap can be padded past.
+  The history cache still grows one hashed key per address checked. `is:read` means a first issue you have not read yet
+  counts as "no history". The ham is mostly synthetic; `exportHamScores()` is how to measure the real rate.
+- **Not in this release** (reviewed, left for later): a permanent mutation-evasion suite in CI (a workflow change, a
+  deploy-path edit), a daily digest of held mail with one-step restore, retraining from real kept-mail word counts.
+
 ## v6.98.0
 
 **Rule 13: a known mill footer address now acts instead of being logged. It quarantines.**

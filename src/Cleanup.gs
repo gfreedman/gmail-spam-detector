@@ -126,6 +126,10 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * the exemption is that a Gmail-filed mill message waits out the grace period.
  *
  *
+ * pitchScore (v6.99.0, Rule 14) is NOT strong either, for the same reason as Rule 13: it
+ * quarantines, and corroboration would make it a same-run permanent delete of
+ * Gmail-misfiled mail. The exhaustive sweep names Rules 13 and 14 as the exemptions.
+ *
  * sponsoredAdTemplate (v6.81.0) is STRONG on its own and is Rule 11: an ad
  * disclaimer, a "Sponsored Content" block and two "Sponsored by"/"Ad by" credits. It
  * closed "The 1973 Loophole", which scored zero on every other signal. Its false

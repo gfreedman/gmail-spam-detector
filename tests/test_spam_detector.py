@@ -327,6 +327,24 @@ def _strip_js_comments(text):
     return ''.join(out)
 
 
+def _load_bayes_table(source):
+    """Parse the generated BAYES_TABLE block out of the concatenated source:
+    {token: integer weight} plus BAYES_QUARANTINE_SCORE and BAYES_TOP_K. Tokens are
+    [a-z.\\-_0-9] only, so a flat regex is enough (no JS string escapes to unpick)."""
+    m = re.search(r'const BAYES_TABLE = Object\.freeze\(\{(.*?)\}\);', source, re.S)
+    if not m:
+        raise ValueError('BAYES_TABLE block not found in the source')
+    table = {k: int(v) for k, v in re.findall(r"'([a-z0-9_.\-]+)':\s*(-?\d+)", m.group(1))}
+    if any(v <= 0 for v in table.values()):
+        raise ValueError('BAYES_TABLE must hold positive weights only (padding resistance)')
+    score = int(re.search(r'const BAYES_QUARANTINE_SCORE = (\d+);', source).group(1))
+    topk = int(re.search(r'const BAYES_TOP_K = (\d+);', source).group(1))
+    enabled = re.search(r'let BAYES_RULE_ENABLED = (true|false);', source).group(1) == 'true'
+    if len(table) < 100:
+        raise ValueError(f'BAYES_TABLE looks truncated ({len(table)} entries)')
+    return {'table': table, 'threshold': score, 'top_k': topk, 'enabled': enabled}
+
+
 def _load_string_array(source, const_name, allow_spaces=False):
     """
     Extract a JS Object.freeze([...]) string array as a Python list.
@@ -479,6 +497,7 @@ def _load_gs_constants(source):
         'CALENDAR_SAFE_LINK_DOMAINS':   _load_string_array(source, 'CALENDAR_SAFE_LINK_DOMAINS'),
         'HEADLINE_NAME_SEPARATORS':     _load_string_array(source, 'HEADLINE_NAME_SEPARATORS'),
         'MILL_POSTAL_NEEDLES':          _load_string_array(source, 'MILL_POSTAL_NEEDLES', allow_spaces=True),
+        'BAYES':                        _load_bayes_table(source),
         'SPONSORED_AD_PATTERNS':        _load_regex_array(source, 'SPONSORED_AD_PATTERNS'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
         'IMPERSONATED_SUPPORT_BRANDS':  _load_string_array(
@@ -546,6 +565,10 @@ CALENDAR_SAFE_LINK_DOMAINS      = _gs['CALENDAR_SAFE_LINK_DOMAINS']
 HEADLINE_NAME_SEPARATORS        = _gs['HEADLINE_NAME_SEPARATORS']
 SPONSORED_AD_PATTERNS           = _gs['SPONSORED_AD_PATTERNS']
 MILL_POSTAL_NEEDLES             = _gs['MILL_POSTAL_NEEDLES']
+BAYES_TABLE                     = _gs['BAYES']['table']
+BAYES_QUARANTINE_SCORE          = _gs['BAYES']['threshold']
+BAYES_TOP_K                     = _gs['BAYES']['top_k']
+BAYES_RULE_ENABLED              = _gs['BAYES']['enabled']
 RFC2822_QUOTED_NAME             = _gs['RFC2822_QUOTED_NAME']
 WHITELISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['legitimate']
 BLACKLISTED_DOMAINS             = _gs['DEFAULT_DOMAINS']['suspicious']
@@ -1140,6 +1163,31 @@ def _normalize_ad_text(text):
     return re.sub(r'[\t\n\v\f\r \u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000]+', ' ', t)
 
 
+def _bayes_tokens(subject, body, has_list_unsubscribe):
+    """Mirror of bayesTokens() (Bayes section of Text.gs): the SET of lower-cased words
+    (3+ letters) and link hosts ("h_<host>") of subject + body, plus "f_lu" when a
+    List-Unsubscribe header is present. Explicit character classes, no \\s and no \\b,
+    so JS and Python cannot disagree on exotic whitespace."""
+    # The JS cap is 65,536 UTF-16 code UNITS; Python slices code points. They differ for
+    # astral characters (emoji), so cut in UTF-16 units here too (L5 review).
+    raw_text = (subject or '') + ' ' + (body or '')
+    raw_text = raw_text.encode('utf-16-le', 'surrogatepass')[:2 * MAX_RAW_SCAN_CHARS].decode('utf-16-le', 'ignore')
+    t = unicodedata.normalize('NFKC', raw_text).lower()
+    t = re.sub(r'https?://([^/ \t\r\n>]+)[^ \t\r\n>]*',
+               lambda m: ' h_' + re.sub(r'^www\.', '', m.group(1)) + ' ', t)
+    out = set(re.findall(r'h_[a-z0-9.\-]+|[a-z]{3,}', t))
+    if has_list_unsubscribe:
+        out.add('f_lu')
+    return out
+
+
+def _bayes_score(tokens):
+    """Mirror of bayesScore(): sum of the BAYES_TOP_K largest weights among known tokens.
+    The table holds POSITIVE integers only, so equal weights tie harmlessly (the sum is the
+    same whichever is cut) and no appended word can lower the score."""
+    return sum(sorted((BAYES_TABLE[t] for t in tokens if t in BAYES_TABLE), reverse=True)[:BAYES_TOP_K])
+
+
 def _strip_quoted_and_forwarded(text):
     """Mirror of stripQuotedAndForwarded() (Text.gs): drop "> " quoted lines, cut at the
     first forwarded/original-message/"On ... wrote:" marker or Outlook "From:/Sent:" block.
@@ -1228,6 +1276,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'sponsored_ad_template': False,
                     'blacklisted_relay_identity': False,
                     'mill_footer_address': False,
+                    'pitch_score': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -1250,6 +1299,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'sponsored_ad_template': False,
         'blacklisted_relay_identity': False,
         'mill_footer_address': False,
+        'pitch_score': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1353,6 +1403,14 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         if any(' ' + _n + ' ' in _authored for _n in MILL_POSTAL_NEEDLES):
             signals['mill_footer_address'] = True
             signals['matched_patterns'].append('mill_footer_address')
+
+    # ── Signal 17: Finance-pitch score (v6.99.0) ────────────────────────────
+    # QUARANTINES (Rule 14). Mirrors Signal 17 in Signals.gs: List-Unsubscribe present AND
+    # the word/link-host score of subject + body reaches BAYES_QUARANTINE_SCORE.
+    if BAYES_RULE_ENABLED and _raw_header(raw, 'List-Unsubscribe') and \
+            _bayes_score(_bayes_tokens(subject, body, True)) >= BAYES_QUARANTINE_SCORE:
+        signals['pitch_score'] = True
+        signals['matched_patterns'].append('pitch_score')
 
     # ── Signal: Clickbait pattern count ────────────────────────────────────
     # Each matching pattern increments the counter independently — this allows
@@ -1734,6 +1792,13 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         elif signals['mill_footer_address']:
             is_spam = True
             rule = 'RULE 13: Known mill footer address'
+
+        # Rule 14: a finance-pitch score over the threshold on List-Unsubscribe mail.
+        #   QUARANTINES in production (in QUARANTINE_RULES, v6.99.0), and only when the
+        #   sender has no history with the user (analyzeMessage(), not mirrored).
+        elif signals['pitch_score']:
+            is_spam = True
+            rule = 'RULE 14: Finance-pitch score'
 
     return signals, is_spam, rule
 
@@ -2331,7 +2396,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 18
+    EXPECTED_SIGNAL_COUNT = 19
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '
@@ -2372,6 +2437,17 @@ def run_parity_tests():
 
         pe = parsed_by_file[key]
         py_signals, py_is_spam, _ = analyze_email(*pe)
+        # Numeric parity of the finance-pitch score on the same text JS scored.
+        if js.get('whitelisted'):
+            pass          # whitelisted senders short-circuit before any scoring, on both sides
+        elif 'pitchScoreValue' in js:
+            _body = pe.body.strip() or re.sub(r'<[^>]+>', '', pe.html)
+            _py_score = _bayes_score(_bayes_tokens(
+                pe.subject, _body, bool(_raw_header(case['raw'], 'List-Unsubscribe'))))
+            if _py_score != js['pitchScoreValue']:
+                failures.append(f'{key}: finance-pitch score JS={js["pitchScoreValue"]} Python={_py_score}')
+        else:
+            failures.append(f'{key}: the bridge returned no pitchScoreValue')
         py_whitelisted = 'whitelisted' in py_signals.get('matched_patterns', [])
 
         if js['whitelisted'] != py_whitelisted:

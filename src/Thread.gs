@@ -217,15 +217,31 @@ function isBulkEmail(rawContent)
  * history answer in Script Properties), and swallows its own errors: it cannot change
  * a verdict, a label or a delete. The history lookup is the only API cost: at most
  * SHADOW_HISTORY_BUDGET searches' worth of new domains per execution, each cached
- * 30 days per domain.
+ * 30 days per domain. That budget is SHARED with Rule 14's no-history gate in
+ * analyzeMessage() (senderHasHistory()), so this observer can spend lookups the gate
+ * would have used; an exhausted budget makes the gate answer "unknown", which is retried.
  */
 const SHADOW_HISTORY_BUDGET = 3;
 let shadowHistoryLookups = 0;
 
-function senderHasHistory(domain)
+/**
+ * The Script Properties key that caches one history answer. A DOMAIN keys on itself; a full
+ * ADDRESS (Rule 14 asks per address) keys on a short FNV-1a hash, because the local part is
+ * attacker-chosen: a mill rotating "<name>.<brand>@esp" would otherwise write a ~75-byte key per
+ * new address into a 500 KB store and eventually make every Script Properties write throw.
+ */
+function historyCacheKey(who)
+{
+  if (who.indexOf('@') === -1) return 'SHADOW_HIST_' + who;
+  let h = 0x811c9dc5;
+  for (let i = 0; i < who.length; i++) { h ^= who.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return 'SHADOW_HIST_A' + h.toString(16);
+}
+
+function senderHasHistory(domain)   // `domain` may also be a full address: Gmail's to:/from: take either
 {
   const props = PropertiesService.getScriptProperties();
-  const key   = 'SHADOW_HIST_' + domain;
+  const key   = historyCacheKey(domain);
   const now   = Date.now();
   const cached = props.getProperty(key);
   if (cached)
@@ -235,8 +251,13 @@ function senderHasHistory(domain)
   }
   if (shadowHistoryLookups >= SHADOW_HISTORY_BUDGET) return null;   // unknown this run
   shadowHistoryLookups++;
+  // v6.99.0: the received-mail half now needs `is:read` and excludes the quarantine label.
+  // Rule 14 relies on this answer, and without those two terms the mill's OWN earlier mail
+  // (left unread in the inbox, or held under the Phishing label) would make the mill a
+  // "known sender" after its first miss and switch the rule off for it.
   const known = GmailApp.search('in:sent to:' + domain, 0, 1).length > 0 ||
-                GmailApp.search('from:' + domain + ' older_than:2d -in:spam -in:trash', 0, 1).length > 0;
+                GmailApp.search('from:' + domain + ' older_than:2d is:read -label:' + CONFIG.phishingLabel +
+                                ' -in:spam -in:trash', 0, 1).length > 0;
   props.setProperty(key, (known ? 'Y' : 'N') + ':' + now);
   return known;
 }

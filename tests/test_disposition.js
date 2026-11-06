@@ -1973,7 +1973,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
                  'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',
                  'selfNamedSender', 'calendarLure', 'headlineFromName',
                  'attachmentPayloadScam', 'sponsoredAdTemplate', 'blacklistedRelayIdentity',
-                 'millFooterAddress'];
+                 'millFooterAddress', 'pitchScore'];
 
   // Guard the guard: if collectSignals() grows a signal this list does not
   // know about, the sweep below silently stops being exhaustive.
@@ -1998,7 +1998,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
       // Anything the inbox would delete, the Spam folder must not make wait.
       // Rule 13 is the ONE named exemption: it quarantines, and corroboration would turn
       // that into a same-run permanent delete of Gmail-misfiled mail (L5 review).
-      if (isSpam && !corroborated && rule !== 'Rule 13' && uncorroborated.length < 5) {
+      if (isSpam && !corroborated && rule !== 'Rule 13' && rule !== 'Rule 14' && uncorroborated.length < 5) {
         uncorroborated.push('rule=' + rule + ' fired=' +
           BOOLS.filter(k => sig[k]).concat(cb ? ['clickbait=' + cb] : []).join('+'));
       }
@@ -2030,7 +2030,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
       if (rule === 'Rule 12' && !sig.blacklistedRelayIdentity && offSpec.length < 5) {
         offSpec.push('rule-name: Rule 12 without blacklistedRelayIdentity');
       }
-      // Rule 13 is last: millFooterAddress alone must be named Rule 13, and Rule 13
+      // Rules 13 and 14 come after Rule 12: millFooterAddress alone must be named Rule 13, and Rule 13
       // must never be named without it.
       const soleFooter = sig.millFooterAddress && cb === 0 &&
                          BOOLS.every(k => k === 'millFooterAddress' || !sig[k]);
@@ -2039,6 +2039,15 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
       }
       if (rule === 'Rule 13' && !sig.millFooterAddress && offSpec.length < 5) {
         offSpec.push('rule-name: Rule 13 without millFooterAddress');
+      }
+      // Rule 14 is last: pitchScore alone must be named Rule 14, never without it.
+      const solePitch = sig.pitchScore && cb === 0 &&
+                        BOOLS.every(k => k === 'pitchScore' || !sig[k]);
+      if (solePitch && rule !== 'Rule 14' && offSpec.length < 5) {
+        offSpec.push('rule-name: pitchScore alone -> ' + rule);
+      }
+      if (rule === 'Rule 14' && !sig.pitchScore && offSpec.length < 5) {
+        offSpec.push('rule-name: Rule 14 without pitchScore');
       }
       combos++;
       if (isSpam !== (rule !== 'NONE') && disagreements.length < 5) {
@@ -2050,7 +2059,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
   check('makeVerdict agrees with getRuleFromSignals on all ' + combos +
         ' signal combinations', disagreements.length === 0,
         disagreements.join(' | '));
-  check('every inbox conviction except the quarantine-only Rule 13 also corroborates a Gmail spam verdict (' +
+  check('every inbox conviction except the quarantine-only Rules 13 and 14 also corroborates a Gmail spam verdict (' +
         combos + ' combinations)', uncorroborated.length === 0,
         uncorroborated.join(' | '));
   check('corroboration = a strong signal or 2+ weak points, on all ' + combos +
@@ -3194,7 +3203,7 @@ console.log('\n=== Signal 16 / Rule 13: known mill footer address on bulk-marked
   check('millFooterAddress does NOT corroborate a Gmail spam verdict (quarantine-only rule: no same-run delete)',
         ctx0().hasCorroboratingSignal(alone) === false);
   {
-    // Rule 13 is last: every OTHER signal that convicts on its own must outrank it.
+    // Rule 13 outranks only Rule 14: every OTHER signal that convicts on its own must outrank it.
     const others = ['blacklistedRelayIdentity', 'sponsoredAdTemplate', 'calendarLure', 'callbackPhishing',
                     'brandMismatchedCta', 'serviceImpersonation', 'emptySubjectWithAttachment'];
     const wrong = others.filter(k => ctx0().getRuleFromSignals(Object.assign({ clickbaitCount: 0, millFooterAddress: true }, { [k]: true })).rule === 'Rule 13');
@@ -3207,6 +3216,126 @@ console.log('\n=== Signal 16 / Rule 13: known mill footer address on bulk-marked
         !/DESTRUCTIVE_RULES = \[[^\]]*Rule 13/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')));
 }
 function ctx0() { return ctx0._c || (ctx0._c = makeCtx()); }
+
+console.log('\n=== Signal 17 / Rule 14: finance-pitch score, quarantine, no-history gate (v6.99.0) ===');
+{
+  const fs = require('fs'), path = require('path');
+  const base = makeCtx();
+  // Numeric score parity with the Python mirror is asserted on every fixture in Phase 7
+  // (tests/test_spam_detector.py via parity_signals.js, key pitchScoreValue), so it cannot go
+  // stale when the table is regenerated. Here: structural properties of the score only.
+  check('an empty message scores 0', base.bayesScore(base.bayesTokens('', '', false)) === 0);
+  check('the score is deterministic and order-independent',
+        base.bayesScore(base.bayesTokens('gold ira llc conditions', 'offer company', true)) ===
+        base.bayesScore(base.bayesTokens('company offer', 'conditions llc ira gold', true)));
+  {
+    // Padding resistance: the table holds POSITIVE weights only, so adding words can never
+    // lower a score (a signed table lost 616 -> 317 to five appended words in review).
+    const T = vm.runInContext('BAYES_TABLE', base);
+    check('every table weight is a positive integer', Object.keys(T).every(k => Number.isInteger(T[k]) && T[k] > 0));
+    const spamLeaning = Object.keys(T).sort((a, b) => T[b] - T[a]).slice(0, 30).join(' ');
+    const bare = base.bayesScore(base.bayesTokens('x', spamLeaning, true));
+    const padded = base.bayesScore(base.bayesTokens('x', spamLeaning + ' receipt attached forwarded invoice lunch tomorrow noon printouts okanagan acme thanks regards meeting agenda ' +
+                                                    'the quick brown fox jumps over the lazy dog '.repeat(40), true));
+    check('appending 400 ordinary words does not lower the score (' + bare + ' -> ' + padded + ')', padded >= bare);
+    const fewer = base.bayesScore(base.bayesTokens('x', spamLeaning.split(' ').slice(0, 10).join(' '), true));
+    check('adding spam-leaning words never lowers it either (' + fewer + ' -> ' + bare + ')', bare >= fewer);
+  }
+  check('inherited names are not table hits ("constructor", "tostring")',
+        base.bayesScore(base.bayesTokens('x', 'constructor tostring valueof hasownproperty', false)) === 0);
+
+  // A body made of the table's strongest spam words always clears the bar.
+  const pos = vm.runInContext('Object.keys(BAYES_TABLE).filter(k => BAYES_TABLE[k] > 0).sort((a, b) => BAYES_TABLE[b] - BAYES_TABLE[a]).slice(0, 25).join(" ")', base);
+  const SPAMMY = 'Weekly note ' + pos;
+  const FRESH = 'Fresh Brand <daily.fresh.freshbrandnews.example@email.cyberimpact.com>';
+  const mk = (o) => {
+    const m = phishMessage('mR17');
+    m.getFrom = () => o.from || FRESH;
+    m.getSubject = () => 'Your weekly market note';
+    m.getRawContent = () => (o.lu === false ? '' : 'List-Unsubscribe: <mailto:u@example.com>\r\n') + '\r\nbody';
+    m.getHeader = (n) => (/list-unsubscribe/i.test(n) && o.lu !== false) ? '<mailto:u@example.com>' : '';
+    m.getPlainBody = () => o.body === undefined ? SPAMMY : o.body;
+    m.getBody = () => '<p>x</p>';
+    return m;
+  };
+  const on = (c) => { vm.runInContext('BAYES_RULE_ENABLED = true', c); return c; };
+  const sigFires = (o) => on(makeCtx()).collectSignals(mk(o)).pitchScore === true;
+  check('Rule 14 SHIPS ON (BAYES_RULE_ENABLED is true) and the kill switch works',
+        vm.runInContext('BAYES_RULE_ENABLED', makeCtx()) === true &&
+        (() => { const c = makeCtx(); vm.runInContext('BAYES_RULE_ENABLED = false', c); return c.collectSignals(mk({})).pitchScore === false; })() &&
+        makeCtx().collectSignals(mk({})).pitchScore === true);
+  check('spam-leaning words + List-Unsubscribe fire Signal 17', sigFires({}));
+  check('the same words WITHOUT List-Unsubscribe do not', !sigFires({ lu: false }));
+  check('an ordinary note does not', !sigFires({ body: 'Hi, are we still on for lunch tomorrow at noon?' }));
+  check('empty body does not', !sigFires({ body: '' }));
+  const t0 = Date.now();
+  sigFires({ body: ('gold ira '.repeat(20000)) });
+  check('a 160 KB body is scored in under 1 s', Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
+
+  // The no-history gate lives in analyzeMessage(): only an answer of exactly "no history" convicts.
+  const run = (hist, o) => {
+    const c = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
+    const KEY = c.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com');
+    if (hist === 'known')   c.props[KEY] = 'Y:' + Date.now();
+    if (hist === 'none')    c.props[KEY] = 'N:' + Date.now();
+    // The shared ESP's own domain being "known" must NOT switch the rule off for a mill on it.
+    if (hist === 'none' || hist === 'known') c.props['SHADOW_HIST_email.cyberimpact.com'] = 'Y:' + Date.now();
+    if (hist === 'unknown') vm.runInContext('shadowHistoryLookups = SHADOW_HISTORY_BUDGET', c);
+    const m = mk(o || {});
+    const v = c.analyzeMessage(m);
+    return { c, m, v, rule: v.signals ? c.getRuleFromSignals(v.signals).rule : null };
+  };
+  { const r = run('none');
+    check('no history: convicted as Rule 14, even though the shared ESP domain itself has history (the key is the address)', r.v.isSpam === true && r.rule === 'Rule 14', JSON.stringify({ s: r.v.isSpam, r: r.rule }));
+    const errs = []; r.c.logError = (x) => errs.push(String(x));
+    r.c.disposeDetectedMessage(r.m, fakeThread([r.m], r.c.calls), r.v.signals, true);
+    check('Rule 14 never permanently deletes, even with a Drive archive', !r.c.calls.some(x => x.op === 'batchDelete'), JSON.stringify(r.c.calls.map(x => x.op)));
+    check('Rule 14 is archived out of the inbox and labelled', r.c.calls.some(x => x.op === 'modify' && x.rm.indexOf('INBOX') !== -1) &&
+          r.c.calls.some(x => x.op === 'addLabel' || (x.op === 'modify' && x.add.length > 0)), JSON.stringify(r.c.calls));
+    check('Rule 14 is a KNOWN quarantine rule (no "Unidentified rule" error)', !errs.some(e => /Unidentified rule/.test(e)), errs.join(' | '));
+  }
+  { const r = run('known');
+    check('sender WITH history: not convicted (the gate)', r.v.isSpam === false && r.v.signals.pitchScore === true, JSON.stringify({ s: r.v.isSpam }));
+  }
+  { const r = run('unknown');
+    check('history UNKNOWN (lookup budget spent): not convicted (fail open)', r.v.isSpam === false, JSON.stringify({ s: r.v.isSpam }));
+    check('...and reported as unevaluated so it is retried, not stamped clean for good', r.v.unevaluated === 'error', JSON.stringify(r.v.unevaluated));
+  }
+  { // The address is allowlisted before it reaches a Gmail query.
+    const c = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
+    const searches = []; c.GmailApp.search = (q) => { searches.push(q); return []; };
+    const v = c.analyzeMessage(mk({ from: 'Mill <mill@evil.example -label:x>' }));
+    check('an address with an operator or space is never put in a query, and is retried (unknown)',
+          !searches.some(q => /evil\.example/.test(q)) && v.isSpam === false && v.unevaluated === 'error', JSON.stringify(searches));
+    check('address cache keys are short hashes, domain keys stay plain',
+          /^SHADOW_HIST_A[0-9a-f]{1,8}$/.test(c.historyCacheKey('a.b@c.example')) && c.historyCacheKey('c.example') === 'SHADOW_HIST_c.example');
+  }
+  { const r = run('none', { lu: false });
+    check('no history but no List-Unsubscribe: not convicted', r.v.isSpam === false);
+  }
+  {
+    const c = makeCtx({ searchResults: {} });
+    const seen = [];
+    c.GmailApp.search = (q) => { seen.push(q); return []; };
+    c.senderHasHistory('daily.fresh.freshbrandnews.example@email.cyberimpact.com');
+    check('the history query demands is:read and excludes the quarantine label',
+          seen.some(q => /is:read/.test(q) && /-label:Phishing/.test(q)), seen.join(' | '));
+  }
+  // Rule 14 is last: every standalone-convicting signal outranks it.
+  {
+    const others = ['millFooterAddress', 'blacklistedRelayIdentity', 'sponsoredAdTemplate', 'calendarLure',
+                    'callbackPhishing', 'brandMismatchedCta', 'serviceImpersonation', 'emptySubjectWithAttachment'];
+    const wrong = others.filter(k => base.getRuleFromSignals(Object.assign({ clickbaitCount: 0, pitchScore: true }, { [k]: true })).rule === 'Rule 14');
+    check('no standalone-convicting signal is outranked by Rule 14', wrong.length === 0, wrong.join(','));
+  }
+  check('pitchScore alone is an inbox conviction under Rule 14',
+        base.makeVerdict({ clickbaitCount: 0, pitchScore: true }) === true && base.getRuleFromSignals({ clickbaitCount: 0, pitchScore: true }).rule === 'Rule 14');
+  check('pitchScore does NOT corroborate a Gmail spam verdict', base.hasCorroboratingSignal({ clickbaitCount: 0, pitchScore: true }) === false);
+  check('PITCH_SCORE appears in the signals CSV', base.buildSignalsCsv({ pitchScore: true }).indexOf('PITCH_SCORE') !== -1);
+  check('pitch-score appears in the Spam-folder description', base.describeSignals({ pitchScore: true }).indexOf('pitch-score') !== -1);
+  check('Rule 14 is not in the destructive list',
+        !/DESTRUCTIVE_RULES = \[[^\]]*Rule 14/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')));
+}
 
 console.log('\n=== Signal 12: headline-then-brand From name (corroboration only) ===');
 {

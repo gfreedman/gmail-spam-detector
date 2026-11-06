@@ -442,6 +442,7 @@ function describeSignals(signals)
   if (signals.blacklistedRelayIdentity)   fired.push('blacklisted-relay-identity');
   if (signals.sponsoredAdTemplate)           fired.push('sponsored-ad-template');
   if (signals.millFooterAddress)             fired.push('mill-footer-address');
+  if (signals.pitchScore)                    fired.push('pitch-score');
 
   // Parenthesised and last, deliberately. Bulk routing corroborates nothing on
   // its own — hasCorroboratingSignal() excludes it because virtually every

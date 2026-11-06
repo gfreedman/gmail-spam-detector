@@ -636,3 +636,101 @@ function recheckRecentSpamChecked(widen)
     logError('recheckRecentSpamChecked failed: ' + error.toString());
   }
 }
+
+/**
+ * Measure the finance-pitch score (Rule 14) on the user's REAL kept mail. Run once by
+ * hand from the Apps Script editor (v6.99.0); nothing triggers it.
+ *
+ * Why it exists: the ham fixtures that calibrate the threshold are mostly synthetic, so
+ * "0 of 29 ham" bounds the false-positive rate at only about 10%. This computes the
+ * same score on up to EXPORT_HAM_MAX_THREADS inbox threads the detector judged and kept,
+ * INSIDE Gmail, and writes a "HamScores" tab holding only aggregate counts and, for the
+ * highest scorers, the score, the sender DOMAIN and the Gmail message id (so the owner
+ * can look it up). No subject, no body text and no sender address is written, and no
+ * mail content leaves Google. The tab is overwritten each run.
+ *
+ * Messages are scored whether or not they carry List-Unsubscribe; the table separates
+ * "would Rule 14 fire" (List-Unsubscribe AND score at the bar) from the raw score.
+ * Stops at EXPORT_HAM_BUDGET_MS so it cannot hit the 6-minute limit.
+ * Reads List-Unsubscribe through message.getHeader() while Signal 17 reads the raw headers, so a
+ * folded or oddly-cased header can differ at the margin; it measures the first message of each thread.
+ */
+const EXPORT_HAM_MAX_THREADS = 400;
+const EXPORT_HAM_BUDGET_MS   = 240000;
+
+function exportHamScores()
+{
+  const started = Date.now();
+  try
+  {
+    const sheetId = PropertiesService.getScriptProperties().getProperty('SPAM_LOG_SHEET_ID');
+    if (!sheetId) { logError('exportHamScores: no log spreadsheet (run setupLogging() first)'); return; }
+
+    const buckets = { 'under 0': 0, '0-199': 0, '200-299': 0, '300-399': 0, '400-499': 0, '500+': 0 };
+    const bucketOf = function(s)
+    {
+      return s < 0 ? 'under 0' : s < 200 ? '0-199' : s < 300 ? '200-299' : s < 400 ? '300-399' : s < 500 ? '400-499' : '500+';
+    };
+    let messages = 0, withUnsub = 0, wouldFire = 0, threadsRead = 0, stoppedEarly = false;
+    const top = [];   // {score, domain, id, lu}
+
+    const query = 'in:inbox label:' + CONFIG.processedLabel + ' -label:' + CONFIG.phishingLabel;
+    for (let start = 0; start < EXPORT_HAM_MAX_THREADS && !stoppedEarly; start += 50)
+    {
+      const threads = GmailApp.search(query, start, 50);
+      if (threads.length === 0) break;
+      const perThread = GmailApp.getMessagesForThreads(threads);
+      for (let t = 0; t < perThread.length && !stoppedEarly; t++)
+      {
+        threadsRead++;
+        const msgs = perThread[t];
+        const message = msgs[0];                          // the message the detector judges first
+        if (Date.now() - started > EXPORT_HAM_BUDGET_MS) { stoppedEarly = true; break; }
+        try
+        {
+          const lu = String(message.getHeader('List-Unsubscribe') || '').length > 0;
+          // The SAME text Signal 17 scores (collectSignals): sanitized plain body, else the
+          // tag-stripped HTML. Scoring raw getPlainBody() measured a different quantity.
+          const body = sanitizeInput(message.getPlainBody()).trim() ||
+                       stripHtmlTags(sanitizeInput(message.getBody()));
+          const score = bayesScore(bayesTokens(message.getSubject() || '', body, lu));
+          messages++;
+          if (lu) withUnsub++;
+          if (lu && score >= BAYES_QUARANTINE_SCORE) wouldFire++;
+          buckets[bucketOf(score)]++;
+          if (score >= 200)
+          {
+            const addr = extractEmailAddress(message.getFrom() || '');
+            top.push({ score: score, domain: addr.substring(addr.lastIndexOf('@') + 1).toLowerCase(),
+                       id: message.getId(), lu: lu });
+          }
+        }
+        catch (messageError) { logError('exportHamScores: skipped one message: ' + messageError.toString()); }
+      }
+    }
+
+    top.sort(function(a, b) { return b.score - a.score; });
+    const ss = SpreadsheetApp.openById(sheetId);
+    let sheet = ss.getSheetByName('HamScores');
+    if (!sheet) sheet = ss.insertSheet('HamScores');
+    sheet.clear();
+    const rows = [
+      ['Generated', new Date().toISOString(), 'Version', SCRIPT_VERSION, 'Threshold', BAYES_QUARANTINE_SCORE],
+      ['Kept messages scored', messages, 'with List-Unsubscribe', withUnsub, 'would trigger Rule 14 (before the history check)', wouldFire],
+      ['Stopped early (time budget)', stoppedEarly ? 'yes' : 'no', 'threads read', threadsRead, '', ''],
+      ['', '', '', '', '', ''],
+      ['Score bucket', 'Messages', '', '', '', '']
+    ];
+    for (const b in buckets) rows.push([b, buckets[b], '', '', '', '']);
+    rows.push(['', '', '', '', '', '']);
+    rows.push(['Top scorers (score >= 200)', 'Sender domain', 'Gmail message id', 'List-Unsubscribe', '', '']);
+    for (let i = 0; i < top.length && i < 40; i++) rows.push([top[i].score, top[i].domain, top[i].id, top[i].lu ? 'yes' : 'no', '', '']);
+    sheet.getRange(1, 1, rows.length, 6).setValues(rows);
+    logInfo('exportHamScores: ' + messages + ' kept messages scored, ' + wouldFire +
+            ' would trigger Rule 14 before the history check, tab "HamScores" written');
+  }
+  catch (error)
+  {
+    logError('exportHamScores failed: ' + error.toString());
+  }
+}

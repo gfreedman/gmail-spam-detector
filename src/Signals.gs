@@ -173,7 +173,8 @@ function collectSignals(message)
     attachmentPayloadScam: false,      // Bcc'd free-mail ALL-CAPS note whose payload is an attachment; Spam-folder corroboration only
     sponsoredAdTemplate: false,        // ad disclaimer + advertiser sentence + "Sponsored Content" block + 2 credits; Rule 11
     blacklistedRelayIdentity: false,   // a blacklisted brand domain behind an ESP relay (From mailbox + Reply-To); Rule 12
-    millFooterAddress: false           // a known mill footer address in sender-authored text + List-Unsubscribe; Rule 13 (QUARANTINES)
+    millFooterAddress: false,          // a known mill footer address in sender-authored text + List-Unsubscribe; Rule 13 (QUARANTINES)
+    pitchScore: false                  // List-Unsubscribe + a finance-pitch word/link-host score over the threshold; Rule 14 (QUARANTINES, no-history gate in analyzeMessage)
   };
 
   // ── Signal 1a: Bulk email service detection ─────────────────────────────
@@ -522,6 +523,50 @@ function collectSignals(message)
     // rest still run, and signalsSkipped makes the gap visible.
     signalsSkipped++;
     logError('Signal 16 threw and was skipped: ' + signalError.toString());
+  }
+
+  // ── Signal 17: Finance-pitch score (v6.99.0) ─────────────────────────────
+  // QUARANTINES (Rule 14). Signals 14, 15 and 16 each test something the mill rotates (a
+  // phrase, a brand domain, an address); 11 releases in 14 days patched one sighting at a
+  // time. This scores the whole mail instead: the words and link hosts of a direct-response
+  // pitch, weighted by a table trained on the spam and ham fixtures (scripts/train_bayes.py;
+  // BAYES_TABLE in Patterns.gs), so a reworded or rebranded pitch still scores.
+  //
+  // WHAT WAS FOUND AND FIXED BEFORE THIS SHIPPED (two reviews, CHANGELOG v6.99.0): a first
+  // signed table had learned length and boilerplate ("llc", "conditions", "could") and could
+  // be pushed under the bar by appending ordinary words. The table now holds POSITIVE weights
+  // only (padding cannot lower a score) and is trained with ten long realistic marketing
+  // emails as ham. Measured: trained only on mail dated before 2026-10-23 it scores all six
+  // misses since then 587 to 609 against 550; ten marketing emails it never saw (brokerage,
+  // fundraiser, gold dealer, crypto digest, insurer, alumni appeal...) score 466 at most.
+  // That 466 is NOT a margin: a final review wrote ten dense marketing mails knowing the table
+  // and they scored 576 to 622, and ordinary long English sits near 400 to 500. The score still
+  // rewards length plus marketing vocabulary, which is why the bar is 550 (the six misses are
+  // 587 to 609) and why the sender must also have no history with you. Link hosts are tokens
+  // too, but the current table holds none, so they add nothing today.
+  //
+  // Requires List-Unsubscribe (mass mail; a person writing to you has none). The "this sender
+  // has no history with you" gate needs a Gmail search, so it lives in analyzeMessage(), not
+  // here: this signal is pure and the Python mirror reproduces it exactly (numeric score
+  // parity is asserted on every fixture). BAYES_RULE_ENABLED is the kill switch.
+  // KNOWN WEAKNESS: a nonprofit newsletter on the same ESP scores 577 (leave-one-out) and
+  // would be quarantined if it carries the header and the sender is new to you; quarantine is
+  // recoverable. Known evasions: leave off List-Unsubscribe, or stop writing a pitch.
+  try
+  {
+    if (BAYES_RULE_ENABLED && getRawHeader(rawContent, 'List-Unsubscribe') &&
+        bayesScore(bayesTokens(subject, body, true)) >= BAYES_QUARANTINE_SCORE)
+    {
+      signals.pitchScore = true;
+      logDebug('Finance-pitch score over the threshold');
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 17 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 2: Clickbait / sensationalism patterns ───────────────────────

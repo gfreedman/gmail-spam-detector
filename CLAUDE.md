@@ -104,7 +104,7 @@ background job (its output is only a file).
 Accept a retrain only if `python3 scripts/train_bayes.py --holdout <date>` still catches the
 mail dated after `<date>` without having trained on it. The ham is mostly synthetic; run
 `exportHamScores()` (by hand, in the Apps Script editor) and read the `HamScores` tab before
-moving the threshold. Rule 14 quarantines and is not corroborating; keep it that way. `BAYES_RULE_ENABLED` is the kill switch; `train_bayes.py` preserves it unless `--enable` or
+moving the threshold. Rules 13 and 14 DELETE behind the Drive-archive gate (v6.100.0; they quarantined in v6.98.0 and v6.99.0). `BAYES_RULE_ENABLED` is the kill switch; `train_bayes.py` preserves it unless `--enable` or
 `--disable` is given. The table holds POSITIVE weights only (padding cannot lower a score): do not
 add negative weights, a test and the Python loader reject them.
 

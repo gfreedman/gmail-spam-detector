@@ -102,5 +102,13 @@ let _cachedBlacklist = null;
  */
 let _quarantinedMessageIds = [];
 
+/**
+ * Rules 13 and 14 permanent deletes issued in THIS execution. Their evidence is the weakest of any
+ * deleting rule, so a bad table or needle must not be able to eat a batch: past
+ * WEAK_RULE_DELETE_CAP they quarantine instead (see disposeDetectedMessage).
+ */
+let _weakRuleDeletes = 0;
+const WEAK_RULE_DELETE_CAP = 5;
+
 /** Per-execution cache of label name -> REST API label id. See getLabelId(). */
 let _labelIdCache = {};

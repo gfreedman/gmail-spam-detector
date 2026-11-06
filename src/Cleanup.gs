@@ -117,18 +117,13 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * its 7-day grace window (the Drive archive copy is still written first).
  * It closed "CHARITY AND ORPHANAGE HOMES.", which scored zero elsewhere.
  *
- * millFooterAddress (v6.98.0, Rule 13) is deliberately NOT strong. It is the one inbox
- * conviction that does not corroborate, and the exhaustive sweep in test_disposition.js
- * names it as the sole exemption. Rule 13 QUARANTINES because a street address can be
- * shared by a legitimate tenant of the same building; corroboration would turn that
- * recoverable quarantine into a same-run PERMANENT delete of Gmail-misfiled mail,
- * with no 7-day grace and no "Not spam" chance (L5 review, 2026-11-06). The cost of
- * the exemption is that a Gmail-filed mill message waits out the grace period.
- *
- *
- * pitchScore (v6.99.0, Rule 14) is NOT strong either, for the same reason as Rule 13: it
- * quarantines, and corroboration would make it a same-run permanent delete of
- * Gmail-misfiled mail. The exhaustive sweep names Rules 13 and 14 as the exemptions.
+ * millFooterAddress (v6.98.0, Rule 13) and pitchScore (v6.99.0, Rule 14) are STRONG, because
+ * they DELETE as inbox convictions since v6.100.0 and "every inbox conviction corroborates" is
+ * pinned by the exhaustive sweep. (They were deliberately not strong while they quarantined: a
+ * same-run delete in the Spam folder would have been MORE destructive than the inbox verdict.)
+ * Their false positive class is a legitimate sender in a mill's building, or a long marketing
+ * mail from a sender with no history, that Gmail ALSO filed as spam; the Drive archive is
+ * still written first.
  *
  * sponsoredAdTemplate (v6.81.0) is STRONG on its own and is Rule 11: an ad
  * disclaimer, a "Sponsored Content" block and two "Sponsored by"/"Ad by" credits. It
@@ -157,6 +152,8 @@ function hasCorroboratingSignal(signals)
       signals.attachmentPayloadScam ||
       signals.sponsoredAdTemplate ||
       signals.blacklistedRelayIdentity ||
+      signals.millFooterAddress ||
+      signals.pitchScore ||
       signals.emptySubjectWithAttachment)
   {
     return true;

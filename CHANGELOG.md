@@ -20,6 +20,52 @@ detail plus the diffs.
 
 ---
 
+## v6.100.0
+
+**Rules 13 and 14 now DELETE, behind the Drive-archive gate, instead of archiving under a label.**
+
+v6.98.0 and v6.99.0 shipped them as quarantine because their evidence is weaker than the blacklist rules'.
+The owner's standing instruction is that spam rules delete and log to the sheet, not archive: quarantined mail
+still sits in the mailbox and, in practice, still lets spam through. Rules 11 and 12 already work that way, and
+Rules 13 and 14 now do the same.
+
+- **What happens to a match.** The raw message is written to the Drive archive FIRST; only if that succeeded is the
+  message permanently deleted (`batchDelete`), and a Raw Log row records the rule, sender, subject and the Drive
+  link. If the archive fails, the message is quarantined instead, never deleted (the gate is unchanged).
+- **`DESTRUCTIVE_RULES`** gains Rules 13 and 14; `QUARANTINE_RULES` is back to Rules 7 and 9.
+- **`RECHECK_DELETE_RULES`** gains Rules 13 and 14, so mill mail already in the inbox when a fix deploys is archived
+  and deleted by the post-deploy recheck (single-message threads only, archive first, as for Rules 1, 11 and 12), not
+  held. A Rule 14 candidate whose sender has history is never deleted by the recheck either.
+- **`hasCorroboratingSignal()`** counts both as strong again, restoring the pinned invariant that every inbox
+  conviction also corroborates a Gmail Spam verdict (they were exempt only while they quarantined).
+- **Recovery is manual and real, and worth stating.** A wanted email caught by Rule 13 or 14 is gone from Gmail; the
+  copy is `Spam Intelligence/Detected/<timestamp>_<id>.eml` in Drive (`False Negatives/` when the post-deploy recheck deleted it), found through the Raw Log row's link; the file name carries no sender, so use the row. The
+  evidence for Rule 14 is the weakest of any deleting rule: a final adversarial review made 10 of 10 dense,
+  table-aware marketing emails reach the old bar of 500, and the bar is 550 (the six recent misses score 587 to 609).
+  It is gated by "List-Unsubscribe present" and "no history with that exact sender address", but a long marketing
+  email from a brand-new sender can be deleted. Watch the Raw Log for `Rule 13` and `Rule 14` rows; kill switch:
+  `BAYES_RULE_ENABLED = false` turns Rule 14 off without touching anything else.
+- **Fixes from the panel review of this change.** (a) Rule 13 had no gate at all; it now has Rule 14's exact-address
+  no-history gate on every path (live, recheck, held-mail, Spam folder), so it cannot delete mail from a sender you
+  already read. (b) **Delete cap**: at most 5 Rule 13/14 deletes per execution (`WEAK_RULE_DELETE_CAP`, `State.gs`);
+  the surplus is quarantined and logged, so a bad table or needle shows up as a batch under the `Phishing` label
+  instead of eating a newsletter run. Other deleting rules are untouched. (c) Recovery steps are documented in the
+  README; the Raw Log "Rule Triggered" column already separates `Rule 13` / `Rule 14` rows for filtering.
+  Declined: a score-600 first-delete bar (the mills score 587 to 609), a bulk-fingerprint requirement (it loses 4 of 6
+  mills), a theme requirement (Republic Signal scores 0 themes); and removing the Delray needle, which is backed by
+  5 spam fixtures (decoded; a raw grep misses them because the mail is encoded).
+- **Fixes from the L5 review of this change.** (1) The Gmail Spam-folder review reads signals directly and skipped
+  Rule 14's no-history gate, so it would have deleted Gmail-misfiled mail from a sender you know in the same run:
+  `senderHistoryForRule14()` is now shared and the Spam-folder path treats `pitchScore` as corroboration only when the
+  history is exactly "none". (2) The post-deploy recheck deletes Rule 13 and 14 matches only when the message is
+  UNREAD and UNSTARRED; mail you read or starred is held instead. (3) A cached "no history" answer for an ADDRESS now
+  expires in 3 days (domains stay 30), because it now guards a delete.
+- **Tests.** The exhaustive sweep has no corroboration exemptions again; both rules are asserted to delete behind the
+  archive, to quarantine without one, to be in `DESTRUCTIVE_RULES` and not in `QUARANTINE_RULES`, to corroborate, and to
+  be archived then deleted by the post-deploy recheck (and a Rule 14 candidate with history is not).
+- **Not changed.** The log-only observers from v6.91 to v6.96 still run (`observeShadow`, the `Shadow` tab); they
+  share the 3-search history budget with Rule 14's gate and were not touched in this release.
+
 ## v6.99.0
 
 **Rule 14: a trained finance-pitch score quarantines the genre instead of one more patch per sighting.**

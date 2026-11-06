@@ -165,23 +165,23 @@ function makeVerdict(signals)
     return true;
   }
 
-  // Rule 13: a known mill footer address on bulk-marked mail (v6.98.0). QUARANTINES
-  // (in QUARANTINE_RULES, not DESTRUCTIVE_RULES): the evidence is a street address a
-  // legitimate tenant of the same building could share, so the message is archived
-  // out of the inbox under a label, never deleted. See Signal 16.
+  // Rule 13: a known mill footer address on bulk-marked mail (v6.98.0). DELETES since
+  // v6.100.0 (in DESTRUCTIVE_RULES, behind the Drive-archive gate; v6.98.0 and v6.99.0 shipped
+  // it as a quarantine). A legitimate tenant of the same building could print the same
+  // address, so the Drive copy and the Raw Log row are the recovery path. See Signal 16.
   if (signals.millFooterAddress)
   {
-    logInfo('SPAM DETECTED: known mill footer address on bulk-marked mail (quarantined)');
+    logInfo('SPAM DETECTED: known mill footer address on bulk-marked mail');
     return true;
   }
 
   // Rule 14: a finance-pitch score over the threshold on List-Unsubscribe mail (v6.99.0).
-  // QUARANTINES (in QUARANTINE_RULES). analyzeMessage() additionally demands that the
-  // sender has NO history with the user; makeVerdict() stays pure so the exhaustive
-  // sweep and the Python mirror can pin it. See Signal 17.
+  // DELETES since v6.100.0 (in DESTRUCTIVE_RULES, behind the Drive-archive gate). analyzeMessage()
+  // additionally demands that the sender has NO history with the user; makeVerdict() stays
+  // pure so the exhaustive sweep and the Python mirror can pin it. See Signal 17.
   if (signals.pitchScore)
   {
-    logInfo('SPAM DETECTED: finance-pitch score over the threshold on bulk mail (quarantined)');
+    logInfo('SPAM DETECTED: finance-pitch score over the threshold on bulk mail');
     return true;
   }
 
@@ -209,6 +209,29 @@ function makeVerdict(signals)
 }
 
 /**
+ * Does the user have a history with this message's exact sender ADDRESS? true / false / null.
+ *
+ * The gate for Rules 13 and 14 (L5 review: a deleting rule needs it), shared by analyzeMessage() and the Gmail-Spam-folder review (which reads
+ * signals directly and would otherwise bypass it: an L5 review found Rule 14 deleting
+ * Gmail-misfiled mail from a known sender in the same run). Only exactly `false` ("no
+ * history") lets Rule 14 convict or delete. The address is allowlisted before it reaches a
+ * Gmail query: anything with a space or an operator character is "cannot establish" (null).
+ *
+ * @param {GmailMessage} message
+ * @return {?boolean} false = no history; true = history; null = unknown (budget spent, odd address).
+ */
+function senderHistoryGate(message)
+{
+  // Keyed on the exact ADDRESS, not the domain. A mill sends as
+  // "<name>.<brand>@email.cyberimpact.com": its domain is a shared ESP's, and the user
+  // has very likely read some other tenant's mail from it, which would make every
+  // mill on that ESP a "known sender" and switch this rule off for them.
+  const fromAddr = extractEmailAddress(message.getFrom() || '').toLowerCase();
+  if (!/^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/.test(fromAddr)) return null;
+  return senderHasHistory(fromAddr);
+}
+
+/**
  * Analyze a message and return whether it is spam.
  *
  * Thin orchestrator: delegates signal collection to collectSignals() and
@@ -228,25 +251,22 @@ function analyzeMessage(message)
     let isSpam = makeVerdict(signals);
     let unknownHistory = false;
 
-    // Rule 14 (finance-pitch score) convicts only a sender the user has no history with:
+    // Rules 13 (mill footer address) and 14 (finance-pitch score) convict only a sender the user has no history with:
     // not mailed, not read, not already a regular. Done HERE, the one choke point every
     // path goes through (live, cleanse, recheck, held-mail), because it needs a Gmail
     // search that a pure signal cannot make. Only an answer of exactly "no history"
     // convicts: "has history" or "unknown" (lookup budget spent) leaves the mail alone.
-    if (isSpam && getRuleFromSignals(signals).rule === 'Rule 14')
+    const gatedRule = isSpam ? getRuleFromSignals(signals).rule : '';
+    if (gatedRule === 'Rule 13' || gatedRule === 'Rule 14')
     {
       // Keyed on the exact ADDRESS, not the domain. A mill sends as
       // "<name>.<brand>@email.cyberimpact.com": its domain is a shared ESP's, and the user
       // has very likely read some other tenant's mail from it, which would make every
       // mill on that ESP a "known sender" and switch this rule off for them.
-      // The address goes into a Gmail query, so it is allowlisted first: anything with a
-      // space or an operator character is treated as "cannot establish" and never queried.
-      const fromAddr = extractEmailAddress(message.getFrom() || '').toLowerCase();
-      let history = null;
-      if (/^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/.test(fromAddr)) history = senderHasHistory(fromAddr);
+      const history = senderHistoryGate(message);
       if (history !== false)
       {
-        logInfo('Rule 14 skipped (' + (history === true ? 'sender has history' : 'history unknown') + '): ' + sanitizeForLog(fromAddr));
+        logInfo(gatedRule + ' skipped (' + (history === true ? 'sender has history' : 'history unknown') + '): ' + sanitizeForLog(extractEmailAddress(message.getFrom() || '').toLowerCase()));
         isSpam = false;
         // UNKNOWN (lookup budget spent, or an address we will not query) is not a clean
         // verdict: reported as unevaluated so processInbox() retries it once instead of

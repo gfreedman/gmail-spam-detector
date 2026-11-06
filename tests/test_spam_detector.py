@@ -1394,7 +1394,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                 break
 
     # ── Signal 16: Known mill footer address (v6.98.0) ──────────────────────
-    # QUARANTINES (Rule 13). Mirrors Signal 16 in Signals.gs: a MILL_POSTAL_NEEDLES
+    # DELETES (Rule 13, v6.100.0). Mirrors Signal 16 in Signals.gs: a MILL_POSTAL_NEEDLES
     # address in the text the SENDER wrote (quoted lines and everything after a
     # forwarded/original-message marker removed), AND a List-Unsubscribe header.
     if _raw_header(raw, 'List-Unsubscribe'):
@@ -1405,7 +1405,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             signals['matched_patterns'].append('mill_footer_address')
 
     # ── Signal 17: Finance-pitch score (v6.99.0) ────────────────────────────
-    # QUARANTINES (Rule 14). Mirrors Signal 17 in Signals.gs: List-Unsubscribe present AND
+    # DELETES (Rule 14, v6.100.0). Mirrors Signal 17 in Signals.gs: List-Unsubscribe present AND
     # the word/link-host score of subject + body reaches BAYES_QUARANTINE_SCORE.
     if BAYES_RULE_ENABLED and _raw_header(raw, 'List-Unsubscribe') and \
             _bayes_score(_bayes_tokens(subject, body, True)) >= BAYES_QUARANTINE_SCORE:
@@ -1787,15 +1787,15 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             is_spam = True
             rule = 'RULE 12: Blacklisted brand behind an ESP relay'
 
-        # Rule 13: a known mill footer address on bulk-marked mail. QUARANTINES in
-        #   production (in QUARANTINE_RULES, not DESTRUCTIVE_RULES, v6.98.0).
+        # Rule 13: a known mill footer address on bulk-marked mail. DELETES in production
+        #   (in DESTRUCTIVE_RULES, v6.100.0; it quarantined in v6.98.0 and v6.99.0).
         elif signals['mill_footer_address']:
             is_spam = True
             rule = 'RULE 13: Known mill footer address'
 
         # Rule 14: a finance-pitch score over the threshold on List-Unsubscribe mail.
-        #   QUARANTINES in production (in QUARANTINE_RULES, v6.99.0), and only when the
-        #   sender has no history with the user (analyzeMessage(), not mirrored).
+        #   DELETES in production (in DESTRUCTIVE_RULES, v6.100.0; quarantined in v6.99.0), and only
+        #   when the sender has no history with the user (analyzeMessage(), not mirrored).
         elif signals['pitch_score']:
             is_spam = True
             rule = 'RULE 14: Finance-pitch score'
@@ -2857,10 +2857,9 @@ def run_edge_case_tests():
           _decode_html_entities('a&#1114112;b') == 'ab')
 
     # ── spam_folder_examples/: Gmail already flagged these ─────────────────
-    # They must CORROBORATE (v6.98.0: the Heart Doctor fixture now ALSO convicts in the
-    # inbox as Rule 13 - it prints a mill address - which is a quarantine, not a delete,
-    # and Rule 13 itself deliberately does not corroborate); so the
-    # Spam-folder review deletes them now instead of after the grace period.
+    # They must CORROBORATE (the Heart Doctor fixture also convicts in the inbox as Rule 13 - it
+    # prints a mill address - and since v6.100.0 Rules 13 and 14 corroborate like every other
+    # inbox conviction); so the Spam-folder review deletes them now instead of after the grace period.
     # Mirrors hasCorroboratingSignal() in Cleanup.gs (test_disposition.js pins
     # the JS function itself).
     def _corroborates(sig):
@@ -2869,7 +2868,8 @@ def run_edge_case_tests():
                   sig['callback_phishing'] or sig['self_named_sender'] or
                   sig['calendar_lure'] or sig['empty_subject_with_attachment'] or
                   sig['attachment_payload_scam'] or sig['sponsored_ad_template'] or
-                  sig['blacklisted_relay_identity'])
+                  sig['blacklisted_relay_identity'] or sig['mill_footer_address'] or
+                  sig['pitch_score'])
         weak = (sig['clickbait_count'] + sig['fear_mongering'] +
                 sig['marketing_format'] +
                 (sig['suspicious_from_name'] or sig['headline_from_name']))

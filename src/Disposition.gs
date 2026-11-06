@@ -57,8 +57,24 @@ function disposeDetectedMessage(message, thread, signals, archived)
   // Rule 12 (blacklisted brand behind an ESP relay) added v6.86.0: it deletes, like
   // Rule 1, the other blacklist rule, and is behind the same archive gate.
   // Rule 11 (sponsored-ad template) added v6.80.0 (re-based v6.81.0), also at the user's explicit call.
+  // Rules 13 (known mill footer address) and 14 (finance-pitch score) added v6.100.0, at the
+  // user's explicit call: spam rules DELETE, behind the same archive gate, with the Drive copy
+  // and the Raw Log row as the recovery path. (v6.98.0 and v6.99.0 shipped them as quarantine.)
   const DESTRUCTIVE_RULES = ['Rule 1', 'Rule 2', 'Rule 3', 'Rule 4', 'Rule 5',
-                             'Rule 6', 'Rule 8', 'Rule 10', 'Rule 11', 'Rule 12'];
+                             'Rule 6', 'Rule 8', 'Rule 10', 'Rule 11', 'Rule 12',
+                             'Rule 13', 'Rule 14'];
+
+  // Circuit breaker: Rules 13 and 14 have the weakest evidence of any deleting rule, so at most
+  // WEAK_RULE_DELETE_CAP of them delete per execution; the surplus is quarantined (recoverable),
+  // which also makes a bad table or a bad needle visible as a batch under the Phishing label.
+  const weakRule = (rule === 'Rule 13' || rule === 'Rule 14');
+  if (weakRule && archived === true && _weakRuleDeletes >= WEAK_RULE_DELETE_CAP)
+  {
+    logError('Rule 13/14 delete cap (' + WEAK_RULE_DELETE_CAP + ' per run) reached - quarantining instead: ' +
+             sanitizeForLog(message.getSubject()));
+    quarantineAsPhishing(message, thread);
+    return false;
+  }
 
   if (DESTRUCTIVE_RULES.indexOf(rule) !== -1)
   {
@@ -80,16 +96,14 @@ function disposeDetectedMessage(message, thread, signals, archived)
     }
 
     markAsSpam(message, thread);
+    if (weakRule) _weakRuleDeletes++;
     return true;  // thread destroyed — caller must not touch it again
   }
 
   // Rules that quarantine BY DESIGN. Anything reaching the non-destructive
   // branch from outside this list is an unidentified verdict, which is worth
   // an error even though the disposition is the safe one.
-  // Rule 13 (v6.98.0, known mill footer address) quarantines because a street address
-  // can be shared by a legitimate tenant of the same building.
-  // Rule 14 (v6.99.0, finance-pitch score) quarantines: a score is evidence, not proof.
-  const QUARANTINE_RULES = ['Rule 7', 'Rule 9', 'Rule 13', 'Rule 14'];
+  const QUARANTINE_RULES = ['Rule 7', 'Rule 9'];
 
   if (QUARANTINE_RULES.indexOf(rule) === -1)
   {
@@ -201,9 +215,8 @@ function quarantineUnarchived(message, thread)
  * label. The message stays in All Mail indefinitely, under the Phishing label —
  * it is not subject to Gmail's 30-day spam purge, because it is not in Spam.
  *
- * (Rules 9, 13 and 14 route here too: Rule 13, v6.98.0, is a mill footer address that a
- * legitimate tenant of the same building could print, so it is recoverable for the
- * same reason. It shares the Phishing label; its Raw Log row says SPAM_DETECTED.)
+ * (Rule 9 routes here too. Rules 13 and 14 did in v6.98.0 and v6.99.0 and DELETE since v6.100.0.
+ * Anything that cannot be archived to Drive still falls back to quarantine.)
  *
  * Why Rule 7 does not delete, when Rules 1-6 do:
  *   Rule 7 has one residual false-positive class that cannot be driven to zero

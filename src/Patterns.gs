@@ -546,13 +546,13 @@ const SHADOW_CTA_REPEAT_MIN = 6;
  * 1607 Capitol Ave Cheyenne, which this very mill prints as its own) are LEFT OUT
  * on purpose: thousands of legitimate firms share them.
  *
- * DECISION DATA since v6.98.0: Signal 16 (millFooterAddress, Rule 13, QUARANTINES)
+ * DECISION DATA since v6.98.0: Signal 16 (millFooterAddress, Rule 13, DELETES after the Drive archive)
  * reads this list, and observeShadow() still tags `postal=` from it. It was
  * log-only through v6.97.0 and the Macro View Digest miss (v6.97.0) was tagged
  * `postal=fwy` seven minutes after it arrived while nothing acted on the tag.
  * Adding an address is a data line, but it ships through a release (the list is
  * source, not a Script Property). A tenant that later moves into one of these
- * buildings inherits the tell, so review the list when a quarantine looks wrong.
+ * buildings inherits the tell, so review the list when a deletion looks wrong (Raw Log: Rule 13).
  * REVIEW DATE: every entry was recorded 2026-10 and last reviewed 2026-11-06 against
  * the fixtures (each hit appears with the same city/state tail shown below). The
  * 5005 entry carries its suite ("suite 350") because 5005 LBJ Freeway is a

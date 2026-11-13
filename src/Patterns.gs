@@ -580,8 +580,9 @@ const MILL_POSTAL_NEEDLES = Object.freeze([
  * Paid-promo publishers whose ads the finance mills run (Signal 16 (c), Rule 13, v6.102.0).
  * Normalised like MILL_POSTAL_NEEDLES: lower-case, letters and digits, single spaces.
  * Every entry appears in tests/spam_examples and in no ham or scam fixture. Signal 16 (c)
- * needs TWO of them inside mail that has a "Sponsored Content" block and whose From line is
- * none of them; one name, or a news story naming two, never fires (review, 2026-11-12).
+ * needs TWO of them after a "Sponsored Content" heading line; one name, or a news story
+ * naming two, never fires (review, 2026-11-12). The owner wants no mail from these
+ * publishers, so their own lists are not exempt.
  * "stansberry research", not "stansberry": it is also a surname.
  * @const {Array<string>}
  */

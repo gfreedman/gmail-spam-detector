@@ -569,17 +569,17 @@ MILL_POSTAL_NEEDLES             = _gs['MILL_POSTAL_NEEDLES']
 MILL_PROMO_PUBLISHERS           = _gs['MILL_PROMO_PUBLISHERS']
 
 
-def _mill_promo_credit(authored, from_field):
+def _mill_promo_credit(text):
     """Mirror of millPromoCredit() in Signals.gs (Signal 16 (c), v6.102.0)."""
-    if ' sponsored content ' not in authored:
+    def fold(s):
+        return re.sub(' +', ' ', re.sub('[^a-z0-9 ]', ' ', _normalize_ad_text(s))).strip()
+    lines = re.split(r'\r?\n', text or '')
+    start = next((i + 1 for i, line in enumerate(lines)
+                  if fold(line) == 'sponsored content'), -1)
+    if start == -1:
         return ''
-    from_key = re.sub('[^a-z0-9]', '', _normalize_ad_text(from_field or ''))
-    found = []
-    for pub in MILL_PROMO_PUBLISHERS:
-        if pub.replace(' ', '') in from_key:
-            return ''
-        if ' ' + pub + ' ' in authored:
-            found.append(pub)
+    after = ' ' + fold('\n'.join(lines[start:])) + ' '
+    found = [p for p in MILL_PROMO_PUBLISHERS if ' ' + p + ' ' in after]
     return found[0] + ' + ' + found[1] if len(found) >= 2 else ''
 BAYES_TABLE                     = _gs['BAYES']['table']
 BAYES_QUARANTINE_SCORE          = _gs['BAYES']['threshold']
@@ -1417,7 +1417,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         _authored = ' ' + re.sub(' +', ' ', re.sub('[^a-z0-9 ]', ' ',
                     _normalize_ad_text(_strip_quoted_and_forwarded(body)))) + ' '
         if any(' ' + _n + ' ' in _authored for _n in MILL_POSTAL_NEEDLES) or \
-                _mill_promo_credit(_authored, from_field):
+                _mill_promo_credit(_strip_quoted_and_forwarded(body)):
             signals['mill_footer_address'] = True
             signals['matched_patterns'].append('mill_footer_address')
 
@@ -2900,6 +2900,20 @@ def run_edge_case_tests():
                                          "Tenant newsletter in the mill's building with List-Unsubscribe.eml"))
     check('a same-building tenant newsletter (another suite, with List-Unsubscribe) does not fire',
           not _tn['mill_footer_address'])
+    # Signal 16 (c) (v6.102.0): the Monevex fixture also carries the operator-name needle, so
+    # Phase 7 parity on mill_footer_address cannot see the (c) mirror. Pin it directly.
+    _mx = parse_eml(Path(__file__).parent / 'spam_examples' / 'Tesla stopped making the Model S - Monevex.eml')
+    check('Signal 16 (c) fires on the Monevex fixture by itself (Sponsored Content + two publishers)',
+          _mill_promo_credit(_strip_quoted_and_forwarded(_mx.body)) == 'paradigm press + oxford club',
+          repr(_mill_promo_credit(_strip_quoted_and_forwarded(_mx.body))))
+    for _txt, _want, _why in [
+        ('Sponsored Content\nParadigm Press\nThe Oxford Club', True, 'heading then two publishers'),
+        ('This digest may contain sponsored content.\nStansberry Research and Brownstone Research', False, 'a sentence is not a heading'),
+        ('Weiss Ratings and InvestorPlace\nSponsored Content\nx', False, 'publishers before the heading'),
+        ('Sponsored Content\nWeiss Ratings\nWeiss Ratings', False, 'one publisher twice'),
+        ('Sponsored Content\nDr. Ann Stansberry, behind the markets', False, 'a surname is not stansberry research'),
+    ]:
+        check(f'Signal 16 (c) mirror: {_why}', bool(_mill_promo_credit(_txt)) == _want)
     STRIP_CORPUS = [
         ('a\n> b\nc', 'a\nc'),
         ('a\n---------- Forwarded message ---------\nb', 'a'),

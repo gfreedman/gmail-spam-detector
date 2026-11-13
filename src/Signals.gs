@@ -516,15 +516,15 @@ function collectSignals(message)
           break;
         }
       }
-      // (c) v6.102.0: a "Sponsored Content" block crediting TWO distinct paid-promo publishers
-      // (MILL_PROMO_PUBLISHERS) that the From line is not itself one of. This is the ad slot a
-      // mill sells; a publisher's own list, a news story naming two firms, or an event "sponsored
-      // by" one of them all lack the block or the second name. Narrowed after review built 11
-      // deleted false positives from a broader credit-phrase design: the no-history gate does NOT
-      // protect a first welcome email or a never-opened subscription (Thread.gs).
+      // (c) v6.102.0: a "Sponsored Content" HEADING (a line of its own) followed by TWO distinct
+      // paid-promo publishers (MILL_PROMO_PUBLISHERS): the ad slot a finance mill sells. The owner
+      // wants no mail from these publishers at all (2026-11-12), including their own lists, so
+      // the From line is not consulted. The heading must stand alone, so a news story naming two
+      // firms, or a disclaimer ("may contain sponsored content", "No sponsored content appears
+      // in this email"), does not fire (review, two rounds, 2026-11-12).
       if (!signals.millFooterAddress)
       {
-        const credit = millPromoCredit(authored, from);
+        const credit = millPromoCredit(stripQuotedAndForwarded(body));
         if (credit)
         {
           signals.millFooterAddress = true;
@@ -1329,25 +1329,28 @@ function collectSignals(message)
 /**
  * Signal 16 (c), v6.102.0: the paid-promo credit in a mill email, or ''.
  *
- * `authored` is the folded text Signal 16 builds: lower-case, letters, digits and single
- * spaces, padded with one space at each end. Fires only when it carries " sponsored content "
- * AND two DISTINCT MILL_PROMO_PUBLISHERS, and no publisher (spaces removed) appears in the
- * folded From line: a publisher mailing its own list is never convicted by its own name.
- * Mirrored by _mill_promo_credit() in tests/test_spam_detector.py.
+ * Finds the first line that folds to exactly "sponsored content" (lower-case, letters, digits,
+ * single spaces), then requires two DISTINCT MILL_PROMO_PUBLISHERS, on word boundaries, in the
+ * folded text AFTER that line. Mirrored by _mill_promo_credit() in tests/test_spam_detector.py.
  *
- * @param {string} authored - Folded sender-authored text, space-padded.
- * @param {string} from - The From header (display name and address).
+ * @param {string} text - Sender-authored body text (quotes and forwards already stripped).
  * @return {string} "a + b" for the two publishers that convicted, or ''.
  */
-function millPromoCredit(authored, from)
+function millPromoCredit(text)
 {
-  if (authored.indexOf(' sponsored content ') === -1) return '';
-  const fromKey = normalizeAdText(String(from || '')).replace(/[^a-z0-9]/g, '');
+  const fold = function(s) { return normalizeAdText(s).replace(/[^a-z0-9 ]/g, ' ').replace(/ +/g, ' ').trim(); };
+  const lines = String(text || '').split(/\r?\n/);
+  let start = -1;
+  for (let i = 0; i < lines.length; i++)
+  {
+    if (fold(lines[i]) === 'sponsored content') { start = i + 1; break; }
+  }
+  if (start === -1) return '';
+  const after = ' ' + fold(lines.slice(start).join('\n')) + ' ';
   const found = [];
   for (let i = 0; i < MILL_PROMO_PUBLISHERS.length; i++)
   {
-    if (fromKey.indexOf(MILL_PROMO_PUBLISHERS[i].replace(/ /g, '')) !== -1) return '';
-    if (authored.indexOf(' ' + MILL_PROMO_PUBLISHERS[i] + ' ') !== -1) found.push(MILL_PROMO_PUBLISHERS[i]);
+    if (after.indexOf(' ' + MILL_PROMO_PUBLISHERS[i] + ' ') !== -1) found.push(MILL_PROMO_PUBLISHERS[i]);
   }
   return found.length >= 2 ? found[0] + ' + ' + found[1] : '';
 }

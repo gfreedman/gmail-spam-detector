@@ -30,19 +30,21 @@ the mill can change before the next send. The Rule 14 retrain would have memoris
 What the mill does not rotate is the ad slot it sells: a "Sponsored Content" block crediting
 publishers such as Brownstone Research, Weiss Ratings, Paradigm Press and The Oxford Club.
 
-Signal 16 gains condition (c): " sponsored content " in the sender-authored text, TWO distinct
-`MILL_PROMO_PUBLISHERS`, and no publisher in the From line (spaces removed), on List-Unsubscribe
-mail. It inherits Rule 13's exact-address no-history gate, 5-per-run delete cap and Drive archive.
+Signal 16 gains condition (c): a line that folds to exactly "Sponsored Content" (a heading, not
+a sentence), followed by TWO distinct `MILL_PROMO_PUBLISHERS` after it, on List-Unsubscribe mail.
+It inherits Rule 13's exact-address no-history gate, 5-per-run delete cap and Drive archive. The
+owner wants no mail from these publishers at all, so their own lists are not exempt.
 
-The first design (two names anywhere, or one after "sponsored by" / "in partnership with" / "on
-behalf of") was rejected in review: 11 of 12 constructed legitimate emails were deleted (a news
-digest naming two firms, an event "sponsored by Weiss Ratings", a Stansberry welcome email). The
-no-history gate cannot protect a first welcome email or a never-opened subscription. All 12, plus
-15 Unicode edge cases, are clean under the shipped design, in JS and Python.
+Two review rounds constructed 23 legitimate emails against earlier drafts (two names anywhere; one
+name after "sponsored by"; any "sponsored content" phrase plus a From-line exemption): up to 11
+were deleted (news digests naming two firms, an event "sponsored by Weiss Ratings", disclaimers
+such as "No sponsored content appears in this email"). Under the shipped design all of those are
+kept; what still fires is the publishers' own mail (wanted) and a third-party newsletter running a
+Sponsored Content block with two of their ads, which the history gate spares only if you read it.
 
-Signal 16 fires on 26/67 spam (25 before), 0/39 ham, 0/8 scam; Monevex fires on (c) alone.
-Remaining false-positive class: an unknown sender's newsletter running a Sponsored Content block
-with two of these publishers' ads. Recovery: Raw Log, Rule 13, Drive link.
+Signal 16 fires on 25/67 spam, 0/39 ham, 0/8 scam. On today's fixtures (c) only adds Monevex,
+which v6.101.0 already convicts; it exists for this mill's next brand. Recovery: Raw Log, Rule 13,
+Drive link.
 
 ## v6.101.0
 

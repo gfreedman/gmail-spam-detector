@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.100.0
+ * @version 6.101.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -102,7 +102,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.100.0';
+const SCRIPT_VERSION = '6.101.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -212,7 +212,11 @@ const DEFAULT_DOMAINS = Object.freeze({
     'republicsignal.com',
     // v6.97.0: Macro View Digest, the same Trend Watchers Lab mill under a new brand
     // (footer: "(c) 2026 Trend Watchers Lab"). Same Cyberimpact relay, so Signal 15 only.
-    'macroviewdigest.com'
+    'macroviewdigest.com',
+    // v6.101.0: Monevex ("Elon's car factory via Monevex Team"), the Alpha One Marketers LLC
+    // mill under a third brand (after sharpedgelab.com and globalaxisintel.com); SES via
+    // Iterable. Only bulk + one fear hit fired, so Gmail's Spam copy sat out the grace period.
+    'monevex.com'
   ])
 });
 

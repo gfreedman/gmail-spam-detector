@@ -52,7 +52,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 ## 📊 Results
 
-- ✅ **100% detection** on 66/66 spam + 8/8 scam (.eml files)
+- ✅ **100% detection** on 67/67 spam + 8/8 scam (.eml files)
 - ✅ **0% false positives** on 39/39 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
@@ -302,7 +302,7 @@ out). The signal needs the address in text the *sender* wrote (`stripQuotedAndFo
 removes `>` quotes and everything after a forward / original-message / "On ... wrote:"
 marker) AND a `List-Unsubscribe` header, the stand-in for "bulk" on a shared ESP, where
 the bulk fingerprint is off on purpose. It **deletes** after the Drive archive (v6.100.0; it quarantined in v6.98.0 and v6.99.0): a street address can be
-shared by a legitimate tenant of the same building, so the Drive copy and Raw Log row are the recovery path. On the fixtures the address fires on 22/66 spam and 0/39 ham (the address alone matches 24/66 spam).
+shared by a legitimate tenant of the same building, so the Drive copy and Raw Log row are the recovery path. On the fixtures the needle list fires on 25/67 spam and 0/39 ham (at v6.98.0 the addresses alone, without the List-Unsubscribe check, matched 24/66 spam).
 Known evasions, cheap for the mill: a new address, the address as an image, dropping
 `List-Unsubscribe`. Adding an address is one data line but ships through a release.
 
@@ -511,7 +511,7 @@ addToWhitelist('domain.com');
 │   ├── test_disposition.js      # Quarantine-vs-delete routing (Node)
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
-│   ├── spam_examples/           # Real spam .eml files (65)
+│   ├── spam_examples/           # Real spam .eml files (67)
 │   ├── scam_examples/           # Scam .eml files (8)
 │   ├── ham_examples/            # Legitimate .eml files (39)
 │   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)

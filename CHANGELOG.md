@@ -20,6 +20,22 @@ detail plus the diffs.
 
 ---
 
+## v6.101.0
+
+**Blacklist `monevex.com` and match the Alpha One Marketers LLC mill by its legal name.**
+
+"Tesla stopped making the Model S in May" (From "Elon's car factory via Monevex Team",
+SES via Iterable) landed in Gmail's Spam folder and scored only bulk + one fear hit, so it
+did not corroborate and was waiting out the 7-day grace period; in the inbox it would have
+passed. Its footer, "(c) 2026 Alpha One Marketers LLC", 254 Chapman Rd Ste 208 Newark DE, is
+the same operator as the sharpedgelab.com and globalaxisintel.com fixtures: a third brand.
+
+- `monevex.com` added to the blacklist (Rule 1 in the inbox; a strong corroborator in Spam).
+- `alpha one marketers llc` added to `MILL_POSTAL_NEEDLES`, so Rule 13 (needle +
+  List-Unsubscribe, no-history gate, deletes behind the Drive archive) catches the next brand
+  without a release. The Chapman Rd address itself stays out: it is a registered-agent address.
+- Fixture: `tests/spam_examples/Tesla stopped making the Model S - Monevex.eml` (scrubbed).
+
 ## v6.100.0
 
 **Rules 13 and 14 now DELETE, behind the Drive-archive gate, instead of archiving under a label.**

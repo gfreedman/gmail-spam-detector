@@ -567,7 +567,13 @@ const MILL_POSTAL_NEEDLES = Object.freeze([
   '200 broadway blvd ne albuquerque',
   '74 e glenwood ave smyrna',
   '111 e atlantic ave suite 200 delray beach',
-  '5005 lyndon b johnson fwy suite 350'
+  '5005 lyndon b johnson fwy suite 350',
+  // v6.101.0: not a postal address but the operator's legal name, printed in the
+  // copyright line of all three brands this mill has used (sharpedgelab.com,
+  // globalaxisintel.com, monevex.com). Its postal address, 254 Chapman Rd Ste 208
+  // Newark DE, is a registered-agent address shared by thousands of firms, so it
+  // is left out under the rule above; the LLC name is the mill's own.
+  'alpha one marketers llc'
 ]);
 
 /**

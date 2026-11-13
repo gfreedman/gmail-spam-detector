@@ -55,7 +55,7 @@
  *   Rule 12: A blacklisted brand domain behind an ESP relay (the From mailbox embeds
  *           the Reply-To host, which is on the blacklist) → spam
  *   Rule 13: A known mill footer postal address or operator name (MILL_POSTAL_NEEDLES), or a
- *           Sponsored Content block crediting two MILL_PROMO_PUBLISHERS (v6.102.0), in text the
+ *           Sponsored Content heading followed by two MILL_PROMO_PUBLISHERS (v6.102.0), in text the
  *           sender wrote, on mail carrying a List-Unsubscribe header, from a sender the user has
  *           no history with (checked in analyzeMessage) → spam
  *           (DELETED after the Drive archive; wording- and brand-independent)

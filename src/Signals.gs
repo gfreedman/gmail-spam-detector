@@ -173,7 +173,7 @@ function collectSignals(message)
     attachmentPayloadScam: false,      // Bcc'd free-mail ALL-CAPS note whose payload is an attachment; Spam-folder corroboration only
     sponsoredAdTemplate: false,        // ad disclaimer + advertiser sentence + "Sponsored Content" block + 2 credits; Rule 11
     blacklistedRelayIdentity: false,   // a blacklisted brand domain behind an ESP relay (From mailbox + Reply-To); Rule 12
-    millFooterAddress: false,          // a known mill footer address in sender-authored text + List-Unsubscribe; Rule 13 (DELETES, archived first)
+    millFooterAddress: false,          // a known mill footprint (address, operator name, Sponsored Content publisher credit) in sender-authored text + List-Unsubscribe; Rule 13 (DELETES, archived first)
     pitchScore: false                  // List-Unsubscribe + a finance-pitch word/link-host score over the threshold; Rule 14 (DELETES, archived first; no-history gate in analyzeMessage)
   };
 
@@ -468,7 +468,7 @@ function collectSignals(message)
     logError('Signal 15 threw and was skipped: ' + signalError.toString());
   }
 
-  // ── Signal 16: Known mill footer address (v6.98.0) ───────────────────────
+  // ── Signal 16: Known mill footprint (v6.98.0; operator name v6.101.0, (c) v6.102.0) ─
   // DELETES (Rule 13) since v6.100.0, after the Drive archive (v6.98.0 shipped it as a
   // quarantine). The finance-ad mill rotates brand
   // domains, templates and wording for free (Signals 14 and 15 were each beaten
@@ -477,8 +477,9 @@ function collectSignals(message)
   // address on the Macro View Digest miss (`postal=fwy`) took no action; this
   // makes the same evidence act.
   //
-  // Two conditions, both required:
-  //   (a) a MILL_POSTAL_NEEDLES address in the text the SENDER wrote
+  // Conditions: (b) always, plus (a) or (c) (see (c) below):
+  //   (a) a MILL_POSTAL_NEEDLES entry (a footer address, or since v6.101.0 an operator's
+  //       legal name) in the text the SENDER wrote
   //       (stripQuotedAndForwarded(): a forwarded or quoted mill email does not
   //       fire), matched on word boundaries after normalizeAdText() and a
   //       non-alphanumeric fold;

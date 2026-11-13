@@ -171,7 +171,7 @@ function makeVerdict(signals)
   // address, so the Drive copy and the Raw Log row are the recovery path. See Signal 16.
   if (signals.millFooterAddress)
   {
-    logInfo('SPAM DETECTED: known mill footer address on bulk-marked mail');
+    logInfo('SPAM DETECTED: known mill footprint (footer address, operator name or Sponsored Content publisher credit)');
     return true;
   }
 

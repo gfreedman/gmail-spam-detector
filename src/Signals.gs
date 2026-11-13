@@ -516,17 +516,15 @@ function collectSignals(message)
           break;
         }
       }
-      // (c) v6.102.0: the PAID-PROMO publishers a mill rents its ad slots to. A mill email
-      // credits them ("Sponsored by Brownstone Research", "in partnership with ...", a
-      // "Sponsored Content" block naming two of them); the publishers rotate far more slowly
-      // than the mill's own brands. Fires on TWO distinct publishers anywhere in the authored
-      // text, or ONE inside a credit frame (MILL_PROMO_CREDIT_FRAMES). A publisher signing its
-      // OWN mail ("Porter Stansberry", "founder, Brownstone Research") does not fire: that is
-      // a list someone may have joined, and the no-history gate is not meant to be the only
-      // thing between their subscription and a delete.
+      // (c) v6.102.0: a "Sponsored Content" block crediting TWO distinct paid-promo publishers
+      // (MILL_PROMO_PUBLISHERS) that the From line is not itself one of. This is the ad slot a
+      // mill sells; a publisher's own list, a news story naming two firms, or an event "sponsored
+      // by" one of them all lack the block or the second name. Narrowed after review built 11
+      // deleted false positives from a broader credit-phrase design: the no-history gate does NOT
+      // protect a first welcome email or a never-opened subscription (Thread.gs).
       if (!signals.millFooterAddress)
       {
-        const credit = millPromoCredit(authored);
+        const credit = millPromoCredit(authored, from);
         if (credit)
         {
           signals.millFooterAddress = true;
@@ -1329,32 +1327,27 @@ function collectSignals(message)
 }
 
 /**
- * Signal 16 (c), v6.102.0: the paid-promo publisher credit in a mill email, or ''.
+ * Signal 16 (c), v6.102.0: the paid-promo credit in a mill email, or ''.
  *
  * `authored` is the folded text Signal 16 builds: lower-case, letters, digits and single
- * spaces, padded with one space at each end. Returns the matched publisher (for the debug
- * log) when two DISTINCT MILL_PROMO_PUBLISHERS appear, or one appears directly after a
- * MILL_PROMO_CREDIT_FRAMES phrase (an optional "the " between them). Mirrored by
- * _mill_promo_credit() in tests/test_spam_detector.py.
+ * spaces, padded with one space at each end. Fires only when it carries " sponsored content "
+ * AND two DISTINCT MILL_PROMO_PUBLISHERS, and no publisher (spaces removed) appears in the
+ * folded From line: a publisher mailing its own list is never convicted by its own name.
+ * Mirrored by _mill_promo_credit() in tests/test_spam_detector.py.
  *
  * @param {string} authored - Folded sender-authored text, space-padded.
- * @return {string} The publisher that convicted, or '' when none did.
+ * @param {string} from - The From header (display name and address).
+ * @return {string} "a + b" for the two publishers that convicted, or ''.
  */
-function millPromoCredit(authored)
+function millPromoCredit(authored, from)
 {
-  let first = '';
+  if (authored.indexOf(' sponsored content ') === -1) return '';
+  const fromKey = normalizeAdText(String(from || '')).replace(/[^a-z0-9]/g, '');
+  const found = [];
   for (let i = 0; i < MILL_PROMO_PUBLISHERS.length; i++)
   {
-    const pub = ' ' + MILL_PROMO_PUBLISHERS[i] + ' ';
-    if (authored.indexOf(pub) === -1) continue;
-    if (first) return first + ' + ' + MILL_PROMO_PUBLISHERS[i];
-    first = MILL_PROMO_PUBLISHERS[i];
-    for (let j = 0; j < MILL_PROMO_CREDIT_FRAMES.length; j++)
-    {
-      const frame = ' ' + MILL_PROMO_CREDIT_FRAMES[j];
-      if (authored.indexOf(frame + pub) !== -1 || authored.indexOf(frame + ' the' + pub) !== -1)
-        return MILL_PROMO_CREDIT_FRAMES[j] + ' ' + MILL_PROMO_PUBLISHERS[i];
-    }
+    if (fromKey.indexOf(MILL_PROMO_PUBLISHERS[i].replace(/ /g, '')) !== -1) return '';
+    if (authored.indexOf(' ' + MILL_PROMO_PUBLISHERS[i] + ' ') !== -1) found.push(MILL_PROMO_PUBLISHERS[i]);
   }
-  return '';
+  return found.length >= 2 ? found[0] + ' + ' + found[1] : '';
 }

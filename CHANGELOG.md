@@ -22,25 +22,27 @@ detail plus the diffs.
 
 ## v6.102.0
 
-**Rule 13 also convicts on the paid-promo publishers a finance mill sells its ad slots to.**
+**Rule 13 also convicts a "Sponsored Content" block that credits two paid-promo publishers.**
 
 v6.101.0 caught the Monevex ad by its domain and its operator's legal name: both are things
 the mill can change before the next send. The Rule 14 retrain would have memorised it
 (temporal holdout: 396 and 421 against a 550 bar, trained without it), so it was not shipped.
-What the mill cannot rotate is who pays it: Brownstone Research, Stansberry, Weiss Ratings,
-Behind the Markets, InvestorPlace, Paradigm Press, The Oxford Club. 21 spam fixtures name at
-least one of them; no ham or scam fixture names any.
+What the mill does not rotate is the ad slot it sells: a "Sponsored Content" block crediting
+publishers such as Brownstone Research, Weiss Ratings, Paradigm Press and The Oxford Club.
 
-Signal 16 gains a third condition (c), alongside the footer address and the List-Unsubscribe
-requirement: TWO distinct `MILL_PROMO_PUBLISHERS` in the sender-authored text, or ONE directly
-after a `MILL_PROMO_CREDIT_FRAMES` phrase ("sponsored by", "ad by", "ads by",
-"in partnership with", "on behalf of", optionally followed by "the"). A publisher signing its own
-mail does not fire. It inherits everything Rule 13 already has: the exact-address no-history gate
-on every path, the 5-per-run delete cap, the Drive archive before the permanent delete.
+Signal 16 gains condition (c): " sponsored content " in the sender-authored text, TWO distinct
+`MILL_PROMO_PUBLISHERS`, and no publisher in the From line (spaces removed), on List-Unsubscribe
+mail. It inherits Rule 13's exact-address no-history gate, 5-per-run delete cap and Drive archive.
 
-Signal 16 now fires on 32/67 spam (25 before), 0/39 ham, 0/8 scam; the Monevex fixture fires on
-(c) alone. False-positive class: a finance-news newsletter from a sender you have never had mail
-from that reports on two of these firms. Recovery: Raw Log, Rule 13, Drive link.
+The first design (two names anywhere, or one after "sponsored by" / "in partnership with" / "on
+behalf of") was rejected in review: 11 of 12 constructed legitimate emails were deleted (a news
+digest naming two firms, an event "sponsored by Weiss Ratings", a Stansberry welcome email). The
+no-history gate cannot protect a first welcome email or a never-opened subscription. All 12, plus
+15 Unicode edge cases, are clean under the shipped design, in JS and Python.
+
+Signal 16 fires on 26/67 spam (25 before), 0/39 ham, 0/8 scam; Monevex fires on (c) alone.
+Remaining false-positive class: an unknown sender's newsletter running a Sponsored Content block
+with two of these publishers' ads. Recovery: Raw Log, Rule 13, Drive link.
 
 ## v6.101.0
 

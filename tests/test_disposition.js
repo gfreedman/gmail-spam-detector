@@ -3174,29 +3174,34 @@ console.log('\n=== Signal 16 / Rule 13: known mill footer address on bulk-marked
   check('a similar address on a different street does not fire',
         !fires({ body: '5005 Lyndon B. Johnson Blvd, Dallas, TX' }));
   check('empty body does not fire', !fires({ body: '' }));
-  // Signal 16 (c), v6.102.0: paid-promo publisher credits.
-  check('(c) two distinct publishers in a Sponsored Content block fire (the Monevex miss)',
+  // Signal 16 (c), v6.102.0: a Sponsored Content block crediting two paid-promo publishers.
+  check('(c) a Sponsored Content block naming two publishers fires (the Monevex miss)',
         fires({ body: 'Sponsored Content\n- What is Elon building now?\nParadigm Press\n- I have been waiting 46 years.\nThe Oxford Club' }));
-  check('(c) ONE publisher after "Sponsored by" fires',
-        fires({ body: 'Tesla Cybertruck news\nSponsored by Brownstone Research' }));
-  check('(c) ONE publisher after "in partnership with the" fires',
-        fires({ body: 'This email contains promotional content in partnership with The Oxford Club.' }));
-  check('(c) ONE publisher after "on behalf of" fires',
-        fires({ body: 'This ad is sent on behalf of InvestorPlace Media, 1125 N. Charles St.' }));
-  check('(c) ONE publisher with no credit frame does not fire (a publisher signing its own mail)',
-        !fires({ body: 'Good investing,\nPorter Stansberry' }));
-  check('(c) ONE publisher named in reporting does not fire',
-        !fires({ body: 'Weiss Ratings downgraded three regional banks this week.' }));
+  check('(c) two publishers WITHOUT a Sponsored Content block do not fire (a news story naming two firms)',
+        !fires({ body: 'MarketWise reported lower revenue at Stansberry Research and Brownstone Research.' }));
+  check('(c) ONE publisher in a Sponsored Content block does not fire (a real newsletter selling one ad)',
+        !fires({ body: 'Sponsored Content\nSponsored by Stansberry Research' }));
   check('(c) the same publisher twice is ONE publisher and does not fire',
-        !fires({ body: 'Weiss Ratings says... and Weiss Ratings adds...' }));
-  check('(c) a credit frame far from the publisher does not fire',
-        !fires({ body: 'Sponsored by our readers. Weiss Ratings downgraded three banks.' }));
+        !fires({ body: 'Sponsored Content\nWeiss Ratings\nWeiss Ratings' }));
+  check('(c) "Stansberry" alone (a surname) is not a publisher',
+        !fires({ body: 'Sponsored Content\nDr. Ann Stansberry on the forces behind the markets' }));
   check('(c) a publisher glued to another word is not that publisher (word boundary)',
-        !fires({ body: 'sponsored by investorplaces.example' }));
+        !fires({ body: 'Sponsored Content\ninvestorplaces.example and Paradigm Press' }));
   check('(c) two publishers in a FORWARDED copy do not fire',
-        !fires({ body: 'scam?\n\n---------- Forwarded message ---------\nParadigm Press\nThe Oxford Club' }));
+        !fires({ body: 'scam?\n\n---------- Forwarded message ---------\nSponsored Content\nParadigm Press\nThe Oxford Club' }));
   check('(c) two publishers without List-Unsubscribe do not fire',
-        !fires({ lu: false, body: 'Paradigm Press\nThe Oxford Club' }));
+        !fires({ lu: false, body: 'Sponsored Content\nParadigm Press\nThe Oxford Club' }));
+  {
+    // A publisher mailing its OWN list (a first welcome email has no history) is never convicted.
+    const m = mk({ body: 'Welcome!\nSponsored Content\nOur partners: Brownstone Research, Paradigm Press' }, 'mR16own');
+    m.getFrom = () => 'The Oxford Club <members@oxfordclub.example>';
+    check('(c) a From line that IS one of the publishers does not fire, even with two others in the block',
+          makeCtx().collectSignals(m).millFooterAddress !== true);
+    const m2 = mk({ body: 'Sponsored Content\nParadigm Press\nWeiss Ratings' }, 'mR16own2');
+    m2.getFrom = () => 'Stansberry Research <info@stansberryresearch.example>';
+    check('(c) ...matched with spaces removed (stansberryresearch in the address)',
+          makeCtx().collectSignals(m2).millFooterAddress !== true);
+  }
   const t0 = Date.now();
   fires({ body: ('x'.repeat(80) + '\n').repeat(1500) + mill });
   check('a 120 KB body is scanned in under 1 s', Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');

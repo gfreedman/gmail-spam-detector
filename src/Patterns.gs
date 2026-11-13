@@ -579,34 +579,20 @@ const MILL_POSTAL_NEEDLES = Object.freeze([
 /**
  * Paid-promo publishers whose ads the finance mills run (Signal 16 (c), Rule 13, v6.102.0).
  * Normalised like MILL_POSTAL_NEEDLES: lower-case, letters and digits, single spaces.
- * Every entry appears in tests/spam_examples (21 fixtures name at least one) and in no
- * ham or scam fixture. Names only, never wording: the mills reword weekly, the publishers
- * that pay them do not change. A newsletter that REPORTS on two of these firms (a
- * finance-news digest) is the false-positive class; the exact-address no-history gate in
- * analyzeMessage() and the Drive archive are what stand behind it (Raw Log: Rule 13).
+ * Every entry appears in tests/spam_examples and in no ham or scam fixture. Signal 16 (c)
+ * needs TWO of them inside mail that has a "Sponsored Content" block and whose From line is
+ * none of them; one name, or a news story naming two, never fires (review, 2026-11-12).
+ * "stansberry research", not "stansberry": it is also a surname.
  * @const {Array<string>}
  */
 const MILL_PROMO_PUBLISHERS = Object.freeze([
   'brownstone research',
-  'stansberry',
+  'stansberry research',
   'weiss ratings',
   'behind the markets',
   'investorplace',
   'paradigm press',
   'oxford club'
-]);
-
-/**
- * The credit phrases that put ONE MILL_PROMO_PUBLISHERS name in an ad slot (Signal 16 (c)).
- * Folded form; matched immediately before the publisher, optionally with "the" between.
- * @const {Array<string>}
- */
-const MILL_PROMO_CREDIT_FRAMES = Object.freeze([
-  'sponsored by',
-  'ad by',
-  'ads by',
-  'in partnership with',
-  'on behalf of'
 ]);
 
 /**

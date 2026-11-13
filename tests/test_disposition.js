@@ -3174,6 +3174,29 @@ console.log('\n=== Signal 16 / Rule 13: known mill footer address on bulk-marked
   check('a similar address on a different street does not fire',
         !fires({ body: '5005 Lyndon B. Johnson Blvd, Dallas, TX' }));
   check('empty body does not fire', !fires({ body: '' }));
+  // Signal 16 (c), v6.102.0: paid-promo publisher credits.
+  check('(c) two distinct publishers in a Sponsored Content block fire (the Monevex miss)',
+        fires({ body: 'Sponsored Content\n- What is Elon building now?\nParadigm Press\n- I have been waiting 46 years.\nThe Oxford Club' }));
+  check('(c) ONE publisher after "Sponsored by" fires',
+        fires({ body: 'Tesla Cybertruck news\nSponsored by Brownstone Research' }));
+  check('(c) ONE publisher after "in partnership with the" fires',
+        fires({ body: 'This email contains promotional content in partnership with The Oxford Club.' }));
+  check('(c) ONE publisher after "on behalf of" fires',
+        fires({ body: 'This ad is sent on behalf of InvestorPlace Media, 1125 N. Charles St.' }));
+  check('(c) ONE publisher with no credit frame does not fire (a publisher signing its own mail)',
+        !fires({ body: 'Good investing,\nPorter Stansberry' }));
+  check('(c) ONE publisher named in reporting does not fire',
+        !fires({ body: 'Weiss Ratings downgraded three regional banks this week.' }));
+  check('(c) the same publisher twice is ONE publisher and does not fire',
+        !fires({ body: 'Weiss Ratings says... and Weiss Ratings adds...' }));
+  check('(c) a credit frame far from the publisher does not fire',
+        !fires({ body: 'Sponsored by our readers. Weiss Ratings downgraded three banks.' }));
+  check('(c) a publisher glued to another word is not that publisher (word boundary)',
+        !fires({ body: 'sponsored by investorplaces.example' }));
+  check('(c) two publishers in a FORWARDED copy do not fire',
+        !fires({ body: 'scam?\n\n---------- Forwarded message ---------\nParadigm Press\nThe Oxford Club' }));
+  check('(c) two publishers without List-Unsubscribe do not fire',
+        !fires({ lu: false, body: 'Paradigm Press\nThe Oxford Club' }));
   const t0 = Date.now();
   fires({ body: ('x'.repeat(80) + '\n').repeat(1500) + mill });
   check('a 120 KB body is scanned in under 1 s', Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');

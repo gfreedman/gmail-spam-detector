@@ -20,6 +20,28 @@ detail plus the diffs.
 
 ---
 
+## v6.102.0
+
+**Rule 13 also convicts on the paid-promo publishers a finance mill sells its ad slots to.**
+
+v6.101.0 caught the Monevex ad by its domain and its operator's legal name: both are things
+the mill can change before the next send. The Rule 14 retrain would have memorised it
+(temporal holdout: 396 and 421 against a 550 bar, trained without it), so it was not shipped.
+What the mill cannot rotate is who pays it: Brownstone Research, Stansberry, Weiss Ratings,
+Behind the Markets, InvestorPlace, Paradigm Press, The Oxford Club. 21 spam fixtures name at
+least one of them; no ham or scam fixture names any.
+
+Signal 16 gains a third condition (c), alongside the footer address and the List-Unsubscribe
+requirement: TWO distinct `MILL_PROMO_PUBLISHERS` in the sender-authored text, or ONE directly
+after a `MILL_PROMO_CREDIT_FRAMES` phrase ("sponsored by", "ad by", "ads by",
+"in partnership with", "on behalf of", optionally followed by "the"). A publisher signing its own
+mail does not fire. It inherits everything Rule 13 already has: the exact-address no-history gate
+on every path, the 5-per-run delete cap, the Drive archive before the permanent delete.
+
+Signal 16 now fires on 32/67 spam (25 before), 0/39 ham, 0/8 scam; the Monevex fixture fires on
+(c) alone. False-positive class: a finance-news newsletter from a sender you have never had mail
+from that reports on two of these firms. Recovery: Raw Log, Rule 13, Drive link.
+
 ## v6.101.0
 
 **Blacklist `monevex.com` and match the Alpha One Marketers LLC mill by its legal name.**

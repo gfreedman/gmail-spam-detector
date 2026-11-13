@@ -516,6 +516,23 @@ function collectSignals(message)
           break;
         }
       }
+      // (c) v6.102.0: the PAID-PROMO publishers a mill rents its ad slots to. A mill email
+      // credits them ("Sponsored by Brownstone Research", "in partnership with ...", a
+      // "Sponsored Content" block naming two of them); the publishers rotate far more slowly
+      // than the mill's own brands. Fires on TWO distinct publishers anywhere in the authored
+      // text, or ONE inside a credit frame (MILL_PROMO_CREDIT_FRAMES). A publisher signing its
+      // OWN mail ("Porter Stansberry", "founder, Brownstone Research") does not fire: that is
+      // a list someone may have joined, and the no-history gate is not meant to be the only
+      // thing between their subscription and a delete.
+      if (!signals.millFooterAddress)
+      {
+        const credit = millPromoCredit(authored);
+        if (credit)
+        {
+          signals.millFooterAddress = true;
+          logDebug('Mill paid-promo credit: ' + credit);
+        }
+      }
     }
   }
   catch (signalError)
@@ -1309,4 +1326,35 @@ function collectSignals(message)
   if (signals._callbackLooseOnly !== true) signals._callbackLooseOnly = false;
 
   return signals;
+}
+
+/**
+ * Signal 16 (c), v6.102.0: the paid-promo publisher credit in a mill email, or ''.
+ *
+ * `authored` is the folded text Signal 16 builds: lower-case, letters, digits and single
+ * spaces, padded with one space at each end. Returns the matched publisher (for the debug
+ * log) when two DISTINCT MILL_PROMO_PUBLISHERS appear, or one appears directly after a
+ * MILL_PROMO_CREDIT_FRAMES phrase (an optional "the " between them). Mirrored by
+ * _mill_promo_credit() in tests/test_spam_detector.py.
+ *
+ * @param {string} authored - Folded sender-authored text, space-padded.
+ * @return {string} The publisher that convicted, or '' when none did.
+ */
+function millPromoCredit(authored)
+{
+  let first = '';
+  for (let i = 0; i < MILL_PROMO_PUBLISHERS.length; i++)
+  {
+    const pub = ' ' + MILL_PROMO_PUBLISHERS[i] + ' ';
+    if (authored.indexOf(pub) === -1) continue;
+    if (first) return first + ' + ' + MILL_PROMO_PUBLISHERS[i];
+    first = MILL_PROMO_PUBLISHERS[i];
+    for (let j = 0; j < MILL_PROMO_CREDIT_FRAMES.length; j++)
+    {
+      const frame = ' ' + MILL_PROMO_CREDIT_FRAMES[j];
+      if (authored.indexOf(frame + pub) !== -1 || authored.indexOf(frame + ' the' + pub) !== -1)
+        return MILL_PROMO_CREDIT_FRAMES[j] + ' ' + MILL_PROMO_PUBLISHERS[i];
+    }
+  }
+  return '';
 }

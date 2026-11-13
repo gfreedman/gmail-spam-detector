@@ -497,6 +497,8 @@ def _load_gs_constants(source):
         'CALENDAR_SAFE_LINK_DOMAINS':   _load_string_array(source, 'CALENDAR_SAFE_LINK_DOMAINS'),
         'HEADLINE_NAME_SEPARATORS':     _load_string_array(source, 'HEADLINE_NAME_SEPARATORS'),
         'MILL_POSTAL_NEEDLES':          _load_string_array(source, 'MILL_POSTAL_NEEDLES', allow_spaces=True),
+        'MILL_PROMO_PUBLISHERS':        _load_string_array(source, 'MILL_PROMO_PUBLISHERS', allow_spaces=True),
+        'MILL_PROMO_CREDIT_FRAMES':     _load_string_array(source, 'MILL_PROMO_CREDIT_FRAMES', allow_spaces=True),
         'BAYES':                        _load_bayes_table(source),
         'SPONSORED_AD_PATTERNS':        _load_regex_array(source, 'SPONSORED_AD_PATTERNS'),
         'RANDOM_LOCAL_PART_PATTERNS':   _load_regex_array(source, 'RANDOM_LOCAL_PART_PATTERNS'),
@@ -565,6 +567,25 @@ CALENDAR_SAFE_LINK_DOMAINS      = _gs['CALENDAR_SAFE_LINK_DOMAINS']
 HEADLINE_NAME_SEPARATORS        = _gs['HEADLINE_NAME_SEPARATORS']
 SPONSORED_AD_PATTERNS           = _gs['SPONSORED_AD_PATTERNS']
 MILL_POSTAL_NEEDLES             = _gs['MILL_POSTAL_NEEDLES']
+MILL_PROMO_PUBLISHERS           = _gs['MILL_PROMO_PUBLISHERS']
+MILL_PROMO_CREDIT_FRAMES        = _gs['MILL_PROMO_CREDIT_FRAMES']
+
+
+def _mill_promo_credit(authored):
+    """Mirror of millPromoCredit() in Signals.gs (Signal 16 (c), v6.102.0)."""
+    first = ''
+    for pub_name in MILL_PROMO_PUBLISHERS:
+        pub = ' ' + pub_name + ' '
+        if pub not in authored:
+            continue
+        if first:
+            return first + ' + ' + pub_name
+        first = pub_name
+        for frame_name in MILL_PROMO_CREDIT_FRAMES:
+            frame = ' ' + frame_name
+            if frame + pub in authored or frame + ' the' + pub in authored:
+                return frame_name + ' ' + pub_name
+    return ''
 BAYES_TABLE                     = _gs['BAYES']['table']
 BAYES_QUARANTINE_SCORE          = _gs['BAYES']['threshold']
 BAYES_TOP_K                     = _gs['BAYES']['top_k']
@@ -1400,7 +1421,8 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     if _raw_header(raw, 'List-Unsubscribe'):
         _authored = ' ' + re.sub(' +', ' ', re.sub('[^a-z0-9 ]', ' ',
                     _normalize_ad_text(_strip_quoted_and_forwarded(body)))) + ' '
-        if any(' ' + _n + ' ' in _authored for _n in MILL_POSTAL_NEEDLES):
+        if any(' ' + _n + ' ' in _authored for _n in MILL_POSTAL_NEEDLES) or \
+                _mill_promo_credit(_authored):
             signals['mill_footer_address'] = True
             signals['matched_patterns'].append('mill_footer_address')
 

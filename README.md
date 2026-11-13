@@ -302,7 +302,7 @@ out). The signal needs the address in text the *sender* wrote (`stripQuotedAndFo
 removes `>` quotes and everything after a forward / original-message / "On ... wrote:"
 marker) AND a `List-Unsubscribe` header, the stand-in for "bulk" on a shared ESP, where
 the bulk fingerprint is off on purpose. It **deletes** after the Drive archive (v6.100.0; it quarantined in v6.98.0 and v6.99.0): a street address can be
-shared by a legitimate tenant of the same building, so the Drive copy and Raw Log row are the recovery path. On the fixtures the needle list fires on 25/67 spam and 0/39 ham (at v6.98.0 the addresses alone, without the List-Unsubscribe check, matched 24/66 spam).
+shared by a legitimate tenant of the same building, so the Drive copy and Raw Log row are the recovery path. On the fixtures the needle lists (addresses, operator name, a Sponsored Content heading crediting two paid-promo publishers) fire on 25/67 spam and 0/39 ham (at v6.98.0 the addresses alone, without the List-Unsubscribe check, matched 24/66 spam).
 Known evasions, cheap for the mill: a new address, the address as an image, dropping
 `List-Unsubscribe`. Adding an address is one data line but ships through a release.
 

@@ -516,6 +516,21 @@ function collectSignals(message)
           break;
         }
       }
+      // (c) v6.102.0: a "Sponsored Content" HEADING (a line of its own) followed by TWO distinct
+      // paid-promo publishers (MILL_PROMO_PUBLISHERS): the ad slot a finance mill sells. The owner
+      // wants no mail from these publishers at all (2026-11-12), including their own lists, so
+      // the From line is not consulted. The heading must stand alone, so a news story naming two
+      // firms, or a disclaimer ("may contain sponsored content", "No sponsored content appears
+      // in this email"), does not fire (review, two rounds, 2026-11-12).
+      if (!signals.millFooterAddress)
+      {
+        const credit = millPromoCredit(stripQuotedAndForwarded(body));
+        if (credit)
+        {
+          signals.millFooterAddress = true;
+          logDebug('Mill paid-promo credit: ' + credit);
+        }
+      }
     }
   }
   catch (signalError)
@@ -1309,4 +1324,33 @@ function collectSignals(message)
   if (signals._callbackLooseOnly !== true) signals._callbackLooseOnly = false;
 
   return signals;
+}
+
+/**
+ * Signal 16 (c), v6.102.0: the paid-promo credit in a mill email, or ''.
+ *
+ * Finds the first line that folds to exactly "sponsored content" (lower-case, letters, digits,
+ * single spaces), then requires two DISTINCT MILL_PROMO_PUBLISHERS, on word boundaries, in the
+ * folded text AFTER that line. Mirrored by _mill_promo_credit() in tests/test_spam_detector.py.
+ *
+ * @param {string} text - Sender-authored body text (quotes and forwards already stripped).
+ * @return {string} "a + b" for the two publishers that convicted, or ''.
+ */
+function millPromoCredit(text)
+{
+  const fold = function(s) { return normalizeAdText(s).replace(/[^a-z0-9 ]/g, ' ').replace(/ +/g, ' ').trim(); };
+  const lines = String(text || '').split(/\r?\n/);
+  let start = -1;
+  for (let i = 0; i < lines.length; i++)
+  {
+    if (fold(lines[i]) === 'sponsored content') { start = i + 1; break; }
+  }
+  if (start === -1) return '';
+  const after = ' ' + fold(lines.slice(start).join('\n')) + ' ';
+  const found = [];
+  for (let i = 0; i < MILL_PROMO_PUBLISHERS.length; i++)
+  {
+    if (after.indexOf(' ' + MILL_PROMO_PUBLISHERS[i] + ' ') !== -1) found.push(MILL_PROMO_PUBLISHERS[i]);
+  }
+  return found.length >= 2 ? found[0] + ' + ' + found[1] : '';
 }

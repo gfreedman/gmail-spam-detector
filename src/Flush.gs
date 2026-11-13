@@ -243,7 +243,7 @@ function getRuleFromSignals(signals)
 
   if (signals.millFooterAddress)
   {
-    return { rule: 'Rule 13', description: 'Known mill footer address on bulk-marked mail (deleted after the Drive archive)' };
+    return { rule: 'Rule 13', description: 'Known mill footprint (footer address, operator name or paid-promo publisher credit) on List-Unsubscribe mail (deleted after the Drive archive)' };
   }
 
   if (signals.pitchScore)

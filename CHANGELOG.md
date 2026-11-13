@@ -20,6 +20,32 @@ detail plus the diffs.
 
 ---
 
+## v6.102.0
+
+**Rule 13 also convicts a "Sponsored Content" block that credits two paid-promo publishers.**
+
+v6.101.0 caught the Monevex ad by its domain and its operator's legal name: both are things
+the mill can change before the next send. The Rule 14 retrain would have memorised it
+(temporal holdout: 396 and 421 against a 550 bar, trained without it), so it was not shipped.
+What the mill does not rotate is the ad slot it sells: a "Sponsored Content" block crediting
+publishers such as Brownstone Research, Weiss Ratings, Paradigm Press and The Oxford Club.
+
+Signal 16 gains condition (c): a line that folds to exactly "Sponsored Content" (a heading, not
+a sentence), followed by TWO distinct `MILL_PROMO_PUBLISHERS` after it, on List-Unsubscribe mail.
+It inherits Rule 13's exact-address no-history gate, 5-per-run delete cap and Drive archive. The
+owner wants no mail from these publishers at all, so their own lists are not exempt.
+
+Two review rounds constructed 23 legitimate emails against earlier drafts (two names anywhere; one
+name after "sponsored by"; any "sponsored content" phrase plus a From-line exemption): up to 11
+were deleted (news digests naming two firms, an event "sponsored by Weiss Ratings", disclaimers
+such as "No sponsored content appears in this email"). Under the shipped design all of those are
+kept; what still fires is the publishers' own mail (wanted) and a third-party newsletter running a
+Sponsored Content block with two of their ads, which the history gate spares only if you read it.
+
+Signal 16 fires on 25/67 spam, 0/39 ham, 0/8 scam. On today's fixtures (c) only adds Monevex,
+which v6.101.0 already convicts; it exists for this mill's next brand. Recovery: Raw Log, Rule 13,
+Drive link.
+
 ## v6.101.0
 
 **Blacklist `monevex.com` and match the Alpha One Marketers LLC mill by its legal name.**

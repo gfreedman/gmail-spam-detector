@@ -226,9 +226,82 @@ function senderHistoryGate(message)
   // "<name>.<brand>@email.cyberimpact.com": its domain is a shared ESP's, and the user
   // has very likely read some other tenant's mail from it, which would make every
   // mill on that ESP a "known sender" and switch this rule off for them.
-  const fromAddr = extractEmailAddress(message.getFrom() || '').toLowerCase();
+  const from = message.getFrom() || '';
+  const fromAddr = extractEmailAddress(from).toLowerCase();
   if (!/^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/.test(fromAddr)) return null;
-  return senderHasHistory(fromAddr);
+  const byAddress = senderHasHistory(fromAddr);
+  if (byAddress !== false) return byAddress;
+  return senderHasNamedDomainHistory(fromAddr, headerDisplayName(from), message.getId());
+}
+
+/**
+ * v6.103.0: has the user READ mail from this exact domain under this exact display name?
+ * true / false / null (lookup budget spent).
+ *
+ * Why: on 2026-11-18 Rule 14 deleted "The BetaKit Newsletter" (score 601, ordinary tech-news
+ * words). The user reads and labels BetaKit's issues from newsletter@betakit.com; this one
+ * came from alex.riehl@betakit.com, an address the exact-address gate had never seen. A real
+ * publisher changing its From address lost its whole history.
+ *
+ * Why not the domain alone: a mill sends as "<name>.<brand>@email.cyberimpact.com", and the
+ * user has very likely read another tenant's mail from that shared ESP domain. Requiring the
+ * SAME normalised display name as well keeps that tenant's history its own: the mill would have
+ * to borrow the display name of a sender the user already reads on that same domain.
+ *
+ * Known weakness, accepted: a mill that keeps one display name while rotating addresses is
+ * spared from the moment the user has READ one of its mails more than 2 days old (and that mail
+ * was neither deleted nor quarantined). Its earlier mail is normally gone by then.
+ *
+ * Every candidate is re-checked in code, not trusted to Gmail's fuzzy from: match: the host
+ * must equal this domain exactly, the display name must normalise identically, and the message
+ * itself must be read and older than 2 days.
+ *
+ * @param {string} fromAddr - Allowlisted, lower-case sender address.
+ * @param {string} name     - headerDisplayName() of the From header.
+ * @param {string} selfId   - The message being judged: never its own history.
+ * @return {?boolean}
+ */
+function senderHasNamedDomainHistory(fromAddr, name, selfId)
+{
+  const domain = fromAddr.substring(fromAddr.lastIndexOf('@') + 1);
+  if (!name || name.length < 3) return false;              // nothing to match on: the address answer stands
+
+  const props = PropertiesService.getScriptProperties();
+  const key   = historyCacheKey('@' + domain + '|' + name); // '@' forces the hashed (address) key form
+  const now   = Date.now();
+  const cached = props.getProperty(key);
+  if (cached)
+  {
+    const parts = cached.split(':');
+    if (now - Number(parts[1]) < 3 * 24 * 3600 * 1000) return parts[0] === 'Y';
+  }
+  if (shadowHistoryLookups >= SHADOW_HISTORY_BUDGET) return null;
+  shadowHistoryLookups++;
+
+  const cutoff  = now - 2 * 24 * 3600 * 1000;
+  const threads = GmailApp.search('from:' + domain + ' older_than:2d is:read -label:' + CONFIG.phishingLabel +
+                                  ' -in:spam -in:trash', 0, 20);
+  let known = false;
+  if (threads.length > 0)
+  {
+    const all = GmailApp.getMessagesForThreads(threads);
+    for (let i = 0; i < all.length && !known; i++)
+    {
+      for (let j = 0; j < all[i].length && !known; j++)
+      {
+        const m = all[i][j];
+        const f = m.getFrom() || '';
+        const a = extractEmailAddress(f).toLowerCase();
+        if (a.substring(a.lastIndexOf('@') + 1) !== domain) continue;
+        if (headerDisplayName(f) !== name) continue;
+        if (m.getId() === selfId || m.isUnread()) continue;
+        if (m.getDate().getTime() > cutoff) continue;
+        known = true;
+      }
+    }
+  }
+  props.setProperty(key, (known ? 'Y' : 'N') + ':' + now);
+  return known;
 }
 
 /**

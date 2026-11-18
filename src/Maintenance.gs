@@ -541,6 +541,7 @@ function recheckRecentSpamChecked(widen)
   {
     const query   = 'in:inbox label:' + CONFIG.processedLabel +
                     ' -label:' + CONFIG.phishingLabel +
+                    ' -label:' + CONFIG.restoredLabel +
                     ' newer_than:' + RECHECK_DAYS + 'd';
     const threads = GmailApp.search(query, 0, RECHECK_LIMIT);
     if (threads.length === 0) return;
@@ -642,6 +643,84 @@ function recheckRecentSpamChecked(widen)
   {
     logError('recheckRecentSpamChecked failed: ' + error.toString());
   }
+}
+
+/**
+ * Put false positives back into the inbox from their Drive archive. Run by hand from the
+ * Apps Script editor (v6.103.0); nothing triggers it.
+ *
+ * The editor's Run button cannot pass arguments, so the messages to restore are read from
+ * the Script Property RESTORE_MESSAGE_IDS: Gmail message ids from the Raw Log's "Gmail
+ * Message ID" column, comma-separated (the full 16 hex digits, or the first 8, which is
+ * the suffix of the archive's file name "<timestamp>_<id8>.eml"). Each is re-inserted with
+ * Gmail.Users.Messages.insert (no re-scanning, original Date header as its date), marked
+ * read, labelled SpamChecked so processInbox() does not judge it again, and labelled
+ * CONFIG.restoredLabel so the post-deploy recheck skips it. Restored ids are removed from
+ * the property; failures stay so a re-run retries them.
+ *
+ * Restoring is NOT whitelisting: the sender's NEXT email is judged as usual. Add the
+ * domain with addToWhitelist() (or to DEFAULT_DOMAINS.legitimate) to spare it.
+ *
+ * @return {number} How many messages were restored.
+ */
+function restoreFromArchive()
+{
+  const props = PropertiesService.getScriptProperties();
+  const wanted = String(props.getProperty('RESTORE_MESSAGE_IDS') || '')
+    .split(',').map(function(x) { return x.trim().toLowerCase(); }).filter(function(x) { return x !== ''; });
+  if (wanted.length === 0)
+  {
+    logInfo('restoreFromArchive: set the Script Property RESTORE_MESSAGE_IDS to the Raw Log message id(s) first');
+    return 0;
+  }
+  const folderId = props.getProperty('SPAM_LOG_FOLDER_ID');
+  if (!folderId) { logError('restoreFromArchive: SPAM_LOG_FOLDER_ID is not set, no archive to restore from'); return 0; }
+  const folder = getOrCreateLogSubfolder(DriveApp.getFolderById(folderId), ['Detected']);
+
+  const labelIds = ['INBOX', restoreLabelId(CONFIG.processedLabel), restoreLabelId(CONFIG.restoredLabel)];
+  const left = [];
+  let restored = 0;
+  for (let i = 0; i < wanted.length; i++)
+  {
+    const id = wanted[i];
+    try
+    {
+      // Validated before it reaches a Drive query: hex only.
+      if (!/^[0-9a-f]{8,16}$/.test(id)) throw new Error('not a Gmail message id: ' + sanitizeForLog(id));
+      const id8 = id.substring(0, 8);
+      // A scan, not searchFiles(): Drive's "title contains" matches title PREFIXES only, and
+      // the id is the file name's suffix. A few hundred files, once, by hand.
+      const suffix = '_' + id8 + '.eml';
+      const hits = [];
+      const files = folder.getFiles();
+      while (files.hasNext()) { const f = files.next(); if (f.getName().slice(-suffix.length) === suffix) hits.push(f); }
+      if (hits.length === 0) throw new Error('no archive named *' + suffix + ' in Detected/');
+      if (hits.length > 1) throw new Error(hits.length + ' archives end in ' + suffix + ': open the right one from Drive by hand');
+      const file = hits[0];
+      const blob = file.getBlob().setContentType('message/rfc822');
+      const msg  = Gmail.Users.Messages.insert({ labelIds: labelIds }, 'me', blob, { internalDateSource: 'dateHeader' });
+      logInfo('RESTORED ' + file.getName() + ' -> inbox as message ' + msg.id);
+      restored++;
+    }
+    catch (e)
+    {
+      left.push(id);
+      logError('restoreFromArchive failed for ' + sanitizeForLog(id) + ': ' + e.toString());
+    }
+  }
+  if (left.length === 0) props.deleteProperty('RESTORE_MESSAGE_IDS');
+  else props.setProperty('RESTORE_MESSAGE_IDS', left.join(','));
+  logInfo('restoreFromArchive: ' + restored + ' restored, ' + left.length + ' left to retry');
+  return restored;
+}
+
+/** The Gmail API label id for a user label name, creating the label if it is missing. */
+function restoreLabelId(name)
+{
+  if (!GmailApp.getUserLabelByName(name)) GmailApp.createLabel(name);
+  const labels = Gmail.Users.Labels.list('me').labels || [];
+  for (let i = 0; i < labels.length; i++) if (labels[i].name === name) return labels[i].id;
+  throw new Error('label not found after create: ' + name);
 }
 
 /**

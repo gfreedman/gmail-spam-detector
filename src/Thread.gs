@@ -220,8 +220,28 @@ function isBulkEmail(rawContent)
  * analyzeMessage() (senderHasHistory()), so this observer can spend lookups the gate
  * would have used; an exhausted budget makes the gate answer "unknown", which is retried.
  */
-const SHADOW_HISTORY_BUDGET = 3;
+// 6, was 3: since v6.103.0 a Rule 13/14 candidate whose address is new spends a SECOND lookup
+// (senderHasNamedDomainHistory), so 3 judged one new sender per run (review of PR #32).
+const SHADOW_HISTORY_BUDGET = 6;
 let shadowHistoryLookups = 0;
+
+/**
+ * The labels this script itself puts on mail it judged suspicious (v6.103.0). Mail carrying one
+ * is NOT history: the recheck holds READ Rule 13/14 matches under SuspectedSpam, so counting it
+ * let one held mill message vouch for every later rotating address under the same name
+ * (review of PR #32 reproduced it with the Trend Watchers Lab fixtures).
+ * @return {Array<string>}
+ */
+function historyExcludedLabels()
+{
+  return [CONFIG.phishingLabel, CONFIG.reviewLabel, CONFIG.purgeLabel, 'SpamMissed'];
+}
+
+/** The same list as Gmail query terms: " -label:A -label:B ...". */
+function historyLabelExclusions()
+{
+  return historyExcludedLabels().map(function(l) { return ' -label:' + l; }).join('');
+}
 
 /**
  * The Script Properties key that caches one history answer. A DOMAIN keys on itself; a full
@@ -258,7 +278,7 @@ function senderHasHistory(domain)   // `domain` may also be a full address: Gmai
   // (left unread in the inbox, or held under the Phishing label) would make the mill a
   // "known sender" after its first miss and switch the rule off for it.
   const known = GmailApp.search('in:sent to:' + domain, 0, 1).length > 0 ||
-                GmailApp.search('from:' + domain + ' older_than:2d is:read -label:' + CONFIG.phishingLabel +
+                GmailApp.search('from:' + domain + ' older_than:2d is:read' + historyLabelExclusions() +
                                 ' -in:spam -in:trash', 0, 1).length > 0;
   props.setProperty(key, (known ? 'Y' : 'N') + ':' + now);
   return known;

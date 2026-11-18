@@ -20,6 +20,40 @@ detail plus the diffs.
 
 ---
 
+## v6.103.0
+
+**Rule 14's no-history gate also recognises a known publisher writing from a new address; deleted false positives can be restored.**
+
+On 2026-11-18 Rule 14 permanently deleted "Why 🇨🇦 tech is standing against Bill C-22 (The BetaKit
+Newsletter)". Its score was 601 against the 550 bar, from ordinary tech-news words (*could, company,
+make, world, investors, government, finance, dollar*): the documented weakness of a long editorial
+newsletter. The gate that should have spared it is keyed on the exact sender ADDRESS. The owner reads
+and labels BetaKit from `newsletter@betakit.com`; this issue came from `alex.riehl@betakit.com`, so it
+looked like a stranger.
+
+- **Gate (`senderHasNamedDomainHistory`, Verdict.gs).** When the exact address has no history, the gate
+  now also asks: has the owner READ mail more than 2 days old from this EXACT domain under this EXACT
+  (normalised) display name? Every Gmail hit is re-checked in code: exact host (Gmail's `from:` also
+  matches subdomains), same `headerDisplayName()`, read, older than 2 days, not the message being
+  judged. Domain alone stays rejected for the reason it was rejected in v6.100.0: a mill on a shared ESP
+  domain would inherit another tenant's history. Requiring the same display name keeps that history
+  the tenant's own. Accepted weakness: a mill that keeps one display name across rotating addresses is
+  spared once the owner has read one of its mails that survived 2 days. A spent lookup budget is
+  "unknown" (not convicted, retried), as before. Cached 3 days, like the address answer.
+  Mail the script itself labelled (`SuspectedSpam`, `Phishing`, `SpamDetectorPurge`, `SpamMissed`)
+  is never history, on this path or the exact-address one: the review of PR #32 reproduced one held
+  Trend Watchers Lab message vouching for every later rotating address under that name. The history
+  lookup budget rises from 3 to 6, since a new address now spends two lookups.
+- **Whitelist:** `betakit.com`.
+- **`restoreFromArchive()`** (Maintenance.gs, run by hand): re-inserts the Drive archive of each
+  full 16-digit message id in the Script Property `RESTORE_MESSAGE_IDS` (searched in `Detected/`,
+  `False Negatives/` where the recheck archives, and `Spam Folder/`) into the inbox with
+  `Gmail.Users.Messages.insert` (no re-scan, original date), read, labelled `SpamChecked` and
+  `SpamRestored`. The post-deploy recheck now skips `SpamRestored`, so the rule that deleted it cannot
+  delete it again. Short, ambiguous or non-hex ids are refused; failures stay in the property for a retry.
+
+Every new guard was fault-injected (removed one at a time) and turned the suite red.
+
 ## v6.102.0
 
 **Rule 13 also convicts a "Sponsored Content" block that credits two paid-promo publishers.**

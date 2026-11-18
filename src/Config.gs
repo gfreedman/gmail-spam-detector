@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.102.0
+ * @version 6.103.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -103,7 +103,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.102.0';
+const SCRIPT_VERSION = '6.103.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -151,6 +151,11 @@ const CONFIG = Object.freeze({
    *  purge. Also excluded by buildSearchQuery() so it is not re-detected. */
   phishingLabel: 'Phishing',
 
+  /** Label restoreFromArchive() (v6.103.0) puts on a false positive it re-inserts from
+   *  the Drive archive. The post-deploy recheck skips it, so a restored email is not
+   *  deleted a second time by the rule that deleted it the first time. */
+  restoredLabel: 'SpamRestored',
+
   /** Enable verbose debug logging (set true for troubleshooting) */
   debug: false,
 
@@ -178,7 +183,10 @@ const DEFAULT_DOMAINS = Object.freeze({
     'conservativebc.ca',
     'sundaymass.store', 'customerservice@stan', 'privaterelay.appleid.com',
     'email.meetup.com', 'ben-evans.com', 'linkedin.com', 'e.linkedin.com',
-    'linkedin.email', 'dsf.ca', 'dragonfly', 'ezyvet.com'
+    'linkedin.email', 'dsf.ca', 'dragonfly', 'ezyvet.com',
+    // v6.103.0: BetaKit (Canadian tech news). Rule 14 deleted an issue on 2026-11-18
+    // (score 601) when it arrived from a new address, alex.riehl@betakit.com.
+    'betakit.com'
   ]),
   /** Known spam mill domains — Rule 1 when combined with bulk email; Rule 12 when the
    *  mill is hidden behind an ESP relay (Signal 15) */

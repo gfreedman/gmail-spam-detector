@@ -68,7 +68,8 @@ function makeCtx(opts) {
       getScriptProperties: () => ({
         getProperty: k => (k in props ? props[k] : null),
         setProperty: (k, v) => { props[k] = String(v); },
-        deleteProperty: k => { delete props[k]; }
+        deleteProperty: k => { delete props[k]; },
+        getKeys: () => Object.keys(props)
       })
     },
     GmailApp: {
@@ -2598,228 +2599,6 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
     check('HELD: a held thread that no longer scores as spam is left alone, no writes',
           !clean.deleted && clean.ops.length === 0, JSON.stringify(clean.ops));
   }
-  // v6.91.0: the LOG-ONLY shadow observer. It may log; it may never act.
-  {
-    const mk = (body, o) => {
-      o = o || {};
-      const m = blacklistMessage(o.id || 'mSH');
-      m.getSubject = () => o.subject || 'Weekly update';
-      m.getFrom = () => o.from || 'Daily Brief <mail@signal.example-brief.com>';
-      m.getPlainBody = () => body;
-      return m;
-    };
-    const run = (m, sig, props, searchFn) => {
-      const c = makeCtx({ props: props || {} });
-      const logs = [];
-      c.logInfo = (l) => logs.push(String(l));
-      const searches = [];
-      c.GmailApp.search = (q) => { searches.push(q); return searchFn ? searchFn(q) : []; };
-      c.observeShadow(m, { isSpam: false, signals: Object.assign({ clickbaitCount: 0, fearMongering: false,
-        marketingFormat: false, suspiciousFromName: false, headlineFromName: false, bulkEmailService: false }, sig || {}) });
-      return { c, logs, searches, shadow: logs.filter(l => l.indexOf('SHADOW') === 0), calls: c.calls.map(x => x.op) };
-    };
-    const EO = 'If you have a 401(k), this is your account. Executive Order 14330 is already signed. ' +
-               '70 million accounts. Almost $10 trillion. See what they left off the front page before we take it down.';
-    const r1 = run(mk(EO));
-    check('SHADOW: the E.O. 14330 pitch hits >= 3 themes and is logged', r1.shadow.length === 1 && /themes=[3-6]/.test(r1.shadow[0]), JSON.stringify(r1.shadow));
-    const r2 = run(mk('Lunch on Thursday? I booked the usual place at noon.'));
-    check('SHADOW: ordinary mail logs nothing', r2.shadow.length === 0, JSON.stringify(r2.shadow));
-    check('SHADOW: it makes no Gmail write, delete or label call', r1.calls.length === 0, JSON.stringify(r1.calls));
-    // evasions from the reformed-spammer review
-    // EXACTLY three themes, so hiding any one of them drops the count below the line:
-    // moneyFear + authority + scale. The strip is the only thing that lets this pass.
-    const THREE = 'If you have a 401(k), read this. Exec\u034futive Or\u0301der 14330 is signed. Almost $10 trillion.';
-    check('SHADOW: a grapheme joiner + combining acute inside "executive order" do not hide the theme',
-          run(mk(THREE)).shadow.length === 1, JSON.stringify(run(mk(THREE)).shadow));
-    const VSEL = 'If you have a 401(k), read this. Executive Order 14330 is signed. Almost $10 trill\ufe0fion.';
-    check('SHADOW: a variation selector inside "trillion" does not hide the theme',
-          run(mk(VSEL)).shadow.length === 1, JSON.stringify(run(mk(VSEL)).shadow));
-    const TAGC = 'If you have a 401(k), read this. Execu\udb40\udc41tive Order 14330 is signed. Almost $10 trillion.';
-    check('SHADOW: a Unicode tag character inside "executive" does not hide the theme',
-          run(mk(TAGC)).shadow.length === 1, JSON.stringify(run(mk(TAGC)).shadow));
-    const TG = EO.replace('trillion', 'tri\u00adllion').replace('401(k)', '401(k\u200b)');
-    check('SHADOW: soft hyphen / zero-width space do not hide a theme', run(mk(TG)).shadow.length === 1, JSON.stringify(run(mk(TG)).shadow));
-    // postal needle, log-only
-    const r3 = run(mk('Sent by Foo LLC, 200 Broadway Blvd NE, Albuquerque, NM 87102. Unsubscribe.'));
-    check('SHADOW: a known mill footer address is logged', r3.shadow.length === 1 && /postal=albuquerque/.test(r3.shadow[0]), JSON.stringify(r3.shadow));
-    const r4 = run(mk('Sent by Foo LLC, 9 W 9th St, Wilmington, DE 19801.'));
-    check('SHADOW: a shared registered-agent address (Wilmington) is NOT a needle', r4.shadow.length === 0, JSON.stringify(r4.shadow));
-    // engagement: bulk + 2 weak + no relationship
-    const weak = { bulkEmailService: true, marketingFormat: true, headlineFromName: true };
-    const r5 = run(mk('Hello.'), weak, {}, () => []);
-    check('SHADOW: bulk + 2 weak + no history with the domain logs "unsolicited"', r5.shadow.length === 1 && /unsolicited/.test(r5.shadow[0]), JSON.stringify(r5.shadow));
-    const r6 = run(mk('Hello.'), weak, {}, (q) => /in:sent/.test(q) ? [{}] : []);
-    check('SHADOW: a domain the owner has SENT to is not "unsolicited"', r6.shadow.length === 0, JSON.stringify(r6.shadow));
-    const r7 = run(mk('Hello.'), { bulkEmailService: true, marketingFormat: true }, {}, () => []);
-    check('SHADOW: bulk + only 1 weak point is not a candidate and costs no search', r7.shadow.length === 0 && r7.searches.length === 0, JSON.stringify(r7.searches));
-    const r8 = run(mk('Hello.'), weak, { ['SHADOW_HIST_signal.example-brief.com']: 'N:' + Date.now() }, () => { throw new Error('searched'); });
-    check('SHADOW: a cached answer is used without searching (30-day cache)', r8.shadow.length === 1 && r8.searches.length === 0, JSON.stringify(r8.searches));
-    // budget: the (SHADOW_HISTORY_BUDGET+1)th new domain in one execution is unknown, so not logged and not searched
-    const cb = makeCtx({ props: {} });
-    const B = vm.runInContext('SHADOW_HISTORY_BUDGET', cb);
-    const bl = []; cb.logInfo = (l) => bl.push(String(l)); let nsearch = 0;
-    cb.GmailApp.search = () => { nsearch++; return []; };
-    for (let i = 0; i < B + 3; i++) {
-      const m = mk('Hello.', { from: 'X <a@d' + i + '.example.org>' });
-      cb.observeShadow(m, { isSpam: false, signals: Object.assign({ clickbaitCount: 0 }, weak) });
-    }
-    check('SHADOW: history lookups are capped per execution (SHADOW_HISTORY_BUDGET domains x 2 searches max)', B === 6 && nsearch <= 2 * B && bl.filter(l => /unsolicited/.test(l)).length === B,
-          JSON.stringify({ nsearch, logged: bl.length }));
-    // v6.92.0: brand-less "view the document" button to an unrelated domain (doclure)
-    {
-      const lure = (o) => {
-        o = o || {};
-        const m = mk(o.body || 'Kelowna has sent you a document\nPDF\nDOCSX_eStmt_2026-11-03_8052126', {
-          from: o.from || '"Reddhart Workwear, Kelowna" <rwss936@reddhart.ca>',
-          subject: o.subject || 'Kelowna shared a new document with you.' });
-        m.getBody = () => o.html || '<p>Kelowna has sent you a document</p><a href="https://mhwilson1988.org/aa.html">VI​EW​ P​DF O​NLI​NE</a>';
-        return run(m, o.sig);
-      };
-      const hit = lure();
-      check('DOCLURE: the Kelowna phish is logged with the unrelated link root',
-            hit.shadow.length === 1 && /doclure=mhwilson1988\.org/.test(hit.shadow[0]), JSON.stringify(hit.shadow));
-      check('DOCLURE: it makes no Gmail write, delete or label call', hit.calls.length === 0, JSON.stringify(hit.calls));
-      const none = (name, o) => { const r = lure(o); check('DOCLURE: ' + name, r.shadow.filter(l => /doclure/.test(l)).length === 0, JSON.stringify(r.shadow)); };
-      none('a link on the sender\'s own domain is not logged', { html: '<a href="https://files.reddhart.ca/x">View PDF online</a>' });
-      none('the same registrable root with a different subdomain is not logged',
-           { from: 'Xero <messaging-service@post.acme.com>', html: '<a href="https://go.acme.com/x">View document</a>' });
-      none('a trusted portal as the link host (TaxDome) is not logged', { html: '<a href="https://smithcpa.taxdome.com/x">View document</a>' });
-      none('a trusted sender (Xero) is not logged', { from: 'Xero <a@post.xero.com>', html: '<a href="https://evil.example.org/x">View document</a>' });
-      none('a free-mail sender is not logged', { from: 'Bob <bob@gmail.com>', html: '<a href="https://evil.example.org/x">Download file</a>' });
-      none('a Re: thread is not logged', { subject: 'Re: Kelowna shared a new document with you.' });
-      none('a Fwd: thread is not logged', { subject: 'Fwd: Kelowna shared a new document with you.' });
-      none('a link wrapper (bit.ly) is not logged', { html: '<a href="https://bit.ly/abc">View PDF online</a>' });
-      none('an IP literal host is not logged', { html: '<a href="http://203.0.113.9/x">View PDF online</a>' });
-      none('a prose-length button is not logged', { html: '<a href="https://evil.example.org/x">Please click here to view the document that was shared with you today</a>' });
-      none('bare "online" with no document noun is not logged', { html: '<a href="https://evil.example.org/x">View online</a>' });
-      none('no lure phrase is not logged', { subject: 'Weekly update', body: 'Hello.', html: '<a href="https://evil.example.org/x">View PDF online</a>' });
-      none('bulk-service mail is not logged', { sig: { bulkEmailService: true } });
-      none('a mailto: button is not logged', { html: '<a href="mailto:a@b.org">View PDF online</a>' });
-    }
-    // v6.94.0: hits are also written to the "Shadow" tab (the Executions log is unreadable)
-    {
-      const mkSheet = (existing) => {
-        const st = { rows: existing || 0, writes: [], deleted: null, created: false };
-        const sheet = {
-          getRange: (r, c, nr, nc) => ({ setValues: v => { st.writes.push({ r, nr, v }); if (r > 1) st.rows = r - 1 + v.length; } }),
-          getLastRow: () => st.rows + 1, deleteRows: (a, n) => { st.deleted = { a, n }; }, setFrozenRows() {} };
-        return { st, ss: { openById: () => ({ getSheetByName: () => (existing === undefined ? null : sheet),
-                                              insertSheet: () => { st.created = true; return sheet; } }) } };
-      };
-      const hitMsg = () => { const m = mk('Kelowna has sent you a document', { subject: 'Kelowna shared a new document with you.',
-        from: '"Reddhart" <rwss936@reddhart.ca>' }); m.getBody = () => '<a href="https://mhwilson1988.org/aa.html">View PDF online</a>'; return m; };
-      const c = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } });
-      const { st, ss } = mkSheet();
-      c.SpreadsheetApp = ss; c.logInfo = () => {};
-      c.observeShadow(hitMsg(), { isSpam: false, signals: { clickbaitCount: 0, bulkEmailService: false } });
-      check('SHADOWTAB: observing alone writes nothing until the run flushes', st.writes.length === 0);
-      c.flushShadowRows();
-      const row = st.writes.length ? st.writes[st.writes.length - 1].v[0] : [];
-      check('SHADOWTAB: the tab is created and one row is written with tags, domain and subject',
-            st.created && /doclure=mhwilson1988\.org/.test(row[2]) && row[3] === 'reddhart.ca' && /Kelowna/.test(row[4]), JSON.stringify(st.writes));
-      const before = st.writes.length; c.flushShadowRows();
-      check('SHADOWTAB: a second flush with nothing buffered makes no Sheets call', st.writes.length === before);
-      const cap = mkSheet(1000);
-      const VER = require('vm').runInContext('SCRIPT_VERSION', c);   // seeds the once-per-version self-test row as already written
-      const c2 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1', SHADOW_SELFTEST_VERSION: VER } }); c2.SpreadsheetApp = cap.ss; c2.logInfo = () => {};
-      for (let i = 0; i < 3; i++) c2.queueShadowRow('themes=3', 'd.example', 's' + i, 'id' + i);
-      c2.flushShadowRows();
-      check('SHADOWTAB: the oldest rows are dropped to hold the cap', cap.st.deleted && cap.st.deleted.a === 2 && cap.st.deleted.n === 3, JSON.stringify(cap.st.deleted));
-      const c3 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1', SHADOW_SELFTEST_VERSION: VER } }); c3.SpreadsheetApp = mkSheet().ss; c3.logInfo = () => {};
-      for (let i = 0; i < 80; i++) c3.queueShadowRow('themes=3', 'd.example', 's' + i, 'id' + i);
-      const w3 = mkSheet(); c3.SpreadsheetApp = w3.ss; c3.flushShadowRows();
-      const w3rows = w3.st.writes.length ? w3.st.writes[w3.st.writes.length - 1].v : [];
-      check('SHADOWTAB: one run writes at most 50 observations, plus one DROPPED row counting the 30 it refused',
-            w3rows.length === 51 && w3rows[50][2] === 'DROPPED=30' && w3rows.filter(r => /themes/.test(r[2])).length === 50, JSON.stringify(w3.st.writes.map(x => x.nr)));
-      const c4 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); c4.SpreadsheetApp = { openById: () => { throw new Error('sheet down'); } };
-      c4.queueShadowRow('x', 'd', 's', 'i'); let t4 = false; try { c4.flushShadowRows(); } catch (e) { t4 = true; }
-      check('SHADOWTAB: a Sheets failure is swallowed', !t4);
-      const c5 = makeCtx({ props: {} }); c5.queueShadowRow('x', 'd', '=HYPERLINK("http://e")', 'i');
-      const w5 = mkSheet(); c5.SpreadsheetApp = w5.ss; c5.flushShadowRows();
-      check('SHADOWTAB: no SPAM_LOG_SHEET_ID means no write and no throw', w5.st.writes.length === 0);
-      const c6 = makeCtx({ props: { SPAM_LOG_SHEET_ID: 's' } }); c6.queueShadowRow('x', 'd', '=HYPERLINK("http://e")', 'i');
-      const w6 = mkSheet(); c6.SpreadsheetApp = w6.ss; c6.flushShadowRows();
-      const sub = w6.st.writes.length ? w6.st.writes[w6.st.writes.length - 1].v[0][4] : '';
-      check('SHADOWTAB: a formula-looking subject is escaped', sub.charAt(0) === "'", sub);
-    }
-    // v6.96.0: repeated-link observer + a Shadow writer that proves itself
-    {
-      const VER = require('vm').runInContext('SCRIPT_VERSION', makeCtx({}));
-      const U = 'https://lnk.mill.example/6a79?email=x@y.org&uniquecode=RED-1';
-      const rep = (n, u) => Array.from({ length: n }, (_, i) => 'Read this ' + (u || U)).join('\n');
-      const obs = (body, o) => {
-        o = o || {};
-        const c = makeCtx({ props: o.props || {} });
-        const logs = []; c.logInfo = (l) => logs.push(String(l));
-        const searches = []; c.GmailApp.search = (q) => { searches.push(q); return o.hist ? [1] : []; };
-        if (o.exhaust) require('vm').runInContext('shadowHistoryLookups = SHADOW_HISTORY_BUDGET', c);
-        const m = mk(body, { from: 'Newsletter <the@liberty.mill.example>' });
-        if (o.html) m.getBody = () => o.html;
-        c.observeShadow(m, { isSpam: false, signals: { clickbaitCount: 0, bulkEmailService: o.bulk !== false } });
-        return { c, searches, shadow: logs.filter(l => l.indexOf('SHADOW') === 0), calls: c.calls.map(x => x.op) };
-      };
-      const r1 = obs(rep(9));
-      check('CTAREP: one link x9 in a bulk mail from an unknown sender is logged', r1.shadow.length === 1 && /ctarep=9\/9/.test(r1.shadow[0]), JSON.stringify(r1.shadow));
-      check('CTAREP: it makes no Gmail write, label or delete call', r1.calls.length === 0, JSON.stringify(r1.calls));
-      check('CTAREP: 5 repeats is under the bar', obs(rep(5)).shadow.length === 0);
-      const r3 = obs(rep(9), { bulk: false });
-      check('CTAREP: non-bulk mail is not observed and costs no search', r3.shadow.length === 0 && r3.searches.length === 0, JSON.stringify(r3.searches));
-      check('CTAREP: a sender the owner has history with is not logged', obs(rep(9), { hist: true }).shadow.length === 0);
-      const r5 = obs(rep(9), { exhaust: true });
-      check('CTAREP: a spent history budget is logged as hist=unk, not dropped', r5.shadow.length === 1 && /ctarep=9\/9 hist=unk/.test(r5.shadow[0]), JSON.stringify(r5.shadow));
-      const tok = Array.from({ length: 9 }, (_, i) => 'Read ' + 'https://lnk.mill.example/6a79?slot=' + i).join('\n');
-      check('CTAREP: a per-link token in the query does not dodge it (host+path count)', /ctarep=1\/9/.test(obs(tok).shadow[0] || ''), JSON.stringify(obs(tok).shadow));
-      const four = Array.from({ length: 4 }, () => '<a href="' + U.replace(/&/g, '&amp;') + '">go</a>').join('');
-      check('CTAREP: the same link 4x in plain AND 4x in HTML is compared, not summed',
-            obs(rep(4), { html: four }).shadow.length === 0);
-      check('CTAREP: HTML anchors alone can reach the bar', /ctarep=6\/6.*/.test(obs('Hello', { html: Array.from({ length: 6 }, () => '<a href="' + U + '">go</a>').join('') }).shadow[0] || ''));
-      const mixed = ['HTTPS://Lnk.Mill.Example/a#x', 'https://lnk.mill.example/a.', 'https://lnk.mill.example/a', 'https://LNK.mill.example/a,', 'https://lnk.mill.example/a#y', 'https://lnk.mill.example/a'].join(' ');
-      check('CTAREP: case, fragment and trailing punctuation normalise to one link', /ctarep=6\/6/.test(obs(mixed).shadow[0] || ''), JSON.stringify(obs(mixed).shadow));
-      check('CTAREP: the log line carries the host only, never the recipient or token', !/x@y\.org|RED-1|uniquecode/.test(r1.shadow[0]), r1.shadow[0]);
-      const t0 = Date.now(); obs('http://'.repeat(9000)); obs(('http://a.example/' + 'x'.repeat(40) + ' ').repeat(1400));
-      check('CTAREP: adversarial 64 KB URL bodies scan in < 1 s', Date.now() - t0 < 1000, String(Date.now() - t0) + ' ms');
-
-      // --- writer: self-test, overflow, failure paths ---
-      const mkS = (rows, maxRows, failSet) => {
-        const st = { rows, maxRows, writes: [], inserted: null, created: false, opens: 0 };
-        const sheet = {
-          getRange: (r, c, nr) => ({ setValues: v => { if (failSet) throw new Error('write down'); if (r + nr - 1 > st.maxRows) throw new Error('off the grid'); st.writes.push({ r, nr, v }); if (r > 1) st.rows = r - 1 + v.length; } }),
-          getLastRow: () => st.rows + 1, getMaxRows: () => st.maxRows, insertRowsAfter: (a, n) => { st.inserted = { a, n }; st.maxRows += n; },
-          deleteRows() {}, setFrozenRows() {} };
-        return { st, ss: { openById: () => { st.opens++; return { getSheetByName: () => (rows === undefined ? null : sheet), insertSheet: () => { st.created = true; return sheet; } }; } } };
-      };
-      const cs = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); const ws = mkS(); cs.SpreadsheetApp = ws.ss; cs.logInfo = () => {};
-      cs.flushShadowRows();
-      const srow = ws.st.writes.length ? ws.st.writes[ws.st.writes.length - 1].v[0] : [];
-      check('SELFTEST: a quiet first run creates the tab and writes one "selftest ok" row', ws.st.created && srow[2] === 'selftest ok' && srow[3] === 'selftest', JSON.stringify(ws.st.writes));
-      check('SELFTEST: every row is as wide as the header', ws.st.writes[0].v.every(r => r.length === 10));
-      const n0 = ws.st.opens; cs.flushShadowRows();
-      check('SELFTEST: written once per version - the next quiet run makes no Sheets call', ws.st.opens === n0);
-      const cf = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1' } }); const wf = mkS(0, 1000, true); cf.SpreadsheetApp = wf.ss; cf.logInfo = () => {};
-      cf.flushShadowRows();
-      check('SELFTEST: a failed write leaves the version unmarked (it will be retried)', cf.PropertiesService.getScriptProperties().getProperty('SHADOW_SELFTEST_VERSION') !== VER);
-      const o1 = wf.st.opens; cf.flushShadowRows();
-      check('SELFTEST: ...but a broken sheet is retried at most hourly, not every 10 minutes', wf.st.opens === o1);
-      const cg = makeCtx({ props: { SPAM_LOG_SHEET_ID: 'sheet1', SHADOW_SELFTEST_VERSION: VER } }); const wg = mkS(1000, 1000); cg.SpreadsheetApp = wg.ss; cg.logInfo = () => {};
-      for (let i = 0; i < 3; i++) cg.queueShadowRow('themes=3', 'd.example', 's' + i, 'id' + i);
-      cg.flushShadowRows();
-      check('SHADOWTAB: a full 1000-row grid is grown before the write (it used to land off the grid and throw)',
-            wg.st.inserted && wg.st.writes.length >= 2 && wg.st.writes[wg.st.writes.length - 1].nr === 3, JSON.stringify([wg.st.inserted, wg.st.writes.map(x => x.nr)]));
-      const ch = makeCtx({ props: { SHADOW_SELFTEST_VERSION: VER } }); const logsH = []; ch.logInfo = (l) => logsH.push(String(l));
-      ch.queueShadowRow('themes=3', 'd', 's', 'i'); ch.flushShadowRows();
-      check('SHADOWTAB: a missing SPAM_LOG_SHEET_ID is said so in the log', logsH.some(l => /SPAM_LOG_SHEET_ID is unset/.test(l)), JSON.stringify(logsH));
-    }
-    // never throws, even on a broken message
-    let threw = false;
-    try { const c = makeCtx({}); c.observeShadow({ getSubject() { throw new Error('boom'); } }, { isSpam: false, signals: { clickbaitCount: 0 } }); }
-    catch (e) { threw = true; }
-    check('SHADOW: an error inside the observer is swallowed', !threw);
-    // performance at the 100 KB cap, adversarial shapes
-    const big = ['left ' + 'a '.repeat(50000), 'before we ' + 'x '.repeat(50000), '$' + '1,'.repeat(50000), '1'.repeat(100000), 'your ' + ' '.repeat(100000)];
-    const t0 = Date.now();
-    big.forEach(b => run(mk(b)));
-    check('SHADOW: five adversarial 100 KB bodies scan in < 1.5 s total', Date.now() - t0 < 1500, String(Date.now() - t0) + ' ms');
-  }
   const MILLRAW = 'Reply-To: support@trendwatcherslab.com\r\n\r\nhi';
   const PAID = 'This is a paid advertisement. ' + HEAD + ' ' + CRED3;
   check('relay shape: paid-ad wording fires with the real sender shape',
@@ -3274,7 +3053,7 @@ console.log('\n=== Signal 16 / Rule 13: known mill footer address on bulk-marked
     const KEY = (c) => c.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com');
     const run13 = (hist) => { const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
       if (hist === 'known') c.props[KEY(c)] = 'Y:' + Date.now(); if (hist === 'none') c.props[KEY(c)] = 'N:' + Date.now();
-      if (hist === 'unknown') vm.runInContext('shadowHistoryLookups = SHADOW_HISTORY_BUDGET', c);
+      if (hist === 'unknown') vm.runInContext('historyLookups = HISTORY_LOOKUP_BUDGET', c);
       return c.analyzeMessage(mk({}, 'mR16g')); };
     let v = run13('none');
     check('Rule 13: no history with the exact sender address => convicted', v.isSpam === true);
@@ -3389,7 +3168,7 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
     if (hist === 'none')    c.props[KEY] = 'N:' + Date.now();
     // The shared ESP's own domain being "known" must NOT switch the rule off for a mill on it.
     if (hist === 'none' || hist === 'known') c.props['SHADOW_HIST_email.cyberimpact.com'] = 'Y:' + Date.now();
-    if (hist === 'unknown') vm.runInContext('shadowHistoryLookups = SHADOW_HISTORY_BUDGET', c);
+    if (hist === 'unknown') vm.runInContext('historyLookups = HISTORY_LOOKUP_BUDGET', c);
     const m = mk(o || {});
     const v = c.analyzeMessage(m);
     return { c, m, v, rule: v.signals ? c.getRuleFromSignals(v.signals).rule : null };
@@ -3516,7 +3295,7 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
       const c = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
       const addr = from.substring(from.indexOf('<') + 1, from.indexOf('>')).toLowerCase();
       c.props[c.historyCacheKey(addr)] = 'N:' + Date.now();            // the exact address is new
-      if (o.budget !== undefined) vm.runInContext('shadowHistoryLookups = SHADOW_HISTORY_BUDGET - ' + o.budget, c);
+      if (o.budget !== undefined) vm.runInContext('historyLookups = HISTORY_LOOKUP_BUDGET - ' + o.budget, c);
       const qs = [];
       c.GmailApp.search = (q) => { qs.push(q); if (!priors.length) return []; const t = fakeThread(priors);
         (o.threadLabels || []).forEach(l => t.__labels.push(l)); return [t]; };
@@ -3670,6 +3449,28 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
   check('Rule 14 is in the destructive list and not in the quarantine list',
         /DESTRUCTIVE_RULES = \[[^\]]*Rule 14/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')) &&
         !/QUARANTINE_RULES = \[[^\]]*Rule 14/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')));
+}
+
+console.log('\n=== v6.106.0: the shadow observer is gone, its leftovers are purged ===');
+{
+  const fs = require('fs'), path = require('path');
+  const c = makeCtx({ props: { 'SHADOW_HIST_email.cyberimpact.com': 'Y:1', 'SHADOW_HIST_a1b2c3': 'N:1',
+                               SHADOW_SELFTEST_VERSION: '6.96.0', SHADOW_SELFTEST_TRY: 'x', SPAM_LOG_SHEET_ID: 's' } });
+  const deleted = [];
+  const tabs = { Shadow: { name: 'Shadow' }, 'Raw Log': { name: 'Raw Log' } };
+  c.SpreadsheetApp = { openById: () => ({ getSheetByName: n => tabs[n] || null, deleteSheet: t => { deleted.push(t.name); delete tabs[t.name]; } }) };
+  const n = c.purgeShadowLeftovers();
+  check('purge: the Sheet\'s "Shadow" tab is deleted, and only that tab', JSON.stringify(deleted) === '["Shadow"]', JSON.stringify(deleted));
+  check('purge: domain history keys and self-test markers are deleted', n === 3 &&
+        !('SHADOW_HIST_email.cyberimpact.com' in c.props) && !('SHADOW_SELFTEST_VERSION' in c.props) && !('SHADOW_SELFTEST_TRY' in c.props));
+  check('purge: the gate\'s hashed address answers and unrelated properties are kept',
+        c.props.SHADOW_HIST_a1b2c3 === 'N:1' && c.props.SPAM_LOG_SHEET_ID === 's');
+  check('purge: nothing left means nothing deleted', c.purgeShadowLeftovers() === 0);
+  for (const gone of ['observeShadow', 'flushShadowRows', 'queueShadowRow', 'docLureHost', 'repeatStats', 'SHADOW_THEME_PATTERNS']) {
+    check('removed: ' + gone, vm.runInContext('typeof ' + gone, c) === 'undefined');
+  }
+  check('purge runs only on a version change', /if \(versionChanged\) runMaintenanceStep\('purgeShadowLeftovers'/.test(
+    fs.readFileSync(path.join(__dirname, '..', 'src', 'Maintenance.gs'), 'utf8')));
 }
 
 console.log('\n=== v6.104.0: a whitelisted address in the display name is not an exemption ===');

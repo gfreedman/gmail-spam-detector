@@ -277,8 +277,8 @@ function senderHasNamedDomainHistory(fromAddr, name, selfId)
     const parts = cached.split(':');
     if (now - Number(parts[1]) < 3 * 24 * 3600 * 1000) return parts[0] === 'Y';
   }
-  if (shadowHistoryLookups >= SHADOW_HISTORY_BUDGET) return null;
-  shadowHistoryLookups++;
+  if (historyLookups >= HISTORY_LOOKUP_BUDGET) return null;
+  historyLookups++;
 
   const cutoff  = now - 2 * 24 * 3600 * 1000;
   const threads = GmailApp.search('from:' + domain + ' older_than:2d is:read' + historyLabelExclusions() +

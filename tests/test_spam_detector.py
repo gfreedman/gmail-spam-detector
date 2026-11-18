@@ -1281,13 +1281,14 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Mirror of whitelistEntryForFrom(): only an unambiguous header can be whitelisted, exactly
     # one trailing <addr> or a bare address. Display-name addresses are ignored, never counted.
     lts, gts = from_field.count('<'), from_field.count('>')
+    # Explicit ' \t\r\n', never \s or bare strip(): JS and Python disagree on what those cover.
+    wl_sender = None
     if lts == 0 and gts == 0:
-        bare = re.search(r'([^ \t\r\n<>()]+@[^ \t\r\n<>()]+)', from_field)
-        wl_sender = (bare.group(1) if bare else from_field).strip().lower()
+        if from_field.count('@') == 1:
+            bare = re.search(r'([^ \t\r\n<>()]+@[^ \t\r\n<>()]+)', from_field)
+            wl_sender = bare.group(1).lower() if bare else None
     elif lts == 1 and gts == 1 and tail_match:
-        wl_sender = tail_match.group(1).strip().lower()
-    else:
-        wl_sender = None
+        wl_sender = tail_match.group(1).strip(' \t\r\n').lower()
     for domain in (WHITELISTED_DOMAINS if wl_sender is not None else []):
         if _address_matches_domain(wl_sender, domain):
             return {'bulk_email': has_amazon_ses, 'blacklisted_sender': False,
@@ -2607,6 +2608,10 @@ def run_edge_case_tests():
         ('X <team @mill.example> <news@betakit.com>', False, 'two angle-addrs, space before @'),
         ('Name <news@betakit.com> (team@mill.example)', False, 'comment after the angle-addr'),
         ('x\ufeff@mill.example <news@betakit.com>', True, 'bare text before a single trailing whitelisted angle-addr'),
+        ('(news@betakit.com) team@mill.example', False, 'comment before a bare address'),
+        ('alex.riehl@betakit.com (BetaKit)', True, 'bare address with a trailing comment'),
+        ('<news@betakit.com\ufeff>', False, 'U+FEFF inside the brackets is not whitespace'),
+        ('<news@betakit.com\x1c>', False, '\\x1c inside the brackets is not whitespace'),
     ]
     for from_field, want, label in wl_cases:
         sig, _, _ = analyze_email('Hello', from_field, True)

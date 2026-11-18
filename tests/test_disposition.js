@@ -3649,6 +3649,10 @@ console.log('\n=== v6.104.0: a whitelisted address in the display name is not an
     ['Name <news@betakit.com> (team@mill.example)', false],
     ['x\ufeff@mill.example <news@betakit.com>', true],
     ['x\x1c@mill.example <news@betakit.com>', true],
+    ['(news@betakit.com) team@mill.example', false],
+    ['alex.riehl@betakit.com (BetaKit)', true],
+    ['<news@betakit.com\ufeff>', false],
+    ['<news@betakit.com\x1c>', false],
   ];
   for (const [from, want] of cases) {
     check('collectSignals ' + (want ? 'whitelists ' : 'judges ') + from, (c.collectSignals(msg(from)) === null) === want);

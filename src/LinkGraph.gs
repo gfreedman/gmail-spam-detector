@@ -698,11 +698,29 @@ function lastAngleContent(text)
  */
 function whitelistEntryForFrom(from, whitelist)
 {
+  // Explicit [ \t\r\n], never \s or trim(): JS and Python disagree on what those strip
+  // (U+FEFF, \x1c-\x1f, \x85, U+00A0), and the Python mirror must give the same answer.
   const text = String(from || '');
   const lts = text.split('<').length - 1, gts = text.split('>').length - 1;
-  let sender;
-  if (lts === 0 && gts === 0) sender = extractEmailAddress(text);           // bare address
-  else if (lts === 1 && gts === 1 && lastAngleContent(text) !== null) sender = lastAngleContent(text).trim().toLowerCase();
+  const ats = text.split('@').length - 1;
+  let sender = null;
+  if (lts === 0 && gts === 0)
+  {
+    // A bare address, and only one: '(news@betakit.com) team@mill.example' names two, and RFC
+    // 5322 makes the parenthesised one a comment, so whichever we took could be the wrong one.
+    if (ats !== 1) return null;
+    const tokens = text.split(/[ \t\r\n<>()]+/);
+    for (let i = 0; i < tokens.length && sender === null; i++)
+    {
+      const at = tokens[i].indexOf('@');
+      if (at > 0 && at < tokens[i].length - 1) sender = tokens[i].toLowerCase();
+    }
+    if (sender === null) return null;
+  }
+  else if (lts === 1 && gts === 1 && lastAngleContent(text) !== null)
+  {
+    sender = lastAngleContent(text).replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, '').toLowerCase();
+  }
   else return null;                                                          // ambiguous: judge it
   for (let i = 0; i < whitelist.length; i++)
   {

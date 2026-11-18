@@ -509,36 +509,6 @@ const SPONSORED_AD_PATTERNS = Object.freeze([
 ]);
 
 /**
- * SHADOW OBSERVER data (v6.91.0) - LOG-ONLY, read by observeShadow() in Thread.gs and
- * by nothing that decides a verdict. Six theme families a finance-ad mill stacks in one
- * email. Reviewed 2026-10-28 (L7, reformed-spammer, first-principles): counting themes
- * is wording-bound and the families overlap ordinary finance news ("$10 trillion",
- * "executive order"), so this must NOT convict until real-mailbox data says otherwise.
- *
- * Every pattern is bounded: no unbounded gap, no nested quantifier, no \b (JS \b is
- * ASCII-only; Python's is not), so a scan is linear at the 100 KB input cap. Run
- * against normalizeAdText() output plus the extra strip in observeShadow().
- * @const {Object<string, RegExp>}
- */
-const SHADOW_THEME_PATTERNS = Object.freeze({
-  moneyFear:  /(?:your|if you (?:have|own|hold)(?: an?)?) (?:401 ?\(?k\)?|ira|retirement|savings|pension|nest egg|social security|brokerage|portfolio)/,
-  authority:  /executive order|new law|federal reserve|treasury|white house|supreme court|congress|(?:^|[ ,.])the fed(?:[ ,.]|$)/,
-  suppressed: /(?:left|kept|leave|leaving|keep|keeping) (?:[a-z]{1,12} ){0,3}(?:off|out of) (?:the )?(?:front page|headlines|news)|(?:don|doesn)['\u2019]?t want you to (?:know|see)|do not want you to (?:know|see)|won['\u2019]?t tell you|mainstream media|cover-?up|banned|censor/,
-  deadline:   /before (?:we|they|it|this|midnight|tonight)(?: [a-z]{1,12}){0,3} (?:take|taken|pull|pulled|remove|removed|delete|deleted|shut|down|ends?|expires?)|(?:expires?|ends?) (?:tonight|today|soon|friday|at midnight)|last chance|take (?:it|this) down|act (?:now|fast|today)/,
-  scale:      /\$ ?\d{1,3}(?:\.\d{1,2})? ?(?:trillion|billion)|\d{1,3}(?:,\d{3}){0,2} million (?:people|americans|accounts|investors|workers)/,
-  upside:     /(?:^|[^a-z0-9])\d{1,3}x(?:[^a-z0-9]|$)|millionaire|skyrocket|explode|life-?changing|windfall/
-});
-
-/**
- * REPEATED-LINK observer threshold (v6.96.0) - LOG-ONLY, read by observeShadow() in
- * Thread.gs. One URL repeated this many times in a bulk-service mail from a sender the
- * owner has no history with. Panel 2026-11-04: 6 (5 touches multi-CTA text mail);
- * counting is exact-URL AND host+path, so a per-link token in the query cannot dodge it.
- * @const {number}
- */
-const SHADOW_CTA_REPEAT_MIN = 6;
-
-/**
  * Footer postal addresses seen on 4+ spam fixtures across several brand domains
  * (one street address behind five sender domains - the cheap-to-match,
  * costly-to-change tell). Normalised: lower-case, letters and digits, single spaces.
@@ -547,7 +517,7 @@ const SHADOW_CTA_REPEAT_MIN = 6;
  * on purpose: thousands of legitimate firms share them.
  *
  * DECISION DATA since v6.98.0: Signal 16 (millFooterAddress, Rule 13, DELETES after the Drive archive)
- * reads this list, and observeShadow() still tags `postal=` from it. It was
+ * reads this list. It was
  * log-only through v6.97.0 and the Macro View Digest miss (v6.97.0) was tagged
  * `postal=fwy` seven minutes after it arrived while nothing acted on the tag.
  * Adding an address is a data line, but it ships through a release (the list is
@@ -594,51 +564,6 @@ const MILL_PROMO_PUBLISHERS = Object.freeze([
   'investorplace',
   'paradigm press',
   'oxford club'
-]);
-
-/**
- * DOCUMENT-LURE SHADOW data (v6.92.0) - LOG-ONLY, read by docLureHost() in LinkGraph.gs
- * and observeShadow() in Thread.gs; nothing that decides a verdict reads it.
- *
- * A "X shared a document with you" notice whose only button ("VIEW PDF ONLINE") names no
- * brand, so Signal 7 cannot see it, and which links to a host unrelated to the sender.
- * Reviewed 2026-11-04 (L7 security): the same shape is what a CPA, law firm or realtor
- * on a white-label portal sends legitimately, so this must NOT convict until the log
- * shows real mail. Bounded: no unbounded gap, no nested quantifier.
- * Run against subject + the first 2000 chars of plain text, zero-width characters
- * stripped.
- * @const {Array<RegExp>}
- */
-const DOC_LURE_PATTERNS = Object.freeze([
-  /(?:shared|sent)[^.\n]{0,40}(?:document|file|folder|pdf)[^.\n]{0,20}with you/i,
-  /has sent you an? (?:document|pdf|file)/i,
-  /(?:^|[^a-z])estmt(?:[^a-z]|$)/i
-]);
-
-/**
- * A button that says "view the document" without naming a brand. Tested against the
- * anchor text with every non-alphanumeric stripped, so "VIEW PDF ONLINE", "View-PDF"
- * and zero-width padding all collapse. Whole-string match, <= 40 characters: a
- * sentence is not a button. A noun is REQUIRED; bare "online" is not one.
- * @const {RegExp}
- */
-const DOC_LURE_CTA_PATTERN = /^(?:view|open|download|access|review)(?:the|your|this)?(?:pdf|document|file|statement)(?:online)?$/;
-
-/**
- * Registrable roots of services that legitimately send "view your document" mail from
- * one domain and link to another (portals, accounting, e-sign, transfer). Either the
- * sender or the link landing on one of these abstains. Matched with hostMatchesDomain().
- * @const {Array<string>}
- */
-const DOC_LURE_TRUSTED_ROOTS = Object.freeze([
-  'xero.com', 'intuit.com', 'quickbooks.com', 'stripe.com', 'squareup.com', 'paypal.com',
-  'freshbooks.com', 'waveapps.com', 'bill.com', 'taxdome.com', 'smartvault.com',
-  'sharefile.com', 'liscio.me', 'canopytax.com', 'karbonhq.com', 'clio.com', 'mycase.com',
-  'dotloop.com', 'skyslope.com', 'zoho.com', 'zohosign.com', 'wetransfer.com', 'we.tl',
-  'icloud.com', 'apple.com', 'adobe.com', 'adobesign.com', 'docusign.net', 'docusign.com',
-  'dropboxsign.com', 'pandadoc.com', 'canva.com', 'figma.com', 'slack.com', 'hubspot.com',
-  'docsend.com', 'google.com', 'googleusercontent.com', 'microsoft.com', 'office.com',
-  'sharepoint.com', 'live.com', 'onedrive.com', 'dropbox.com', 'box.com'
 ]);
 
 const CTA_VERB_PATTERN = /\b(view|open|review|sign|access|continue|download|proceed|complete|retrieve|verify|confirm)\b/i;

@@ -20,6 +20,21 @@ detail plus the diffs.
 
 ---
 
+## v6.106.0
+
+**The shadow observers are removed.**
+
+The log-only observers of v6.91.0-v6.96.0 (theme counts, `postal=` / `unsolicited` / `ctarep` /
+`doclure` tags, the Shadow tab and its self-test) never decided anything. The owner wants rules that
+act, not logs ("no shadow junk", 2026-11-06), and they spent the same history-lookup budget Rules 13
+and 14 use to decide deletes. Removed: `observeShadow()`, `SHADOW_THEME_PATTERNS`,
+`SHADOW_CTA_REPEAT_MIN`, `plainTextUrls()`/`normalizeRepeatUrl()`/`repeatStats()`, `docLureHost()` and
+the DOC_LURE data, `queueShadowRow()`/`shadowSelftestRow()`/`flushShadowRows()`. Kept and renamed: the
+history lookup the gate uses (`SHADOW_HISTORY_BUDGET` -> `HISTORY_LOOKUP_BUDGET`); the cache keys keep
+their `SHADOW_HIST_A` prefix so cached answers survive. New one-off `purgeShadowLeftovers()` (on a
+version change): deletes the observer's per-domain history keys, its self-test markers and the Sheet's
+"Shadow" tab. No verdict, label or delete changes: the observer could not affect any.
+
 ## v6.105.0
 
 **False positives are restored from a "Restore" tab in the Sheet, on the 10-minute trigger.**

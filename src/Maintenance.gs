@@ -183,6 +183,9 @@ function runPeriodicMaintenance()
   // forced cycle an early throw would have cost the re-check its only
   // immediate run and left it waiting on the 30-minute timer.
 
+  // v6.106.0: one-off tidy of what the removed shadow observer left in Script Properties.
+  if (versionChanged) runMaintenanceStep('purgeShadowLeftovers', purgeShadowLeftovers);
+
   // v6.105.0: restore any false positive queued in the Sheet's "Restore" tab. First, so a
   // restore is never delayed behind a slow step; one Sheet read when the tab has nothing pending.
   runMaintenanceStep('processRestoreRequests', processRestoreRequests);
@@ -760,6 +763,41 @@ function restoreOneFromArchive(rawId, folders, labelIds)
   const blob = file.getBlob().setContentType('message/rfc822');
   const msg  = Gmail.Users.Messages.insert({ labelIds: labelIds }, 'me', blob, { internalDateSource: 'dateHeader' });
   return file.getName() + ' -> ' + msg.id;
+}
+
+/**
+ * Delete the Script Properties the removed shadow observer (v6.91.0-v6.105.0) wrote (v6.106.0):
+ * its per-DOMAIN history answers ("SHADOW_HIST_<domain>", which contain a dot; the gate's
+ * hashed address keys "SHADOW_HIST_A<hex>" never do), its self-test markers, and its "Shadow"
+ * tab in the Sheet. Runs on a
+ * version change only; one getKeys() and nothing else when there is nothing left.
+ * @return {number} How many keys were deleted.
+ */
+function purgeShadowLeftovers()
+{
+  const props = PropertiesService.getScriptProperties();
+  const keys = props.getKeys();
+  let n = 0;
+  for (let i = 0; i < keys.length; i++)
+  {
+    const k = keys[i];
+    if ((k.indexOf('SHADOW_HIST_') === 0 && k.indexOf('.') !== -1) ||
+        k === 'SHADOW_SELFTEST_VERSION' || k === 'SHADOW_SELFTEST_TRY')
+    {
+      props.deleteProperty(k);
+      n++;
+    }
+  }
+  if (n > 0) logInfo('purgeShadowLeftovers: deleted ' + n + ' Script Properties left by the removed shadow observer');
+  // The observer's "Shadow" tab in the Sheet (v6.94.0): nothing writes or reads it any more.
+  const sheetId = props.getProperty('SPAM_LOG_SHEET_ID');
+  if (sheetId)
+  {
+    const ss = SpreadsheetApp.openById(sheetId);
+    const tab = ss.getSheetByName('Shadow');
+    if (tab) { ss.deleteSheet(tab); logInfo('purgeShadowLeftovers: deleted the "Shadow" tab'); }
+  }
+  return n;
 }
 
 const RESTORE_TAB          = 'Restore';

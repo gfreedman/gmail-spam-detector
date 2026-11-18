@@ -80,7 +80,6 @@ function processThread(thread, messages)
       }
 
       logDebug('Email: "' + sanitizeForLog(message.getSubject()) + '" - Spam: ' + verdict.isSpam);
-      if (!verdict.isSpam) observeShadow(message, verdict);   // log-only; cannot change the outcome
 
       // Only mark thread as spam once, even if multiple messages trigger detection.
       // This prevents duplicate API calls and redundant log entries.
@@ -204,26 +203,14 @@ function isBulkEmail(rawContent)
 }
 
 /**
- * Log-only observer (v6.91.0): records, never decides. For mail judged NOT spam it
- * writes ONE logInfo line ("SHADOW ...") when the mail looks like the finance-ad family:
- *   themes=N        >= 3 of SHADOW_THEME_PATTERNS fire
- *   postal=...      a footer address in MILL_POSTAL_NEEDLES (also read by Signal 16, Rule 13)
- *   unsolicited     bulk + 2 weak points + no relationship with the sender's domain
- *                   (nothing sent to it, no mail from it older than 2 days)
- * so a few weeks of the Executions log show what a theme rule or an engagement rule
- * would have done to REAL mail before either is allowed to act. It reads the same
- * message the verdict already read, writes nothing but a log line (and a cached
- * history answer in Script Properties), and swallows its own errors: it cannot change
- * a verdict, a label or a delete. The history lookup is the only API cost: at most
- * SHADOW_HISTORY_BUDGET searches' worth of new domains per execution, each cached
- * 30 days per domain. That budget is SHARED with Rule 14's no-history gate in
- * analyzeMessage() (senderHasHistory()), so this observer can spend lookups the gate
- * would have used; an exhausted budget makes the gate answer "unknown", which is retried.
+ * History lookups per execution, shared by every sender-history question Rules 13 and 14 ask
+ * (senderHasHistory, senderHasNamedDomainHistory). An exhausted budget makes the gate answer
+ * "unknown": the mail is not convicted and is retried next run.
  */
 // 6, was 3: since v6.103.0 a Rule 13/14 candidate whose address is new spends a SECOND lookup
 // (senderHasNamedDomainHistory), so 3 judged one new sender per run (review of PR #32).
-const SHADOW_HISTORY_BUDGET = 6;
-let shadowHistoryLookups = 0;
+const HISTORY_LOOKUP_BUDGET = 6;
+let historyLookups = 0;
 
 /**
  * The labels this script itself puts on mail it judged suspicious (v6.103.0). Mail carrying one
@@ -248,6 +235,9 @@ function historyLabelExclusions()
  * ADDRESS (Rule 14 asks per address) keys on a short FNV-1a hash, because the local part is
  * attacker-chosen: a mill rotating "<name>.<brand>@esp" would otherwise write a ~75-byte key per
  * new address into a 500 KB store and eventually make every Script Properties write throw.
+ * The "SHADOW_HIST_" prefix is historical (the removed v6.91 observer introduced it); kept so
+ * the gate's cached answers survive v6.106.0. Only the hashed ADDRESS form is in use now:
+ * the plain DOMAIN form was the observer's, and purgeShadowLeftovers() deletes those.
  */
 function historyCacheKey(who)
 {
@@ -271,8 +261,8 @@ function senderHasHistory(domain)   // `domain` may also be a full address: Gmai
     const ttlDays = domain.indexOf('@') !== -1 ? 3 : 30;
     if (now - Number(parts[1]) < ttlDays * 24 * 3600 * 1000) return parts[0] === 'Y';
   }
-  if (shadowHistoryLookups >= SHADOW_HISTORY_BUDGET) return null;   // unknown this run
-  shadowHistoryLookups++;
+  if (historyLookups >= HISTORY_LOOKUP_BUDGET) return null;   // unknown this run
+  historyLookups++;
   // v6.99.0: the received-mail half now needs `is:read` and excludes the quarantine label.
   // Rule 14 relies on this answer, and without those two terms the mill's OWN earlier mail
   // (left unread in the inbox, or held under the Phishing label) would make the mill a
@@ -284,98 +274,3 @@ function senderHasHistory(domain)   // `domain` may also be a full address: Gmai
   return known;
 }
 
-function observeShadow(message, verdict)
-{
-  try
-  {
-    const signals = verdict && verdict.signals;
-    if (!signals) return;                                     // whitelisted or unevaluated
-    const tags = [];
-    const subject = message.getSubject() || '';
-    const body    = (message.getPlainBody() || '').substring(0, LIMITS.maxRawScanChars);
-    // normalizeAdText() plus what it misses: combining marks, variation selectors,
-    // the grapheme joiner, the Hangul filler and tag characters, each of which broke
-    // "executive order" in the reformed-spammer review.
-    // NFD first: normalizeAdText()'s NFKC FUSES "r" + U+0301 into one letter, which a
-    // strip afterwards cannot undo (found by fault-injecting this very test).
-    const text = normalizeAdText(subject + ' ' + body).normalize('NFD')
-      .replace(/[\u0300-\u036f\u3164\ufe00-\ufe0f]|\udb40[\udc00-\udc7f]/g, '')
-      .replace(/ +/g, ' ');
-
-    let themes = 0;
-    const names = Object.keys(SHADOW_THEME_PATTERNS);
-    for (let i = 0; i < names.length; i++)
-    {
-      if (SHADOW_THEME_PATTERNS[names[i]].test(text)) themes++;
-    }
-    if (themes >= 3) tags.push('themes=' + themes);
-
-    const flat = ' ' + text.replace(/[^a-z0-9 ]/g, ' ').replace(/ +/g, ' ') + ' ';
-    for (let i = 0; i < MILL_POSTAL_NEEDLES.length; i++)
-    {
-      if (flat.indexOf(' ' + MILL_POSTAL_NEEDLES[i] + ' ') !== -1) { tags.push('postal=' + MILL_POSTAL_NEEDLES[i].split(' ').slice(-1)[0]); break; }
-    }
-
-    const weak = (signals.clickbaitCount > 0 ? 1 : 0) + (signals.fearMongering ? 1 : 0) +
-                 (signals.marketingFormat ? 1 : 0) + (signals.suspiciousFromName ? 1 : 0) +
-                 (signals.headlineFromName ? 1 : 0);
-    const addr = extractEmailAddress(message.getFrom() || '');
-    const domain = addr.substring(addr.lastIndexOf('@') + 1).toLowerCase();
-    // One history answer per message, shared by 'unsolicited' and 'ctarep'.
-    let histMemo;
-    const history = function() { if (histMemo === undefined) histMemo = senderHasHistory(domain); return histMemo; };
-    if (signals.bulkEmailService && weak >= 2 && domain.indexOf('.') > 0 && history() === false)
-    {
-      tags.push('unsolicited');
-    }
-
-    // v6.96.0: ONE link repeated through the prose (the direct-response tell: the mail
-    // exists to get one click). Plain body first; the HTML anchors only when the plain
-    // body is under the bar (a multipart mail repeats every link in both parts, so the
-    // two are compared, never summed). Bulk-service mail from a sender with no history
-    // only. history() === null (lookup budget spent) is logged as hist=unk, not dropped:
-    // this message is never observed again.
-    let shadowExtra = null;
-    if (signals.bulkEmailService && domain.indexOf('.') > 0)
-    {
-      let best = repeatStats(plainTextUrls(body));
-      let src  = 'plain';
-      if (Math.max(best.exact, best.path) < SHADOW_CTA_REPEAT_MIN && typeof message.getBody === 'function')
-      {
-        const html = (message.getBody() || '').substring(0, LIMITS.maxHtmlScanChars);
-        const fromHtml = repeatStats(extractAnchors(html).map(function(a) { return a.href; }));
-        if (Math.max(fromHtml.exact, fromHtml.path) > Math.max(best.exact, best.path)) { best = fromHtml; src = 'html'; }
-      }
-      if (Math.max(best.exact, best.path) >= SHADOW_CTA_REPEAT_MIN)
-      {
-        const h = history();
-        if (h !== true)
-        {
-          tags.push('ctarep=' + best.exact + '/' + best.path + (h === null ? ' hist=unk' : ''));
-          shadowExtra = [best.exact + '/' + best.path, sanitizeForLog(best.host), h === null ? '?' : 'N', src];
-        }
-      }
-    }
-
-    // v6.92.0: brand-less "view the document" button to an unrelated domain. Skipped for
-    // bulk-service mail (real portal mail from a firm's own domain goes through the
-    // vendor's SMTP, so it is bulk=true and is the legitimate majority).
-    if (!signals.bulkEmailService)
-    {
-      const lureRoot = docLureHost(subject, body,
-        (message.getBody() || '').substring(0, LIMITS.maxHtmlScanChars), addr);
-      if (lureRoot) tags.push('doclure=' + sanitizeForLog(lureRoot));
-    }
-
-    if (tags.length > 0)
-    {
-      logInfo('SHADOW ' + tags.join(' ') + ' from=' + sanitizeForLog(domain) +
-              ' subject=' + sanitizeForLog(subject));
-      queueShadowRow(tags.join(' '), domain, subject, message.getId(), shadowExtra);   // v6.94.0: readable copy in the Shadow tab
-    }
-  }
-  catch (shadowError)
-  {
-    logDebug('observeShadow skipped: ' + shadowError.toString());
-  }
-}

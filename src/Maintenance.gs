@@ -654,8 +654,8 @@ function recheckRecentSpamChecked(widen)
  * Message ID" column, comma-separated, all 16 hex digits. Archives are looked up in all three
  * places the script writes them: Detected/ and False Negatives/ (the recheck's deletes) as
  * "<timestamp>_<first 8 digits>.eml", and Spam Folder/ as "<full id>.eml". The 8-digit names
- * cannot prove the other 8 digits, so more than one candidate across all three folders is
- * refused rather than guessed (review of PR #32). Each is re-inserted with
+ * cannot prove the other 8 digits: an exact "<id>.eml" is used when there is one, otherwise more
+ * than one "_<id8>.eml" candidate across the folders is refused rather than guessed (PR #32 review). Each is re-inserted with
  * Gmail.Users.Messages.insert (no re-scanning, original Date header as its date), marked
  * read, labelled SpamChecked so processInbox() does not judge it again, and labelled
  * CONFIG.restoredLabel so the post-deploy recheck skips it. Restored ids are removed from
@@ -700,16 +700,20 @@ function restoreFromArchive()
       // the id is the file name's suffix. A few hundred files, once, by hand.
       const suffix = '_' + id.substring(0, 8) + '.eml';
       const exact  = id + '.eml';
-      const hits = [];
+      // An exact "<id>.eml" proves all 16 digits, so it wins outright. A Gmail-spam mail that aged
+      // out has BOTH that Spam Folder/ copy and a Detected/ "<ts>_<id8>.eml" (review round 2).
+      const exactHits = [], hits = [];
       for (let k = 0; k < folders.length; k++)
       {
         const files = folders[k].getFiles();
         while (files.hasNext())
         {
           const f = files.next(), n = f.getName();
-          if (n === exact || n.slice(-suffix.length) === suffix) hits.push(f);
+          if (n === exact) exactHits.push(f);
+          else if (n.slice(-suffix.length) === suffix) hits.push(f);
         }
       }
+      if (exactHits.length > 0) { hits.length = 0; hits.push(exactHits[0]); }
       if (hits.length === 0) throw new Error('no archive for ' + id + ' in Detected/, False Negatives/ or Spam Folder/');
       if (hits.length > 1) throw new Error(hits.length + ' archives could be ' + id + ': open the right one from Drive by hand');
       const file = hits[0];

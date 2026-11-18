@@ -3607,6 +3607,9 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
     t = setup('1a1f098325758ca8', null, { 'Spam Folder': ['1a1f098325758ca8.eml', '1a1f0983ffffffff.eml'] });
     check('restore: a Spam-folder copy is found by its full id, not its prefix',
           t.c.restoreFromArchive() === 1 && t.inserted[0].blob.name === '1a1f098325758ca8.eml', JSON.stringify(t.inserted.map(x => x.blob.name)));
+    t = setup('1a1f098325758ca8', null, { 'Spam Folder': ['1a1f098325758ca8.eml'], 'Detected': ['2026-11-18T21-38-11Z_1a1f0983.eml'] });
+    check('restore: an aged-out Gmail-spam mail (Spam Folder/ copy AND Detected/ archive) restores from the exact-id copy',
+          t.c.restoreFromArchive() === 1 && t.inserted.length === 1 && t.inserted[0].blob.name === '1a1f098325758ca8.eml', JSON.stringify(t.inserted.map(x => x.blob.name)));
     t = setup('1a1f098325758ca8', null, { 'Detected': ['a_1a1f0983.eml'], 'False Negatives': ['b_1a1f0983.eml'] });
     check('restore: candidates in two folders are refused, never guessed', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);
     t = setup("1a1f098325758ca8' or '", ['x_1a1f0983.eml']);

@@ -3619,6 +3619,50 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
     check('restore: two archives with the same id8 are refused, never guessed', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);
     t = setup(null, []);
     check('restore: no property set does nothing', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);
+    // v6.105.0: the Sheet's "Restore" tab, read by a maintenance step.
+    const tab = (rows, opts) => {
+      opts = opts || {};
+      const t = setup(null, ['2026-11-18T21-38-11Z_1a1f0983.eml']);
+      t.c.props.SPAM_LOG_SHEET_ID = 'sheet1';
+      const writes = []; let created = null;
+      const data = [['Gmail Message ID', 'Status', 'Detail', 'Done At']].concat(rows || []);
+      const sheet = {
+        getLastRow: () => data.length,
+        getRange(r, c, nr, nc) {
+          if (typeof r === 'string') return { setNumberFormat(f) { created && (created.fmt = f); } };
+          return { getValues: () => data.slice(r - 1, r - 1 + nr).map(x => x.slice(c - 1, c - 1 + nc)),
+                   setValues: (v) => { writes.push({ r, c, v }); for (let i = 0; i < v.length; i++) for (let j = 0; j < v[i].length; j++) data[r - 1 + i][c - 1 + j] = v[i][j]; } };
+        }
+      };
+      t.c.SpreadsheetApp = { openById: () => ({
+        getSheetByName: (n) => (opts.noTab || n !== 'Restore') ? null : sheet,
+        insertSheet: (n) => { created = { name: n }; return { getRange: (a, b, c2, d) => typeof a === 'string'
+          ? { setNumberFormat(f) { created.fmt = f; } } : { setValues(v) { created.header = v; } } }; } }) };
+      const n = t.c.processRestoreRequests();
+      return { n, data, writes, created, inserted: t.inserted };
+    };
+    let rt = tab([['1a1f098325758ca8', '', '', ''], ['cafebabe00000001', 'RESTORED', 'earlier', 'x'], ['', '', '', '']]);
+    check('Restore tab: a row with an id and no status is restored, and RESTORED is written back',
+          rt.n === 1 && rt.inserted.length === 1 && rt.data[1][1] === 'RESTORED' && /1a1f0983\.eml -> new1/.test(rt.data[1][2]),
+          JSON.stringify(rt.data));
+    check('Restore tab: a row that already has a status is never redone', rt.data[2][2] === 'earlier' && rt.inserted.length === 1);
+    rt = tab([['deadbeef00000001', '', '', ''], ['nonsense', '', '', '']]);
+    check('Restore tab: a missing archive and a bad id are written back as FAILED with the reason, nothing inserted',
+          rt.n === 0 && rt.inserted.length === 0 && rt.data[1][1] === 'FAILED' && /no archive/.test(rt.data[1][2]) &&
+          rt.data[2][1] === 'FAILED' && /16-digit/.test(rt.data[2][2]), JSON.stringify(rt.data));
+    rt = tab([["'1a1f098325758ca8", '', '', '']]);
+    check('Restore tab: a leading apostrophe (Sheets text marker) is tolerated', rt.n === 1);
+    rt = tab(Array.from({ length: 15 }, () => ['1a1f098325758ca8', '', '', '']));
+    check('Restore tab: at most RESTORE_MAX_PER_RUN rows per run', rt.inserted.length === 10 && rt.data[10][1] === 'RESTORED' && rt.data[11][1] === '', JSON.stringify(rt.data.map(r => r[1])));
+    rt = tab([], { noTab: true });
+    check('Restore tab: created when missing, column A as plain text, header written, nothing restored',
+          rt.n === 0 && rt.created && rt.created.name === 'Restore' && rt.created.fmt === '@' &&
+          JSON.stringify(rt.created.header) === JSON.stringify([['Gmail Message ID', 'Status', 'Detail', 'Done At']]), JSON.stringify(rt.created));
+    rt = tab([]);
+    check('Restore tab: nothing pending means no Drive scan and no insert', rt.n === 0 && rt.inserted.length === 0);
+    check('processRestoreRequests runs as the FIRST maintenance step',
+          /logInfo\('Running periodic maintenance'\);[\s\S]*?runMaintenanceStep\('processRestoreRequests'[\s\S]*?runMaintenanceStep\('checkFalseNegatives'/.test(
+            fs.readFileSync(path.join(__dirname, '..', 'src', 'Maintenance.gs'), 'utf8')));
     check('the recheck skips restored mail',
           /-label:' \+ CONFIG\.restoredLabel/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Maintenance.gs'), 'utf8')));
     check('betakit.com is whitelisted', makeCtx().getWhitelist().indexOf('betakit.com') !== -1);

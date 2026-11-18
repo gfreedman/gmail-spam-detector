@@ -183,6 +183,10 @@ function runPeriodicMaintenance()
   // forced cycle an early throw would have cost the re-check its only
   // immediate run and left it waiting on the 30-minute timer.
 
+  // v6.105.0: restore any false positive queued in the Sheet's "Restore" tab. First, so a
+  // restore is never delayed behind a slow step; one Sheet read when the tab has nothing pending.
+  runMaintenanceStep('processRestoreRequests', processRestoreRequests);
+
   // Cheap, and genuinely time-sensitive: one search each.
   runMaintenanceStep('checkFalseNegatives', checkFalseNegatives);
   runMaintenanceStep('destroySpam', destroySpam);
@@ -646,20 +650,15 @@ function recheckRecentSpamChecked(widen)
 }
 
 /**
- * Put false positives back into the inbox from their Drive archive. Run by hand from the
- * Apps Script editor (v6.103.0); nothing triggers it.
+ * Put false positives back into the inbox from their Drive archive (v6.103.0).
  *
- * The editor's Run button cannot pass arguments, so the messages to restore are read from
- * the Script Property RESTORE_MESSAGE_IDS: Gmail message ids from the Raw Log's "Gmail
- * Message ID" column, comma-separated, all 16 hex digits. Archives are looked up in all three
- * places the script writes them: Detected/ and False Negatives/ (the recheck's deletes) as
- * "<timestamp>_<first 8 digits>.eml", and Spam Folder/ as "<full id>.eml". The 8-digit names
- * cannot prove the other 8 digits: an exact "<id>.eml" is used when there is one, otherwise more
- * than one "_<id8>.eml" candidate across the folders is refused rather than guessed (PR #32 review). Each is re-inserted with
- * Gmail.Users.Messages.insert (no re-scanning, original Date header as its date), marked
- * read, labelled SpamChecked so processInbox() does not judge it again, and labelled
- * CONFIG.restoredLabel so the post-deploy recheck skips it. Restored ids are removed from
- * the property; failures stay so a re-run retries them.
+ * Two ways in, same work per message (restoreOneFromArchive):
+ *  - the "Restore" tab of the Spam Intelligence Sheet (v6.105.0), read on every maintenance
+ *    cycle by processRestoreRequests(): paste a Gmail message id from the Raw Log into column A
+ *    and the next run restores it, so nobody needs the Apps Script editor;
+ *  - this function, by hand from the editor, for the ids in the Script Property
+ *    RESTORE_MESSAGE_IDS (comma-separated). Restored ids are removed from the property;
+ *    failures stay so a re-run retries them.
  *
  * Restoring is NOT whitelisting: the sender's NEXT email is judged as usual. Add the
  * domain with addToWhitelist() (or to DEFAULT_DOMAINS.legitimate) to spare it.
@@ -676,8 +675,31 @@ function restoreFromArchive()
     logInfo('restoreFromArchive: set the Script Property RESTORE_MESSAGE_IDS to the Raw Log message id(s) first');
     return 0;
   }
-  const folderId = props.getProperty('SPAM_LOG_FOLDER_ID');
-  if (!folderId) { logError('restoreFromArchive: SPAM_LOG_FOLDER_ID is not set, no archive to restore from'); return 0; }
+  const folders = restoreArchiveFolders();
+  if (folders === null) return 0;
+  const labelIds = restoreLabelIds();
+  const left = [];
+  let restored = 0;
+  for (let i = 0; i < wanted.length; i++)
+  {
+    try { logInfo('RESTORED ' + restoreOneFromArchive(wanted[i], folders, labelIds)); restored++; }
+    catch (e)
+    {
+      left.push(wanted[i]);
+      logError('restoreFromArchive failed for ' + sanitizeForLog(wanted[i]) + ': ' + e.toString());
+    }
+  }
+  if (left.length === 0) props.deleteProperty('RESTORE_MESSAGE_IDS');
+  else props.setProperty('RESTORE_MESSAGE_IDS', left.join(','));
+  logInfo('restoreFromArchive: ' + restored + ' restored, ' + left.length + ' left to retry');
+  return restored;
+}
+
+/** The three folders archives live in, or null (logged) when logging is not set up. */
+function restoreArchiveFolders()
+{
+  const folderId = PropertiesService.getScriptProperties().getProperty('SPAM_LOG_FOLDER_ID');
+  if (!folderId) { logError('restore: SPAM_LOG_FOLDER_ID is not set, no archive to restore from'); return null; }
   const root = DriveApp.getFolderById(folderId);
   const folders = [];
   ['Detected', 'False Negatives', 'Spam Folder'].forEach(function(n)
@@ -685,52 +707,124 @@ function restoreFromArchive()
     const it = root.getFoldersByName(n);
     if (it.hasNext()) folders.push(it.next());
   });
+  return folders;
+}
 
-  const labelIds = ['INBOX', restoreLabelId(CONFIG.processedLabel), restoreLabelId(CONFIG.restoredLabel)];
-  const left = [];
-  let restored = 0;
-  for (let i = 0; i < wanted.length; i++)
+/** INBOX + SpamChecked (processInbox skips it) + SpamRestored (the recheck skips it). Read, not UNREAD. */
+function restoreLabelIds()
+{
+  return ['INBOX', restoreLabelId(CONFIG.processedLabel), restoreLabelId(CONFIG.restoredLabel)];
+}
+
+/**
+ * Restore ONE message from its Drive archive. Throws (with a reason) when it cannot.
+ *
+ * Archives are looked up in all three places the script writes them: Detected/ and False
+ * Negatives/ (the recheck's deletes) as "<timestamp>_<first 8 digits>.eml", and Spam Folder/ as
+ * "<full id>.eml". The 8-digit names cannot prove the other 8 digits: an exact "<id>.eml" is used
+ * when there is one, otherwise more than one "_<id8>.eml" candidate is refused rather than guessed
+ * (PR #32 review). Re-inserted with Gmail.Users.Messages.insert: no re-scanning, original Date
+ * header as its date.
+ *
+ * @param {string} rawId      Gmail message id, 16 hex digits.
+ * @param {Array<Folder>} folders  From restoreArchiveFolders().
+ * @param {Array<string>} labelIds From restoreLabelIds().
+ * @return {string} "<archive file name> -> <new message id>"
+ */
+function restoreOneFromArchive(rawId, folders, labelIds)
+{
+  const id = String(rawId).replace(/^'/, '').trim().toLowerCase();
+  // Validated before anything else: hex only.
+  if (!/^[0-9a-f]{16}$/.test(id)) throw new Error('not a 16-digit Gmail message id: ' + sanitizeForLog(id));
+  // A scan, not searchFiles(): Drive's "title contains" matches title PREFIXES only, and
+  // the id is the file name's suffix.
+  const suffix = '_' + id.substring(0, 8) + '.eml';
+  const exact  = id + '.eml';
+  // An exact "<id>.eml" proves all 16 digits, so it wins outright. A Gmail-spam mail that aged
+  // out has BOTH that Spam Folder/ copy and a Detected/ "<ts>_<id8>.eml" (review round 2).
+  const exactHits = [], hits = [];
+  for (let k = 0; k < folders.length; k++)
   {
-    const id = wanted[i];
+    const files = folders[k].getFiles();
+    while (files.hasNext())
+    {
+      const f = files.next(), n = f.getName();
+      if (n === exact) exactHits.push(f);
+      else if (n.slice(-suffix.length) === suffix) hits.push(f);
+    }
+  }
+  if (exactHits.length > 0) { hits.length = 0; hits.push(exactHits[0]); }
+  if (hits.length === 0) throw new Error('no archive for ' + id + ' in Detected/, False Negatives/ or Spam Folder/');
+  if (hits.length > 1) throw new Error(hits.length + ' archives could be ' + id + ': open the right one from Drive by hand');
+  const file = hits[0];
+  const blob = file.getBlob().setContentType('message/rfc822');
+  const msg  = Gmail.Users.Messages.insert({ labelIds: labelIds }, 'me', blob, { internalDateSource: 'dateHeader' });
+  return file.getName() + ' -> ' + msg.id;
+}
+
+const RESTORE_TAB          = 'Restore';
+const RESTORE_MAX_PER_RUN  = 10;
+
+/**
+ * Restore every message listed in the Sheet's "Restore" tab that has no status yet (v6.105.0).
+ * A maintenance step, so it runs on the 10-minute trigger with nobody in the Apps Script editor.
+ *
+ * Columns: A Gmail Message ID (from the Raw Log), B Status, C Detail, D Done At. A row with an id
+ * and an empty Status is a request; the run writes RESTORED or FAILED with the reason. Clear
+ * Status to retry a FAILED row. At most RESTORE_MAX_PER_RUN per run: each costs a Drive folder
+ * scan and an insert. Creates the tab (column A as plain text, so an all-digit id is not turned
+ * into a rounded number) when it is missing. Cost when there is nothing to do: one Sheet read.
+ *
+ * The worst a stray row can do is put an archived email back in the inbox, labelled.
+ *
+ * @return {number} How many messages were restored this run.
+ */
+function processRestoreRequests()
+{
+  const sheetId = PropertiesService.getScriptProperties().getProperty('SPAM_LOG_SHEET_ID');
+  if (!sheetId) return 0;
+  const ss = SpreadsheetApp.openById(sheetId);
+  let sheet = ss.getSheetByName(RESTORE_TAB);
+  if (!sheet)
+  {
+    sheet = ss.insertSheet(RESTORE_TAB);
+    sheet.getRange('A:A').setNumberFormat('@');
+    sheet.getRange(1, 1, 1, 4).setValues([['Gmail Message ID', 'Status', 'Detail', 'Done At']]);
+    logInfo('Created the "' + RESTORE_TAB + '" tab: paste a Raw Log message id in column A to restore that email');
+    return 0;
+  }
+  const last = sheet.getLastRow();
+  if (last < 2) return 0;
+  const rows = sheet.getRange(2, 1, last - 1, 2).getValues();
+  const pending = [];
+  for (let r = 0; r < rows.length && pending.length < RESTORE_MAX_PER_RUN; r++)
+  {
+    if (String(rows[r][0]).trim() !== '' && String(rows[r][1]).trim() === '') pending.push(r);
+  }
+  if (pending.length === 0) return 0;
+
+  const folders  = restoreArchiveFolders();
+  if (folders === null) return 0;
+  const labelIds = restoreLabelIds();
+  let restored = 0;
+  for (let p = 0; p < pending.length; p++)
+  {
+    const r = pending[p];
+    let out;
     try
     {
-      // Validated before it reaches a Drive query: hex only.
-      if (!/^[0-9a-f]{16}$/.test(id)) throw new Error('not a 16-digit Gmail message id: ' + sanitizeForLog(id));
-      // A scan, not searchFiles(): Drive's "title contains" matches title PREFIXES only, and
-      // the id is the file name's suffix. A few hundred files, once, by hand.
-      const suffix = '_' + id.substring(0, 8) + '.eml';
-      const exact  = id + '.eml';
-      // An exact "<id>.eml" proves all 16 digits, so it wins outright. A Gmail-spam mail that aged
-      // out has BOTH that Spam Folder/ copy and a Detected/ "<ts>_<id8>.eml" (review round 2).
-      const exactHits = [], hits = [];
-      for (let k = 0; k < folders.length; k++)
-      {
-        const files = folders[k].getFiles();
-        while (files.hasNext())
-        {
-          const f = files.next(), n = f.getName();
-          if (n === exact) exactHits.push(f);
-          else if (n.slice(-suffix.length) === suffix) hits.push(f);
-        }
-      }
-      if (exactHits.length > 0) { hits.length = 0; hits.push(exactHits[0]); }
-      if (hits.length === 0) throw new Error('no archive for ' + id + ' in Detected/, False Negatives/ or Spam Folder/');
-      if (hits.length > 1) throw new Error(hits.length + ' archives could be ' + id + ': open the right one from Drive by hand');
-      const file = hits[0];
-      const blob = file.getBlob().setContentType('message/rfc822');
-      const msg  = Gmail.Users.Messages.insert({ labelIds: labelIds }, 'me', blob, { internalDateSource: 'dateHeader' });
-      logInfo('RESTORED ' + file.getName() + ' -> inbox as message ' + msg.id);
+      const detail = restoreOneFromArchive(rows[r][0], folders, labelIds);
+      out = ['RESTORED', escapeSheetCell(detail)];
+      logInfo('RESTORED (Restore tab) ' + detail);
       restored++;
     }
     catch (e)
     {
-      left.push(id);
-      logError('restoreFromArchive failed for ' + sanitizeForLog(id) + ': ' + e.toString());
+      out = ['FAILED', escapeSheetCell(e.message || String(e))];
+      logError('Restore tab: ' + sanitizeForLog(String(rows[r][0])) + ' failed: ' + e.toString());
     }
+    sheet.getRange(r + 2, 2, 1, 3).setValues([[out[0], out[1], new Date().toISOString()]]);
   }
-  if (left.length === 0) props.deleteProperty('RESTORE_MESSAGE_IDS');
-  else props.setProperty('RESTORE_MESSAGE_IDS', left.join(','));
-  logInfo('restoreFromArchive: ' + restored + ' restored, ' + left.length + ' left to retry');
   return restored;
 }
 

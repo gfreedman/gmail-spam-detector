@@ -224,6 +224,8 @@ console.log('\n=== Linear angle-bracket scanners (v6.74.0) ===');
   const spec = {
     extractEmailAddress: function(from) {
       if (!from) return '';
+      // v6.104.0: a <...> that ENDS the header (trailing whitespace ignored) wins over the first one.
+      const z = from.match(/<([^<>]+)>[ \t\r\n]*$/); if (z) return z[1].trim().toLowerCase();
       const a = from.match(/<([^>]+)>/); if (a) return a[1].trim().toLowerCase();
       const c = from.match(/([^\s<>()]+@[^\s<>()]+)/); if (c) return c[1].trim().toLowerCase();
       return from.trim().toLowerCase();

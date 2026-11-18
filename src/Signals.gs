@@ -67,19 +67,17 @@ function collectSignals(message)
     .substring(0, LIMITS.maxFromChars)
     .replace(RFC2822_QUOTED_NAME, '$1$2');
 
-  const whitelist = getCachedWhitelist();
-  for (let i = 0; i < whitelist.length; i++)
+  // whitelistEntryForFrom() matches with addressMatchesDomain(), NOT includes(). Substring
+  // matching here was a complete detection bypass: "mail@linkedin.com.secure-login.top"
+  // contains "linkedin.com" and so returned null before any signal was collected, as did
+  // "a@notlinkedin.com". Anyone who registered a domain containing a whitelisted string got
+  // a blanket exemption. Since v6.104.0 it exempts only an unambiguous header (one trailing
+  // <addr>, or a bare address): a whitelisted address quoted in the display name was the next bypass.
+  const whitelistedBy = whitelistEntryForFrom(fromRaw.replace(RFC2822_QUOTED_NAME, '$1$2'), getCachedWhitelist());
+  if (whitelistedBy !== null)
   {
-    // addressMatchesDomain(), NOT includes(). Substring matching here was a
-    // complete detection bypass: "mail@linkedin.com.secure-login.top" contains
-    // "linkedin.com" and so returned null before any signal was collected, as
-    // did "a@notlinkedin.com". Anyone who registered a domain containing a
-    // whitelisted string got a blanket exemption.
-    if (addressMatchesDomain(senderAddress, whitelist[i]))
-    {
-      logDebug('Whitelisted domain detected: ' + whitelist[i]);
-      return null; // null = whitelisted, skip all detection
-    }
+    logDebug('Whitelisted domain detected: ' + whitelistedBy);
+    return null; // null = whitelisted, skip all detection
   }
 
   // ── Extract remaining fields (only reached for non-whitelisted senders) ─

@@ -20,6 +20,31 @@ detail plus the diffs.
 
 ---
 
+## v6.104.0
+
+**A whitelisted address written into the display name no longer exempts a sender from detection.**
+
+Found by the adversarial review of PR #32. `extractEmailAddress()` returned the FIRST `<...>` in
+the From header, so `"FinRiseX <news@betakit.com>" <team@your.finrisex.com>` was read as
+betakit.com: whitelisted, and `collectSignals()` skipped every signal. Reproduced in the shipped JS
+with a Rule 1 mill mail (bulk + blacklisted finrisex.com) that was judged clean. Any whitelisted
+domain worked, and the whitelist is public in this repo.
+
+- `extractEmailAddress()` now takes the `<...>` that ENDS the header (the RFC 5322 angle-addr),
+  falling back to the old first-`<...>` and bare-token rules. Every caller benefits: blacklist,
+  history gate, logs.
+- `whitelistEntryForFrom()` (both `collectSignals()` and `isWhitelistedSender()`): only an
+  UNAMBIGUOUS From header can be whitelisted, exactly one `<...>` ending the header, or a bare
+  address with no angle brackets. Two angle-addrs, an angle-addr inside a comment
+  (`team@mill.example (FinRiseX <news@betakit.com>)`) or a stray `<`/`>` is judged like any other
+  mail. Addresses in the display name are ignored, not counted: a first draft that required every
+  address in the header to be whitelisted withdrew the exemption from the owner's ezyvet receipts,
+  `"Madison (missioncreekah@gmail.com)" <no-reply@app.ezyvet.com>`, which the Spam-folder review
+  would then have deleted (caught by review). Checked against the owner's real mail from every
+  whitelisted domain: no display name contains `<` or `>`.
+- Mirrored in the Python harness; the extraction fuzz spec in test_link_graph.js was updated to the
+  new rule (50,000 inputs, 0 mismatches). Both guards fault-injected in JS and Python.
+
 ## v6.103.0
 
 **Rule 14's no-history gate also recognises a known publisher writing from a new address; deleted false positives can be restored.**

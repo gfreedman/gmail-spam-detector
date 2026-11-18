@@ -631,8 +631,16 @@ function extractEmailAddress(from)
   // before the whitelist check. Same results — fuzzed against the old
   // regexes when replaced.
 
-  // Angle-bracket form first: "Display Name <addr@host>". Most common.
-  // The first '<' whose next '>' is not immediately after it.
+  // v6.104.0: the angle-addr that ENDS the header wins. In a name-addr the address is last
+  // ("Display Name <addr@host>"), and the display name is the sender's to write: taking the FIRST
+  // <...> read '"FinRiseX <news@betakit.com>" <team@finrisex.com>' as betakit.com, which skipped
+  // every signal for anyone naming a whitelisted address (PR #32 review). The quoted form reaches
+  // here with its quotes stripped by RFC2822_QUOTED_NAME, so it is the same case.
+  const tail = lastAngleContent(from);
+  if (tail !== null) return tail.trim().toLowerCase();
+
+  // Otherwise "Display Name <addr@host>" not at the end. The first '<' whose next '>' is not
+  // immediately after it.
   const angled = firstAngleContent(from);
   if (angled !== null) return angled.trim().toLowerCase();
 
@@ -653,6 +661,72 @@ function extractEmailAddress(from)
   }
 
   return from.trim().toLowerCase();
+}
+
+/**
+ * The non-empty content of a "<...>" that ends the text (trailing whitespace ignored), or null.
+ * Linear: one trim, one lastIndexOf.
+ *
+ * @param {string} text
+ * @return {string|null}
+ */
+function lastAngleContent(text)
+{
+  const t = String(text).replace(/[ \t\r\n]+$/, '');
+  if (t.length < 3 || t[t.length - 1] !== '>') return null;
+  const lt = t.lastIndexOf('<', t.length - 2);
+  if (lt === -1 || lt === t.length - 2) return null;
+  const inner = t.substring(lt + 1, t.length - 1);
+  return inner.indexOf('>') === -1 ? inner : null;
+}
+
+/**
+ * The whitelist entry that exempts this sender, or null (v6.104.0).
+ *
+ * Only an unambiguous From header can be exempted: exactly one "<...>", ending the header
+ * (the RFC 5322 angle-addr), or a bare address with no angle brackets at all. Anything else
+ * (two angle-addrs, an angle-addr inside a comment, a stray '<' or '>') is judged like any
+ * other mail. Addresses inside the display name are ignored, never counted: staff-via-platform
+ * senders put one there, e.g. ezyvet's "Madison (missioncreekah@gmail.com)" <no-reply@app.ezyvet.com>
+ * (a first draft that required every address in the header to be whitelisted withdrew that
+ * exemption; review of PR #33). The bypass this closes: '"X <news@betakit.com>" <team@mill>'
+ * and 'team@mill (X <news@betakit.com>)' both read as betakit.com before v6.104.0.
+ *
+ * @param {string} from      - From header, RFC 2822 quotes already stripped.
+ * @param {Array<string>} whitelist
+ * @return {?string}
+ */
+function whitelistEntryForFrom(from, whitelist)
+{
+  // Explicit [ \t\r\n], never \s or trim(): JS and Python disagree on what those strip
+  // (U+FEFF, \x1c-\x1f, \x85, U+00A0), and the Python mirror must give the same answer.
+  const text = String(from || '');
+  const lts = text.split('<').length - 1, gts = text.split('>').length - 1;
+  const ats = text.split('@').length - 1;
+  let sender = null;
+  if (lts === 0 && gts === 0)
+  {
+    // A bare address, and only one: '(news@betakit.com) team@mill.example' names two, and RFC
+    // 5322 makes the parenthesised one a comment, so whichever we took could be the wrong one.
+    if (ats !== 1) return null;
+    const tokens = text.split(/[ \t\r\n<>()]+/);
+    for (let i = 0; i < tokens.length && sender === null; i++)
+    {
+      const at = tokens[i].indexOf('@');
+      if (at > 0 && at < tokens[i].length - 1) sender = tokens[i].toLowerCase();
+    }
+    if (sender === null) return null;
+  }
+  else if (lts === 1 && gts === 1 && lastAngleContent(text) !== null)
+  {
+    sender = lastAngleContent(text).replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, '').toLowerCase();
+  }
+  else return null;                                                          // ambiguous: judge it
+  for (let i = 0; i < whitelist.length; i++)
+  {
+    if (addressMatchesDomain(sender, whitelist[i])) return whitelist[i];
+  }
+  return null;
 }
 
 /**

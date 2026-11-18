@@ -67,6 +67,22 @@ Run `/deploy-change` (`.claude/skills/deploy-change/`). Short version:
 3. **Prove the guard fails.** A check that has never gone red proves nothing.
    Inject the fault, watch it fail, restore, verify with `cmp`.
 
+## Fixing a reported false positive: done means the email is back
+
+The owner designs and steers; Claude does the operating. Never ask him to open the
+Apps Script editor for a restore.
+
+1. Find the Raw Log row (rclone the Sheet to xlsx, or `read_sheet_values`). It names
+   the rule and the Drive archive.
+2. Restore it by writing the Gmail message id (16 hex digits) into column A of the
+   Sheet's **Restore** tab with `modify_sheet_values` and `RAW` input. The next
+   maintenance run, within 10 minutes, restores it and writes RESTORED or FAILED with
+   the reason. A restored message is read, labelled `SpamChecked` + `SpamRestored`, and
+   skipped by the recheck. Clear Status to retry a FAILED row.
+3. Restoring is not whitelisting. Fix the cause (whitelist, gate, rule) through a PR
+   with an adversarial reviewer, or the sender's next email goes the same way.
+4. Acceptance = the email in the inbox (Gmail search) and RESTORED in the tab.
+
 ## Fixing a reported miss: done means the email is gone
 
 Green CI and a passing review are not done. On 2026-10-24 a missed ad took two

@@ -2654,15 +2654,16 @@ console.log('\n=== Signal 14 / Rule 11: sponsored-ad template (deletes) ===');
     check('SHADOW: bulk + only 1 weak point is not a candidate and costs no search', r7.shadow.length === 0 && r7.searches.length === 0, JSON.stringify(r7.searches));
     const r8 = run(mk('Hello.'), weak, { ['SHADOW_HIST_signal.example-brief.com']: 'N:' + Date.now() }, () => { throw new Error('searched'); });
     check('SHADOW: a cached answer is used without searching (30-day cache)', r8.shadow.length === 1 && r8.searches.length === 0, JSON.stringify(r8.searches));
-    // budget: 4th new domain in one execution is unknown, so not logged and not searched
+    // budget: the (SHADOW_HISTORY_BUDGET+1)th new domain in one execution is unknown, so not logged and not searched
     const cb = makeCtx({ props: {} });
+    const B = vm.runInContext('SHADOW_HISTORY_BUDGET', cb);
     const bl = []; cb.logInfo = (l) => bl.push(String(l)); let nsearch = 0;
     cb.GmailApp.search = () => { nsearch++; return []; };
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < B + 3; i++) {
       const m = mk('Hello.', { from: 'X <a@d' + i + '.example.org>' });
       cb.observeShadow(m, { isSpam: false, signals: Object.assign({ clickbaitCount: 0 }, weak) });
     }
-    check('SHADOW: history lookups are capped per execution (3 domains x 2 searches max)', nsearch <= 6 && bl.filter(l => /unsolicited/.test(l)).length === 3,
+    check('SHADOW: history lookups are capped per execution (SHADOW_HISTORY_BUDGET domains x 2 searches max)', B === 6 && nsearch <= 2 * B && bl.filter(l => /unsolicited/.test(l)).length === B,
           JSON.stringify({ nsearch, logged: bl.length }));
     // v6.92.0: brand-less "view the document" button to an unrelated domain (doclure)
     {
@@ -3517,7 +3518,8 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
       c.props[c.historyCacheKey(addr)] = 'N:' + Date.now();            // the exact address is new
       if (o.budget !== undefined) vm.runInContext('shadowHistoryLookups = SHADOW_HISTORY_BUDGET - ' + o.budget, c);
       const qs = [];
-      c.GmailApp.search = (q) => { qs.push(q); return priors.length ? [fakeThread(priors)] : []; };
+      c.GmailApp.search = (q) => { qs.push(q); if (!priors.length) return []; const t = fakeThread(priors);
+        (o.threadLabels || []).forEach(l => t.__labels.push(l)); return [t]; };
       c.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
       const m = mk({ from }); if (o.self) priors.push(m);
       const v = c.analyzeMessage(m);
@@ -3530,6 +3532,14 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
           r.qs.some(q => /^from:techweekly\.example /.test(q) && /is:read/.test(q) && /older_than:2d/.test(q) && /-label:Phishing/.test(q)), r.qs.join(' | '));
     check('...and the answer is cached (no second search for the next issue)',
           (() => { const n = r.qs.length; r.c.analyzeMessage(mk({ from: 'Tech Weekly <alex.riehl@techweekly.example>' })); return r.qs.length === n; })());
+    for (const l of ['SuspectedSpam', 'Phishing', 'SpamDetectorPurge', 'SpamMissed']) {
+      r = gate('Trend Watchers Lab <ivy.hart.trendwatcherslab.com@email.cyberimpact.com>',
+               [prior({ from: '"Trend Watchers Lab" <cole.emerson.trendwatcherslab.com@email.cyberimpact.com>' })], { threadLabels: [l, 'SpamChecked'] });
+      check('a READ prior under the same name that the script labelled ' + l + ' is not history: the rotating mill is still convicted', r.v.isSpam === true);
+      const aq = []; r.c.GmailApp.search = (q) => { aq.push(q); return []; }; r.c.senderHasHistory('someone@new-sender.example');
+      check('...and ' + l + ' is excluded in BOTH history queries (domain+name and exact address)',
+            r.qs.length === 1 && r.qs[0].indexOf('-label:' + l) !== -1 && aq.some(q => /is:read/.test(q) && q.indexOf('-label:' + l) !== -1), r.qs.concat(aq).join(' | '));
+    }
     r = gate('Macro View Digest <x.macro@email.cyberimpact.com>', [prior({ from: 'Some Real Charity <news.charity@email.cyberimpact.com>' })]);
     check('a shared-ESP domain the owner reads under ANOTHER display name: still convicted', r.v.isSpam === true);
     r = gate('Tech Weekly <alex@techweekly-news.example>', [prior({ from: 'Tech Weekly <newsletter@techweekly.example>' })]);
@@ -3555,18 +3565,26 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
           r.v.isSpam === false && r.v.unevaluated === 'error', JSON.stringify(r.v.unevaluated));
     r = gate('"Freedman, Geoff" <a.b@c-pub.example>', [prior({ from: 'Geoff Freedman <news@c-pub.example>' })]);
     check('display names compare after headerDisplayName() normalisation', r.v.isSpam === false);
+    check('the lookup budget still judges three new senders in one run (two lookups each)', (() => {
+      const c = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
+      c.GmailApp.search = () => []; c.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+      return ['A One <a@one.example>', 'B Two <b@two.example>', 'C Three <c@three.example>']
+        .map(f => c.analyzeMessage(mk({ from: f }))).every(v => v.isSpam === true && v.unevaluated === false); })());
     check('the Spam-folder path goes through the same gate', /senderHistoryGate\(message\) !== false/.test(
       fs.readFileSync(path.join(__dirname, '..', 'src', 'SpamFolder.gs'), 'utf8')));
   }
   {
     // v6.103.0: restoreFromArchive() puts a deleted false positive back from Drive.
-    const setup = (ids, names) => {
+    const setup = (ids, names, byFolder) => {
       const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
       if (ids !== null) c.props.RESTORE_MESSAGE_IDS = ids;
       const inserted = [];
-      const files = names.map(n => ({ getName: () => n, getBlob: () => ({ ct: null, setContentType(t) { this.ct = t; return this; } }) }));
-      c.DriveApp.getFolderById = () => ({ getFoldersByName: () => ({ hasNext: () => false }), createFolder() { return this; },
-        getFiles: () => { let i = 0; return { hasNext: () => i < files.length, next: () => files[i++] }; } });
+      const mkFile = n => ({ getName: () => n, getBlob: () => ({ name: n, ct: null, setContentType(t) { this.ct = t; return this; } }) });
+      const tree = byFolder || { 'Detected': names };
+      const folder = (list) => { const files = list.map(mkFile);
+        return { getFiles: () => { let i = 0; return { hasNext: () => i < files.length, next: () => files[i++] }; } }; };
+      c.DriveApp.getFolderById = () => ({ getFoldersByName: (n) => { let done = !(n in tree);
+        return { hasNext: () => !done, next: () => { done = true; return folder(tree[n]); } }; } });
       c.Gmail.Users.Labels.list = () => ({ labels: [{ id: 'L_CHK', name: 'SpamChecked' }, { id: 'L_RST', name: 'SpamRestored' }] });
       c.Gmail.Users.Messages.insert = (res, user, blob, args) => { inserted.push({ res, blob, args }); return { id: 'new' + inserted.length }; };
       return { c, inserted };
@@ -3578,14 +3596,23 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
           n === 1 && t.inserted.length === 1 && JSON.stringify(ins.res.labelIds) === JSON.stringify(['INBOX', 'L_CHK', 'L_RST']) &&
           ins.args.internalDateSource === 'dateHeader' && ins.blob.ct === 'message/rfc822', JSON.stringify(t.inserted));
     check('restore: the property is cleared once everything is restored', !('RESTORE_MESSAGE_IDS' in t.c.props));
-    t = setup('1a1f0983, cafebabe', ['x_1a1f0983.eml']);
+    t = setup('1a1f098325758ca8, cafebabe00000001', ['x_1a1f0983.eml']);
     n = t.c.restoreFromArchive();
     check('restore: an id with no archive stays in the property for a retry; the rest restore',
-          n === 1 && t.c.props.RESTORE_MESSAGE_IDS === 'cafebabe', JSON.stringify(t.c.props.RESTORE_MESSAGE_IDS));
-    t = setup("1a1f0983' or title contains '", ['x_1a1f0983.eml']);
+          n === 1 && t.c.props.RESTORE_MESSAGE_IDS === 'cafebabe00000001', JSON.stringify(t.c.props.RESTORE_MESSAGE_IDS));
+    t = setup('1a1f0983', ['x_1a1f0983.eml']);
+    check('restore: an 8-digit id is refused (it cannot prove the other 8 digits)', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);
+    t = setup('1a1f098325758ca8', null, { 'False Negatives': ['2026-11-18T21-38-11Z_1a1f0983.eml'] });
+    check('restore: a recheck delete (archived under False Negatives/) is found', t.c.restoreFromArchive() === 1);
+    t = setup('1a1f098325758ca8', null, { 'Spam Folder': ['1a1f098325758ca8.eml', '1a1f0983ffffffff.eml'] });
+    check('restore: a Spam-folder copy is found by its full id, not its prefix',
+          t.c.restoreFromArchive() === 1 && t.inserted[0].blob.name === '1a1f098325758ca8.eml', JSON.stringify(t.inserted.map(x => x.blob.name)));
+    t = setup('1a1f098325758ca8', null, { 'Detected': ['a_1a1f0983.eml'], 'False Negatives': ['b_1a1f0983.eml'] });
+    check('restore: candidates in two folders are refused, never guessed', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);
+    t = setup("1a1f098325758ca8' or '", ['x_1a1f0983.eml']);
     n = t.c.restoreFromArchive();
     check('restore: a non-hex id is refused, never matched', n === 0 && t.inserted.length === 0);
-    t = setup('1a1f0983', ['a_1a1f0983.eml', 'b_1a1f0983.eml']);
+    t = setup('1a1f098325758ca8', ['a_1a1f0983.eml', 'b_1a1f0983.eml']);
     check('restore: two archives with the same id8 are refused, never guessed', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);
     t = setup(null, []);
     check('restore: no property set does nothing', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);

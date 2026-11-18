@@ -651,8 +651,11 @@ function recheckRecentSpamChecked(widen)
  *
  * The editor's Run button cannot pass arguments, so the messages to restore are read from
  * the Script Property RESTORE_MESSAGE_IDS: Gmail message ids from the Raw Log's "Gmail
- * Message ID" column, comma-separated (the full 16 hex digits, or the first 8, which is
- * the suffix of the archive's file name "<timestamp>_<id8>.eml"). Each is re-inserted with
+ * Message ID" column, comma-separated, all 16 hex digits. Archives are looked up in all three
+ * places the script writes them: Detected/ and False Negatives/ (the recheck's deletes) as
+ * "<timestamp>_<first 8 digits>.eml", and Spam Folder/ as "<full id>.eml". The 8-digit names
+ * cannot prove the other 8 digits, so more than one candidate across all three folders is
+ * refused rather than guessed (review of PR #32). Each is re-inserted with
  * Gmail.Users.Messages.insert (no re-scanning, original Date header as its date), marked
  * read, labelled SpamChecked so processInbox() does not judge it again, and labelled
  * CONFIG.restoredLabel so the post-deploy recheck skips it. Restored ids are removed from
@@ -675,7 +678,13 @@ function restoreFromArchive()
   }
   const folderId = props.getProperty('SPAM_LOG_FOLDER_ID');
   if (!folderId) { logError('restoreFromArchive: SPAM_LOG_FOLDER_ID is not set, no archive to restore from'); return 0; }
-  const folder = getOrCreateLogSubfolder(DriveApp.getFolderById(folderId), ['Detected']);
+  const root = DriveApp.getFolderById(folderId);
+  const folders = [];
+  ['Detected', 'False Negatives', 'Spam Folder'].forEach(function(n)
+  {
+    const it = root.getFoldersByName(n);
+    if (it.hasNext()) folders.push(it.next());
+  });
 
   const labelIds = ['INBOX', restoreLabelId(CONFIG.processedLabel), restoreLabelId(CONFIG.restoredLabel)];
   const left = [];
@@ -686,16 +695,23 @@ function restoreFromArchive()
     try
     {
       // Validated before it reaches a Drive query: hex only.
-      if (!/^[0-9a-f]{8,16}$/.test(id)) throw new Error('not a Gmail message id: ' + sanitizeForLog(id));
-      const id8 = id.substring(0, 8);
+      if (!/^[0-9a-f]{16}$/.test(id)) throw new Error('not a 16-digit Gmail message id: ' + sanitizeForLog(id));
       // A scan, not searchFiles(): Drive's "title contains" matches title PREFIXES only, and
       // the id is the file name's suffix. A few hundred files, once, by hand.
-      const suffix = '_' + id8 + '.eml';
+      const suffix = '_' + id.substring(0, 8) + '.eml';
+      const exact  = id + '.eml';
       const hits = [];
-      const files = folder.getFiles();
-      while (files.hasNext()) { const f = files.next(); if (f.getName().slice(-suffix.length) === suffix) hits.push(f); }
-      if (hits.length === 0) throw new Error('no archive named *' + suffix + ' in Detected/');
-      if (hits.length > 1) throw new Error(hits.length + ' archives end in ' + suffix + ': open the right one from Drive by hand');
+      for (let k = 0; k < folders.length; k++)
+      {
+        const files = folders[k].getFiles();
+        while (files.hasNext())
+        {
+          const f = files.next(), n = f.getName();
+          if (n === exact || n.slice(-suffix.length) === suffix) hits.push(f);
+        }
+      }
+      if (hits.length === 0) throw new Error('no archive for ' + id + ' in Detected/, False Negatives/ or Spam Folder/');
+      if (hits.length > 1) throw new Error(hits.length + ' archives could be ' + id + ': open the right one from Drive by hand');
       const file = hits[0];
       const blob = file.getBlob().setContentType('message/rfc822');
       const msg  = Gmail.Users.Messages.insert({ labelIds: labelIds }, 'me', blob, { internalDateSource: 'dateHeader' });

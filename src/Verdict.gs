@@ -249,8 +249,10 @@ function senderHistoryGate(message)
  * to borrow the display name of a sender the user already reads on that same domain.
  *
  * Known weakness, accepted: a mill that keeps one display name while rotating addresses is
- * spared from the moment the user has READ one of its mails more than 2 days old (and that mail
- * was neither deleted nor quarantined). Its earlier mail is normally gone by then.
+ * spared from the moment the user has READ one of its mails more than 2 days old that the
+ * script neither deleted nor labelled (historyExcludedLabels(): held, quarantined, purged,
+ * reported missed). Known limit: only the 20 newest matching threads are read, so on a busy
+ * domain an older read issue under the same name is not found (the mail is then judged as before).
  *
  * Every candidate is re-checked in code, not trusted to Gmail's fuzzy from: match: the host
  * must equal this domain exactly, the display name must normalise identically, and the message
@@ -279,8 +281,9 @@ function senderHasNamedDomainHistory(fromAddr, name, selfId)
   shadowHistoryLookups++;
 
   const cutoff  = now - 2 * 24 * 3600 * 1000;
-  const threads = GmailApp.search('from:' + domain + ' older_than:2d is:read -label:' + CONFIG.phishingLabel +
+  const threads = GmailApp.search('from:' + domain + ' older_than:2d is:read' + historyLabelExclusions() +
                                   ' -in:spam -in:trash', 0, 20);
+  const excluded = historyExcludedLabels();
   let known = false;
   if (threads.length > 0)
   {
@@ -296,6 +299,10 @@ function senderHasNamedDomainHistory(fromAddr, name, selfId)
         if (headerDisplayName(f) !== name) continue;
         if (m.getId() === selfId || m.isUnread()) continue;
         if (m.getDate().getTime() > cutoff) continue;
+        // Re-checked in code, not trusted to the query: a thread the script held or quarantined
+        // never vouches for anyone. One getLabels() call, only for a candidate that matched.
+        const held = threads[i].getLabels().some(function(l) { return excluded.indexOf(l.getName()) !== -1; });
+        if (held) continue;
         known = true;
       }
     }

@@ -40,12 +40,17 @@ looked like a stranger.
   the tenant's own. Accepted weakness: a mill that keeps one display name across rotating addresses is
   spared once the owner has read one of its mails that survived 2 days. A spent lookup budget is
   "unknown" (not convicted, retried), as before. Cached 3 days, like the address answer.
+  Mail the script itself labelled (`SuspectedSpam`, `Phishing`, `SpamDetectorPurge`, `SpamMissed`)
+  is never history, on this path or the exact-address one: the review of PR #32 reproduced one held
+  Trend Watchers Lab message vouching for every later rotating address under that name. The history
+  lookup budget rises from 3 to 6, since a new address now spends two lookups.
 - **Whitelist:** `betakit.com`.
 - **`restoreFromArchive()`** (Maintenance.gs, run by hand): re-inserts the Drive archive of each
-  message id in the Script Property `RESTORE_MESSAGE_IDS` into the inbox with
+  full 16-digit message id in the Script Property `RESTORE_MESSAGE_IDS` (searched in `Detected/`,
+  `False Negatives/` where the recheck archives, and `Spam Folder/`) into the inbox with
   `Gmail.Users.Messages.insert` (no re-scan, original date), read, labelled `SpamChecked` and
   `SpamRestored`. The post-deploy recheck now skips `SpamRestored`, so the rule that deleted it cannot
-  delete it again. Ambiguous or non-hex ids are refused; failures stay in the property for a retry.
+  delete it again. Short, ambiguous or non-hex ids are refused; failures stay in the property for a retry.
 
 Every new guard was fault-injected (removed one at a time) and turned the suite red.
 

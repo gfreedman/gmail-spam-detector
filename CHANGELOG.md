@@ -20,6 +20,20 @@ detail plus the diffs.
 
 ---
 
+## v6.105.0
+
+**False positives are restored from a "Restore" tab in the Sheet, on the 10-minute trigger.**
+
+v6.103.0's `restoreFromArchive()` needed the owner in the Apps Script editor: set a Script Property,
+pick the function, click Run. The owner designs and steers; restoring should not need his hands.
+New maintenance step `processRestoreRequests()` (first in the cycle): any row in the Spam
+Intelligence Sheet's "Restore" tab with a Gmail message id in column A and an empty Status is restored
+from its Drive archive, and RESTORED or FAILED (with the reason) is written back. The tab is created on
+first run with column A as plain text, so an all-digit id is not rounded. At most 10 per run; one Sheet
+read when nothing is pending. The per-message work is shared with `restoreFromArchive()`
+(`restoreOneFromArchive()`), unchanged: same lookup in Detected/, False Negatives/, Spam Folder/, same
+labels, so the recheck cannot delete it again.
+
 ## v6.104.0
 
 **A whitelisted address written into the display name no longer exempts a sender from detection.**

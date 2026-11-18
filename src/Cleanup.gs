@@ -215,8 +215,8 @@ function isWhitelistedSender(message)
 {
   try
   {
-    // Same rule as collectSignals() (v6.104.0): the trailing address, and no second
-    // non-whitelisted address anywhere in the header.
+    // Same rule as collectSignals() (v6.104.0): only an unambiguous header (one trailing
+    // <addr>, or a bare address) can be whitelisted.
     return whitelistEntryForFrom(
       sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2'), getCachedWhitelist()) !== null;
   }

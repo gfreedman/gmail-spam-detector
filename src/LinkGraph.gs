@@ -681,33 +681,16 @@ function lastAngleContent(text)
 }
 
 /**
- * Every address-shaped token in a From header, lower-cased: a run of characters other than
- * whitespace, angle brackets, parentheses, quotes, commas and semicolons, with an '@' that has
- * a character on each side. Linear (one split).
- *
- * @param {string} from
- * @return {Array<string>}
- */
-function fromHeaderAddresses(from)
-{
-  const out = [];
-  const tokens = String(from || '').split(/[\s<>()"',;]+/);
-  for (let i = 0; i < tokens.length; i++)
-  {
-    const at = tokens[i].lastIndexOf('@');
-    if (at > 0 && at < tokens[i].length - 1) out.push(tokens[i].toLowerCase());
-  }
-  return out;
-}
-
-/**
  * The whitelist entry that exempts this sender, or null (v6.104.0).
  *
- * The sender address must match an entry AND every other address written anywhere in the
- * From header must match one too. A display name is the sender's to write, so an address in
- * it proves nothing; but one that is NOT whitelisted means the header is ambiguous, and an
- * ambiguous header does not get a blanket exemption from detection. Covers the forms the
- * address extraction alone cannot: "team@mill.example (FinRiseX <news@betakit.com>)".
+ * Only an unambiguous From header can be exempted: exactly one "<...>", ending the header
+ * (the RFC 5322 angle-addr), or a bare address with no angle brackets at all. Anything else
+ * (two angle-addrs, an angle-addr inside a comment, a stray '<' or '>') is judged like any
+ * other mail. Addresses inside the display name are ignored, never counted: staff-via-platform
+ * senders put one there, e.g. ezyvet's "Madison (missioncreekah@gmail.com)" <no-reply@app.ezyvet.com>
+ * (a first draft that required every address in the header to be whitelisted withdrew that
+ * exemption; review of PR #33). The bypass this closes: '"X <news@betakit.com>" <team@mill>'
+ * and 'team@mill (X <news@betakit.com>)' both read as betakit.com before v6.104.0.
  *
  * @param {string} from      - From header, RFC 2822 quotes already stripped.
  * @param {Array<string>} whitelist
@@ -715,21 +698,17 @@ function fromHeaderAddresses(from)
  */
 function whitelistEntryForFrom(from, whitelist)
 {
-  const sender = extractEmailAddress(from);
-  let entry = null;
-  for (let i = 0; i < whitelist.length && entry === null; i++)
+  const text = String(from || '');
+  const lts = text.split('<').length - 1, gts = text.split('>').length - 1;
+  let sender;
+  if (lts === 0 && gts === 0) sender = extractEmailAddress(text);           // bare address
+  else if (lts === 1 && gts === 1 && lastAngleContent(text) !== null) sender = lastAngleContent(text).trim().toLowerCase();
+  else return null;                                                          // ambiguous: judge it
+  for (let i = 0; i < whitelist.length; i++)
   {
-    if (addressMatchesDomain(sender, whitelist[i])) entry = whitelist[i];
+    if (addressMatchesDomain(sender, whitelist[i])) return whitelist[i];
   }
-  if (entry === null) return null;
-  const others = fromHeaderAddresses(from);
-  for (let j = 0; j < others.length; j++)
-  {
-    let ok = false;
-    for (let i = 0; i < whitelist.length && !ok; i++) ok = addressMatchesDomain(others[j], whitelist[i]);
-    if (!ok) return null;
-  }
-  return entry;
+  return null;
 }
 
 /**

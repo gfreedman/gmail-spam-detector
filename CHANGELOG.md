@@ -33,11 +33,15 @@ domain worked, and the whitelist is public in this repo.
 - `extractEmailAddress()` now takes the `<...>` that ENDS the header (the RFC 5322 angle-addr),
   falling back to the old first-`<...>` and bare-token rules. Every caller benefits: blacklist,
   history gate, logs.
-- `whitelistEntryForFrom()` (both `collectSignals()` and `isWhitelistedSender()`): the sender
-  must match an entry AND every other address anywhere in the From header must match one too. This
-  covers the comment form `team@mill.example (FinRiseX <news@betakit.com>)`, where no angle-addr
-  ends the header. Checked against the owner's mail: 0 of 50 recent whitelisted messages (LinkedIn,
-  Substack) and the one Apple-relay message carry an address in the display name.
+- `whitelistEntryForFrom()` (both `collectSignals()` and `isWhitelistedSender()`): only an
+  UNAMBIGUOUS From header can be whitelisted, exactly one `<...>` ending the header, or a bare
+  address with no angle brackets. Two angle-addrs, an angle-addr inside a comment
+  (`team@mill.example (FinRiseX <news@betakit.com>)`) or a stray `<`/`>` is judged like any other
+  mail. Addresses in the display name are ignored, not counted: a first draft that required every
+  address in the header to be whitelisted withdrew the exemption from the owner's ezyvet receipts,
+  `"Madison (missioncreekah@gmail.com)" <no-reply@app.ezyvet.com>`, which the Spam-folder review
+  would then have deleted (caught by review). Checked against the owner's real mail from every
+  whitelisted domain: no display name contains `<` or `>`.
 - Mirrored in the Python harness; the extraction fuzz spec in test_link_graph.js was updated to the
   new rule (50,000 inputs, 0 mismatches). Both guards fault-injected in JS and Python.
 

@@ -1278,12 +1278,18 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Strict domain matching — NOT `domain in sender_address`. Substring
     # matching here was a full detection bypass: "mail@linkedin.com.secure-
     # login.top" and "a@notlinkedin.com" both contain "linkedin.com".
-    # Mirror of whitelistEntryForFrom(): every other address in the header must be whitelisted too.
-    others = [t.lower() for t in re.split(r'[\s<>()"\',;]+', from_field)
-              if 0 < t.rfind('@') < len(t) - 1]
-    header_ok = all(any(_address_matches_domain(o, d) for d in WHITELISTED_DOMAINS) for o in others)
-    for domain in (WHITELISTED_DOMAINS if header_ok else []):
-        if _address_matches_domain(sender_address, domain):
+    # Mirror of whitelistEntryForFrom(): only an unambiguous header can be whitelisted, exactly
+    # one trailing <addr> or a bare address. Display-name addresses are ignored, never counted.
+    lts, gts = from_field.count('<'), from_field.count('>')
+    if lts == 0 and gts == 0:
+        bare = re.search(r'([^ \t\r\n<>()]+@[^ \t\r\n<>()]+)', from_field)
+        wl_sender = (bare.group(1) if bare else from_field).strip().lower()
+    elif lts == 1 and gts == 1 and tail_match:
+        wl_sender = tail_match.group(1).strip().lower()
+    else:
+        wl_sender = None
+    for domain in (WHITELISTED_DOMAINS if wl_sender is not None else []):
+        if _address_matches_domain(wl_sender, domain):
             return {'bulk_email': has_amazon_ses, 'blacklisted_sender': False,
                     'clickbait_count': 0, 'fear_mongering': False,
                     'marketing_format': False, 'suspicious_from_name': False,
@@ -2595,6 +2601,12 @@ def run_edge_case_tests():
         ('"Riehl, Alex" <alex.riehl@betakit.com>', True, 'quoted whitelisted sender'),
         ('alex.riehl@betakit.com', True, 'bare whitelisted address'),
         ('"news@betakit.com" <alex.riehl@betakit.com>', True, 'whitelisted address in the name of a whitelisted sender'),
+        ('"Madison (missioncreekah@gmail.com)" <no-reply@app.ezyvet.com>', True, 'staff-via-platform: a Gmail address in the name (ezyvet)'),
+        ('X <"team"@mill.example> <news@betakit.com>', False, 'two angle-addrs, quoted local part'),
+        ('X <team(c)@mill.example> <news@betakit.com>', False, 'two angle-addrs, comment in local part'),
+        ('X <team @mill.example> <news@betakit.com>', False, 'two angle-addrs, space before @'),
+        ('Name <news@betakit.com> (team@mill.example)', False, 'comment after the angle-addr'),
+        ('x\ufeff@mill.example <news@betakit.com>', True, 'bare text before a single trailing whitelisted angle-addr'),
     ]
     for from_field, want, label in wl_cases:
         sig, _, _ = analyze_email('Hello', from_field, True)

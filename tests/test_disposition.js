@@ -3628,6 +3628,35 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
         !/QUARANTINE_RULES = \[[^\]]*Rule 14/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Disposition.gs'), 'utf8')));
 }
 
+console.log('\n=== v6.104.0: a whitelisted address in the display name is not an exemption ===');
+{
+  const c = makeCtx();
+  const msg = (from) => { const m = phishMessage('mWL'); m.getFrom = () => from; m.getRawContent = () => 'X-SES-Outgoing: 1\r\n\r\nbody'; return m; };
+  const cases = [
+    ['"FinRiseX <news@betakit.com>" <team@your.finrisex.com>', false],
+    ['FinRiseX <news@betakit.com> <team@your.finrisex.com>', false],
+    ['team@your.finrisex.com (FinRiseX <news@betakit.com>)', false],
+    ['BetaKit <alex.riehl@betakit.com>', true],
+    ['"Riehl, Alex" <alex.riehl@betakit.com>', true],
+    ['alex.riehl@betakit.com', true],
+    ['BetaKit <alex.riehl@betakit.com>  ', true],
+    ['"news@betakit.com" <alex.riehl@betakit.com>', true],
+  ];
+  for (const [from, want] of cases) {
+    check('collectSignals ' + (want ? 'whitelists ' : 'judges ') + from, (c.collectSignals(msg(from)) === null) === want);
+    check('isWhitelistedSender agrees for ' + from, c.isWhitelistedSender(msg(from)) === want);
+  }
+  check('the quoted-name bypass is now judged on the real address: Rule 1 (bulk + blacklisted finrisex.com)',
+        c.analyzeMessage(msg('"FinRiseX <news@betakit.com>" <team@your.finrisex.com>')).isSpam === true);
+  check('extractEmailAddress takes the trailing angle-addr',
+        c.extractEmailAddress('"A <x@good.example>" <y@real.example>') === 'y@real.example' &&
+        c.extractEmailAddress('Name <a@b.example>') === 'a@b.example' &&
+        c.extractEmailAddress('a@b.example (Name)') === 'a@b.example');
+  const big = '<'.repeat(100000) + ' <a@b.example>';
+  const t0 = Date.now(); c.extractEmailAddress(big); c.whitelistEntryForFrom(big, ['b.example']);
+  check('100 KB From header handled in under 200 ms', Date.now() - t0 < 200, (Date.now() - t0) + ' ms');
+}
+
 console.log('\n=== Signal 12: headline-then-brand From name (corroboration only) ===');
 {
   const ctx = makeCtx();

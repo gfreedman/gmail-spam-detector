@@ -215,13 +215,10 @@ function isWhitelistedSender(message)
 {
   try
   {
-    const addr = extractEmailAddress(
-      sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2'));
-    const whitelist = getCachedWhitelist();
-    for (let i = 0; i < whitelist.length; i++)
-    {
-      if (addressMatchesDomain(addr, whitelist[i])) return true;
-    }
+    // Same rule as collectSignals() (v6.104.0): the trailing address, and no second
+    // non-whitelisted address anywhere in the header.
+    return whitelistEntryForFrom(
+      sanitizeInput(message.getFrom()).replace(RFC2822_QUOTED_NAME, '$1$2'), getCachedWhitelist()) !== null;
   }
   catch (e)
   {
@@ -229,7 +226,6 @@ function isWhitelistedSender(message)
     logError('Whitelist check failed, refusing to delete: ' + e.toString());
     return true;
   }
-  return false;
 }
 
 /**

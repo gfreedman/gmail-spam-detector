@@ -631,8 +631,16 @@ function extractEmailAddress(from)
   // before the whitelist check. Same results — fuzzed against the old
   // regexes when replaced.
 
-  // Angle-bracket form first: "Display Name <addr@host>". Most common.
-  // The first '<' whose next '>' is not immediately after it.
+  // v6.104.0: the angle-addr that ENDS the header wins. In a name-addr the address is last
+  // ("Display Name <addr@host>"), and the display name is the sender's to write: taking the FIRST
+  // <...> read '"FinRiseX <news@betakit.com>" <team@finrisex.com>' as betakit.com, which skipped
+  // every signal for anyone naming a whitelisted address (PR #32 review). The quoted form reaches
+  // here with its quotes stripped by RFC2822_QUOTED_NAME, so it is the same case.
+  const tail = lastAngleContent(from);
+  if (tail !== null) return tail.trim().toLowerCase();
+
+  // Otherwise "Display Name <addr@host>" not at the end. The first '<' whose next '>' is not
+  // immediately after it.
   const angled = firstAngleContent(from);
   if (angled !== null) return angled.trim().toLowerCase();
 
@@ -653,6 +661,75 @@ function extractEmailAddress(from)
   }
 
   return from.trim().toLowerCase();
+}
+
+/**
+ * The non-empty content of a "<...>" that ends the text (trailing whitespace ignored), or null.
+ * Linear: one trim, one lastIndexOf.
+ *
+ * @param {string} text
+ * @return {string|null}
+ */
+function lastAngleContent(text)
+{
+  const t = String(text).replace(/[ \t\r\n]+$/, '');
+  if (t.length < 3 || t[t.length - 1] !== '>') return null;
+  const lt = t.lastIndexOf('<', t.length - 2);
+  if (lt === -1 || lt === t.length - 2) return null;
+  const inner = t.substring(lt + 1, t.length - 1);
+  return inner.indexOf('>') === -1 ? inner : null;
+}
+
+/**
+ * Every address-shaped token in a From header, lower-cased: a run of characters other than
+ * whitespace, angle brackets, parentheses, quotes, commas and semicolons, with an '@' that has
+ * a character on each side. Linear (one split).
+ *
+ * @param {string} from
+ * @return {Array<string>}
+ */
+function fromHeaderAddresses(from)
+{
+  const out = [];
+  const tokens = String(from || '').split(/[\s<>()"',;]+/);
+  for (let i = 0; i < tokens.length; i++)
+  {
+    const at = tokens[i].lastIndexOf('@');
+    if (at > 0 && at < tokens[i].length - 1) out.push(tokens[i].toLowerCase());
+  }
+  return out;
+}
+
+/**
+ * The whitelist entry that exempts this sender, or null (v6.104.0).
+ *
+ * The sender address must match an entry AND every other address written anywhere in the
+ * From header must match one too. A display name is the sender's to write, so an address in
+ * it proves nothing; but one that is NOT whitelisted means the header is ambiguous, and an
+ * ambiguous header does not get a blanket exemption from detection. Covers the forms the
+ * address extraction alone cannot: "team@mill.example (FinRiseX <news@betakit.com>)".
+ *
+ * @param {string} from      - From header, RFC 2822 quotes already stripped.
+ * @param {Array<string>} whitelist
+ * @return {?string}
+ */
+function whitelistEntryForFrom(from, whitelist)
+{
+  const sender = extractEmailAddress(from);
+  let entry = null;
+  for (let i = 0; i < whitelist.length && entry === null; i++)
+  {
+    if (addressMatchesDomain(sender, whitelist[i])) entry = whitelist[i];
+  }
+  if (entry === null) return null;
+  const others = fromHeaderAddresses(from);
+  for (let j = 0; j < others.length; j++)
+  {
+    let ok = false;
+    for (let i = 0; i < whitelist.length && !ok; i++) ok = addressMatchesDomain(others[j], whitelist[i]);
+    if (!ok) return null;
+  }
+  return entry;
 }
 
 /**

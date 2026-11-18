@@ -20,6 +20,27 @@ detail plus the diffs.
 
 ---
 
+## v6.104.0
+
+**A whitelisted address written into the display name no longer exempts a sender from detection.**
+
+Found by the adversarial review of PR #32. `extractEmailAddress()` returned the FIRST `<...>` in
+the From header, so `"FinRiseX <news@betakit.com>" <team@your.finrisex.com>` was read as
+betakit.com: whitelisted, and `collectSignals()` skipped every signal. Reproduced in the shipped JS
+with a Rule 1 mill mail (bulk + blacklisted finrisex.com) that was judged clean. Any whitelisted
+domain worked, and the whitelist is public in this repo.
+
+- `extractEmailAddress()` now takes the `<...>` that ENDS the header (the RFC 5322 angle-addr),
+  falling back to the old first-`<...>` and bare-token rules. Every caller benefits: blacklist,
+  history gate, logs.
+- `whitelistEntryForFrom()` (both `collectSignals()` and `isWhitelistedSender()`): the sender
+  must match an entry AND every other address anywhere in the From header must match one too. This
+  covers the comment form `team@mill.example (FinRiseX <news@betakit.com>)`, where no angle-addr
+  ends the header. Checked against the owner's mail: 0 of 50 recent whitelisted messages (LinkedIn,
+  Substack) and the one Apple-relay message carry an address in the display name.
+- Mirrored in the Python harness; the extraction fuzz spec in test_link_graph.js was updated to the
+  new rule (50,000 inputs, 0 mismatches). Both guards fault-injected in JS and Python.
+
 ## v6.103.0
 
 **Rule 14's no-history gate also recognises a known publisher writing from a new address; deleted false positives can be restored.**

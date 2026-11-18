@@ -1270,12 +1270,19 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Whitelist check — known legitimate senders bypass all detection.
     # Match against the email address only (not the display name) to prevent
     # display-name spoofing: "LinkedIn News <spammer@spam.com>" must NOT bypass.
-    email_match = re.search(r'<([^>]+)>', from_field)
-    sender_address = (email_match.group(1) if email_match else from_field).lower()
+    # v6.104.0: the <...> that ENDS the header is the address (mirror of extractEmailAddress()'s
+    # lastAngleContent()); the first one may sit inside a display name the sender wrote.
+    tail_match = re.search(r'<([^<>]+)>[ \t\r\n]*$', from_field)
+    email_match = tail_match or re.search(r'<([^>]+)>', from_field)
+    sender_address = (email_match.group(1).strip() if email_match else from_field).lower()
     # Strict domain matching — NOT `domain in sender_address`. Substring
     # matching here was a full detection bypass: "mail@linkedin.com.secure-
     # login.top" and "a@notlinkedin.com" both contain "linkedin.com".
-    for domain in WHITELISTED_DOMAINS:
+    # Mirror of whitelistEntryForFrom(): every other address in the header must be whitelisted too.
+    others = [t.lower() for t in re.split(r'[\s<>()"\',;]+', from_field)
+              if 0 < t.rfind('@') < len(t) - 1]
+    header_ok = all(any(_address_matches_domain(o, d) for d in WHITELISTED_DOMAINS) for o in others)
+    for domain in (WHITELISTED_DOMAINS if header_ok else []):
         if _address_matches_domain(sender_address, domain):
             return {'bulk_email': has_amazon_ses, 'blacklisted_sender': False,
                     'clickbait_count': 0, 'fear_mongering': False,
@@ -2577,6 +2584,24 @@ def run_edge_case_tests():
     check('display-name spoof: not whitelisted',
           signals['blacklisted_sender'],
           'smartinvestmenttools.com in address should be blacklisted')
+
+    # ── v6.104.0: a whitelisted ADDRESS written into the display name ────────
+    # extractEmailAddress() took the FIRST <...>, so this skipped every signal.
+    wl_cases = [
+        ('"FinRiseX <news@betakit.com>" <team@your.finrisex.com>', False, 'quoted name holding a whitelisted address'),
+        ('FinRiseX <news@betakit.com> <team@your.finrisex.com>', False, 'unquoted name holding a whitelisted address'),
+        ('team@your.finrisex.com (FinRiseX <news@betakit.com>)', False, 'comment form holding a whitelisted address'),
+        ('BetaKit <alex.riehl@betakit.com>', True, 'ordinary whitelisted sender'),
+        ('"Riehl, Alex" <alex.riehl@betakit.com>', True, 'quoted whitelisted sender'),
+        ('alex.riehl@betakit.com', True, 'bare whitelisted address'),
+        ('"news@betakit.com" <alex.riehl@betakit.com>', True, 'whitelisted address in the name of a whitelisted sender'),
+    ]
+    for from_field, want, label in wl_cases:
+        sig, _, _ = analyze_email('Hello', from_field, True)
+        got = 'whitelisted' in sig.get('matched_patterns', [])
+        check(f'whitelist ({label}): {"whitelisted" if want else "judged"}', got == want, from_field)
+    sig, _, _ = analyze_email('Hello', '"FinRiseX <news@betakit.com>" <team@your.finrisex.com>', True)
+    check('quoted-name bypass: the REAL address is judged (blacklisted finrisex.com)', sig['blacklisted_sender'])
 
     # ── Null bytes and control characters in subject ─────────────────────────
     # sanitizeInput() must truncate cleanly; no crash or unexpected pattern fire

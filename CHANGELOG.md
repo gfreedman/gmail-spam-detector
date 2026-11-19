@@ -20,6 +20,23 @@ detail plus the diffs.
 
 ---
 
+## v6.107.0
+
+**Cleanup: one restore path, one Signal 16 fold, no "SHADOW" names, a restored thread is never re-held.**
+
+- `restoreFromArchive()` and its `RESTORE_MESSAGE_IDS` Script Property are removed. The Sheet's Restore
+  tab (v6.105.0) is the one way in; the per-message work (`restoreOneFromArchive()`) is unchanged.
+- `foldAdText()`: the text fold Signal 16 (a) and `millPromoCredit()` (Signal 16 (c)) each wrote out
+  is now one function, mirrored by `_fold_ad_text()`. Same output; parity and the fixtures agree.
+- History cache keys are `HIST_` (were `SHADOW_HIST_`, from the removed observer).
+  `purgeShadowLeftovers()` now deletes every old-prefix key on this deploy, so the gate re-asks each
+  sender once; an exhausted lookup budget is "unknown" (not convicted, retried), as always.
+- The post-deploy recheck skips a thread that holds a `SpamRestored` message. Its query already
+  excluded the label, but Gmail matches a thread when any message matches, so a later reply brought
+  a restored thread back and the restored email (messages[0]) could be held out of the inbox again.
+- `scripts/watch_deploy.py` retries through network errors ("connection reset by peer" killed it
+  mid-deploy) and gives up, loudly, only after ~5 minutes of consecutive failed polls.
+
 ## v6.106.0
 
 **The shadow observers are removed.**

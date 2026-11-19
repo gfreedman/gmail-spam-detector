@@ -33,6 +33,7 @@ JOB_ORDER = ['test', 'deploy', 'validate', 'verify-prod', 'tag']
 TRIGGER_PERIOD_S = 600          # the Apps Script trigger runs every 10 minutes
 TRIGGER_GRACE_S = 180          # a due run's marker can land this long after the due time
 POLL_S = 15
+MAX_FAILURES = max(1, 300 // POLL_S)   # consecutive failed polls (~5 min) before giving up
 HEARTBEAT_S = 120
 HISTORY_RUNS = 6
 
@@ -103,9 +104,22 @@ def main():
     last_line, last_print = None, 0.0
     trigger_due, trigger_checked = None, 0.0
 
+    failures = 0
     while True:
-        run = gh_json('run', 'view', str(run_id), '--json',
-                      'status,conclusion,displayTitle,jobs')
+        # A network blip ("connection reset by peer") used to kill the watcher mid-deploy, and
+        # the progress bar silently stopped. Retry quietly; give up, loudly, only after
+        # MAX_FAILURES polls in a row (~5 min) fail.
+        try:
+            run = gh_json('run', 'view', str(run_id), '--json',
+                          'status,conclusion,displayTitle,jobs')
+            failures = 0
+        except (RuntimeError, subprocess.TimeoutExpired, json.JSONDecodeError, OSError) as e:
+            failures += 1
+            if failures >= MAX_FAILURES:
+                print(f'watcher: gave up after {failures} failed polls in a row: {e} ✗', flush=True)
+                sys.exit(2)
+            time.sleep(POLL_S)
+            continue
         title = run['displayTitle']
         version = re.match(r'(v\d+\.\d+\.\d+)', title)
         label = version.group(1) if version else title[:40]

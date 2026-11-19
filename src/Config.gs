@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.106.0
+ * @version 6.107.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -103,7 +103,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.106.0';
+const SCRIPT_VERSION = '6.107.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -151,7 +151,7 @@ const CONFIG = Object.freeze({
    *  purge. Also excluded by buildSearchQuery() so it is not re-detected. */
   phishingLabel: 'Phishing',
 
-  /** Label restoreFromArchive() (v6.103.0) puts on a false positive it re-inserts from
+  /** Label the restore (v6.103.0, the Sheet's Restore tab) puts on a false positive it re-inserts from
    *  the Drive archive. The post-deploy recheck skips it, so a restored email is not
    *  deleted a second time by the rule that deleted it the first time. */
   restoredLabel: 'SpamRestored',

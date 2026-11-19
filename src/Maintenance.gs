@@ -586,6 +586,11 @@ function recheckRecentSpamChecked(widen)
 
         const verdict = analyzeMessage(message);
         if (!verdict.isSpam) continue;
+        // v6.107.0: the query's -label:SpamRestored is not enough. Gmail matches a THREAD when any
+        // message matches, so one later reply without the label brings a restored thread back here,
+        // and messages[0] (the restored email) would be held out of the inbox again. A restore is
+        // the owner's decision; re-checked in code, and only for a match (one getLabels() call).
+        if (thread.getLabels().some(function(l) { return l.getName() === CONFIG.restoredLabel; })) continue;
 
         logInfo('Auto-recaught false negative: ' + sanitizeForLog(message.getSubject()));
 
@@ -653,50 +658,12 @@ function recheckRecentSpamChecked(widen)
 }
 
 /**
- * Put false positives back into the inbox from their Drive archive (v6.103.0).
- *
- * Two ways in, same work per message (restoreOneFromArchive):
- *  - the "Restore" tab of the Spam Intelligence Sheet (v6.105.0), read on every maintenance
- *    cycle by processRestoreRequests(): paste a Gmail message id from the Raw Log into column A
- *    and the next run restores it, so nobody needs the Apps Script editor;
- *  - this function, by hand from the editor, for the ids in the Script Property
- *    RESTORE_MESSAGE_IDS (comma-separated). Restored ids are removed from the property;
- *    failures stay so a re-run retries them.
- *
- * Restoring is NOT whitelisting: the sender's NEXT email is judged as usual. Add the
- * domain with addToWhitelist() (or to DEFAULT_DOMAINS.legitimate) to spare it.
- *
- * @return {number} How many messages were restored.
+ * False-positive restore (v6.103.0; Sheet-driven since v6.105.0, the by-hand
+ * restoreFromArchive() entry point and its RESTORE_MESSAGE_IDS Script Property were removed in
+ * v6.107.0 so there is one way in): paste a Gmail message id from the Raw Log into column A of
+ * the Sheet's "Restore" tab, and processRestoreRequests() restores it on the next maintenance
+ * cycle. Restoring is NOT whitelisting: the sender's NEXT email is judged as usual.
  */
-function restoreFromArchive()
-{
-  const props = PropertiesService.getScriptProperties();
-  const wanted = String(props.getProperty('RESTORE_MESSAGE_IDS') || '')
-    .split(',').map(function(x) { return x.trim().toLowerCase(); }).filter(function(x) { return x !== ''; });
-  if (wanted.length === 0)
-  {
-    logInfo('restoreFromArchive: set the Script Property RESTORE_MESSAGE_IDS to the Raw Log message id(s) first');
-    return 0;
-  }
-  const folders = restoreArchiveFolders();
-  if (folders === null) return 0;
-  const labelIds = restoreLabelIds();
-  const left = [];
-  let restored = 0;
-  for (let i = 0; i < wanted.length; i++)
-  {
-    try { logInfo('RESTORED ' + restoreOneFromArchive(wanted[i], folders, labelIds)); restored++; }
-    catch (e)
-    {
-      left.push(wanted[i]);
-      logError('restoreFromArchive failed for ' + sanitizeForLog(wanted[i]) + ': ' + e.toString());
-    }
-  }
-  if (left.length === 0) props.deleteProperty('RESTORE_MESSAGE_IDS');
-  else props.setProperty('RESTORE_MESSAGE_IDS', left.join(','));
-  logInfo('restoreFromArchive: ' + restored + ' restored, ' + left.length + ' left to retry');
-  return restored;
-}
 
 /** The three folders archives live in, or null (logged) when logging is not set up. */
 function restoreArchiveFolders()
@@ -766,9 +733,9 @@ function restoreOneFromArchive(rawId, folders, labelIds)
 }
 
 /**
- * Delete the Script Properties the removed shadow observer (v6.91.0-v6.105.0) wrote (v6.106.0):
- * its per-DOMAIN history answers ("SHADOW_HIST_<domain>", which contain a dot; the gate's
- * hashed address keys "SHADOW_HIST_A<hex>" never do), its self-test markers, and its "Shadow"
+ * Delete what the removed shadow observer (v6.91.0-v6.105.0) left (v6.106.0): every
+ * "SHADOW_HIST_" history key (its per-domain answers, and since v6.107.0 the gate's old-prefix
+ * address answers too; the gate now keys "HIST_"), its self-test markers, and its "Shadow"
  * tab in the Sheet. Runs on a
  * version change only; one getKeys() and nothing else when there is nothing left.
  * @return {number} How many keys were deleted.
@@ -781,7 +748,7 @@ function purgeShadowLeftovers()
   for (let i = 0; i < keys.length; i++)
   {
     const k = keys[i];
-    if ((k.indexOf('SHADOW_HIST_') === 0 && k.indexOf('.') !== -1) ||
+    if (k.indexOf('SHADOW_HIST_') === 0 ||
         k === 'SHADOW_SELFTEST_VERSION' || k === 'SHADOW_SELFTEST_TRY')
     {
       props.deleteProperty(k);

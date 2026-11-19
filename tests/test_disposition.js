@@ -3167,7 +3167,7 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
     if (hist === 'known')   c.props[KEY] = 'Y:' + Date.now();
     if (hist === 'none')    c.props[KEY] = 'N:' + Date.now();
     // The shared ESP's own domain being "known" must NOT switch the rule off for a mill on it.
-    if (hist === 'none' || hist === 'known') c.props['SHADOW_HIST_email.cyberimpact.com'] = 'Y:' + Date.now();
+    if (hist === 'none' || hist === 'known') c.props['HIST_email.cyberimpact.com'] = 'Y:' + Date.now();
     if (hist === 'unknown') vm.runInContext('historyLookups = HISTORY_LOOKUP_BUDGET', c);
     const m = mk(o || {});
     const v = c.analyzeMessage(m);
@@ -3200,7 +3200,7 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
     check('an address with an operator or space is never put in a query, and is retried (unknown)',
           !searches.some(q => /evil\.example/.test(q)) && v.isSpam === false && v.unevaluated === 'error', JSON.stringify(searches));
     check('address cache keys are short hashes, domain keys stay plain',
-          /^SHADOW_HIST_A[0-9a-f]{1,8}$/.test(c.historyCacheKey('a.b@c.example')) && c.historyCacheKey('c.example') === 'SHADOW_HIST_c.example');
+          /^HIST_A[0-9a-f]{1,8}$/.test(c.historyCacheKey('a.b@c.example')) && c.historyCacheKey('c.example') === 'HIST_c.example');
   }
   { const r = run('none', { lu: false });
     check('no history but no List-Unsubscribe: not convicted', r.v.isSpam === false);
@@ -3353,7 +3353,16 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
       fs.readFileSync(path.join(__dirname, '..', 'src', 'SpamFolder.gs'), 'utf8')));
   }
   {
-    // v6.103.0: restoreFromArchive() puts a deleted false positive back from Drive.
+    // v6.103.0: a deleted false positive comes back from Drive. restoreFromArchive() (the by-hand
+    // entry point) was removed in v6.107.0; restoreIds() drives the same per-message work.
+    const restoreIds = (c) => {
+      const ids = String(c.props.RESTORE_MESSAGE_IDS || '').split(',').map(x => x.trim()).filter(Boolean);
+      if (!ids.length) return 0;
+      const f = c.restoreArchiveFolders(), L = c.restoreLabelIds(); let n = 0; const left = [];
+      for (const id of ids) { try { c.restoreOneFromArchive(id, f, L); n++; } catch (e) { left.push(id); } }
+      if (left.length) c.props.RESTORE_MESSAGE_IDS = left.join(','); else delete c.props.RESTORE_MESSAGE_IDS;
+      return n;
+    };
     const setup = (ids, names, byFolder) => {
       const c = makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } });
       if (ids !== null) c.props.RESTORE_MESSAGE_IDS = ids;
@@ -3369,35 +3378,34 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
       return { c, inserted };
     };
     let t = setup('1a1f098325758ca8', ['2026-11-18T21-38-11Z_1a1f0983.eml', '2026-11-18T21-00-00Z_deadbeef.eml']);
-    let n = t.c.restoreFromArchive();
+    let n = restoreIds(t.c);
     const ins = t.inserted[0] || { res: {}, args: {}, blob: {} };
     check('restore: the matching archive is inserted into the inbox, read, SpamChecked + SpamRestored, dated by its Date header',
           n === 1 && t.inserted.length === 1 && JSON.stringify(ins.res.labelIds) === JSON.stringify(['INBOX', 'L_CHK', 'L_RST']) &&
           ins.args.internalDateSource === 'dateHeader' && ins.blob.ct === 'message/rfc822', JSON.stringify(t.inserted));
-    check('restore: the property is cleared once everything is restored', !('RESTORE_MESSAGE_IDS' in t.c.props));
     t = setup('1a1f098325758ca8, cafebabe00000001', ['x_1a1f0983.eml']);
-    n = t.c.restoreFromArchive();
-    check('restore: an id with no archive stays in the property for a retry; the rest restore',
-          n === 1 && t.c.props.RESTORE_MESSAGE_IDS === 'cafebabe00000001', JSON.stringify(t.c.props.RESTORE_MESSAGE_IDS));
+    n = restoreIds(t.c);
+    check('restore: an id with no archive fails alone; the rest restore', n === 1 && t.inserted.length === 1);
     t = setup('1a1f0983', ['x_1a1f0983.eml']);
-    check('restore: an 8-digit id is refused (it cannot prove the other 8 digits)', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);
+    check('restore: an 8-digit id is refused (it cannot prove the other 8 digits)', restoreIds(t.c) === 0 && t.inserted.length === 0);
     t = setup('1a1f098325758ca8', null, { 'False Negatives': ['2026-11-18T21-38-11Z_1a1f0983.eml'] });
-    check('restore: a recheck delete (archived under False Negatives/) is found', t.c.restoreFromArchive() === 1);
+    check('restore: a recheck delete (archived under False Negatives/) is found', restoreIds(t.c) === 1);
     t = setup('1a1f098325758ca8', null, { 'Spam Folder': ['1a1f098325758ca8.eml', '1a1f0983ffffffff.eml'] });
     check('restore: a Spam-folder copy is found by its full id, not its prefix',
-          t.c.restoreFromArchive() === 1 && t.inserted[0].blob.name === '1a1f098325758ca8.eml', JSON.stringify(t.inserted.map(x => x.blob.name)));
+          restoreIds(t.c) === 1 && t.inserted[0].blob.name === '1a1f098325758ca8.eml', JSON.stringify(t.inserted.map(x => x.blob.name)));
     t = setup('1a1f098325758ca8', null, { 'Spam Folder': ['1a1f098325758ca8.eml'], 'Detected': ['2026-11-18T21-38-11Z_1a1f0983.eml'] });
     check('restore: an aged-out Gmail-spam mail (Spam Folder/ copy AND Detected/ archive) restores from the exact-id copy',
-          t.c.restoreFromArchive() === 1 && t.inserted.length === 1 && t.inserted[0].blob.name === '1a1f098325758ca8.eml', JSON.stringify(t.inserted.map(x => x.blob.name)));
+          restoreIds(t.c) === 1 && t.inserted.length === 1 && t.inserted[0].blob.name === '1a1f098325758ca8.eml', JSON.stringify(t.inserted.map(x => x.blob.name)));
     t = setup('1a1f098325758ca8', null, { 'Detected': ['a_1a1f0983.eml'], 'False Negatives': ['b_1a1f0983.eml'] });
-    check('restore: candidates in two folders are refused, never guessed', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);
+    check('restore: candidates in two folders are refused, never guessed', restoreIds(t.c) === 0 && t.inserted.length === 0);
     t = setup("1a1f098325758ca8' or '", ['x_1a1f0983.eml']);
-    n = t.c.restoreFromArchive();
+    n = restoreIds(t.c);
     check('restore: a non-hex id is refused, never matched', n === 0 && t.inserted.length === 0);
     t = setup('1a1f098325758ca8', ['a_1a1f0983.eml', 'b_1a1f0983.eml']);
-    check('restore: two archives with the same id8 are refused, never guessed', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);
+    check('restore: two archives with the same id8 are refused, never guessed', restoreIds(t.c) === 0 && t.inserted.length === 0);
     t = setup(null, []);
-    check('restore: no property set does nothing', t.c.restoreFromArchive() === 0 && t.inserted.length === 0);
+    check('restore: the by-hand restoreFromArchive() entry point is gone (one way in: the Restore tab)',
+          vm.runInContext('typeof restoreFromArchive', t.c) === 'undefined');
     // v6.105.0: the Sheet's "Restore" tab, read by a maintenance step.
     const tab = (rows, opts) => {
       opts = opts || {};
@@ -3442,6 +3450,25 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
     check('processRestoreRequests runs as the FIRST maintenance step',
           /logInfo\('Running periodic maintenance'\);[\s\S]*?runMaintenanceStep\('processRestoreRequests'[\s\S]*?runMaintenanceStep\('checkFalseNegatives'/.test(
             fs.readFileSync(path.join(__dirname, '..', 'src', 'Maintenance.gs'), 'utf8')));
+    {
+      // v6.107.0: a restored thread that a later reply brings back past the query is still left alone.
+      const k = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
+      k.props[k.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com')] = 'N:' + Date.now();
+      const restoredMsg = mk({}); const reply = phishMessage('mReply'); reply.getFrom = () => 'Me <me@example.org>';
+      const th = fakeThread([restoredMsg, reply], k.calls); th.__labels.push('SpamRestored');
+      k.GmailApp.search = () => [th]; k.GmailApp.getMessagesForThreads = () => [[restoredMsg, reply]];
+      k.recheckRecentSpamChecked(true);
+      check('recheck: a thread holding a RESTORED message is neither held nor deleted, even when the query lets it through',
+            !k.calls.some(x => x.op === 'batchDelete') && th.__labels.indexOf('SuspectedSpam') === -1,
+            JSON.stringify({ ops: k.calls.map(x => x.op), labels: th.__labels }));
+      const k2 = on(makeCtx({ props: { SPAM_LOG_FOLDER_ID: 'folder123' } }));
+      k2.props[k2.historyCacheKey('daily.fresh.freshbrandnews.example@email.cyberimpact.com')] = 'N:' + Date.now();
+      const m2 = mk({}); const th2 = fakeThread([m2, reply], k2.calls);
+      k2.GmailApp.search = () => [th2]; k2.GmailApp.getMessagesForThreads = () => [[m2, reply]];
+      k2.recheckRecentSpamChecked(true);
+      check('...control: the same thread WITHOUT the restored label is held as before', th2.__labels.indexOf('SuspectedSpam') !== -1,
+            JSON.stringify(th2.__labels));
+    }
     check('the recheck skips restored mail',
           /-label:' \+ CONFIG\.restoredLabel/.test(fs.readFileSync(path.join(__dirname, '..', 'src', 'Maintenance.gs'), 'utf8')));
     check('betakit.com is whitelisted', makeCtx().getWhitelist().indexOf('betakit.com') !== -1);
@@ -3454,17 +3481,17 @@ console.log('\n=== Signal 17 / Rule 14: finance-pitch score, delete behind the a
 console.log('\n=== v6.106.0: the shadow observer is gone, its leftovers are purged ===');
 {
   const fs = require('fs'), path = require('path');
-  const c = makeCtx({ props: { 'SHADOW_HIST_email.cyberimpact.com': 'Y:1', 'SHADOW_HIST_a1b2c3': 'N:1',
+  const c = makeCtx({ props: { 'SHADOW_HIST_email.cyberimpact.com': 'Y:1', 'SHADOW_HIST_Aa1b2c3': 'N:1', 'HIST_Aa1b2c3': 'N:1',
                                SHADOW_SELFTEST_VERSION: '6.96.0', SHADOW_SELFTEST_TRY: 'x', SPAM_LOG_SHEET_ID: 's' } });
   const deleted = [];
   const tabs = { Shadow: { name: 'Shadow' }, 'Raw Log': { name: 'Raw Log' } };
   c.SpreadsheetApp = { openById: () => ({ getSheetByName: n => tabs[n] || null, deleteSheet: t => { deleted.push(t.name); delete tabs[t.name]; } }) };
   const n = c.purgeShadowLeftovers();
   check('purge: the Sheet\'s "Shadow" tab is deleted, and only that tab', JSON.stringify(deleted) === '["Shadow"]', JSON.stringify(deleted));
-  check('purge: domain history keys and self-test markers are deleted', n === 3 &&
+  check('purge: every old-prefix history key and the self-test markers are deleted', n === 4 && !('SHADOW_HIST_Aa1b2c3' in c.props) &&
         !('SHADOW_HIST_email.cyberimpact.com' in c.props) && !('SHADOW_SELFTEST_VERSION' in c.props) && !('SHADOW_SELFTEST_TRY' in c.props));
-  check('purge: the gate\'s hashed address answers and unrelated properties are kept',
-        c.props.SHADOW_HIST_a1b2c3 === 'N:1' && c.props.SPAM_LOG_SHEET_ID === 's');
+  check('purge: the gate\'s current-prefix answers and unrelated properties are kept',
+        c.props.HIST_Aa1b2c3 === 'N:1' && c.props.SPAM_LOG_SHEET_ID === 's');
   check('purge: nothing left means nothing deleted', c.purgeShadowLeftovers() === 0);
   for (const gone of ['observeShadow', 'flushShadowRows', 'queueShadowRow', 'docLureHost', 'repeatStats', 'SHADOW_THEME_PATTERNS']) {
     check('removed: ' + gone, vm.runInContext('typeof ' + gone, c) === 'undefined');

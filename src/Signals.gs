@@ -504,8 +504,7 @@ function collectSignals(message)
   {
     if (getRawHeader(rawContent, 'List-Unsubscribe'))
     {
-      const authored = ' ' + normalizeAdText(stripQuotedAndForwarded(body))
-        .replace(/[^a-z0-9 ]/g, ' ').replace(/ +/g, ' ') + ' ';
+      const authored = ' ' + foldAdText(stripQuotedAndForwarded(body)) + ' ';
       for (let i = 0; i < MILL_POSTAL_NEEDLES.length; i++)
       {
         if (authored.indexOf(' ' + MILL_POSTAL_NEEDLES[i] + ' ') !== -1)
@@ -1326,6 +1325,21 @@ function collectSignals(message)
 }
 
 /**
+ * The one text fold Signal 16 matches needles against (v6.107.0; it was written out twice, once
+ * in Signal 16 (a) and once in millPromoCredit, which is how two copies drift): normalizeAdText(),
+ * then every character but a-z, 0-9 and space becomes a space, runs of spaces collapse, trimmed.
+ * Wrap the result in ' ' ... ' ' to match a needle on word boundaries.
+ * Mirrored by _fold_ad_text() in tests/test_spam_detector.py.
+ *
+ * @param {string} s
+ * @return {string}
+ */
+function foldAdText(s)
+{
+  return normalizeAdText(s).replace(/[^a-z0-9 ]/g, ' ').replace(/ +/g, ' ').trim();
+}
+
+/**
  * Signal 16 (c), v6.102.0: the paid-promo credit in a mill email, or ''.
  *
  * Finds the first line that folds to exactly "sponsored content" (lower-case, letters, digits,
@@ -1337,7 +1351,7 @@ function collectSignals(message)
  */
 function millPromoCredit(text)
 {
-  const fold = function(s) { return normalizeAdText(s).replace(/[^a-z0-9 ]/g, ' ').replace(/ +/g, ' ').trim(); };
+  const fold = foldAdText;
   const lines = String(text || '').split(/\r?\n/);
   let start = -1;
   for (let i = 0; i < lines.length; i++)

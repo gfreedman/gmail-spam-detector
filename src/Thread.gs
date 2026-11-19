@@ -235,16 +235,15 @@ function historyLabelExclusions()
  * ADDRESS (Rule 14 asks per address) keys on a short FNV-1a hash, because the local part is
  * attacker-chosen: a mill rotating "<name>.<brand>@esp" would otherwise write a ~75-byte key per
  * new address into a 500 KB store and eventually make every Script Properties write throw.
- * The "SHADOW_HIST_" prefix is historical (the removed v6.91 observer introduced it); kept so
- * the gate's cached answers survive v6.106.0. Only the hashed ADDRESS form is in use now:
- * the plain DOMAIN form was the observer's, and purgeShadowLeftovers() deletes those.
+ * Prefix "HIST_" since v6.107.0 (it was "SHADOW_HIST_", from the removed v6.91 observer;
+ * purgeShadowLeftovers() deletes every old key, so the gate re-asks each sender once).
  */
 function historyCacheKey(who)
 {
-  if (who.indexOf('@') === -1) return 'SHADOW_HIST_' + who;
+  if (who.indexOf('@') === -1) return 'HIST_' + who;
   let h = 0x811c9dc5;
   for (let i = 0; i < who.length; i++) { h ^= who.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
-  return 'SHADOW_HIST_A' + h.toString(16);
+  return 'HIST_A' + h.toString(16);
 }
 
 function senderHasHistory(domain)   // `domain` may also be a full address: Gmail's to:/from: take either

@@ -569,10 +569,14 @@ MILL_POSTAL_NEEDLES             = _gs['MILL_POSTAL_NEEDLES']
 MILL_PROMO_PUBLISHERS           = _gs['MILL_PROMO_PUBLISHERS']
 
 
+def _fold_ad_text(s):
+    """Mirror of foldAdText() in Signals.gs (v6.107.0): the one fold Signal 16 matches against."""
+    return re.sub(' +', ' ', re.sub('[^a-z0-9 ]', ' ', _normalize_ad_text(s))).strip()
+
+
 def _mill_promo_credit(text):
     """Mirror of millPromoCredit() in Signals.gs (Signal 16 (c), v6.102.0)."""
-    def fold(s):
-        return re.sub(' +', ' ', re.sub('[^a-z0-9 ]', ' ', _normalize_ad_text(s))).strip()
+    fold = _fold_ad_text
     lines = re.split(r'\r?\n', text or '')
     start = next((i + 1 for i, line in enumerate(lines)
                   if fold(line) == 'sponsored content'), -1)
@@ -1428,8 +1432,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # address in the text the SENDER wrote (quoted lines and everything after a
     # forwarded/original-message marker removed), AND a List-Unsubscribe header.
     if _raw_header(raw, 'List-Unsubscribe'):
-        _authored = ' ' + re.sub(' +', ' ', re.sub('[^a-z0-9 ]', ' ',
-                    _normalize_ad_text(_strip_quoted_and_forwarded(body)))) + ' '
+        _authored = ' ' + _fold_ad_text(_strip_quoted_and_forwarded(body)) + ' '
         if any(' ' + _n + ' ' in _authored for _n in MILL_POSTAL_NEEDLES) or \
                 _mill_promo_credit(_strip_quoted_and_forwarded(body)):
             signals['mill_footer_address'] = True

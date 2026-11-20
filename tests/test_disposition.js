@@ -270,9 +270,29 @@ console.log('\n=== Rule 1: a blacklisted sender convicts WITHOUT a bulk fingerpr
   check('...and is PERMANENTLY deleted on the live path, after the archive',
         destroyed === true && ctx.calls.filter(c => c.op === 'batchDelete').length === 1);
 
-  const bare = { clickbaitCount: 0, blacklistedSender: true };
-  check('blacklistedSender alone is Rule 1 (both decision functions agree)',
+  const bare = { clickbaitCount: 0, blacklistedSender: true, blacklistedSenderDomain: true };
+  check('a full-domain blacklist match alone is Rule 1 (both decision functions agree)',
         ctx.makeVerdict(bare) === true && ctx.getRuleFromSignals(bare).rule === 'Rule 1');
+
+  // Review of PR #37: a DOTLESS entry is a host substring, so 'investorplace' also
+  // matches an unrelated investorplacement.co. Without bulk it must NOT convict.
+  const sub = { clickbaitCount: 0, blacklistedSender: true };
+  check('a dotless (substring) blacklist match alone is NOT a conviction',
+        ctx.makeVerdict(sub) === false && ctx.getRuleFromSignals(sub).rule !== 'Rule 1',
+        ctx.getRuleFromSignals(sub).rule);
+  const placement = Object.assign(blacklistMessage('mPLACE'), {
+    getFrom: () => 'Bob <bob@investorplacement.co>',
+    getRawContent: () => 'From: Bob <bob@investorplacement.co>\r\n\r\nbody' });
+  const ps = ctx.collectSignals(placement);
+  check('bob@investorplacement.co (non-bulk) matches the dotless entry but is kept',
+        !!ps && ps.blacklistedSender === true && ps.blacklistedSenderDomain === false &&
+        ctx.getRuleFromSignals(ps).rule !== 'Rule 1', ps && ctx.getRuleFromSignals(ps).rule);
+  const placementBulk = Object.assign(blacklistMessage('mPLACEB'), {
+    getFrom: () => 'InvestorPlace <news@mail.investorplace.com>',
+    getRawContent: () => 'X-SES-Outgoing: 1\r\nFrom: InvestorPlace <news@mail.investorplace.com>\r\n\r\nbody' });
+  const pbs = ctx.collectSignals(placementBulk);
+  check('...while a dotless match WITH bulk is still Rule 1 (unchanged)',
+        !!pbs && ctx.getRuleFromSignals(pbs).rule === 'Rule 1', pbs && ctx.getRuleFromSignals(pbs).rule);
   check('the address must be the SENDER: a blacklisted host only in the display name does not convict',
         (function () {
           const m = Object.assign(blacklistMessage('mNAME'), {
@@ -2000,11 +2020,11 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
 // corpus fires Rule 1 in 51 of 59 convictions and never fires Rules 3 or 6.
 //
 // The signal space is small enough to check completely, so check it completely:
-// 16 booleans x clickbaitCount 0..4 = 327680 combinations, in well under a second.
+// 19 booleans x clickbaitCount 0..4 = 2621440 combinations, in a few seconds.
 {
   console.log('\n=== the two rule cascades must agree (exhaustive) ===');
   const ctx = makeCtx();
-  const BOOLS = ['bulkEmailService', 'blacklistedSender', 'fearMongering',
+  const BOOLS = ['bulkEmailService', 'blacklistedSender', 'blacklistedSenderDomain', 'fearMongering',
                  'marketingFormat', 'suspiciousFromName',
                  'emptySubjectWithAttachment', 'serviceImpersonation',
                  'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',

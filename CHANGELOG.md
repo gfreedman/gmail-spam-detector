@@ -22,7 +22,7 @@ detail plus the diffs.
 
 ## v6.108.0
 
-**Rule 1 convicts a blacklisted sender on its own; it no longer also needs a bulk-provider fingerprint.**
+**Rule 1 convicts a sender on a full-domain blacklist entry on its own; it no longer also needs a bulk-provider fingerprint.**
 
 - The miss: "Important: Mission X Alert" from `the@liberty.republicsignal.com` sat in the inbox on
   2026-11-20. `republicsignal.com` has been blacklisted since v6.95.0 and Signal 1b matched it, but
@@ -30,6 +30,11 @@ detail plus the diffs.
   (`bf10x.hubspotemail.net`), which is not in `BULK_EMAIL_FINGERPRINTS`. Nothing else reached a
   rule (one clickbait hit, one fear hit). Requiring bulk let any blacklisted mill escape by
   changing ESP.
+- A DOTLESS entry (`investorplace`, `financebuzz`, ...) still needs bulk. It is matched as a
+  substring of the host, so alone it would also delete `bob@investorplacement.co` (review of
+  PR #37). New signal `blacklistedSenderDomain` (Python `blacklisted_sender_domain`) records a
+  full-domain match; Rule 1 = `blacklistedSender && (bulkEmailService || blacklistedSenderDomain)`.
+  The exhaustive cascade sweep grows to 19 booleans.
 - Not fixed by adding HubSpot to the bulk fingerprints: bulk is the precondition of Rules 1-3, and
   many legitimate newsletters send through HubSpot.
 - Signal 1b is unchanged: it matches the extracted From ADDRESS (never the display name), with
@@ -39,7 +44,8 @@ detail plus the diffs.
   script stamped is now deleted by the post-deploy recheck (that is how today's email goes).
 - Fixture: `tests/spam_examples/Republic Signal - Important: Mission X Alert.eml` (scrubbed).
   Tests in `test_disposition.js` pin the HubSpot case end to end. With the old rule restored, the
-  fixture and 3 disposition assertions fail.
+  fixture and 3 disposition assertions fail; treating every entry as a full domain fails the
+  `investorplacement.co` assertion.
 
 ## v6.107.0
 

@@ -1295,7 +1295,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         wl_sender = tail_match.group(1).strip(' \t\r\n').lower()
     for domain in (WHITELISTED_DOMAINS if wl_sender is not None else []):
         if _address_matches_domain(wl_sender, domain):
-            return {'bulk_email': has_amazon_ses, 'blacklisted_sender': False,
+            return {'bulk_email': has_amazon_ses, 'blacklisted_sender': False, 'blacklisted_sender_domain': False,
                     'clickbait_count': 0, 'fear_mongering': False,
                     'marketing_format': False, 'suspicious_from_name': False,
                     'empty_subject_with_attachment': False,
@@ -1316,7 +1316,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # Initialize signal accumulators — each detection phase populates one signal
     signals = {
         'bulk_email': has_amazon_ses,
-        'blacklisted_sender': False,
+        'blacklisted_sender': False, 'blacklisted_sender_domain': False,
         'clickbait_count': 0,
         'fear_mongering': False,
         'marketing_format': False,
@@ -1344,11 +1344,16 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     # ── Signal: Blacklisted sender domain ──────────────────────────────────
     # Substring match against known spam mill domains (one match is enough).
     # Use sender_address (email only, not display name) — mirrors the .gs source.
+    # A full-domain entry convicts alone under Rule 1; a dotless (substring) entry
+    # still needs bulk (v6.108.0, review of PR #37). Mirrors Signal 1b.
     for domain in BLACKLISTED_DOMAINS:
         if _address_matches_domain(sender_address, domain):
+            if not signals['blacklisted_sender']:
+                signals['matched_patterns'].append(f'blacklist:{domain}')
             signals['blacklisted_sender'] = True
-            signals['matched_patterns'].append(f'blacklist:{domain}')
-            break
+            if '.' in domain and '@' not in domain:
+                signals['blacklisted_sender_domain'] = True
+                break
 
     # ── Signal: Suspicious From display name ───────────────────────────────
     # Strip the <email@address> portion, then check the remaining display name
@@ -1724,8 +1729,9 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     is_spam = False
     rule = ''
 
-    # Rule 1: blacklisted sender = definitive spam (bulk not required since v6.108.0)
-    if signals['blacklisted_sender']:
+    # Rule 1: blacklisted sender = definitive spam. A full-domain entry needs no
+    # bulk (v6.108.0); a dotless substring entry still does.
+    if signals['blacklisted_sender'] and (signals['bulk_email'] or signals['blacklisted_sender_domain']):
         is_spam = True
         rule = 'RULE 1: Blacklisted sender'
 
@@ -2429,7 +2435,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 19
+    EXPECTED_SIGNAL_COUNT = 20  # 20 since v6.108.0 (blacklistedSenderDomain)
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '

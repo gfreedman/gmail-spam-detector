@@ -775,7 +775,7 @@
         <div class="term-rows">
           <div class="term-row"><span class="t-pass">✅</span><span class="t-muted">SpamChecked &nbsp;·&nbsp; Your FedEx shipment is on its way</span></div>
           <div class="term-row"><span class="t-pass">✅</span><span class="t-muted">SpamChecked &nbsp;·&nbsp; Monthly statement ready — May 2026</span></div>
-          <div class="term-row"><span class="t-crit">🔴</span><span class="t-bold">SPAM DETECTED: Bulk email + blacklisted sender</span></div>
+          <div class="term-row"><span class="t-crit">🔴</span><span class="t-bold">SPAM DETECTED: Blacklisted sender</span></div>
           <div class="term-detail">Subject &nbsp;"America Was Ripped Off for 50 Years – Now It's Payback Time"<br>From &nbsp;&nbsp;&nbsp;news@daily.economicrulebook.com<br><span class="t-rule">Rule 1 &nbsp;·&nbsp; bulk=true &nbsp;·&nbsp; blacklisted=economicrulebook.com &nbsp;·&nbsp; clickbait=2</span><br><span class="t-del">→ Deleted &nbsp;19e6106e0502eb66</span></div>
           <div class="term-row"><span class="t-crit">🔴</span><span class="t-bold">SPAM DETECTED: Bulk email + clickbait (3 patterns)</span></div>
           <div class="term-detail">Subject &nbsp;"The #1 Danger In Your Diet — Doctors Are SHOCKED"<br>From &nbsp;&nbsp;&nbsp;news@budgetingjournals.com<br><span class="t-rule">Rule 2 &nbsp;·&nbsp; bulk=true &nbsp;·&nbsp; clickbait=3 &nbsp;·&nbsp; fear=true</span><br><span class="t-del">→ Deleted &nbsp;19e5c41f2a3d98b1</span></div>
@@ -797,7 +797,7 @@
 <section id="rules">
   <div class="wrap">
     <h2>Rules</h2>
-    <p>Fourteen rules, evaluated in priority order. The first rule that matches wins &mdash; no further rules are checked. Rules 1&ndash;3 all require bulk email infrastructure as a prerequisite, which eliminates virtually all false positives from personal senders. Rules 6&ndash;9 deliberately do <em>not</em>, because the phishing they target arrives through compromised legitimate accounts or throwaway free-mail addresses rather than bulk infrastructure.</p>
+    <p>Fourteen rules, evaluated in priority order. The first rule that matches wins &mdash; no further rules are checked. Rules 2&ndash;3 require bulk email infrastructure as a prerequisite, which eliminates virtually all false positives from personal senders; Rule 1 needs it only for a dotless (substring) blacklist entry. Rules 6&ndash;9 deliberately do <em>not</em>, because the phishing they target arrives through compromised legitimate accounts or throwaway free-mail addresses rather than bulk infrastructure.</p>
     <table>
       <thead>
         <tr><th>Rule</th><th>Condition</th><th>Rationale</th></tr>
@@ -805,8 +805,8 @@
       <tbody>
         <tr>
           <td><span class="rule-badge">Rule 1</span></td>
-          <td><strong>Bulk email + blacklisted sender domain</strong></td>
-          <td>Known spam mill domains combined with bulk infrastructure. Zero false-positive risk — these domains have no legitimate use.</td>
+          <td><strong>Blacklisted sender domain</strong></td>
+          <td>The From address is on the hand-curated mill list. A full-domain entry convicts alone (v6.108.0: a mill escaped by moving to a non-bulk ESP); a dotless substring entry also needs bulk infrastructure, because it can match unrelated hosts.</td>
         </tr>
         <tr>
           <td><span class="rule-badge">Rule 2</span></td>
@@ -887,7 +887,7 @@
       <div class="card">
         <span class="card-icon">📡</span>
         <div class="card-title">Bulk email service</div>
-        <div class="card-body">Checks raw headers and body for fingerprints of Amazon SES, SendGrid, Mailchimp, and Iterable. Legitimate personal senders never route through these. Required for Rules 1–3.</div>
+        <div class="card-body">Checks raw headers and body for fingerprints of Amazon SES, SendGrid, Mailchimp, and Iterable. Legitimate personal senders never route through these. Required for Rules 2–3, and for Rule 1 on a dotless blacklist entry.</div>
       </div>
       <div class="card">
         <span class="card-icon">🚫</span>
@@ -1076,7 +1076,7 @@ clasp push</code></pre>
     <ul class="safety-list">
       <li>Every email is labeled <code>SpamChecked</code> before any action — prevents reprocessing the same message on the next run</li>
       <li>Spam is reported to Gmail via <code>GmailApp</code> before deletion — trains Gmail's own Bayesian filter with your feedback</li>
-      <li>Rules 1–3 require bulk email infrastructure as a prerequisite — personal senders are structurally excluded from most rules</li>
+      <li>Rules 2–3 require bulk email infrastructure as a prerequisite — personal senders are structurally excluded from most rules</li>
       <li>Domain whitelist bypasses detection entirely for known-good bulk senders (Substack, LinkedIn, your bank)</li>
       <li>Per-message try/catch — one email that throws an error doesn't abort the run or affect other messages</li>
       <li>50 emails per run cap — prevents the Apps Script 6-minute execution timeout under heavy backlog</li>

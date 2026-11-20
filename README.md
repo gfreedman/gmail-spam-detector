@@ -33,7 +33,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 13. **Survey-scam disclaimers** (a footer disclaiming the very brand it impersonates)
 
 **Detection Logic — 14 rules, first match wins:**
-- Blacklisted sender = SPAM (bulk not required)
+- Blacklisted sender = SPAM (a full-domain entry such as `republicsignal.com` needs no bulk since v6.108.0; a dotless substring entry such as `investorplace` still needs bulk email)
 - Bulk email + 2+ clickbait patterns = SPAM
 - Bulk email + 2+ spam behaviors = SPAM
 - Extreme clickbait (3+ patterns) = SPAM
@@ -326,8 +326,8 @@ Rules 13 and 14 never delete more than 5 messages per run; anything past that is
 **Conservative approach - requires multiple signals:**
 
 ```javascript
-// RULE 1: Bulk email + known spam domain → definitive spam
-if (bulkEmail && blacklistedSender) { return SPAM; }
+// RULE 1: known spam domain → definitive spam (a dotless substring entry also needs bulk)
+if (blacklistedSender && (bulkEmail || blacklistedSenderDomain)) { return SPAM; }
 
 // RULE 2: Bulk email + 2+ clickbait patterns → spam
 if (bulkEmail && clickbaitCount >= 2) { return SPAM; }
@@ -421,9 +421,10 @@ removeFromWhitelist('example.com');
 
 ### Blacklist a Spam Domain
 
-The blacklist has the same three functions. A blacklisted domain trips Rule 1
-on the From address alone (since v6.108.0 the sender no longer has to use a
-recognised bulk provider: a mill escaped by moving to HubSpot).
+The blacklist has the same three functions. A full-domain entry (`spammer.com`)
+trips Rule 1 on the From address alone (since v6.108.0 the sender no longer has
+to use a recognised bulk provider: a mill escaped by moving to HubSpot). A dotless
+entry matches any host containing it, so it still needs bulk email too.
 
 ```javascript
 addToBlacklist('spammer.com');

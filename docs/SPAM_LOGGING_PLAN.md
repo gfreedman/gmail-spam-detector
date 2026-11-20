@@ -149,7 +149,7 @@ One tab: **Raw Log** (append-only, one row per event).
 | I | Sending Domain | String | Extracted from From address | e.g. `1stamericanpath.com` |
 | J | Reply-To Address | String | `message.getReplyTo()` | Mismatch with From = fraud signal |
 | K | Rule Triggered | String | `getRuleFromSignals()` | `Rule 1`–`Rule 7`, or `NONE` for false negatives |
-| L | Rule Description | String | Detection log string | e.g. `Bulk email + blacklisted sender` |
+| L | Rule Description | String | Detection log string | e.g. `Blacklisted sender` |
 | M | Clickbait Count | Integer | `signals.clickbaitCount` | `0` for false negatives |
 | N | Signals Detected | String (CSV) | `signals` object | e.g. `BULK,BLACKLISTED,FEAR` |
 | O | Bulk Email Service | Boolean | `signals.bulkEmailService` | |

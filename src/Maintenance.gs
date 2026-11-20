@@ -390,7 +390,7 @@ function checkFalseNegatives()
 // accepted and bounded: only mail from the last 2 days that the script itself
 // stamped, only single-message threads, only after a Drive archive, only a
 // relay-shaped sender whose Reply-To host is a FULL-DOMAIN blacklist entry.
-// Rule 1 (bulk + blacklisted sender) is here too (v6.88.0): v6.87.0 blacklisted
+// Rule 1 (blacklisted sender) is here too (v6.88.0): v6.87.0 blacklisted
 // dailyfinbrief.com and the reported email, already in the inbox, was HELD, so the
 // user had to trash it by hand. Same archive gate and single-message guard apply.
 // Rules 13 and 14 (v6.100.0) are here too, so mill mail already in the inbox when a fix deploys

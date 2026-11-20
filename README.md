@@ -33,7 +33,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 13. **Survey-scam disclaimers** (a footer disclaiming the very brand it impersonates)
 
 **Detection Logic — 14 rules, first match wins:**
-- Bulk email + blacklisted sender = SPAM
+- Blacklisted sender = SPAM (a full-domain entry such as `republicsignal.com` needs no bulk since v6.108.0; a dotless substring entry such as `investorplace` still needs bulk email)
 - Bulk email + 2+ clickbait patterns = SPAM
 - Bulk email + 2+ spam behaviors = SPAM
 - Extreme clickbait (3+ patterns) = SPAM
@@ -52,7 +52,7 @@ All sent via bulk email services like Amazon SES, SendGrid, and Mailchimp — of
 
 ## 📊 Results
 
-- ✅ **100% detection** on 67/67 spam + 8/8 scam (.eml files)
+- ✅ **100% detection** on 68/68 spam + 8/8 scam (.eml files)
 - ✅ **0% false positives** on 39/39 legitimate emails
 - ✅ **Nothing is deleted without a Drive archive** — unarchivable mail is held, not destroyed
 - ✅ **The Python test mirror cannot drift from the shipped JavaScript** — every fixture runs through both implementations and CI fails on any disagreement, or on a signal the mirror is missing
@@ -326,8 +326,8 @@ Rules 13 and 14 never delete more than 5 messages per run; anything past that is
 **Conservative approach - requires multiple signals:**
 
 ```javascript
-// RULE 1: Bulk email + known spam domain → definitive spam
-if (bulkEmail && blacklistedSender) { return SPAM; }
+// RULE 1: known spam domain → definitive spam (a dotless substring entry also needs bulk)
+if (blacklistedSender && (bulkEmail || blacklistedSenderDomain)) { return SPAM; }
 
 // RULE 2: Bulk email + 2+ clickbait patterns → spam
 if (bulkEmail && clickbaitCount >= 2) { return SPAM; }
@@ -421,8 +421,10 @@ removeFromWhitelist('example.com');
 
 ### Blacklist a Spam Domain
 
-The blacklist has the same three functions. A blacklisted domain trips Rule 1
-as soon as the sender also uses bulk email infrastructure.
+The blacklist has the same three functions. A full-domain entry (`spammer.com`)
+trips Rule 1 on the From address alone (since v6.108.0 the sender no longer has
+to use a recognised bulk provider: a mill escaped by moving to HubSpot). A dotless
+entry matches any host containing it, so it still needs bulk email too.
 
 ```javascript
 addToBlacklist('spammer.com');
@@ -516,7 +518,7 @@ addToWhitelist('domain.com');
 │   ├── test_disposition.js      # Quarantine-vs-delete routing (Node)
 │   ├── test_link_graph.js       # URL parsing + Signal 7 (Node)
 │   ├── test_patch_version.js    # Version patch + claspignore (Node)
-│   ├── spam_examples/           # Real spam .eml files (67)
+│   ├── spam_examples/           # Real spam .eml files (68)
 │   ├── scam_examples/           # Scam .eml files (8)
 │   ├── ham_examples/            # Legitimate .eml files (39)
 │   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)

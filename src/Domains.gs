@@ -153,7 +153,7 @@ function addToWhitelist(domain)
 }
 
 /**
- * Add a domain to the blacklist (triggers Rule 1 when combined with bulk email; a full
+ * Add a domain to the blacklist (triggers Rule 1 on the From address alone; a full
  * domain also triggers Rule 12 when a relay-shaped sender's Reply-To is on it).
  *
  * Duplicate-safe: silently skips if the domain is already in the list.

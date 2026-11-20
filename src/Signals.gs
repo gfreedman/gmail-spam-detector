@@ -156,6 +156,7 @@ function collectSignals(message)
   const signals = {
     bulkEmailService: false,          // Sent via Amazon SES, SendGrid, or Mailchimp
     blacklistedSender: false,         // From a known spam mill domain
+    blacklistedSenderDomain: false,   // ...matched by a FULL-DOMAIN entry (Rule 1 needs no bulk)
     clickbaitCount: 0,                // Number of clickbait patterns matched
     fearMongering: false,             // Contains fear-mongering language
     marketingFormat: false,           // From field uses marketing formatting
@@ -212,8 +213,17 @@ function collectSignals(message)
       if (addressMatchesDomain(senderAddress, blacklist[i]))
       {
         signals.blacklistedSender = true;
+        // A full-domain entry (has a dot, no '@') matches only that host or its
+        // subdomains, so it convicts alone under Rule 1 (v6.108.0). A dotless entry
+        // ('investorplace') is a substring of the host and would also match an
+        // unrelated investorplacement.co, so it still needs the bulk fingerprint
+        // (review of PR #37). Keep scanning: a dotless entry may match first.
+        if (blacklist[i].indexOf('.') !== -1 && blacklist[i].indexOf('@') === -1)
+        {
+          signals.blacklistedSenderDomain = true;
+        }
         logDebug('Blacklisted sender detected: ' + blacklist[i]);
-        break;
+        if (signals.blacklistedSenderDomain) break;
       }
     }
   }

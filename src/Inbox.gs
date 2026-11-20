@@ -214,7 +214,7 @@ function processInbox()
 /**
  * Full historical inbox cleanse — two-speed mode:
  *
- *   DELETED:   Bulk + blacklisted sender (Rule 1 only) — zero false-positive risk.
+ *   DELETED:   Blacklisted sender (Rule 1 only).
  *   QUARANTINE: Everything else that scores as spam (Rules 2/3/4/5) — gets a
  *               "SuspectedSpam" label instead of being deleted. Review these
  *               in Gmail and drop false positives into tests/ham_examples/ so
@@ -285,7 +285,7 @@ function cleanseInbox()
 
             const firedRule = getRuleFromSignals(verdict.signals).rule;
 
-            // Rule 1 (bulk + known spam mill) is definitive, so cleanse mode acts
+            // Rule 1 (known spam mill sender) is definitive, so cleanse mode acts
             // on it. Rule 7 routes through the same disposition logic as the live
             // pipeline so a brand-mismatched CTA is quarantined here too, rather
             // than silently downgraded to a SuspectedSpam label.

@@ -85,10 +85,20 @@ function getBlacklist()
   try
   {
     const stored = JSON.parse(raw);
-    // Merge any user-added custom domains not already in the defaults
+    // Merge any user-added custom domains not already in the defaults. Each one goes
+    // through normalizeBlacklistEntry() HERE, not only in addToBlacklist(): the Script
+    // Property can be edited by hand in the project settings, and this read is what
+    // feeds Rule 1. A refused entry is DROPPED (fails toward a miss, never a delete).
+    const whitelist = getWhitelist();
     for (let i = 0; i < stored.length; i++)
     {
-      if (!list.includes(stored[i])) list.push(stored[i]);
+      const checked = normalizeBlacklistEntry(stored[i], whitelist);
+      if (checked.error)
+      {
+        logError('Blacklist entry ignored: ' + sanitizeForLog(String(stored[i])) + ' — ' + checked.error);
+        continue;
+      }
+      if (!list.includes(checked.entry)) list.push(checked.entry);
     }
     return list;
   }
@@ -97,6 +107,98 @@ function getBlacklist()
     logError('Blacklist JSON corrupt — using defaults only: ' + e.toString());
     return list;
   }
+}
+
+/**
+ * Shared-platform sender domains a blacklist entry must never cover (v6.109.0). Each
+ * carries mail from many unrelated senders, so an entry matching one would delete all of
+ * them. Free-mail and throwaway-tenant domains are checked separately, from their own lists.
+ * @const {Array<string>}
+ */
+const BLACKLIST_REFUSED_HOSTS = Object.freeze([
+  'googlegroups.com', 'groups.io', 'google.com', 'calendar-notification.google.com',
+  'substack.com', 'medium.com', 'github.com', 'linkedin.com', 'facebookmail.com',
+  'amazonses.com', 'sendgrid.net', 'mcsv.net', 'mailchimpapp.net', 'hubspotemail.net',
+  'iterable.com', 'cyberimpact.com', 'constantcontact.com', 'mailgun.org',
+  'privaterelay.appleid.com', 'example.com'
+]);
+
+/** Dotless entries shorter than this are refused: they are host SUBSTRINGS ('news', 'mail'). */
+const MIN_DOTLESS_BLACKLIST_LENGTH = 8;
+
+/**
+ * Clean up and vet one blacklist entry (v6.109.0).
+ *
+ * Since v6.108.0 a full-domain entry convicts under Rule 1 with NO bulk fingerprint, and
+ * Rule 1 permanently deletes. So one mistaken entry ('gmail.com', 'co.uk', a whitelisted
+ * newsletter's domain) would delete every non-bulk email from it. This is the gate.
+ *
+ * Normalises: trims, lowercases, removes zero-width characters, strips leading/trailing
+ * dots and a leading '@'. A malformed entry used to fail CLOSED by accident (an uppercase
+ * or leading-dot entry never matched); after normalising it matches as intended.
+ *
+ * Refuses (returns {error}):
+ *   - empty, whitespace inside, or characters outside [a-z0-9.@_+-];
+ *   - an entry that would match a free-mail, throwaway-tenant or shared-platform host
+ *     (tested with addressMatchesDomain itself, so dotless 'gmail' and 'mail.com' count);
+ *   - a public suffix shape: one label before a 2-letter country code with a generic
+ *     second level ('co.uk', 'com.au'), or no dot at all and shorter than 8 characters;
+ *   - an entry that overlaps the whitelist in either direction (it would match a
+ *     whitelisted host, or a whitelisted entry would match it);
+ *   - an address entry ending in '@' (matches nothing; almost certainly a typo).
+ *
+ * @param {*} raw - The entry as typed or as stored.
+ * @param {Array<string>} whitelist - The effective whitelist (getWhitelist()).
+ * @return {{entry: string}|{error: string}}
+ */
+function normalizeBlacklistEntry(raw, whitelist)
+{
+  if (typeof raw !== 'string') return { error: 'not a string' };
+  let e = raw.replace(/[​-‍⁠﻿]/g, '').trim().toLowerCase();
+  e = e.replace(/^@+/, '').replace(/^\.+/, '').replace(/\.+$/, '');
+  if (e.length === 0) return { error: 'empty' };
+  if (!/^[a-z0-9.@_+-]+$/.test(e)) return { error: 'contains whitespace or an unexpected character' };
+  if (e.indexOf('..') !== -1) return { error: 'empty domain label (..)' };
+  if (e.indexOf('@') !== -1 && e.indexOf('@') !== e.lastIndexOf('@')) return { error: 'more than one @' };
+  if (e.charAt(e.length - 1) === '@') return { error: 'ends in @, matches nothing' };
+
+  const isAddress = e.indexOf('@') !== -1;
+  if (!isAddress && e.indexOf('.') === -1 && e.length < MIN_DOTLESS_BLACKLIST_LENGTH)
+  {
+    return { error: 'a dotless entry matches any host CONTAINING it; ' +
+                    MIN_DOTLESS_BLACKLIST_LENGTH + '+ characters required' };
+  }
+  if (!isAddress && /^(co|com|net|org|gov|edu|ac|or|ne|go)\.[a-z]{2}$/.test(e))
+  {
+    return { error: 'a public suffix, not a domain' };
+  }
+
+  const shared = FREE_MAIL_DOMAINS.concat(THROWAWAY_TENANT_DOMAINS, BLACKLIST_REFUSED_HOSTS);
+  for (let i = 0; i < shared.length; i++)
+  {
+    if (addressMatchesDomain('probe@' + shared[i], e) ||
+        addressMatchesDomain('probe@sub.' + shared[i], e) ||
+        (!isAddress && e.indexOf('.') !== -1 && hostMatchesDomain(e, shared[i])))
+    {
+      return { error: 'would match ' + shared[i] + ', a shared or free-mail domain' };
+    }
+  }
+
+  const wl = whitelist || [];
+  for (let j = 0; j < wl.length; j++)
+  {
+    const w = String(wl[j] || '').toLowerCase();
+    if (!w) continue;
+    const wHost = w.substring(w.lastIndexOf('@') + 1);
+    const eHost = e.substring(e.lastIndexOf('@') + 1);
+    if (addressMatchesDomain('probe@' + wHost, e) ||     // entry would match a whitelisted host
+        addressMatchesDomain('probe@' + eHost, w))       // a whitelisted entry covers this one
+    {
+      return { error: 'overlaps whitelist entry ' + w };
+    }
+  }
+
+  return { entry: e };
 }
 
 /**
@@ -162,11 +264,14 @@ function addToWhitelist(domain)
  */
 function addToBlacklist(domain)
 {
-  if (!domain || domain.trim().length === 0)
+  // Vetted first (v6.109.0): a full-domain entry deletes on its own under Rule 1.
+  const checked = normalizeBlacklistEntry(domain, getWhitelist());
+  if (checked.error)
   {
-    logError('addToBlacklist: domain must not be empty');
+    logError('addToBlacklist REFUSED ' + sanitizeForLog(String(domain)) + ': ' + checked.error);
     return;
   }
+  domain = checked.entry;
 
   const props = PropertiesService.getScriptProperties();
   const blacklist = getBlacklist();
@@ -216,7 +321,9 @@ function removeFromBlacklist(domain)
 {
   const props = PropertiesService.getScriptProperties();
   const blacklist = getBlacklist();
-  const index = blacklist.indexOf(domain);
+  // Same normalisation addToBlacklist() applies, so 'Spammer.COM' removes 'spammer.com'.
+  const index = blacklist.indexOf(String(domain || '').replace(/[\u200b-\u200d\u2060\ufeff]/g, '')
+    .trim().toLowerCase().replace(/^@+/, '').replace(/^\.+/, '').replace(/\.+$/, ''));
 
   if (index > -1)
   {

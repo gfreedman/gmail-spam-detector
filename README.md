@@ -426,6 +426,14 @@ trips Rule 1 on the From address alone (since v6.108.0 the sender no longer has
 to use a recognised bulk provider: a mill escaped by moving to HubSpot). A dotless
 entry matches any host containing it, so it still needs bulk email too.
 
+Since v6.109.0 every entry you add is vetted (`normalizeBlacklistEntry()`), because one
+mistaken full domain would delete all non-bulk mail from it. Entries are trimmed, lowercased
+and stripped of leading/trailing dots and a leading `@`. `addToBlacklist` refuses (and logs
+why) an entry that would match a free-mail or shared-platform domain (`gmail.com`,
+`googlegroups.com`, `substack.com`, an ESP), a public suffix (`co.uk`), a dotless word under 8
+characters, or anything overlapping the whitelist. Entries already stored in Script Properties
+go through the same check on every read; a refused one is ignored, never applied.
+
 ```javascript
 addToBlacklist('spammer.com');
 viewBlacklist();

@@ -82,31 +82,40 @@ function getBlacklist()
   const raw = props.getProperty('SUSPICIOUS_DOMAINS');
   if (!raw) return list;
 
+  let stored;
   try
   {
-    const stored = JSON.parse(raw);
-    // Merge any user-added custom domains not already in the defaults. Each one goes
-    // through normalizeBlacklistEntry() HERE, not only in addToBlacklist(): the Script
-    // Property can be edited by hand in the project settings, and this read is what
-    // feeds Rule 1. A refused entry is DROPPED (fails toward a miss, never a delete).
-    const whitelist = getWhitelist();
-    for (let i = 0; i < stored.length; i++)
-    {
-      const checked = normalizeBlacklistEntry(stored[i], whitelist);
-      if (checked.error)
-      {
-        logError('Blacklist entry ignored: ' + sanitizeForLog(String(stored[i])) + ' — ' + checked.error);
-        continue;
-      }
-      if (!list.includes(checked.entry)) list.push(checked.entry);
-    }
-    return list;
+    stored = JSON.parse(raw);
+    if (!Array.isArray(stored)) throw new Error('not an array');
   }
   catch (e)
   {
     logError('Blacklist JSON corrupt — using defaults only: ' + e.toString());
     return list;
   }
+
+  // Each stored entry goes through normalizeBlacklistEntry() HERE, not only in
+  // addToBlacklist(): the Script Property can be edited by hand in the project settings,
+  // and this read is what feeds Rule 1. A refused entry is DROPPED (fails toward a miss,
+  // never a delete). Outside the JSON try, and per entry, so a throw in the gate costs one
+  // entry under its own message instead of every entry under "JSON corrupt" (PR #38 review).
+  // No whitelist means the overlap check cannot run: use the defaults only (a miss, not a delete).
+  let whitelist;
+  try { whitelist = getWhitelist(); }
+  catch (wlError) { logError('getBlacklist: whitelist read failed, user entries skipped: ' + wlError); return list; }
+  for (let i = 0; i < stored.length; i++)
+  {
+    let checked;
+    try { checked = normalizeBlacklistEntry(stored[i], whitelist); }
+    catch (gateError) { checked = { error: 'gate threw: ' + gateError }; }
+    if (checked.error)
+    {
+      logError('Blacklist entry ignored: ' + sanitizeForLog(String(stored[i])) + ' — ' + checked.error);
+      continue;
+    }
+    if (!list.includes(checked.entry)) list.push(checked.entry);
+  }
+  return list;
 }
 
 /**
@@ -120,7 +129,19 @@ const BLACKLIST_REFUSED_HOSTS = Object.freeze([
   'substack.com', 'medium.com', 'github.com', 'linkedin.com', 'facebookmail.com',
   'amazonses.com', 'sendgrid.net', 'mcsv.net', 'mailchimpapp.net', 'hubspotemail.net',
   'iterable.com', 'cyberimpact.com', 'constantcontact.com', 'mailgun.org',
-  'privaterelay.appleid.com', 'example.com'
+  'privaterelay.appleid.com', 'example.com',
+  // Help-desk, signing, commerce and meeting platforms (review of PR #38): they send
+  // support replies, receipts and signing requests from tenant subdomains, often NOT bulk.
+  'zendesk.com', 'freshdesk.com', 'helpscout.net', 'docusign.net', 'shopify.com',
+  'eventbrite.com', 'squarespace.com', 'slack.com', 'zoom.us',
+  // Hosting suffixes
+  'blogspot.com', 'wordpress.com'
+]);
+
+/** Dotless entries that are ordinary words in legitimate hosts (review of PR #38). */
+const BLACKLIST_REFUSED_WORDS = Object.freeze([
+  'newsletter', 'newsletters', 'notification', 'notifications', 'marketing', 'mailing',
+  'mailer', 'updates', 'account', 'accounts', 'support', 'service', 'services', 'members'
 ]);
 
 /** Dotless entries shorter than this are refused: they are host SUBSTRINGS ('news', 'mail'). */
@@ -168,7 +189,11 @@ function normalizeBlacklistEntry(raw, whitelist)
     return { error: 'a dotless entry matches any host CONTAINING it; ' +
                     MIN_DOTLESS_BLACKLIST_LENGTH + '+ characters required' };
   }
-  if (!isAddress && /^(co|com|net|org|gov|edu|ac|or|ne|go)\.[a-z]{2}$/.test(e))
+  if (!isAddress && e.indexOf('.') === -1 && BLACKLIST_REFUSED_WORDS.indexOf(e) !== -1)
+  {
+    return { error: 'an ordinary word; as a host substring it matches legitimate senders' };
+  }
+  if (!isAddress && /^(co|com|net|org|gov|edu|ac|or|ne|go|ltd|plc|me|sch|nhs|k12)\.([a-z]{2}\.)?[a-z]{2}$/.test(e))
   {
     return { error: 'a public suffix, not a domain' };
   }
@@ -176,9 +201,10 @@ function normalizeBlacklistEntry(raw, whitelist)
   const shared = FREE_MAIL_DOMAINS.concat(THROWAWAY_TENANT_DOMAINS, BLACKLIST_REFUSED_HOSTS);
   for (let i = 0; i < shared.length; i++)
   {
+    // Only "would this entry match the platform's own hosts?" A tenant entry
+    // (scamco.onmicrosoft.com) matches that tenant alone and is allowed (review of PR #38).
     if (addressMatchesDomain('probe@' + shared[i], e) ||
-        addressMatchesDomain('probe@sub.' + shared[i], e) ||
-        (!isAddress && e.indexOf('.') !== -1 && hostMatchesDomain(e, shared[i])))
+        addressMatchesDomain('probe@sub.' + shared[i], e))
     {
       return { error: 'would match ' + shared[i] + ', a shared or free-mail domain' };
     }

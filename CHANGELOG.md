@@ -33,6 +33,12 @@ detail plus the diffs.
   Groups, Substack, ESPs, Apple relay, ...), tested with `addressMatchesDomain` itself so dotless
   `gmail` counts; a public-suffix shape (`co.uk`); a dotless entry under 8 characters (host
   substring: `news`, `mail`); whitelist overlap in either direction; malformed input.
+- Review of PR #38: help-desk, signing, commerce, meeting and hosting platforms added to the
+  refused hosts (Zendesk, Freshdesk, Help Scout, DocuSign, Shopify, Eventbrite, Squarespace, Slack,
+  Zoom, Blogspot, WordPress); common dotless words (`newsletter`, `notifications`, ...) refused;
+  public-suffix shape widened (`ltd.uk`, `k12.ca.us`). A TENANT of a shared platform
+  (`scamco.onmicrosoft.com`) is accepted: it matches that tenant only. The gate runs per entry
+  outside the JSON try; if the whitelist cannot be read, user entries are skipped.
 - Applied in `addToBlacklist()` (refuses and logs) AND in `getBlacklist()` on every stored entry,
   because the Script Property can be edited by hand. A refused stored entry is dropped: a miss,
   never a delete. A normalised entry that used to fail closed by accident (uppercase, leading dot)

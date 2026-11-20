@@ -315,7 +315,8 @@ console.log('\n=== addToBlacklist / getBlacklist vet every user entry (v6.109.0)
                      'googlegroups.com', 'substack.com', 'hubspotemail.net', 'cyberimpact.com',
                      'news', 'mail', 'invest', 'linkedin.com', 'e.linkedin.com', 'betakit.com',
                      'news.betakit.com', 'spam mill.com', 'a..b.com', 'x@', 'a@b@c.com', '',
-                     '   ', null, 42]) {
+                     '   ', null, 42, 'zendesk.com', 'docusign.net', 'zoom.us',
+                     'blogspot.com', 'newsletter', 'notifications', 'ltd.uk', 'k12.ca.us']) {
     check('refused: ' + JSON.stringify(bad) + ' (' + (norm(bad).error || 'ACCEPTED') + ')', refused(bad));
   }
   const ok = (e, want) => { const r = norm(e); return !r.error && r.entry === want; };
@@ -324,6 +325,13 @@ console.log('\n=== addToBlacklist / getBlacklist vet every user entry (v6.109.0)
   check('normalised: "@newmill.example" -> newmill.example', ok('@newmill.example', 'newmill.example'));
   check('normalised: zero-width space removed', ok('newmill.example​', 'newmill.example'));
   check('accepted: a long dotless entry (newsmillbrand)', ok('newsmillbrand', 'newsmillbrand'));
+  // Review of PR #38: a TENANT of a shared platform matches only that tenant.
+  check('accepted: a throwaway Microsoft tenant (scamco.onmicrosoft.com)',
+        ok('scamco.onmicrosoft.com', 'scamco.onmicrosoft.com'));
+  check('accepted: a Google Groups tenant host (millgroup.googlegroups.com)',
+        ok('millgroup.googlegroups.com', 'millgroup.googlegroups.com'));
+  check('accepted: one help-desk tenant (millco.zendesk.com), never the platform',
+        ok('millco.zendesk.com', 'millco.zendesk.com'));
   check('accepted: an address fragment (customerservice@stan)', ok('customerservice@stan', 'customerservice@stan'));
   check('accepted: a specific free-mail ADDRESS is not the whole domain (bob.spam@gmail.com)',
         ok('bob.spam@gmail.com', 'bob.spam@gmail.com'));

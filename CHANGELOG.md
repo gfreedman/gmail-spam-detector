@@ -20,6 +20,34 @@ detail plus the diffs.
 
 ---
 
+## v6.109.0
+
+**Every user-added blacklist entry is vetted before it can delete mail.**
+
+- Why: since v6.108.0 a full-domain entry convicts under Rule 1 with no bulk fingerprint, and
+  Rule 1 permanently deletes. One mistaken `addToBlacklist('gmail.com')` would have deleted every
+  non-bulk email from Gmail users. The PR #37 reviewer named the gap; the owner asked for it.
+- `normalizeBlacklistEntry()` (Domains.gs): trims, lowercases, removes zero-width characters,
+  strips leading/trailing dots and a leading `@`. Refuses: an entry matching any
+  `FREE_MAIL_DOMAINS`, `THROWAWAY_TENANT_DOMAINS` or new `BLACKLIST_REFUSED_HOSTS` host (Google
+  Groups, Substack, ESPs, Apple relay, ...), tested with `addressMatchesDomain` itself so dotless
+  `gmail` counts; a public-suffix shape (`co.uk`); a dotless entry under 8 characters (host
+  substring: `news`, `mail`); whitelist overlap in either direction; malformed input.
+- Review of PR #38: help-desk, signing, commerce, meeting and hosting platforms added to the
+  refused hosts (Zendesk, Freshdesk, Help Scout, DocuSign, Shopify, Eventbrite, Squarespace, Slack,
+  Zoom, Blogspot, WordPress); common dotless words (`newsletter`, `notifications`, ...) refused;
+  public-suffix shape widened (`ltd.uk`, `k12.ca.us`). A TENANT of a shared platform
+  (`scamco.onmicrosoft.com`) is accepted: it matches that tenant only. The gate runs per entry
+  outside the JSON try; if the whitelist cannot be read, user entries are skipped.
+- Applied in `addToBlacklist()` (refuses and logs) AND in `getBlacklist()` on every stored entry,
+  because the Script Property can be edited by hand. A refused stored entry is dropped: a miss,
+  never a delete. A normalised entry that used to fail closed by accident (uppercase, leading dot)
+  now matches as intended. `removeFromBlacklist()` normalises its argument the same way.
+- Shipped defaults are not filtered at runtime (they are reviewed in source); a test asserts every
+  one passes the gate. Detection is unchanged for the shipped lists, so the corpus and parity are
+  unaffected.
+- Fault-injected: bypassing the gate fails 35 disposition assertions.
+
 ## v6.108.0
 
 **Rule 1 convicts a sender on a full-domain blacklist entry on its own; it no longer also needs a bulk-provider fingerprint.**

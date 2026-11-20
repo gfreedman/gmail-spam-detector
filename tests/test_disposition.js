@@ -303,6 +303,83 @@ console.log('\n=== Rule 1: a blacklisted sender convicts WITHOUT a bulk fingerpr
         })());
 }
 
+console.log('\n=== addToBlacklist / getBlacklist vet every user entry (v6.109.0) ===');
+{
+  // Since v6.108.0 a full-domain entry deletes non-bulk mail on its own (Rule 1), so one
+  // mistaken entry would permanently delete every email from that domain.
+  const WL = () => makeCtx().getWhitelist();
+  const norm = (e, wl) => makeCtx().normalizeBlacklistEntry(e, wl || WL());
+  const refused = (e, wl) => !!norm(e, wl).error;
+  for (const bad of ['gmail.com', 'GMAIL.COM', ' gmail.com ', '.gmail.com', '@gmail.com', 'gmail.com.',
+                     'gmail', 'mail.com', 'outlook.com', 'onmicrosoft.com', 'co.uk', 'com.au',
+                     'googlegroups.com', 'substack.com', 'hubspotemail.net', 'cyberimpact.com',
+                     'news', 'mail', 'invest', 'linkedin.com', 'e.linkedin.com', 'betakit.com',
+                     'news.betakit.com', 'spam mill.com', 'a..b.com', 'x@', 'a@b@c.com', '',
+                     '   ', null, 42, 'zendesk.com', 'docusign.net', 'zoom.us',
+                     'blogspot.com', 'newsletter', 'notifications', 'ltd.uk', 'k12.ca.us']) {
+    check('refused: ' + JSON.stringify(bad) + ' (' + (norm(bad).error || 'ACCEPTED') + ')', refused(bad));
+  }
+  const ok = (e, want) => { const r = norm(e); return !r.error && r.entry === want; };
+  check('normalised: " Spammer.COM. " -> spammer.com', ok(' Spammer.COM. ', 'spammer.com'));
+  check('normalised: ".newmill.example" -> newmill.example', ok('.newmill.example', 'newmill.example'));
+  check('normalised: "@newmill.example" -> newmill.example', ok('@newmill.example', 'newmill.example'));
+  check('normalised: zero-width space removed', ok('newmill.example​', 'newmill.example'));
+  check('accepted: a long dotless entry (newsmillbrand)', ok('newsmillbrand', 'newsmillbrand'));
+  // Review of PR #38: a TENANT of a shared platform matches only that tenant.
+  check('accepted: a throwaway Microsoft tenant (scamco.onmicrosoft.com)',
+        ok('scamco.onmicrosoft.com', 'scamco.onmicrosoft.com'));
+  check('accepted: a Google Groups tenant host (millgroup.googlegroups.com)',
+        ok('millgroup.googlegroups.com', 'millgroup.googlegroups.com'));
+  check('accepted: one help-desk tenant (millco.zendesk.com), never the platform',
+        ok('millco.zendesk.com', 'millco.zendesk.com'));
+  check('accepted: an address fragment (customerservice@stan)', ok('customerservice@stan', 'customerservice@stan'));
+  check('accepted: a specific free-mail ADDRESS is not the whole domain (bob.spam@gmail.com)',
+        ok('bob.spam@gmail.com', 'bob.spam@gmail.com'));
+  check('every SHIPPED blacklist entry passes the gate (a bad default would be dropped from storage)',
+        vm.runInContext('DEFAULT_DOMAINS.suspicious', makeCtx()).every(d => !norm(d).error),
+        vm.runInContext('DEFAULT_DOMAINS.suspicious', makeCtx()).filter(d => norm(d).error).join(','));
+
+  // addToBlacklist refuses and stores nothing.
+  const c = makeCtx();
+  c.addToBlacklist('gmail.com');
+  check('addToBlacklist("gmail.com") stores nothing', !('SUSPICIOUS_DOMAINS' in c.props));
+  const g = c.collectSignals(Object.assign(blacklistMessage('mGM'), {
+    getFrom: () => 'Pat <pat@gmail.com>', getRawContent: () => 'From: Pat <pat@gmail.com>\r\n\r\nhi' }));
+  check('...and a friend on Gmail is not blacklisted', !!g && g.blacklistedSender === false);
+
+  // addToBlacklist stores the NORMALISED form, which then matches.
+  const c2 = makeCtx();
+  c2.addToBlacklist('  .NewMill.Example. ');
+  check('addToBlacklist stores the normalised entry',
+        JSON.parse(c2.props.SUSPICIOUS_DOMAINS || '[]').indexOf('newmill.example') !== -1);
+  const s2 = c2.collectSignals(Object.assign(blacklistMessage('mNM'), {
+    getFrom: () => 'X <x@mail.newmill.example>', getRawContent: () => 'From: X <x@mail.newmill.example>\r\n\r\nb' }));
+  check('...and convicts under Rule 1 (an uppercase/leading-dot entry used to match nothing)',
+        !!s2 && c2.getRuleFromSignals(s2).rule === 'Rule 1', s2 && c2.getRuleFromSignals(s2).rule);
+
+  // A hand-edited Script Property is vetted on READ: bad entries are dropped, good ones kept.
+  const c3 = makeCtx({ props: { SUSPICIOUS_DOMAINS: JSON.stringify(['gmail.com', 'co.uk', 'news', 'Hand.Added.Example', 7]) } });
+  const bl = c3.getBlacklist();
+  check('getBlacklist drops a hand-edited gmail.com / co.uk / news / non-string entry',
+        ['gmail.com', 'co.uk', 'news'].every(d => bl.indexOf(d) === -1) && bl.indexOf(7) === -1);
+  check('...keeps a good hand-edited entry, normalised', bl.indexOf('hand.added.example') !== -1);
+  check('...and keeps every shipped default', vm.runInContext('DEFAULT_DOMAINS.suspicious', c3).every(d => bl.indexOf(d) !== -1));
+  const g3 = c3.collectSignals(Object.assign(blacklistMessage('mGM3'), {
+    getFrom: () => 'Pat <pat@gmail.com>', getRawContent: () => 'From: Pat <pat@gmail.com>\r\n\r\nhi' }));
+  check('...so a friend on Gmail is still not blacklisted', !!g3 && g3.blacklistedSender === false);
+
+  // A user-WHITELISTED domain cannot be blacklisted over the top of it.
+  const c4 = makeCtx({ props: { LEGITIMATE_DOMAINS: JSON.stringify(['mybank.example']) } });
+  c4.addToBlacklist('alerts.mybank.example');
+  check('a subdomain of a user-whitelisted domain is refused', !('SUSPICIOUS_DOMAINS' in c4.props));
+
+  const c5 = makeCtx();
+  c5.addToBlacklist('newmill.example');
+  c5.removeFromBlacklist(' NewMill.Example ');
+  check('removeFromBlacklist applies the same normalisation',
+        JSON.parse(c5.props.SUSPICIOUS_DOMAINS).indexOf('newmill.example') === -1);
+}
+
 console.log('\n=== No Drive archive means NO permanent delete ===');
 {
   // The invariant that did not exist before v6.47.0. Four comments in

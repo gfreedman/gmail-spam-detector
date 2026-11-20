@@ -151,7 +151,7 @@ function phishMessage(id) {
   };
 }
 
-/** A fake message that trips Rule 1 (bulk + blacklisted) and must be deleted. */
+/** A fake message that trips Rule 1 (blacklisted sender, here also bulk) and must be deleted. */
 function blacklistMessage(id) {
   return {
     __id: id,
@@ -247,6 +247,40 @@ console.log('\n=== Rules 1-6 must still permanently delete ===');
   check('deletes exactly one message id',
         deletes.length === 1 && deletes[0].ids.length === 1 && deletes[0].ids[0] === 'mSPAM');
   check('reports the thread as destroyed', destroyed === true);
+}
+
+console.log('\n=== Rule 1: a blacklisted sender convicts WITHOUT a bulk fingerprint (v6.108.0) ===');
+{
+  // Republic Signal (blacklisted v6.95.0) moved from Iterable/SES to HubSpot, which
+  // is not in BULK_EMAIL_FINGERPRINTS. "Important: Mission X Alert" scored
+  // blacklist=true, bulk=false and sat in the inbox, because Rule 1 required both.
+  const ctx = makeCtx();
+  const hubspot = Object.assign(blacklistMessage('mHUBSPOT'), {
+    getSubject: () => 'Important: Mission X Alert',
+    getFrom: () => '"Republic S." <the@liberty.republicsignal.com>',
+    getRawContent: () => 'Return-Path: <x@bf10x.hubspotemail.net>\r\n' +
+                         'From: "Republic S." <the@liberty.republicsignal.com>\r\n\r\nbody'
+  });
+  const sig = ctx.collectSignals(hubspot);
+  check('the HubSpot-sent mill mail is NOT bulk (the precondition of the miss)',
+        !!sig && sig.bulkEmailService === false && sig.blacklistedSender === true);
+  check('...and is still Rule 1', ctx.makeVerdict(sig) === true &&
+        ctx.getRuleFromSignals(sig).rule === 'Rule 1', ctx.getRuleFromSignals(sig).rule);
+  const destroyed = ctx.disposeDetectedMessage(hubspot, fakeThread([hubspot]), sig, true);
+  check('...and is PERMANENTLY deleted on the live path, after the archive',
+        destroyed === true && ctx.calls.filter(c => c.op === 'batchDelete').length === 1);
+
+  const bare = { clickbaitCount: 0, blacklistedSender: true };
+  check('blacklistedSender alone is Rule 1 (both decision functions agree)',
+        ctx.makeVerdict(bare) === true && ctx.getRuleFromSignals(bare).rule === 'Rule 1');
+  check('the address must be the SENDER: a blacklisted host only in the display name does not convict',
+        (function () {
+          const m = Object.assign(blacklistMessage('mNAME'), {
+            getFrom: () => '"the@republicsignal.com" <friend@example.org>',
+            getRawContent: () => 'From: "the@republicsignal.com" <friend@example.org>\r\n\r\nbody' });
+          const g = ctx.collectSignals(m);
+          return !!g && g.blacklistedSender === false;
+        })());
 }
 
 console.log('\n=== No Drive archive means NO permanent delete ===');

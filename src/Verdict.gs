@@ -27,11 +27,14 @@
  */
 function makeVerdict(signals)
 {
-  // Rule 1: Bulk email + blacklisted sender = definitive spam
-  // Rationale: Known spam domain + bulk infrastructure = zero false positive risk
-  if (signals.bulkEmailService && signals.blacklistedSender)
+  // Rule 1: blacklisted sender = definitive spam. The From address is on the
+  // hand-curated mill list. Bulk is NOT required since v6.108.0: Republic Signal
+  // (blacklisted v6.95.0) moved from Iterable/SES to HubSpot, which is not a bulk
+  // fingerprint, and "Important: Mission X Alert" sat in the inbox with
+  // blacklist=true, bulk=false. Requiring bulk let a mill escape by changing ESP.
+  if (signals.blacklistedSender)
   {
-    logInfo('SPAM DETECTED: Bulk email + blacklisted sender');
+    logInfo('SPAM DETECTED: Blacklisted sender');
     return true;
   }
 

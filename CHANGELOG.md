@@ -20,6 +20,27 @@ detail plus the diffs.
 
 ---
 
+## v6.108.0
+
+**Rule 1 convicts a blacklisted sender on its own; it no longer also needs a bulk-provider fingerprint.**
+
+- The miss: "Important: Mission X Alert" from `the@liberty.republicsignal.com` sat in the inbox on
+  2026-11-20. `republicsignal.com` has been blacklisted since v6.95.0 and Signal 1b matched it, but
+  Rule 1 was "bulk AND blacklisted" and the mill had moved from Iterable/SES to HubSpot
+  (`bf10x.hubspotemail.net`), which is not in `BULK_EMAIL_FINGERPRINTS`. Nothing else reached a
+  rule (one clickbait hit, one fear hit). Requiring bulk let any blacklisted mill escape by
+  changing ESP.
+- Not fixed by adding HubSpot to the bulk fingerprints: bulk is the precondition of Rules 1-3, and
+  many legitimate newsletters send through HubSpot.
+- Signal 1b is unchanged: it matches the extracted From ADDRESS (never the display name), with
+  strict host matching for full-domain entries and host-only substring matching for the dotless ones.
+  The whitelist is still checked first. Rule 1 still deletes behind the Drive-archive gate, and is
+  still in `RECHECK_DELETE_RULES`, so a blacklisted sender's mail from the last 2 days that the
+  script stamped is now deleted by the post-deploy recheck (that is how today's email goes).
+- Fixture: `tests/spam_examples/Republic Signal - Important: Mission X Alert.eml` (scrubbed).
+  Tests in `test_disposition.js` pin the HubSpot case end to end. With the old rule restored, the
+  fixture and 3 disposition assertions fail.
+
 ## v6.107.0
 
 **Cleanup: one restore path, one Signal 16 fold, no "SHADOW" names, a restored thread is never re-held.**

@@ -172,9 +172,9 @@ function getRuleFromSignals(signals)
     return { rule: 'NONE', description: 'Not rule-based — see log type' };
   }
 
-  if (signals.bulkEmailService && signals.blacklistedSender)
+  if (signals.blacklistedSender)
   {
-    return { rule: 'Rule 1', description: 'Bulk email + blacklisted sender' };
+    return { rule: 'Rule 1', description: 'Blacklisted sender' };
   }
 
   if (signals.bulkEmailService && signals.clickbaitCount >= 2)

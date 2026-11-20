@@ -1724,11 +1724,10 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     is_spam = False
     rule = ''
 
-    # Rule 1: Bulk email + blacklisted sender = definitive spam
-    #   Rationale: Known spam domain + bulk infrastructure = no false positives
-    if signals['bulk_email'] and signals['blacklisted_sender']:
+    # Rule 1: blacklisted sender = definitive spam (bulk not required since v6.108.0)
+    if signals['blacklisted_sender']:
         is_spam = True
-        rule = 'RULE 1: Bulk + blacklisted sender'
+        rule = 'RULE 1: Blacklisted sender'
 
     # Rule 2: Bulk email + 2+ clickbait patterns = spam
     #   Rationale: Legitimate bulk senders rarely use multiple clickbait tactics

@@ -447,3 +447,147 @@ function hasRandomCaseLabel(domain)
   }
   return false;
 }
+
+/**
+ * Is this host's top-level domain absent from the IANA root zone (v6.110.0)?
+ *
+ * Strips one trailing dot, then judges the last label. ABSTAINS (returns false) on anything it
+ * cannot judge: a dotless host, a numeric or IP-literal last label, a non-ASCII label, a label
+ * outside DNS syntax, and every name in PRIVATE_TLDS. Only a well-formed ASCII label that is in
+ * neither IANA_TLDS nor PRIVATE_TLDS is "unknown". Linear: one lastIndexOf and an object lookup.
+ *
+ * Mirrored by _is_unknown_tld() in tests/test_spam_detector.py.
+ *
+ * @param {string} host
+ * @return {boolean}
+ */
+function isUnknownTld(host)
+{
+  let h = String(host || '').toLowerCase();
+  if (h.charAt(h.length - 1) === '.') h = h.substring(0, h.length - 1);
+  const dot = h.lastIndexOf('.');
+  if (dot <= 0) return false;
+  const label = h.substring(dot + 1);
+  if (!/^[a-z]{2,63}$/.test(label) && !/^xn--[a-z0-9-]{1,59}$/.test(label)) return false;
+  if (!isUnknownTld._set)
+  {
+    const set = Object.create(null);
+    IANA_TLDS.forEach(function(t) { set[t] = true; });
+    PRIVATE_TLDS.forEach(function(t) { set[t] = true; });
+    isUnknownTld._set = set;
+  }
+  return isUnknownTld._set[label] !== true;
+}
+
+/**
+ * Signal 18 (v6.110.0): a From address on a TLD that does not exist, sent as mass mail whose
+ * unsubscribe link ALSO points at a TLD that does not exist, with no DKIM pass aligned with the
+ * From domain. All three, or false.
+ *
+ * "Cloud-Storage <alert-143-23903@nsnvy.ymv>", "Your Photos & Videos Are at Risk of Permanent
+ * Deletion!": a storage-scam mill that sends from real .my.id / .web.id hosts (DKIM passes for
+ * THOSE) but writes a random host on an invented TLD into From and List-Unsubscribe. Gmail filed
+ * it as spam; only FEAR fired, so it sat out the 7-day grace.
+ *
+ * Why three conditions (PR #39 review): a fake From TLD alone is also what self-hosted mail looks
+ * like - NAS, UPS, Nagios, Proxmox and AD domains on .lab, .intern, .novalocal, .hq ... - and that
+ * is exactly the mail Gmail misfiles as spam. Such mail carries no List-Unsubscribe. A domain that
+ * does not exist cannot pass aligned DKIM, while a real sender on a TLD delegated after the
+ * IANA_TLDS snapshot does, so the DKIM clause also blunts staleness. And the signal abstains
+ * outright once the snapshot is older than TLD_SNAPSHOT_MAX_AGE_DAYS.
+ *
+ * Spam-folder CORROBORATION ONLY: STRONG in hasCorroboratingSignal(), no inbox rule.
+ * Known evasion: put a real domain in From. Mirrored by _fake_tld_sender() in the Python suite.
+ *
+ * @param {string} senderAddress - Lower-cased From address from extractEmailAddress().
+ * @param {string} rawContent - Full RFC 822 message.
+ * @param {number} nowMs - Current time (ms since epoch); injectable for the age test.
+ * @return {boolean}
+ */
+function fakeTldSender(senderAddress, rawContent, nowMs)
+{
+  const snap = Date.parse(TLD_SNAPSHOT_DATE + 'T00:00:00Z');
+  if (!(nowMs >= snap) || nowMs - snap > TLD_SNAPSHOT_MAX_AGE_DAYS * 86400000) return false;
+
+  // (a) The From address: exactly one '@', a domain with nothing an address cannot hold.
+  const addr = String(senderAddress || '');
+  const at = addr.indexOf('@');
+  if (at <= 0 || addr.indexOf('@', at + 1) !== -1) return false;
+  const domain = addr.substring(at + 1);
+  if (!/^[a-z0-9.\-]+$/.test(domain) || !isUnknownTld(domain)) return false;
+  const bare = domain.charAt(domain.length - 1) === '.' ? domain.substring(0, domain.length - 1) : domain;
+
+  // (b) List-Unsubscribe: at least one http(s)/mailto host, and EVERY such host on an unknown TLD.
+  const lu = getRawHeader(rawContent, 'List-Unsubscribe');
+  if (!lu) return false;
+  const hosts = [];
+  let from = 0;
+  while (true)
+  {
+    const open = lu.indexOf('<', from);
+    if (open === -1) break;
+    const close = lu.indexOf('>', open + 1);
+    if (close === -1) break;               // truncated entry: ignore, never guess a host
+    const uri = lu.substring(open + 1, close).trim().toLowerCase();
+    from = close + 1;
+    let host = null;
+    if (uri.indexOf('http://') === 0 || uri.indexOf('https://') === 0)
+    {
+      host = uri.substring(uri.indexOf('//') + 2).split(/[\/?#:]/)[0];
+    }
+    else if (uri.indexOf('mailto:') === 0)
+    {
+      const mat = uri.lastIndexOf('@');
+      if (mat !== -1) host = uri.substring(mat + 1).split(/[?#]/)[0];
+    }
+    if (host !== null) hosts.push(host);
+  }
+  if (hosts.length === 0) return false;
+  for (let i = 0; i < hosts.length; i++)
+  {
+    if (!isUnknownTld(hosts[i])) return false;
+  }
+
+  // (c) No dkim=pass whose header.d / header.i domain is aligned (relaxed) with the From domain,
+  // in ANY Authentication-Results header, untruncated. A forged pass only makes this abstain.
+  const raw = String(rawContent || '').substring(0, LIMITS.maxRawScanChars).replace(/\r\n/g, '\n');
+  const end = raw.indexOf('\n\n');
+  const lines = (end === -1 ? raw : raw.substring(0, end)).replace(/\n[ \t]+/g, ' ').split('\n');
+  for (let i = 0; i < lines.length; i++)
+  {
+    const line = lines[i].toLowerCase();
+    if (line.indexOf('authentication-results:') !== 0) continue;
+    const parts = line.split(';');
+    for (let j = 0; j < parts.length; j++)
+    {
+      if (parts[j].indexOf('dkim=pass') === -1) continue;
+      const ds = [dkimIdentityDomain(parts[j], 'header.d='), dkimIdentityDomain(parts[j], 'header.i=')];
+      for (let k = 0; k < 2; k++)
+      {
+        const d = ds[k];
+        if (d && (d === bare || bare.endsWith('.' + d) || d.endsWith('.' + bare))) return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * The domain in an Authentication-Results "header.d=" / "header.i=" property, or '' (v6.110.0).
+ * "header.i=@mail.example.com" and "header.i=user@example.com" give the part after the last '@'.
+ * A linear character scan, not a regex: the text is sender-influenced. Mirrored in Python by
+ * _dkim_identity_domain().
+ *
+ * @param {string} part - One ';'-separated, lower-cased segment of the header.
+ * @param {string} key - 'header.d=' or 'header.i='.
+ * @return {string}
+ */
+function dkimIdentityDomain(part, key)
+{
+  const at = part.indexOf(key);
+  if (at === -1) return '';
+  let i = at + key.length, v = '';
+  while (i < part.length && /[a-z0-9.@\-]/.test(part.charAt(i))) { v += part.charAt(i); i++; }
+  v = v.substring(v.lastIndexOf('@') + 1);
+  return v.charAt(v.length - 1) === '.' ? v.substring(0, v.length - 1) : v;
+}

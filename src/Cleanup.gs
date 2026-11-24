@@ -125,6 +125,12 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * mail from a sender with no history, that Gmail ALSO filed as spam; the Drive archive is
  * still written first.
  *
+ * fakeTldSender (v6.110.0) is STRONG on its own, with no inbox rule: the From address AND every
+ * List-Unsubscribe host sit on TLDs that are not in the IANA root zone, and no DKIM pass is aligned
+ * with the From domain. Its false positive class is mass mail from a real sender on a TLD delegated
+ * after the snapshot that ALSO fails DKIM and that Gmail ALSO filed as spam; it abstains entirely
+ * once the snapshot is a year old. It closed the "Photos & Videos at Risk" storage scam (FEAR only).
+ *
  * sponsoredAdTemplate (v6.81.0) is STRONG on its own and is Rule 11: an ad
  * disclaimer, a "Sponsored Content" block and two "Sponsored by"/"Ad by" credits. It
  * closed "The 1973 Loophole", which scored zero on every other signal. Its false
@@ -154,6 +160,7 @@ function hasCorroboratingSignal(signals)
       signals.blacklistedRelayIdentity ||
       signals.millFooterAddress ||
       signals.pitchScore ||
+      signals.fakeTldSender ||
       signals.emptySubjectWithAttachment)
   {
     return true;

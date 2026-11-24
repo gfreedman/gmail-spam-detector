@@ -126,7 +126,7 @@ Archived out of the inbox and labelled `Phishing`, kept in All Mail indefinitely
 
 **Mail Gmail filed as spam is deleted only after a grace period.** Gmail intercepts that mail before your inbox, so the detector's rules never judged it — and Gmail's own false-positive classes (first contact from a new correspondent, 2FA from a small service, an invoice on a cheap relay) are exactly what no whitelist can enumerate in advance. So `reviewGmailSpam()` lets it age `CONFIG.gmailSpamGraceDays` (default **7**) first, which is your recovery window: the folder is visible, searchable, and one "Not spam" click from undoing Gmail's mistake. After that Gmail's verdict stands and the message is archived, logged and deleted. Whitelisted senders are never deleted at any age, and nothing is ever moved back to your inbox.
 
-The exception is mail our own signals **corroborate**: one strong signal (a blacklisted sender, service impersonation, a brand-mismatched link, a machine-generated free-mail address, a callback invoice, an empty subject with an attachment, a free-mail sender using your own name, an ad disclaimer with an advertiser sentence, a sponsor block and credit lines) or two weak ones (clickbait, fear, marketing format, a suspicious From name). That is deleted on the next run instead of waiting. A single weak hit is not enough — that is vocabulary, and vocabulary is what Gmail's false positives share with spam. Mail that is *not* corroborated is copied to Drive (`Spam Intelligence/Spam Folder/<messageId>.eml`) so a miss can be diagnosed; those copies expire after the grace period plus a week, and none are written if that folder is shared.
+The exception is mail our own signals **corroborate**: one strong signal (a blacklisted sender, service impersonation, a brand-mismatched link, a machine-generated free-mail address, a callback invoice, an empty subject with an attachment, a free-mail sender using your own name, an ad disclaimer with an advertiser sentence, a sponsor block and credit lines, a From address and unsubscribe link both on top-level domains that do not exist) or two weak ones (clickbait, fear, marketing format, a suspicious From name). That is deleted on the next run instead of waiting. A single weak hit is not enough — that is vocabulary, and vocabulary is what Gmail's false positives share with spam. Mail that is *not* corroborated is copied to Drive (`Spam Intelligence/Spam Folder/<messageId>.eml`) so a miss can be diagnosed; those copies expire after the grace period plus a week, and none are written if that folder is shared.
 
 Mail already reviewed is normally skipped, so the folder is not re-fetched every cycle. But "reviewed" is a fact about *the logic that did the reviewing*, not about the message — so a `SCRIPT_VERSION` change re-reviews the whole folder once, and an improved rule gets applied to spam the previous logic dismissed. (It did not, before v6.54.0: six messages sat through two releases meant to remove them.)
 
@@ -529,7 +529,7 @@ addToWhitelist('domain.com');
 │   ├── spam_examples/           # Real spam .eml files (68)
 │   ├── scam_examples/           # Scam .eml files (8)
 │   ├── ham_examples/            # Legitimate .eml files (39)
-│   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (3)
+│   └── spam_folder_examples/    # Gmail-flagged .eml that must corroborate (4)
 └── .github/workflows/           # CI/CD pipeline
 ```
 

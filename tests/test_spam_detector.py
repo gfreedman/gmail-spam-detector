@@ -505,6 +505,10 @@ def _load_gs_constants(source):
             source, 'IMPERSONATED_SUPPORT_BRANDS', allow_spaces=True),
         'BILLING_LANGUAGE_PATTERNS':    _load_regex_array(source, 'BILLING_LANGUAGE_PATTERNS'),
         'RFC2822_QUOTED_NAME':          _load_single_regex(source, 'RFC2822_QUOTED_NAME'),
+        'IANA_TLDS':                    _load_string_array(source, 'IANA_TLDS'),
+        'PRIVATE_TLDS':                 _load_string_array(source, 'PRIVATE_TLDS'),
+        'TLD_SNAPSHOT_DATE':            re.search(r"const TLD_SNAPSHOT_DATE = '([0-9-]+)';", source).group(1),
+        'TLD_SNAPSHOT_MAX_AGE_DAYS':    int(re.search(r'const TLD_SNAPSHOT_MAX_AGE_DAYS = (\d+);', source).group(1)),
         'LIMITS':                       limits,
         # Both parsed by the same generic loader — keys are discovered from the
         # source, not hardcoded, so new brands/domain groups need no edit here.
@@ -600,6 +604,10 @@ MAX_ANCHORS_SCANNED             = _gs['LIMITS']['maxAnchorsScanned']
 MAX_ANCHOR_TEXT_CHARS           = _gs['LIMITS']['maxAnchorTextChars']
 MAX_ANCHOR_TAG_CHARS            = _gs['LIMITS']['maxAnchorTagChars']
 MAX_RAW_SCAN_CHARS              = _gs['LIMITS']['maxRawScanChars']
+IANA_TLDS                       = frozenset(_gs['IANA_TLDS'])
+PRIVATE_TLDS                    = frozenset(_gs['PRIVATE_TLDS'])
+TLD_SNAPSHOT_DATE               = _gs['TLD_SNAPSHOT_DATE']
+TLD_SNAPSHOT_MAX_AGE_DAYS       = _gs['TLD_SNAPSHOT_MAX_AGE_DAYS']
 
 
 # =============================================================================
@@ -1081,6 +1089,82 @@ def _raw_header(raw, name):
     return None
 
 
+def _is_unknown_tld(host):
+    """Mirror of isUnknownTld() in Text.gs (v6.110.0): abstains on anything it cannot judge."""
+    h = str(host or '').lower()
+    if h.endswith('.'):
+        h = h[:-1]
+    dot = h.rfind('.')
+    if dot <= 0:
+        return False
+    label = h[dot + 1:]
+    if not (re.fullmatch(r'[a-z]{2,63}', label) or re.fullmatch(r'xn--[a-z0-9-]{1,59}', label)):
+        return False
+    return label not in IANA_TLDS and label not in PRIVATE_TLDS
+
+
+def _dkim_identity_domain(part, key):
+    """Mirror of dkimIdentityDomain() in Text.gs."""
+    at = part.find(key)
+    if at == -1:
+        return ''
+    m = re.match(r'[a-z0-9.@\-]*', part[at + len(key):])
+    v = m.group(0)
+    v = v[v.rfind('@') + 1:]
+    return v[:-1] if v.endswith('.') else v
+
+
+def _fake_tld_sender(sender_address, raw, now_ms):
+    """Mirror of fakeTldSender() in Text.gs (Signal 18, v6.110.0)."""
+    import datetime
+    snap = datetime.datetime.fromisoformat(TLD_SNAPSHOT_DATE + 'T00:00:00+00:00').timestamp() * 1000
+    if not (now_ms >= snap) or now_ms - snap > TLD_SNAPSHOT_MAX_AGE_DAYS * 86400000:
+        return False
+    addr = str(sender_address or '')
+    at = addr.find('@')
+    if at <= 0 or addr.find('@', at + 1) != -1:
+        return False
+    domain = addr[at + 1:]
+    if not re.fullmatch(r'[a-z0-9.\-]+', domain) or not _is_unknown_tld(domain):
+        return False
+    bare = domain[:-1] if domain.endswith('.') else domain
+    lu = _raw_header(raw, 'List-Unsubscribe')
+    if not lu:
+        return False
+    hosts, pos = [], 0
+    while True:
+        op = lu.find('<', pos)
+        if op == -1:
+            break
+        cl = lu.find('>', op + 1)
+        if cl == -1:
+            break
+        uri = lu[op + 1:cl].strip().lower()
+        pos = cl + 1
+        if uri.startswith('http://') or uri.startswith('https://'):
+            hosts.append(re.split(r'[/?#:]', uri[uri.find('//') + 2:])[0])
+        elif uri.startswith('mailto:'):
+            mat = uri.rfind('@')
+            if mat != -1:
+                hosts.append(re.split(r'[?#]', uri[mat + 1:])[0])
+    if not hosts or not all(_is_unknown_tld(h) for h in hosts):
+        return False
+    r = (raw or '').encode('utf-16-le', 'surrogatepass')[:2 * MAX_RAW_SCAN_CHARS].decode('utf-16-le', 'ignore')
+    r = r.replace('\r\n', '\n')
+    end = r.find('\n\n')
+    for line in re.sub(r'\n[ \t]+', ' ', r if end == -1 else r[:end]).split('\n'):
+        line = line.lower()
+        if not line.startswith('authentication-results:'):
+            continue
+        for part in line.split(';'):
+            if 'dkim=pass' not in part:
+                continue
+            for d in (_dkim_identity_domain(part, 'header.d='), _dkim_identity_domain(part, 'header.i=')):
+                if d and (d == bare or bare.endswith('.' + d) or d.endswith('.' + bare)):
+                    return False
+    return True
+
+
 def _header_display_name(value):
     """Mirror of headerDisplayName() in the .gs source: text before the first
     '<', format characters removed, quotes/dots/commas to spaces, lowercased,
@@ -1311,6 +1395,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
                     'blacklisted_relay_identity': False,
                     'mill_footer_address': False,
                     'pitch_score': False,
+                    'fake_tld_sender': False,
                     'matched_patterns': ['whitelisted']}, False, ''
 
     # Initialize signal accumulators — each detection phase populates one signal
@@ -1334,6 +1419,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
         'blacklisted_relay_identity': False,
         'mill_footer_address': False,
         'pitch_score': False,
+        'fake_tld_sender': False,
         'matched_patterns': []          # Audit trail of which patterns fired
     }
 
@@ -1450,6 +1536,13 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
             _bayes_score(_bayes_tokens(subject, body, True)) >= BAYES_QUARANTINE_SCORE:
         signals['pitch_score'] = True
         signals['matched_patterns'].append('pitch_score')
+
+    # ── Signal 18: Sender on a TLD that does not exist (v6.110.0) ───────────
+    # Spam-folder corroboration only. Mirrors Signal 18 / fakeTldSender() in the .gs source.
+    import time as _time
+    if _fake_tld_sender(sender_address, raw, _time.time() * 1000):
+        signals['fake_tld_sender'] = True
+        signals['matched_patterns'].append('fake_tld_sender')
 
     # ── Signal: Clickbait pattern count ────────────────────────────────────
     # Each matching pattern increments the counter independently — this allows
@@ -2435,7 +2528,7 @@ def run_parity_tests():
     #
     # If you added or removed a signal, change this number deliberately and
     # mirror the signal in analyze_email().
-    EXPECTED_SIGNAL_COUNT = 20  # 20 since v6.108.0 (blacklistedSenderDomain)
+    EXPECTED_SIGNAL_COUNT = 21  # 21 since v6.110.0 (fakeTldSender)
     if len(js_keys) != EXPECTED_SIGNAL_COUNT:
         failures.append(
             f'the JS source exposes {len(js_keys)} detection signals, expected '
@@ -2936,7 +3029,7 @@ def run_edge_case_tests():
                   sig['calendar_lure'] or sig['empty_subject_with_attachment'] or
                   sig['attachment_payload_scam'] or sig['sponsored_ad_template'] or
                   sig['blacklisted_relay_identity'] or sig['mill_footer_address'] or
-                  sig['pitch_score'])
+                  sig['pitch_score'] or sig['fake_tld_sender'])
         weak = (sig['clickbait_count'] + sig['fear_mongering'] +
                 sig['marketing_format'] +
                 (sig['suspicious_from_name'] or sig['headline_from_name']))
@@ -2978,6 +3071,39 @@ def run_edge_case_tests():
     for _in, _want in STRIP_CORPUS:
         check(f'strip corpus agrees with the JS table: {_in[:28]!r}',
               _strip_quoted_and_forwarded(_in) == _want, repr(_strip_quoted_and_forwarded(_in)))
+    # Signal 18 (v6.110.0): the Python mirror on the same cases test_disposition.js pins in JS.
+    # Phase 7 parity only sees fixtures, and no fixture has an aligned DKIM pass or a mixed host list.
+    import datetime as _dt
+    _now18 = _dt.datetime(2026, 11, 24, tzinfo=_dt.timezone.utc).timestamp() * 1000
+    _ar18 = 'Authentication-Results: mx.google.com;\r\n dkim=pass header.i=@sb075.parlakbulut.my.id;\r\n'
+    def _r18(lu, ar=_ar18):
+        return ar + (f'List-Unsubscribe: {lu}\r\n' if lu else '') + 'Subject: x\r\n\r\nbody\r\n'
+    for _addr, _lu, _ar, _want, _why in [
+        ('a@x.ymv', '<http://u.qkx/LEAVE>', _ar18, True, 'fake From + fake unsubscribe + unrelated DKIM'),
+        ('nas@diskstation.lab', '', _ar18, False, 'no List-Unsubscribe'),
+        ('it@corp.intern', '<https://lists.example.com/u>', _ar18, False, 'unsubscribe on a real host'),
+        ('a@x.ymv', '<mailto:u@q.qkx>, <https://real.com/u>', _ar18, False, 'one real host'),
+        ('a@x.ymv', '<mailto:leave@q.qkx?subject=x>', _ar18, True, 'mailto on a fake host'),
+        ('a@x.ymv', '<http://q.qkx/very-long', _ar18, False, 'truncated entry'),
+        ('news@email.brandnew', '<http://u.brandnew/x>',
+         'Authentication-Results: m; dkim=pass header.i=@email.brandnew\r\n', False, 'aligned DKIM pass'),
+        ('news@mail.brandnew', '<http://u.brandnew/x>',
+         'Authentication-Results: a; dkim=fail header.d=x.com\r\nAuthentication-Results: b; dkim=pass header.d=brandnew\r\n',
+         False, 'aligned pass on a parent, second header'),
+        ('a@x.ymv', '<http://u.ymv/>', 'Authentication-Results: m; dkim=pass header.d=evilx.ymv\r\n', True, 'suffix text is not alignment'),
+        ('a@x.com', '<http://u.qkx/>', _ar18, False, 'real From TLD'),
+        ('a@x.local', '<http://u.local/>', _ar18, False, 'private TLD'),
+        ('root@localhost', '<http://u.qkx/>', _ar18, False, 'dotless'),
+        ('a@1.2.3.4', '<http://u.qkx/>', _ar18, False, 'numeric label'),
+        ('a@x.ymv.', '<HTTP://U.QKX/LEAVE>', _ar18, True, 'trailing dot, upper-case host'),
+    ]:
+        check(f'Signal 18 mirror: {_why}', _fake_tld_sender(_addr, _r18(_lu, _ar), _now18) == _want)
+    _snap18 = _dt.datetime.fromisoformat(TLD_SNAPSHOT_DATE + 'T00:00:00+00:00').timestamp() * 1000
+    check('Signal 18 mirror: abstains once the snapshot is over a year old',
+          not _fake_tld_sender('a@x.ymv', _r18('<http://u.qkx/>'), _snap18 + TLD_SNAPSHOT_MAX_AGE_DAYS * 86400000 + 1))
+    _ham18 = [f.name for f in sorted((Path(__file__).parent / 'ham_examples').glob('*.eml'))
+              if analyze_email(*parse_eml(f))[0]['fake_tld_sender']]
+    check('Signal 18 fires on no ham fixture', not _ham18, repr(_ham18))
     sf_dir = Path(__file__).parent / 'spam_folder_examples'
     for f in sorted(sf_dir.glob('*.eml')):
         sig, _, _ = analyze_email(*parse_eml(f))

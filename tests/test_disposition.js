@@ -4042,6 +4042,12 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
         g.c.senderHistoryGate(gm) === null);
 }
 
+{
+  console.log('\n=== scriptVersion (run_now.py guard) ===');
+  const ctx = makeCtx();
+  check('scriptVersion() returns SCRIPT_VERSION', ctx.scriptVersion() === require('vm').runInContext('SCRIPT_VERSION', ctx));
+}
+
 console.log('\n' + '='.repeat(70));
 console.log(failures === 0
   ? '✅ DISPOSITION TESTS PASSED (' + passed + ' assertions)'

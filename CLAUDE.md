@@ -107,6 +107,10 @@ nobody had read that path before promising it would be deleted.
 
 ## Watching a deploy
 
+After the deploy's `validate` job passes, run `python3 scripts/run_now.py`.
+It proves the API is on the new version (`scriptVersion()`), then runs `processInbox` at once,
+so the owner never waits for the 10-minute trigger. It refuses on any version mismatch.
+
 After every push, stream `python3 -u scripts/watch_deploy.py <run-id>` through
 Monitor so the `[███░░] 3/5` bar shows each change. Never pipe it (`| tail`
 buffers until exit and the bar disappears) and never run it as a plain

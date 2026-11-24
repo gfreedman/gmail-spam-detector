@@ -518,6 +518,8 @@ addToWhitelist('domain.com');
 │   ├── sources.js / sources.py  # The one reader of sources.json (Node / Python)
 │   ├── patch_version.js         # Stamps @version + SCRIPT_VERSION at deploy
 │   ├── prod_health.py           # Is prod running, and on which version?
+│   ├── run_now.py               # Run the latest pushed code now (clasp run), version-checked first
+│   ├── check_tld_snapshot.py    # Warns when Signal 18's IANA TLD snapshot needs refreshing (CI)
 │   ├── train_bayes.py           # Regenerates BAYES_TABLE (Rule 14) from the fixtures; --holdout DATE
 │   └── validate.py              # Repo consistency checks (runs in CI)
 ├── tests/
@@ -608,9 +610,22 @@ This repo has CI/CD that auto-deploys to Google Apps Script on every push to `ma
    - `tests/test_link_graph.js` — URL host parsing and Signal 7, against the shipped JS
    - `tests/test_patch_version.js` — the deploy-time version patch and `.claspignore` coverage
    - `scripts/validate.py` — version-marker agreement and README stat freshness
+
+   Plus one advisory step that never fails the build: `scripts/check_tld_snapshot.py` warns when
+   IANA has delegated a TLD missing from Signal 18's snapshot, or the snapshot is near expiry.
 2. **Deploy** — Runs `clasp push` to Apps Script (only if tests pass). Writes failure summary on error.
 3. **Validate** — Reads the deployed script back via the Apps Script REST API and confirms the expected `@version` tag is live. Warns but does not block on API errors.
 4. **Tag** — Auto-creates a git tag when the commit message contains a version (`v6.18.0`, etc.)
+5. **Verify prod** — Polls `scripts/prod_health.py` until the running script reports the new version.
+
+**Running the new code at once (v6.115.0).** After `validate` passes, `python3 scripts/run_now.py`
+asks the live script for its version through the Apps Script API (`scriptVersion()`, devMode) and,
+only if it matches the local `SCRIPT_VERSION`, runs `processInbox()` instead of waiting for the
+10-minute trigger. One-time setup: link the script to a standard Google Cloud project with the Apps
+Script, Gmail, Drive and Sheets APIs enabled; publish its OAuth consent screen (a test-mode login
+expires in 7 days); create a Desktop OAuth client; `clasp login --user runner --use-project-scopes
+--creds <client>.json`; and create one API-executable deployment (`clasp create-deployment`, with
+the normal login), which never needs updating. `appsscript.json` sets `executionApi` to `MYSELF`.
 
 **Setup for your own fork:**
 

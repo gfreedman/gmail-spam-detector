@@ -110,6 +110,9 @@ nobody had read that path before promising it would be deleted.
 After the deploy's `validate` job passes, run `python3 scripts/run_now.py`.
 It proves the API is on the new version (`scriptVersion()`), then runs `processInbox` at once,
 so the owner never waits for the 10-minute trigger. It refuses on any version mismatch.
+If the `runner` login has expired, ask the owner to paste
+`! npx @google/clasp@3.3.0 login --user runner --use-project-scopes --creds ~/.config/clasp-runner/<client>.json`.
+Never build an on-demand path on a versioned web-app trigger: it runs the frozen version (v6.111.0).
 
 After every push, stream `python3 -u scripts/watch_deploy.py <run-id>` through
 Monitor so the `[███░░] 3/5` bar shows each change. Never pipe it (`| tail`

@@ -20,6 +20,30 @@ detail plus the diffs.
 
 ---
 
+## v6.112.0
+
+**Rule 14 counts mail you filed under your own Gmail labels as history with the sender.**
+
+- Why: on 2026-11-18 Rule 14 deleted a BetaKit issue from a new author (alex.riehl@); the owner
+  files BetaKit under a label, but the exact-address and domain+name gates both missed it.
+- `senderHasUserLabelHistory()` (Verdict.gs), asked last by `senderHistoryGate()`: history when
+  messages from the EXACT sender host, older than 2 days, sit in threads carrying one of the
+  user's own labels on 3+ different days in the last 5 years, or 2+ with one in the last 365
+  (round 2: a flat 365-day window denied BetaKit itself, whose filed issues are ~18 months old) (the script's six are excluded:
+  SpamChecked is a user label to Gmail and is on ~2,770 threads), AND the judged message passes
+  DMARC aligned to that host (first Authentication-Results header only).
+- Never for free mail, throwaway tenants, `BLACKLIST_REFUSED_HOSTS`, the new
+  `SHARED_SENDER_HOSTS` (beehiiv, ConvertKit, Mailchimp's list-manage, ...; 77 Reading threads
+  came from mail.beehiiv.com) or `LABEL_HISTORY_REFUSED_DOMAINS` (Motley Fool, Stockhouse: the
+  owner keeps their pitches deletable; onlineinvestingdaily.com, a mill with one issue filed). Suffix match, checked before any lookup.
+- Review (PR #41) built each failure: has:userlabels matching everything, 2018-filed Motley Fool
+  pitches, shared-ESP tenants, Gmail filters labelling a mill's first mail, spoofed From.
+- Known limits: a mill on its own domain whose mail a user FILTER labels can earn history after
+  three harmless issues (closing it needs the filter-reading scope, not taken); a filed sender
+  with no DMARC record is denied.
+- `HISTORY_LOOKUP_BUDGET` 6 -> 9 (a new sender can spend three lookups). Cache key `HIST_L_<host>`.
+- None of the 7 Rule 13/14 deletions in the Raw Log would have been spared.
+
 ## v6.111.0
 
 **A deploy starts a run within about a minute instead of waiting up to 10 for the trigger.**

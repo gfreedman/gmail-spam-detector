@@ -209,7 +209,8 @@ function isBulkEmail(rawContent)
  */
 // 6, was 3: since v6.103.0 a Rule 13/14 candidate whose address is new spends a SECOND lookup
 // (senderHasNamedDomainHistory), so 3 judged one new sender per run (review of PR #32).
-const HISTORY_LOOKUP_BUDGET = 6;
+// 9, was 6, since v6.112.0: a new sender can now spend a THIRD lookup (senderHasUserLabelHistory).
+const HISTORY_LOOKUP_BUDGET = 9;
 let historyLookups = 0;
 
 /**

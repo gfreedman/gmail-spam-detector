@@ -2107,7 +2107,7 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
                  'brandMismatchedCta', 'freeMailRandomLocal', 'callbackPhishing',
                  'selfNamedSender', 'calendarLure', 'headlineFromName',
                  'attachmentPayloadScam', 'sponsoredAdTemplate', 'blacklistedRelayIdentity',
-                 'millFooterAddress', 'pitchScore'];
+                 'millFooterAddress', 'pitchScore', 'fakeTldSender'];
 
   // Guard the guard: if collectSignals() grows a signal this list does not
   // know about, the sweep below silently stops being exhaustive.
@@ -2120,7 +2120,8 @@ console.log('\n=== the sweep refuses to run if it cannot identify our verdicts =
   const STRONG = ['blacklistedSender', 'serviceImpersonation', 'brandMismatchedCta',
                   'freeMailRandomLocal', 'callbackPhishing', 'emptySubjectWithAttachment',
                   'selfNamedSender', 'calendarLure', 'attachmentPayloadScam',
-                  'sponsoredAdTemplate', 'blacklistedRelayIdentity', 'millFooterAddress', 'pitchScore'];
+                  'sponsoredAdTemplate', 'blacklistedRelayIdentity', 'millFooterAddress', 'pitchScore',
+                  'fakeTldSender'];
   let combos = 0, disagreements = [], uncorroborated = [], offSpec = [];
   for (let mask = 0; mask < (1 << BOOLS.length); mask++) {
     for (let cb = 0; cb <= 4; cb++) {
@@ -3802,6 +3803,145 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
   const big = note({ body: 'A'.repeat(90000) });
   check('a 90 KB body does not fire and stays fast (< 1 s)',
         big.attachmentPayloadScam === false && Date.now() - t0 < 1000);
+}
+
+// ── Signal 18: sender on a TLD that does not exist (v6.110.0) ──────────────
+// The real miss, the three conditions, and every false positive the PR #39 review built.
+{
+  console.log('\n=== Signal 18: fakeTldSender ===');
+  const ctx = makeCtx();
+  const fs = require('fs');
+  const path = require('path');
+  const real = fs.readFileSync(path.join(__dirname, 'spam_folder_examples',
+    'Photos and Videos at Risk of Permanent Deletion - Cloud-Storage.eml'), 'utf8');
+  const NOW = Date.parse('2026-11-24T00:00:00Z');
+  const AR = 'Authentication-Results: mx.google.com;\r\n       dkim=pass header.i=@sb075.parlakbulut.my.id header.s=ma;\r\n       spf=pass\r\n';
+  const raw = (lu, ar) => (ar === undefined ? AR : ar) + (lu ? 'List-Unsubscribe: ' + lu + '\r\n' : '') +
+                          'Subject: x\r\n\r\nbody\r\n';
+  const fires = (addr, lu, ar, now) => ctx.fakeTldSender(addr, raw(lu, ar), now === undefined ? NOW : now) === true;
+
+  check('the real fixture fires (From nsnvy.ymv, unsubscribe tW51Isf.ymv, DKIM for parlakbulut.my.id)',
+        ctx.fakeTldSender('alert-143-23903@nsnvy.ymv', real, NOW) === true);
+  check('collectSignals sets it on the real fixture', (function() {
+    const m = phishMessage('mT18');
+    m.getFrom = () => 'Cloud-Storage <alert-143-23903@nsnvy.ymv>';
+    m.getSubject = () => 'Your Photos & Videos Are at Risk of Permanent Deletion!';
+    m.getRawContent = () => real;
+    // Freeze the clock (round 2): collectSignals passes Date.now(), and the signal abstains a year
+    // after the snapshot, which would turn this check red by itself.
+    const realFn = ctx.fakeTldSender;
+    ctx.fakeTldSender = (f, r) => realFn(f, r, NOW);
+    try {
+      const sig = ctx.collectSignals(m);
+      return sig !== null && sig.fakeTldSender === true;
+    } finally { ctx.fakeTldSender = realFn; }
+  })());
+  check('baseline: fake From + fake unsubscribe host + unrelated DKIM fires',
+        fires('a@x.ymv', '<http://u.qkx/LEAVE>'));
+  // The review's false positives: self-hosted alerts carry no List-Unsubscribe.
+  check('NAS alert on .lab with no List-Unsubscribe does not fire', !fires('nas@diskstation.lab', ''));
+  check('Proxmox on .homelab with no List-Unsubscribe does not fire', !fires('root@pve.homelab', ''));
+  check('AD mailing list on .intern with an unsubscribe on a REAL host does not fire',
+        !fires('it@corp.intern', '<https://lists.example.com/u?x=1>'));
+  check('one fake and one real unsubscribe host does not fire (EVERY host must be fake)',
+        !fires('a@x.ymv', '<mailto:u@q.qkx>, <https://real.com/u>'));
+  check('unsubscribe mailto on a fake host fires', fires('a@x.ymv', '<mailto:leave@q.qkx?subject=x>'));
+  check('unsubscribe with no http/mailto entry does not fire', !fires('a@x.ymv', '<ftp://q.qkx/>'));
+  check('a truncated unsubscribe entry (no closing >) is ignored, not guessed',
+        !fires('a@x.ymv', '<http://q.qkx/very-long'));
+  check('an IP-literal unsubscribe host abstains', !fires('a@x.ymv', '<http://10.0.0.1/u>'));
+  check('aligned DKIM pass (new TLD, real sender) does not fire',
+        !fires('news@email.brandnew', '<http://u.brandnew/x>',
+               'Authentication-Results: mx.google.com; dkim=pass header.i=@email.brandnew header.s=s1\r\n'));
+  check('aligned DKIM pass via header.d on the parent organisation does not fire',
+        !fires('news@em.mail.brandnew', '<http://u.brandnew/x>',
+               'Authentication-Results: mx.google.com; dkim=pass header.d=mail.brandnew\r\n'));
+  check('aligned DKIM pass on a SIBLING subdomain does not fire (relaxed alignment)',
+        !fires('hello@news.mail.brandnew', '<http://u.brandnew/x>',
+               'Authentication-Results: m; dkim=pass header.i=@em.mail.brandnew\r\n'));
+  check('header.i with + and _ in the local part still aligns',
+        !fires('news@mail.brandnew', '<http://u.brandnew/x>',
+               'Authentication-Results: m; dkim=pass header.i=first_last+tag@mail.brandnew\r\n'));
+  check('a quoted header.i still aligns',
+        !fires('news@mail.brandnew', '<http://u.brandnew/x>',
+               'Authentication-Results: m; dkim=pass header.i="@mail.brandnew"\r\n'));
+  // Round 2: self-hosted LIST mail unsubscribes at its own organisation.
+  check('self-hosted GitLab on .intern (unsubscribe at its own host) does not fire',
+        !fires('GitLab <gitlab@gitlab.corp.intern>', '<https://gitlab.corp.intern/-/sent_notifications/abc/unsubscribe>'));
+  check('internal Mailman (lists.corp.intern, http + mailto) does not fire',
+        !fires('Alice Example <alice@corp.intern>',
+               '<https://lists.corp.intern/mailman/options/all>, <mailto:all-request@lists.corp.intern?subject=unsubscribe>'));
+  check('homelab listmonk (list.family.lab) does not fire',
+        !fires('Family News <news@family.lab>', '<https://list.family.lab/subscription/x>'));
+  check('a real host in a SECOND List-Unsubscribe header does not fire',
+        !fires('a@x.ymv', '<http://u.qkx/>\r\nList-Unsubscribe: <https://real.com/u>'));
+  check('a real host past 200 characters of List-Unsubscribe does not fire',
+        !fires('a@x.ymv', '<http://u.qkx/' + '\u{1F600}'.repeat(90) + '>, <https://real.com/u>'));
+  check('a U+0085 before a host makes that entry malformed and skipped, as in Python (trimSpTab)',
+        fires('a@x.ymv', '<http://u.qkx/>, <\u0085https://real.com/u>'));
+  // Round 2: only an unambiguous From is judged.
+  check('a display name holding an address abstains',
+        !fires('no-reply@app.vendor.com (Madison <madison@clinic.ymv>)', '<http://u.qkx/>'));
+  check('several mailboxes abstain', !fires('"A" <a@corp.com>, "B" <b@x.ymv>', '<http://u.qkx/>'));
+  check('the comment form abstains', !fires('a@x.ymv (Cloud Storage)', '<http://u.qkx/>'));
+  check('a display-name From with the fake address fires',
+        fires('Cloud-Storage <alert-143-23903@nsnvy.ymv>', '<http://tW51Isf.ymv/LEAVE=To>'));
+  check('aligned DKIM pass in a SECOND Authentication-Results header does not fire',
+        !fires('news@email.brandnew', '<http://u.brandnew/x>',
+               'Authentication-Results: a; dkim=fail header.d=x.com\r\nAuthentication-Results: b; dkim=pass header.i=news@email.brandnew\r\n'));
+  check('aligned dkim=FAIL still fires (a domain that does not exist cannot pass)',
+        fires('news@email.ymv', '<http://u.ymv/x>',
+              'Authentication-Results: mx.google.com; dkim=fail header.d=email.ymv\r\n'));
+  check('a domain that merely ENDS with the From domain text is not aligned',
+        fires('a@x.ymv', '<http://u.ymv/>', 'Authentication-Results: m; dkim=pass header.d=evilx.ymv\r\n'));
+  // The address.
+  check('every IANA TLD is real (.com, .xyz, .my.id, .xn--p1ai)',
+        !fires('a@x.com', '<http://u.qkx/>') && !fires('a@x.xyz', '<http://u.qkx/>') &&
+        !fires('a@x.my.id', '<http://u.qkx/>') && !fires('a@x.xn--p1ai', '<http://u.qkx/>'));
+  check('PRIVATE_TLDS abstain (.local, .corp, .example, .test)',
+        ['local', 'corp', 'example', 'test'].every(t => !fires('a@x.' + t, '<http://u.' + t + '/>')));
+  check('a dotless domain abstains', !fires('root@localhost', '<http://u.qkx/>'));
+  check('an IP-literal From abstains', !fires('a@[1.2.3.4]', '<http://u.qkx/>'));
+  check('a numeric last label abstains', !fires('a@1.2.3.4', '<http://u.qkx/>'));
+  check('a non-ASCII TLD abstains', !fires('a@x.рф', '<http://u.qkx/>'));
+  check('two @ in the address abstains', !fires('a@b@x.ymv', '<http://u.qkx/>'));
+  check('an empty address abstains', !fires('', '<http://u.qkx/>'));
+  check('a trailing dot on the From domain is stripped, still fake',
+        fires('a@x.ymv.', '<http://u.qkx/>'));
+  check('upper-case unsubscribe host is lower-cased', fires('a@x.ymv', '<HTTP://U.QKX/LEAVE>'));
+  // Staleness fail-safe.
+  const g = (name) => require('vm').runInContext(name, ctx);   // const globals are not ctx properties
+  const snap = Date.parse(g('TLD_SNAPSHOT_DATE') + 'T00:00:00Z');
+  check('the snapshot date parses', !isNaN(snap));
+  check('fires 365 days after the snapshot', fires('a@x.ymv', '<http://u.qkx/>', undefined, snap + 365 * 86400000));
+  check('abstains once the snapshot is over a year old',
+        !fires('a@x.ymv', '<http://u.qkx/>', undefined, snap + 365 * 86400000 + 1));
+  check('abstains before the snapshot date (clock wrong)', !fires('a@x.ymv', '<http://u.qkx/>', undefined, snap - 1));
+  check('IANA_TLDS has the whole root zone (> 1400) and no private name',
+        g('IANA_TLDS').length > 1400 && g('PRIVATE_TLDS').every(t => g('IANA_TLDS').indexOf(t) === -1));
+  // Wiring.
+  const alone = { clickbaitCount: 0, fakeTldSender: true };
+  check('fakeTldSender alone is NOT an inbox conviction',
+        ctx.makeVerdict(alone) === false && ctx.getRuleFromSignals(alone).rule === 'NONE');
+  check('fakeTldSender + fear is NOT an inbox conviction',
+        ctx.makeVerdict({ clickbaitCount: 0, fakeTldSender: true, fearMongering: true }) === false);
+  check('fakeTldSender corroborates a Gmail Spam verdict', ctx.hasCorroboratingSignal(alone) === true);
+  check('FAKE_TLD_SENDER appears in the signals CSV', ctx.buildSignalsCsv(alone).indexOf('FAKE_TLD_SENDER') !== -1);
+  check('fake-tld-sender appears in the Spam-folder description',
+        ctx.describeSignals(alone).indexOf('fake-tld-sender') !== -1);
+  // Cost on sender-controlled headers.
+  const t0 = Date.now();
+  const huge = 'Authentication-Results: ' + 'dkim=pass header.d='.repeat(4000) + 'a'.repeat(60000) + '\r\n' +
+               'List-Unsubscribe: ' + '<'.repeat(100000) + '\r\n\r\nx';
+  ctx.fakeTldSender('a@x.ymv', huge, NOW);
+  check('a 220 KB hostile header block stays fast (< 1 s)', Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
+  // Round 3: the From trim was a backtracking regex, 5.7 s on this input.
+  const t1 = Date.now();
+  ctx.fakeTldSender('x' + ' '.repeat(100000) + 'y', raw('<http://u.qkx/>'), NOW);
+  ctx.fakeTldSender('x' + '\n'.repeat(100000) + 'y', raw('<http://u.qkx/>'), NOW);
+  check('a 100K From with an interior whitespace run stays fast (< 200 ms)', Date.now() - t1 < 200, (Date.now() - t1) + ' ms');
+  check('the From is still trimmed of CR/LF/space/tab at both ends',
+        fires('\r\n\t Cloud <a@x.ymv> \t\r\n', '<http://u.qkx/>'));
 }
 
 console.log('\n' + '='.repeat(70));

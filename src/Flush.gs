@@ -286,6 +286,7 @@ function buildSignalsCsv(signals)
   if (signals.blacklistedRelayIdentity)   parts.push('BLACKLISTED_RELAY_IDENTITY');
   if (signals.millFooterAddress)          parts.push('MILL_FOOTER_ADDRESS');
   if (signals.pitchScore)                 parts.push('PITCH_SCORE');
+  if (signals.fakeTldSender)              parts.push('FAKE_TLD_SENDER');
   // Surfaced in the Sheet so a degraded verdict is visible in the log, not
   // just in an execution transcript nobody reads.
   if (signals._degraded)                  parts.push('DEGRADED');

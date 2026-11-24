@@ -447,3 +447,209 @@ function hasRandomCaseLabel(domain)
   }
   return false;
 }
+
+/**
+ * Is this host's top-level domain absent from the IANA root zone (v6.110.0)?
+ *
+ * Strips one trailing dot, then judges the last label. ABSTAINS (returns false) on anything it
+ * cannot judge: a dotless host, a numeric or IP-literal last label, a non-ASCII label, a label
+ * outside DNS syntax, and every name in PRIVATE_TLDS. Only a well-formed ASCII label that is in
+ * neither IANA_TLDS nor PRIVATE_TLDS is "unknown". Linear: one lastIndexOf and an object lookup.
+ *
+ * Mirrored by _is_unknown_tld() in tests/test_spam_detector.py.
+ *
+ * @param {string} host
+ * @return {boolean}
+ */
+function isUnknownTld(host)
+{
+  let h = String(host || '').toLowerCase();
+  if (h.charAt(h.length - 1) === '.') h = h.substring(0, h.length - 1);
+  const dot = h.lastIndexOf('.');
+  if (dot <= 0) return false;
+  const label = h.substring(dot + 1);
+  if (!/^[a-z]{2,63}$/.test(label) && !/^xn--[a-z0-9-]{1,59}$/.test(label)) return false;
+  if (!isUnknownTld._set)
+  {
+    const set = Object.create(null);
+    IANA_TLDS.forEach(function(t) { set[t] = true; });
+    PRIVATE_TLDS.forEach(function(t) { set[t] = true; });
+    isUnknownTld._set = set;
+  }
+  return isUnknownTld._set[label] !== true;
+}
+
+/**
+ * The organisational domain of a host on an UNKNOWN TLD: its last two labels (v6.110.0). There is
+ * no public-suffix entry for a TLD that does not exist, so two labels is the whole registrable
+ * name. 'tw51isf.ymv' -> 'tw51isf.ymv', 'lists.corp.intern' -> 'corp.intern'.
+ *
+ * @param {string} host - Lower-cased, trailing dot already stripped.
+ * @return {string}
+ */
+function unknownTldOrgDomain(host)
+{
+  const labels = String(host || '').split('.');
+  return labels.slice(-2).join('.');
+}
+
+/**
+ * Trim the given characters (default space and tab) from both ends, with a linear scan. Not
+ * String.prototype.trim(): JS and Python disagree on what counts as whitespace (U+0085, U+FEFF ...),
+ * and Signal 18's Python mirror (str.strip(chars)) must agree byte for byte. Not a regex either:
+ * /[ \t\r\n]+$/ backtracks across every interior run and took 5.7 s on a 100K From (PR #39 round 3).
+ */
+function trimSpTab(v, chars)
+{
+  const set = chars || ' \t';
+  let a = 0, b = v.length;
+  while (a < b && set.indexOf(v.charAt(a)) !== -1) a++;
+  while (b > a && set.indexOf(v.charAt(b - 1)) !== -1) b--;
+  return v.substring(a, b);
+}
+
+/**
+ * Signal 18 (v6.110.0): a From address on a TLD that does not exist, sent as mass mail whose
+ * unsubscribe links ALL point at a DIFFERENT organisation on a TLD that does not exist, with no
+ * DKIM pass aligned with the From domain. All of it, or false.
+ *
+ * "Cloud-Storage <alert-143-23903@nsnvy.ymv>", "Your Photos & Videos Are at Risk of Permanent
+ * Deletion!": a storage-scam mill that sends from real .my.id / .web.id hosts (DKIM passes for
+ * THOSE) but writes random hosts on invented TLDs into From (nsnvy.ymv) and List-Unsubscribe
+ * (tw51isf.ymv). Gmail filed it as spam; only FEAR fired, so it sat out the 7-day grace.
+ *
+ * Why each condition (PR #39 review, two rounds):
+ *  - A fake From TLD alone is also self-hosted mail - NAS, UPS, Nagios, Proxmox, AD domains on
+ *    .lab, .intern, .novalocal, .hq ... - exactly the mail Gmail misfiles. Such alerts carry no
+ *    List-Unsubscribe.
+ *  - Self-hosted LIST mail does (GitLab on gitlab.corp.intern, Mailman on lists.corp.intern,
+ *    listmonk on list.family.lab) - but its unsubscribe host is the sender's own organisation.
+ *    The mill's is a different random name. So every unsubscribe host must be on an unknown TLD
+ *    AND in a different organisational domain from the From.
+ *  - A domain that does not exist cannot pass DKIM; a real sender on a TLD delegated after the
+ *    IANA_TLDS snapshot can, so an aligned pass (same organisational domain) abstains.
+ *  - The signal abstains outright once the snapshot is older than TLD_SNAPSHOT_MAX_AGE_DAYS.
+ *  - Only an UNAMBIGUOUS From is judged: one bare address, or exactly one <addr> ending the
+ *    header. A display name holding an address, a comment form or several mailboxes abstain.
+ *
+ * Every List-Unsubscribe and Authentication-Results header is read in full, within the first
+ * LIMITS.maxRawScanChars of the message. Spam-folder CORROBORATION ONLY: STRONG in
+ * hasCorroboratingSignal(), no inbox rule. Known evasion: put a real domain in From.
+ * Mirrored by _fake_tld_sender() in tests/test_spam_detector.py.
+ *
+ * @param {string} fromHeader - The decoded From header (getFrom()).
+ * @param {string} rawContent - Full RFC 822 message.
+ * @param {number} nowMs - Current time (ms since epoch); injectable for the age test.
+ * @return {boolean}
+ */
+function fakeTldSender(fromHeader, rawContent, nowMs)
+{
+  const snap = Date.parse(TLD_SNAPSHOT_DATE + 'T00:00:00Z');
+  if (!(nowMs >= snap) || nowMs - snap > TLD_SNAPSHOT_MAX_AGE_DAYS * 86400000) return false;
+
+  // (a) The From address, from an unambiguous header only.
+  const f = trimSpTab(String(fromHeader || ''), ' \t\r\n');
+  const lts = f.split('<').length - 1, gts = f.split('>').length - 1;
+  let addr;
+  if (lts === 0 && gts === 0)
+  {
+    if (/[ \t\r\n]/.test(f)) return false;
+    addr = f;
+  }
+  else if (lts === 1 && gts === 1 && f.charAt(f.length - 1) === '>' && f.indexOf('<') < f.length - 1)
+  {
+    addr = trimSpTab(f.substring(f.indexOf('<') + 1, f.length - 1));
+  }
+  else return false;
+  addr = addr.toLowerCase();
+  const at = addr.indexOf('@');
+  if (at <= 0 || addr.indexOf('@', at + 1) !== -1) return false;
+  let domain = addr.substring(at + 1);
+  if (!/^[a-z0-9.\-]+$/.test(domain) || !isUnknownTld(domain)) return false;
+  if (domain.charAt(domain.length - 1) === '.') domain = domain.substring(0, domain.length - 1);
+  const fromOrg = unknownTldOrgDomain(domain);
+
+  // The header block, unfolded, within the scan cap; every occurrence of each header.
+  const raw = String(rawContent || '').substring(0, LIMITS.maxRawScanChars).replace(/\r\n/g, '\n');
+  const end = raw.indexOf('\n\n');
+  const lines = (end === -1 ? raw : raw.substring(0, end)).replace(/\n[ \t]+/g, ' ').split('\n');
+
+  // (b) List-Unsubscribe: at least one http(s)/mailto host; EVERY one on an unknown TLD and in a
+  // different organisational domain from the From.
+  const hosts = [];
+  for (let i = 0; i < lines.length; i++)
+  {
+    if (lines[i].toLowerCase().indexOf('list-unsubscribe:') !== 0) continue;
+    const lu = lines[i].substring('list-unsubscribe:'.length);
+    let pos = 0;
+    while (true)
+    {
+      const open = lu.indexOf('<', pos);
+      if (open === -1) break;
+      const close = lu.indexOf('>', open + 1);
+      if (close === -1) break;               // unterminated entry: ignore, never guess a host
+      const uri = trimSpTab(lu.substring(open + 1, close)).toLowerCase();
+      pos = close + 1;
+      if (uri.indexOf('http://') === 0 || uri.indexOf('https://') === 0)
+      {
+        hosts.push(uri.substring(uri.indexOf('//') + 2).split(/[\/?#:]/)[0]);
+      }
+      else if (uri.indexOf('mailto:') === 0)
+      {
+        const mat = uri.lastIndexOf('@');
+        if (mat !== -1) hosts.push(uri.substring(mat + 1).split(/[?#]/)[0]);
+      }
+    }
+  }
+  if (hosts.length === 0) return false;
+  for (let i = 0; i < hosts.length; i++)
+  {
+    let h = hosts[i];
+    if (!isUnknownTld(h)) return false;
+    if (h.charAt(h.length - 1) === '.') h = h.substring(0, h.length - 1);
+    if (unknownTldOrgDomain(h) === fromOrg) return false;
+  }
+
+  // (c) No dkim=pass whose header.d / header.i is in the From's organisational domain, in ANY
+  // Authentication-Results header. A forged pass only makes this abstain.
+  for (let i = 0; i < lines.length; i++)
+  {
+    const line = lines[i].toLowerCase();
+    if (line.indexOf('authentication-results:') !== 0) continue;
+    const parts = line.split(';');
+    for (let j = 0; j < parts.length; j++)
+    {
+      if (parts[j].indexOf('dkim=pass') === -1) continue;
+      const ds = [dkimIdentityDomain(parts[j], 'header.d='), dkimIdentityDomain(parts[j], 'header.i=')];
+      for (let k = 0; k < 2; k++)
+      {
+        if (ds[k] && unknownTldOrgDomain(ds[k]) === fromOrg) return false;
+      }
+    }
+  }
+  return true;
+}
+
+/**
+ * The domain in an Authentication-Results "header.d=" / "header.i=" property, or '' (v6.110.0).
+ * Reads up to whitespace, ';', '(' or '"' (one leading '"' skipped), then keeps the part after
+ * the last '@': "header.i=@mail.example.com", "header.i=first_last+tag@example.com" and
+ * header.i="@example.com" all give the domain. A linear scan; the text is sender-influenced.
+ * Mirrored in Python by _dkim_identity_domain().
+ *
+ * @param {string} part - One ';'-separated, lower-cased segment of the header.
+ * @param {string} key - 'header.d=' or 'header.i='.
+ * @return {string}
+ */
+function dkimIdentityDomain(part, key)
+{
+  const at = part.indexOf(key);
+  if (at === -1) return '';
+  let i = at + key.length;
+  if (part.charAt(i) === '"') i++;
+  const start = i;
+  while (i < part.length && ' \t;("'.indexOf(part.charAt(i)) === -1) i++;
+  let v = part.substring(start, i);
+  v = v.substring(v.lastIndexOf('@') + 1);
+  return v.charAt(v.length - 1) === '.' ? v.substring(0, v.length - 1) : v;
+}

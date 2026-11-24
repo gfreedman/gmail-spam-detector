@@ -456,6 +456,7 @@ function describeSignals(signals)
   if (signals.sponsoredAdTemplate)           fired.push('sponsored-ad-template');
   if (signals.millFooterAddress)             fired.push('mill-footer-address');
   if (signals.pitchScore)                    fired.push('pitch-score');
+  if (signals.fakeTldSender)                 fired.push('fake-tld-sender');
 
   // Parenthesised and last, deliberately. Bulk routing corroborates nothing on
   // its own — hasCorroboratingSignal() excludes it because virtually every

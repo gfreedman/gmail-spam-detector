@@ -20,6 +20,29 @@ detail plus the diffs.
 
 ---
 
+## v6.110.0
+
+**A From address and unsubscribe link on top-level domains that do not exist corroborate Gmail's spam verdict.**
+
+- Why: two copies of "🔴 IMMEDIATE ACTION REQUIRED: Your Photos & Videos Are at Risk of Permanent
+  Deletion!" from `Cloud-Storage <alert-143-23903@nsnvy.ymv>` (and `@ixfnz.qkx`) sat in the Spam
+  folder awaiting the 7-day grace: only FEAR fired. `.ymv` and `.qkx` are not in the IANA root
+  zone; the mill sends from real `.my.id` / `.web.id` hosts and invents the From and unsubscribe
+  hosts. The existing "Storage 100% Full" fixture (`plisc.ivz`) is the same mill.
+- Signal 18 `fakeTldSender` (`fakeTldSender()` in Text.gs) needs all three: the From domain's TLD
+  is in neither `IANA_TLDS` (snapshot 2026112201, 1436 TLDs, Domains.gs) nor `PRIVATE_TLDS`;
+  List-Unsubscribe has at least one http(s)/mailto host and EVERY one is also on an unknown TLD;
+  and no `dkim=pass` in any Authentication-Results header is aligned with the From domain. It
+  abstains once the snapshot is over `TLD_SNAPSHOT_MAX_AGE_DAYS` (365) old.
+- STRONG in `hasCorroboratingSignal()`; NO inbox rule. The first design (PR review) also had an
+  inbox Rule 15 (fake TLD + one behaviour) and made the From TLD alone strong: the reviewer built
+  NAS, UPS, Nagios, Fail2Ban, Proxmox and German AD (`.intern`) alerts on private suffixes no list
+  can enumerate (`.lab`, `.hq`, `.novalocal`, ...) that it would have deleted. Self-hosted mail has
+  no List-Unsubscribe; a domain that does not exist cannot pass aligned DKIM, while a real sender
+  on a TLD delegated after the snapshot does.
+- Known evasion: put a real domain in From. To refresh the snapshot, replace `IANA_TLDS` from
+  https://data.iana.org/TLD/tlds-alpha-by-domain.txt and bump `TLD_SNAPSHOT_DATE`.
+
 ## v6.109.0
 
 **Every user-added blacklist entry is vetted before it can delete mail.**

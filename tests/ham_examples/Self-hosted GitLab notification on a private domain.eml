@@ -1,0 +1,23 @@
+From: GitLab <gitlab@gitlab.corp.intern>
+To: dev@example.com
+Subject: Pipeline failed for main | infra/backup | 4f2c1a9
+Date: Mon, 23 Nov 2026 14:02:11 +0000
+Message-ID: <pipeline-4f2c1a9@gitlab.corp.intern>
+List-Unsubscribe: <https://gitlab.corp.intern/-/sent_notifications/0000/unsubscribe>
+List-Id: infra/backup <backup.infra.gitlab.corp.intern>
+Authentication-Results: mx.google.com;
+       spf=neutral (google.com: 203.0.113.7 is neither permitted nor denied) smtp.mailfrom=gitlab@gitlab.corp.intern
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8
+
+Pipeline #4182 has failed!
+
+Project: infra / backup
+Branch: main
+Commit: 4f2c1a9 Rotate the nightly snapshot
+
+Failed job: backup:verify
+Stage: test
+
+You're receiving this email because of your account on gitlab.corp.intern.
+Unsubscribe from this thread: https://gitlab.corp.intern/-/sent_notifications/0000/unsubscribe

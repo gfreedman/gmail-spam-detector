@@ -173,6 +173,7 @@ function collectSignals(message)
     sponsoredAdTemplate: false,        // ad disclaimer + advertiser sentence + "Sponsored Content" block + 2 credits; Rule 11
     blacklistedRelayIdentity: false,   // a blacklisted brand domain behind an ESP relay (From mailbox + Reply-To); Rule 12
     millFooterAddress: false,          // a known mill footprint (address, operator name, Sponsored Content publisher credit) in sender-authored text + List-Unsubscribe; Rule 13 (DELETES, archived first)
+    fakeTldSender: false,              // From AND every unsubscribe host on a TLD not in the root zone, no aligned DKIM; Spam-folder corroboration only (v6.110.0)
     pitchScore: false                  // List-Unsubscribe + a finance-pitch word/link-host score over the threshold; Rule 14 (DELETES, archived first; no-history gate in analyzeMessage)
   };
 
@@ -591,6 +592,27 @@ function collectSignals(message)
     // rest still run, and signalsSkipped makes the gap visible.
     signalsSkipped++;
     logError('Signal 17 threw and was skipped: ' + signalError.toString());
+  }
+
+  // ── Signal 18: Sender on a TLD that does not exist (v6.110.0) ───────────
+  // "Cloud-Storage <alert-143-23903@nsnvy.ymv>": From and List-Unsubscribe both on invented TLDs,
+  // DKIM passing only for an unrelated real host. CORROBORATION ONLY - no rule reads it; it is
+  // STRONG in hasCorroboratingSignal(), so Gmail must already have filed the message as spam.
+  // See fakeTldSender() in Text.gs for the three conditions and why each is there.
+  try
+  {
+    if (fakeTldSender(fromRaw, rawContent, Date.now()))
+    {
+      signals.fakeTldSender = true;
+      logDebug('Sender and unsubscribe host on TLDs not in the root zone: ' + sanitizeForLog(senderAddress));
+    }
+  }
+  catch (signalError)
+  {
+    // Fail CLOSED for this signal only: it contributes nothing, the
+    // rest still run, and signalsSkipped makes the gap visible.
+    signalsSkipped++;
+    logError('Signal 18 threw and was skipped: ' + signalError.toString());
   }
 
   // ── Signal 2: Clickbait / sensationalism patterns ───────────────────────

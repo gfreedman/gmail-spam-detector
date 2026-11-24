@@ -247,8 +247,7 @@ function senderHistoryGate(message)
  */
 function scriptOwnLabels()
 {
-  return [CONFIG.processedLabel, CONFIG.reviewLabel, CONFIG.purgeLabel, CONFIG.phishingLabel,
-          CONFIG.restoredLabel, 'SpamMissed'];
+  return historyExcludedLabels().concat([CONFIG.processedLabel, CONFIG.restoredLabel]);
 }
 
 /** Is this host barred from label history: a shared service, or a publisher kept deletable? */

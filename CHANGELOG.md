@@ -20,6 +20,17 @@ detail plus the diffs.
 
 ---
 
+## v6.116.0
+
+**Cleanup, no behaviour change.**
+
+- `scriptOwnLabels()` is built on `historyExcludedLabels()` instead of repeating the same four
+  labels (the two lists could drift; a test pins the six names).
+- docs/index.html describes Signal 18 (fake-TLD sender, Spam folder only) and Rule 14's
+  label history.
+- Outside the repo: the old v6.11.0 versioned deployment was archived; the runner OAuth client
+  file moved from ~/Downloads to ~/.config/clasp-runner/.
+
 ## v6.115.0
 
 **Run the latest code on demand, and prove it is the latest: `python3 scripts/run_now.py`.**

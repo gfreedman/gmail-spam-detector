@@ -4029,6 +4029,9 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
   check('an exhausted lookup budget answers null (not convicted, retried)', run({ threads: two, budget: 0 }).v === null);
   check('no user labels at all: no search, no history', (() => { const x = setup({ labels: ['SpamChecked'] });
         return x.c.senderHasUserLabelHistory('betakit.example', judged(BK)) === false && x.qs.length === 0; })());
+  check('scriptOwnLabels is exactly the six labels the script applies',
+        makeCtx().scriptOwnLabels().slice().sort().join(',') ===
+        ['Phishing', 'SpamChecked', 'SpamDetectorPurge', 'SpamMissed', 'SpamRestored', 'SuspectedSpam'].sort().join(','));
   check('the lookup budget is 9 (three lookups per new sender)', vm.runInContext('HISTORY_LOOKUP_BUDGET', makeCtx()) === 9);
   // Wired into the gate, last.
   const g = setup({ threads: two });

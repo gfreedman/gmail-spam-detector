@@ -636,6 +636,25 @@ jobs:
       - name: Write clasp credentials
         run: printf '%s' '${{ secrets.CLASP_TOKEN }}' > ~/.clasprc.json
 
+      # v6.111.0: open the run-now web app (doGet in Maintenance.gs), which schedules a run of the
+      # code just pushed about a minute out, instead of waiting up to 10 minutes for the trigger.
+      # Never fails the job: without the secret, or if the web app does not answer "ok", the
+      # poll below still catches the next 10-minute run. The URL carries the key; GitHub masks it.
+      - name: Start a run now
+        env:
+          RUN_NOW_URL: ${{ secrets.RUN_NOW_URL }}
+        run: |
+          if [ -z "$RUN_NOW_URL" ]; then
+            echo "::warning::RUN_NOW_URL secret not set - waiting for the 10-minute trigger"
+            exit 0
+          fi
+          body=$(curl -fsSL --max-time 60 "$RUN_NOW_URL" 2>/dev/null || true)
+          if [ "$body" = "ok" ]; then
+            echo "Run requested - expect it within about a minute"
+          else
+            echo "::warning::run-now web app did not answer ok - waiting for the 10-minute trigger"
+          fi
+
       - name: Ask prod whether it is healthy
         run: |
           # Window arithmetic, learned the hard way: this job first shipped with

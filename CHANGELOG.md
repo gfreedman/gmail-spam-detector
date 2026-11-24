@@ -20,6 +20,23 @@ detail plus the diffs.
 
 ---
 
+## v6.111.0
+
+**A deploy starts a run within about a minute instead of waiting up to 10 for the trigger.**
+
+- Why: after v6.110.0 deployed, the two scam emails it targeted sat in Spam until the next
+  10-minute trigger; the owner had to click Run by hand.
+- `doGet()` (Maintenance.gs) is a web app (`appsscript.json` `webapp`, executes as the owner,
+  anonymous access) gated by a 256-bit key; only its SHA-256 (`RUN_NOW_KEY_SHA256`) is in source.
+  With the key it schedules a one-shot `runNowTrigger` (at most one pending), which deletes itself
+  and calls `processInbox()`.
+- Why a trigger and not a direct call: a web app serves a frozen VERSION of the code, and
+  refreshing it on each release would use up the 200-version project limit (versions can only be
+  deleted by hand). Installable triggers run the latest pushed code, so the frozen `doGet()` never
+  needs updating.
+- CI's verify-prod opens `RUN_NOW_URL` (GitHub secret) before polling; it never fails the job.
+- New scope `script.scriptapp` (ScriptApp triggers): the owner re-authorises once in the editor.
+
 ## v6.110.0
 
 **A From address and unsubscribe link on top-level domains that do not exist corroborate Gmail's spam verdict.**

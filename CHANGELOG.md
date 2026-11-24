@@ -101,6 +101,10 @@ detail plus the diffs.
 
 **A deploy starts a run within about a minute instead of waiting up to 10 for the trigger.**
 
+> **Superseded: this did not work.** The run it scheduled executed the web app's frozen version,
+> not the latest code; removed in v6.113.0. The "installable triggers run the latest pushed code"
+> premise below holds only for the editor-created trigger. On-demand runs: v6.115.0 `scripts/run_now.py`.
+
 - Why: after v6.110.0 deployed, the two scam emails it targeted sat in Spam until the next
   10-minute trigger; the owner had to click Run by hand.
 - `doGet()` (Maintenance.gs) is a web app (`appsscript.json` `webapp`, executes as the owner,

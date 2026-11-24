@@ -4085,7 +4085,15 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
         r.qs.length === 1 && /\{label:reading label:career-old-work\}/.test(r.qs[0]) &&
         !/label:spamchecked|label:suspectedspam/.test(r.qs[0]), r.qs[0]);
   check('a label name with other characters (R&D) is left out, not guessed', !/r&d|label:r-d/.test(r.qs[0]));
-  check('the query is limited to 365 days, and excludes spam/trash', /newer_than:365d/.test(r.qs[0]) && /-in:spam -in:trash/.test(r.qs[0]));
+  check('the query looks back 5 years, and excludes spam/trash', /newer_than:5y/.test(r.qs[0]) && /-in:spam -in:trash/.test(r.qs[0]));
+  // Round 2: BetaKit's three filed issues are ~18 months old (2025-04/05).
+  const old = d => ({ labels: ['Reading'], msgs: [msg('o' + d, 'BetaKit <newsletter@betakit.example>', d)] });
+  check('the real BetaKit shape: three filed issues ~550 days old -> history',
+        run({ threads: [old(551), old(565), old(580)] }).v === true);
+  check('two filed issues, both older than a year -> no history',
+        run({ threads: [old(551), old(565)] }).v === false);
+  check('two filed issues, one within the last year -> history',
+        run({ threads: [old(40), old(565)] }).v === true);
   check('the answer is cached (no second lookup)',
         r.c.senderHasUserLabelHistory('betakit.example', judged(BK)) === true && r.qs.length === 1);
   check('an exhausted lookup budget answers null (not convicted, retried)', run({ threads: two, budget: 0 }).v === null);

@@ -322,12 +322,14 @@ function dmarcPassFor(rawContent, domain)
  *    filed domain into From and inherit its history.
  *  - Only labels the USER owns: SpamChecked is a user label to Gmail and sits on 2,770 threads, so
  *    has:userlabels would match nearly everything. The query names the user's own labels instead.
- *  - Only the last 365 days: 2018-filed Motley Fool pitches, and re-registered defunct domains,
- *    would otherwise vouch forever.
- *  - TWO or more filed messages on different days: a Gmail filter that labels a mill's FIRST mail
- *    on arrival must not make that mill its own reference. Read state proves nothing here (the
- *    account has no unread mail under any label).
- * Known limit: 20 newest matching threads; labels whose names hold other characters are skipped.
+ *  - Filed messages on different days: 3+ in the last 5 years, or 2+ when one is from the last
+ *    365 days. A Gmail filter that labels a mill's FIRST mail on arrival must not make that mill
+ *    its own reference. Read state proves nothing here (no unread mail sits under any label).
+ *    Round 2 of the review: a flat 365-day window denied BetaKit itself (its filed issues are
+ *    ~18 months old), and Motley Fool / Stockhouse are refused by name instead.
+ * Known limits: a mill on its own domain whose mail a user FILTER labels can earn history after
+ * three harmless issues (closing that needs the filter-reading scope); a filed sender with no DMARC
+ * record is denied; 20 newest matching threads; label names with other characters are skipped.
  *
  * @param {string} domain - The sender's host, from an allowlisted address.
  * @param {GmailMessage} message - The message being judged.
@@ -359,8 +361,10 @@ function senderHasUserLabelHistory(domain, message)
   {
     const cutoff = now - 2 * 24 * 3600 * 1000;
     const threads = GmailApp.search('from:' + domain + ' {' + terms.join(' ') + '}' +
-                                    ' older_than:2d newer_than:365d -in:spam -in:trash' + historyLabelExclusions(), 0, 20);
+                                    ' older_than:2d newer_than:5y -in:spam -in:trash' + historyLabelExclusions(), 0, 20);
     const days = {};
+    const yearAgo = now - 365 * 24 * 3600 * 1000;
+    let recent = false;
     if (threads.length > 0)
     {
       const all = GmailApp.getMessagesForThreads(threads);
@@ -377,7 +381,9 @@ function senderHasUserLabelHistory(domain, message)
           const t = m.getDate().getTime();
           if (t > cutoff) continue;
           days[new Date(t).toISOString().substring(0, 10)] = true;
-          if (Object.keys(days).length >= 2) known = true;
+          if (t >= yearAgo) recent = true;
+          const n = Object.keys(days).length;
+          if (n >= 3 || (n >= 2 && recent)) known = true;
         }
       }
     }

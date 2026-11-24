@@ -3935,6 +3935,13 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
                'List-Unsubscribe: ' + '<'.repeat(100000) + '\r\n\r\nx';
   ctx.fakeTldSender('a@x.ymv', huge, NOW);
   check('a 220 KB hostile header block stays fast (< 1 s)', Date.now() - t0 < 1000, (Date.now() - t0) + ' ms');
+  // Round 3: the From trim was a backtracking regex, 5.7 s on this input.
+  const t1 = Date.now();
+  ctx.fakeTldSender('x' + ' '.repeat(100000) + 'y', raw('<http://u.qkx/>'), NOW);
+  ctx.fakeTldSender('x' + '\n'.repeat(100000) + 'y', raw('<http://u.qkx/>'), NOW);
+  check('a 100K From with an interior whitespace run stays fast (< 200 ms)', Date.now() - t1 < 200, (Date.now() - t1) + ' ms');
+  check('the From is still trimmed of CR/LF/space/tab at both ends',
+        fires('\r\n\t Cloud <a@x.ymv> \t\r\n', '<http://u.qkx/>'));
 }
 
 console.log('\n' + '='.repeat(70));

@@ -1136,7 +1136,7 @@ def _fake_tld_sender(from_header, raw, now_ms):
     snap = datetime.datetime.fromisoformat(TLD_SNAPSHOT_DATE + 'T00:00:00+00:00').timestamp() * 1000
     if not (now_ms >= snap) or now_ms - snap > TLD_SNAPSHOT_MAX_AGE_DAYS * 86400000:
         return False
-    f = re.sub(r'^[ \t\r\n]+|[ \t\r\n]+$', '', str(from_header or ''))
+    f = str(from_header or '').strip(' \t\r\n')   # linear; mirrors trimSpTab(v, ' \\t\\r\\n')
     lts, gts = f.count('<'), f.count('>')
     if lts == 0 and gts == 0:
         if re.search(r'[ \t\r\n]', f):

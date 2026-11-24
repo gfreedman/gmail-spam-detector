@@ -494,14 +494,17 @@ function unknownTldOrgDomain(host)
 }
 
 /**
- * Trim spaces and tabs only. Not String.prototype.trim(): JS and Python disagree on what counts as
- * whitespace (U+0085, U+FEFF ...), and Signal 18's Python mirror must agree byte for byte.
+ * Trim the given characters (default space and tab) from both ends, with a linear scan. Not
+ * String.prototype.trim(): JS and Python disagree on what counts as whitespace (U+0085, U+FEFF ...),
+ * and Signal 18's Python mirror (str.strip(chars)) must agree byte for byte. Not a regex either:
+ * /[ \t\r\n]+$/ backtracks across every interior run and took 5.7 s on a 100K From (PR #39 round 3).
  */
-function trimSpTab(v)
+function trimSpTab(v, chars)
 {
+  const set = chars || ' \t';
   let a = 0, b = v.length;
-  while (a < b && (v.charAt(a) === ' ' || v.charAt(a) === '\t')) a++;
-  while (b > a && (v.charAt(b - 1) === ' ' || v.charAt(b - 1) === '\t')) b--;
+  while (a < b && set.indexOf(v.charAt(a)) !== -1) a++;
+  while (b > a && set.indexOf(v.charAt(b - 1)) !== -1) b--;
   return v.substring(a, b);
 }
 
@@ -545,7 +548,7 @@ function fakeTldSender(fromHeader, rawContent, nowMs)
   if (!(nowMs >= snap) || nowMs - snap > TLD_SNAPSHOT_MAX_AGE_DAYS * 86400000) return false;
 
   // (a) The From address, from an unambiguous header only.
-  const f = String(fromHeader || '').replace(/^[ \t\r\n]+|[ \t\r\n]+$/g, '');
+  const f = trimSpTab(String(fromHeader || ''), ' \t\r\n');
   const lts = f.split('<').length - 1, gts = f.split('>').length - 1;
   let addr;
   if (lts === 0 && gts === 0)

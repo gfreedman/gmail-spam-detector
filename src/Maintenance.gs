@@ -951,6 +951,10 @@ function exportHamScores()
  * triggers run the latest pushed code (observed: v6.110.0 ran from the 10-minute trigger with no
  * deployment step). So this frozen doGet() only schedules runNowTrigger(), which runs current code.
  * Keep doGet() small and stable: changing it means updating the web-app deployment by hand.
+ * The deployment carries its OWN copy of RUN_NOW_KEY_SHA256 and of doGet(): editing the constant or
+ * deleting doGet() here neither rotates the key nor disables the endpoint. To rotate or revoke,
+ * update or archive the web-app deployment (security review, PR #40). NEVER rename runNowTrigger:
+ * the frozen doGet() schedules it by name.
  *
  * Access is ANYONE_ANONYMOUS, executing as the owner; the gate is a 256-bit key whose SHA-256 is
  * below (public repo: the hash reveals nothing). The key lives in the RUN_NOW_URL GitHub secret and
@@ -958,6 +962,7 @@ function exportHamScores()
  * normal run happen early; at most one is pending (and LockService serialises runs).
  * Needs the script.scriptapp scope (appsscript.json).
  */
+const RUN_NOW_STALE_MS = 5 * 60 * 1000;
 const RUN_NOW_KEY_SHA256 = 'fd9c4d98db34956d6a9ebe5186fe8560413ca1ad5dd32b621e088f5578f5f06a';
 
 /**
@@ -971,12 +976,34 @@ function doGet(e)
 {
   const key = (e && e.parameter && typeof e.parameter.key === 'string') ? e.parameter.key : '';
   if (!runNowKeyMatches(key)) return ContentService.createTextOutput('no');
-  const pending = ScriptApp.getProjectTriggers().some(function(t) {
-    return t.getHandlerFunction() === 'runNowTrigger';
-  });
-  if (!pending) ScriptApp.newTrigger('runNowTrigger').timeBased().after(1000).create();
-  logInfo('Run-now requested via web app' + (pending ? ' (one already pending)' : ''));
-  return ContentService.createTextOutput('ok');
+  // A user lock, not the script lock processInbox() holds: serialises concurrent requests so
+  // check-then-create cannot make duplicates, without waiting on a running scan.
+  const lock = LockService.getUserLock();
+  if (!lock.tryLock(5000)) return ContentService.createTextOutput('busy');
+  try
+  {
+    // A pending trigger older than RUN_NOW_STALE_MS never ran or failed before deleting itself
+    // (e.g. the scope not yet granted). Replace it, so "ok" always means a run is really coming.
+    const props = PropertiesService.getScriptProperties();
+    const at = Number(props.getProperty('RUN_NOW_PENDING_AT')) || 0;
+    const fresh = Date.now() - at < RUN_NOW_STALE_MS;
+    let pending = false;
+    ScriptApp.getProjectTriggers().forEach(function(t) {
+      if (t.getHandlerFunction() !== 'runNowTrigger') return;
+      if (fresh) pending = true; else ScriptApp.deleteTrigger(t);
+    });
+    if (!pending)
+    {
+      ScriptApp.newTrigger('runNowTrigger').timeBased().after(1000).create();
+      props.setProperty('RUN_NOW_PENDING_AT', String(Date.now()));
+    }
+    logInfo('Run-now requested via web app' + (pending ? ' (one already pending)' : ''));
+    return ContentService.createTextOutput('ok');
+  }
+  finally
+  {
+    lock.releaseLock();
+  }
 }
 
 /**

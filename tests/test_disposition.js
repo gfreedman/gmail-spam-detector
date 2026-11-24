@@ -3964,6 +3964,10 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
       const t = { getHandlerFunction: () => fn, ms }; triggers.push(t); return t; } }) }) })
   };
   ctx.processInbox = () => { ran++; };
+  let locked = false;
+  ctx.LockService.getUserLock = () => ({ tryLock: () => !locked, releaseLock() {} });
+  const CDate = require('vm').runInContext('Date', ctx);   // the context's own Date
+  const realNow = CDate.now;
 
   check('sha256Hex matches the known digest of "abc" (signed bytes masked)',
         ctx.sha256Hex('abc') === 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
@@ -3982,6 +3986,16 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
         triggers[0].getHandlerFunction() === 'runNowTrigger' && triggers[0].ms === 1000);
   check('a second request while one is pending schedules no duplicate',
         ctx.doGet({ parameter: { key: 'good' } }).text === 'ok' && triggers.length === 1);
+  const first = triggers[0];
+  CDate.now = () => realNow() + 6 * 60 * 1000;
+  check('a pending trigger older than 5 minutes is replaced, not trusted',
+        ctx.doGet({ parameter: { key: 'good' } }).text === 'ok' && triggers.length === 1 && triggers[0] !== first);
+  CDate.now = realNow;
+  locked = true;
+  check('a request that cannot take the user lock answers busy and schedules nothing',
+        ctx.doGet({ parameter: { key: 'good' } }).text === 'busy' && triggers.length === 1);
+  locked = false;
+  triggers.length = 0;
   ctx.runNowKeyMatches = realMatch;
   triggers.push({ getHandlerFunction: () => 'processInbox' });   // the 10-minute trigger
   ctx.runNowTrigger();
@@ -3993,6 +4007,8 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
   check('a throwing run still leaves no runNowTrigger behind',
         triggers.every(t => t.getHandlerFunction() !== 'runNowTrigger'));
   const manifest = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'appsscript.json'), 'utf8'));
+  check('runNowTrigger exists under that exact name (the frozen doGet schedules it by name)',
+        typeof ctx.runNowTrigger === 'function');
   check('the manifest grants script.scriptapp and declares the web app as the owner',
         manifest.oauthScopes.indexOf('https://www.googleapis.com/auth/script.scriptapp') !== -1 &&
         manifest.webapp && manifest.webapp.executeAs === 'USER_DEPLOYING');

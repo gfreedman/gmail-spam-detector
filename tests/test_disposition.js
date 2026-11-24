@@ -3944,6 +3944,60 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
         fires('\r\n\t Cloud <a@x.ymv> \t\r\n', '<http://u.qkx/>'));
 }
 
+// ── Run now (v6.111.0): the web-app endpoint schedules one run of current code ──
+{
+  console.log('\n=== run-now web app ===');
+  const crypto = require('crypto');
+  const ctx = makeCtx();
+  const triggers = [];
+  let ran = 0;
+  ctx.Utilities.DigestAlgorithm = { SHA_256: 'sha256' };
+  ctx.Utilities.Charset = { UTF_8: 'utf8' };
+  // Apps Script returns SIGNED bytes (-128..127).
+  ctx.Utilities.computeDigest = (alg, v) =>
+    Array.from(crypto.createHash('sha256').update(v, 'utf8').digest()).map(b => b > 127 ? b - 256 : b);
+  ctx.ContentService = { createTextOutput: t => ({ text: t }) };
+  ctx.ScriptApp = {
+    getProjectTriggers: () => triggers.slice(),
+    deleteTrigger: t => { const i = triggers.indexOf(t); if (i !== -1) triggers.splice(i, 1); },
+    newTrigger: fn => ({ timeBased: () => ({ after: ms => ({ create: () => {
+      const t = { getHandlerFunction: () => fn, ms }; triggers.push(t); return t; } }) }) })
+  };
+  ctx.processInbox = () => { ran++; };
+
+  check('sha256Hex matches the known digest of "abc" (signed bytes masked)',
+        ctx.sha256Hex('abc') === 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad');
+  const hash = require('vm').runInContext('RUN_NOW_KEY_SHA256', ctx);
+  check('RUN_NOW_KEY_SHA256 is a 64-hex digest, not a key', /^[0-9a-f]{64}$/.test(hash));
+  check('a wrong key is refused, nothing scheduled',
+        ctx.doGet({ parameter: { key: 'wrong' } }).text === 'no' && triggers.length === 0);
+  check('no key / no event is refused',
+        ctx.doGet({ parameter: {} }).text === 'no' && ctx.doGet(undefined).text === 'no' && triggers.length === 0);
+  check('a non-string key is refused', ctx.doGet({ parameter: { key: ['x'] } }).text === 'no');
+  check('an over-long key is refused before hashing', ctx.runNowKeyMatches('a'.repeat(201)) === false);
+  const realMatch = ctx.runNowKeyMatches;
+  ctx.runNowKeyMatches = k => k === 'good';
+  check('the right key schedules exactly one runNowTrigger, about a second out',
+        ctx.doGet({ parameter: { key: 'good' } }).text === 'ok' && triggers.length === 1 &&
+        triggers[0].getHandlerFunction() === 'runNowTrigger' && triggers[0].ms === 1000);
+  check('a second request while one is pending schedules no duplicate',
+        ctx.doGet({ parameter: { key: 'good' } }).text === 'ok' && triggers.length === 1);
+  ctx.runNowKeyMatches = realMatch;
+  triggers.push({ getHandlerFunction: () => 'processInbox' });   // the 10-minute trigger
+  ctx.runNowTrigger();
+  check('runNowTrigger deletes every pending copy of itself and runs processInbox once',
+        ran === 1 && triggers.length === 1 && triggers[0].getHandlerFunction() === 'processInbox');
+  ctx.processInbox = () => { throw new Error('boom'); };
+  triggers.push({ getHandlerFunction: () => 'runNowTrigger' });
+  try { ctx.runNowTrigger(); } catch (e) { /* processInbox threw */ }
+  check('a throwing run still leaves no runNowTrigger behind',
+        triggers.every(t => t.getHandlerFunction() !== 'runNowTrigger'));
+  const manifest = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'src', 'appsscript.json'), 'utf8'));
+  check('the manifest grants script.scriptapp and declares the web app as the owner',
+        manifest.oauthScopes.indexOf('https://www.googleapis.com/auth/script.scriptapp') !== -1 &&
+        manifest.webapp && manifest.webapp.executeAs === 'USER_DEPLOYING');
+}
+
 console.log('\n' + '='.repeat(70));
 console.log(failures === 0
   ? '✅ DISPOSITION TESTS PASSED (' + passed + ' assertions)'

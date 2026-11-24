@@ -20,6 +20,19 @@ detail plus the diffs.
 
 ---
 
+## v6.115.0
+
+**Run the latest code on demand, and prove it is the latest: `python3 scripts/run_now.py`.**
+
+- `scriptVersion()` (Maintenance.gs) returns the executing `SCRIPT_VERSION`. `scripts/run_now.py`
+  calls it through the Apps Script API (`clasp run --user runner`, devMode), refuses unless it
+  equals the local version, then runs `processInbox()`.
+- Why the check: v6.111.0's on-demand path silently ran a frozen version. Before this release
+  the guard was run against prod and refused ("Script function not found: scriptVersion").
+- Setup done 2026-11-24: script moved to the standard Cloud project spam-detector-486300 (Apps
+  Script, Gmail, Drive, Sheets APIs enabled), Desktop OAuth client, `runner` clasp login, one
+  API-executable deployment (never updated: devMode runs the latest pushed code).
+
 ## v6.114.0
 
 **The script can be run on demand through the Apps Script API, by its owner only.**

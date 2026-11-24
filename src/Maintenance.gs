@@ -940,3 +940,16 @@ function exportHamScores()
     logError('exportHamScores failed: ' + error.toString());
   }
 }
+
+/**
+ * The version of the code that is actually executing (v6.115.0). scripts/run_now.py calls it through
+ * the Apps Script API (clasp run, devMode) BEFORE running processInbox, and refuses to run unless it
+ * equals the local SCRIPT_VERSION: v6.111.0's run-now path silently ran a frozen version, so the
+ * on-demand path must prove it is on the latest code every time.
+ *
+ * @return {string}
+ */
+function scriptVersion()
+{
+  return SCRIPT_VERSION;
+}

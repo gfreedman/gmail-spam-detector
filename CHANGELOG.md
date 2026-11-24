@@ -20,6 +20,19 @@ detail plus the diffs.
 
 ---
 
+## v6.117.0
+
+**`dmarcPassFor()` reads a quoted `header.from="…"`; direct tests for the v6.110/v6.112 helpers.**
+
+- Bug (found by the new tests): a quoted `header.from` value read as empty, so DMARC "failed" and a
+  filed sender lost its Rule 14 label history. Gmail writes the value unquoted, so no mail was
+  affected; `dkimIdentityDomain()` already skipped the quote.
+- Tables for `isUnknownTld`, `dmarcPassFor` (ARC lines skipped, first header only, body lines
+  ignored), `userLabelSearchTerm` and `labelHistoryRefused` (suffix vs lookalike), which had only
+  indirect coverage.
+- Removed: `purgeShadowLeftovers()` no longer looks for `RUN_NOW_PENDING_AT`; it ran on every
+  version change since v6.113.0, so the property is gone.
+
 ## v6.116.0
 
 **Cleanup, no behaviour change.**

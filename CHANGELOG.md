@@ -20,6 +20,17 @@ detail plus the diffs.
 
 ---
 
+## v6.114.0
+
+**The script can be run on demand through the Apps Script API, by its owner only.**
+
+- Why: after a deploy the owner wants the new code run at once, not at the next 10-minute
+  trigger. `clasp run processInbox` (devMode: the latest pushed code) is the on-demand path;
+  v6.111.0's web-app trigger ran a frozen version and was removed in v6.113.0.
+- `appsscript.json` gains `"executionApi": {"access": "MYSELF"}`: only the owner can call it,
+  and it adds no scope. Calling it also needs the script on a standard Google Cloud project, an
+  API-executable deployment, and a clasp login through that project's OAuth client.
+
 ## v6.113.0
 
 **Removes the v6.111.0 run-now web app: it ran the frozen version, not the latest code.**

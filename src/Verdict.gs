@@ -280,7 +280,7 @@ function userLabelSearchTerm(name)
 /**
  * Did this message pass DMARC aligned with `domain`? Reads the FIRST Authentication-Results header
  * (Gmail prepends its own above anything the sender wrote), unfolded and untruncated: true when it
- * holds dmarc=pass with header.from equal to `domain` or a parent of it.
+ * holds dmarc=pass with header.from (quoted or not) equal to `domain` or a parent of it.
  */
 function dmarcPassFor(rawContent, domain)
 {
@@ -298,6 +298,7 @@ function dmarcPassFor(rawContent, domain)
       const k = parts[j].indexOf('header.from=');
       if (k === -1) continue;
       let v = '', p = k + 'header.from='.length;
+      if (parts[j].charAt(p) === '"') p++;   // header.from="example.com", as dkimIdentityDomain() allows
       while (p < parts[j].length && ' \t;()"'.indexOf(parts[j].charAt(p)) === -1) { v += parts[j].charAt(p); p++; }
       if (v && (domain === v || domain.endsWith('.' + v))) return true;
     }

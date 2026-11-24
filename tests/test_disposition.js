@@ -3944,6 +3944,39 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
         fires('\r\n\t Cloud <a@x.ymv> \t\r\n', '<http://u.qkx/>'));
 }
 
+// ── Direct tables for the v6.110/v6.112 helpers (indirect coverage alone hid edge cases) ──
+{
+  console.log('\n=== helper tables: isUnknownTld, dmarcPassFor, userLabelSearchTerm, labelHistoryRefused ===');
+  const c = makeCtx();
+  [['x.ymv', true, 'invented TLD'], ['x.ymv.', true, 'trailing dot stripped'], ['X.YMV', true, 'case-folded'],
+   ['x.com', false, 'IANA TLD'], ['x.xn--p1ai', false, 'IANA IDN TLD (punycode)'], ['x.xn--zzzz', true, 'unknown punycode TLD'],
+   ['x.local', false, 'PRIVATE_TLDS'], ['x.example', false, 'reserved'], ['localhost', false, 'dotless'],
+   ['1.2.3.4', false, 'numeric label'], ['x.рф', false, 'non-ASCII label'], ['x.a', false, 'one-letter label'],
+   ['', false, 'empty'], ['.ymv', false, 'no name before the dot']
+  ].forEach(([h, want, why]) => check('isUnknownTld ' + JSON.stringify(h) + ' -> ' + want + ' (' + why + ')', c.isUnknownTld(h) === want));
+
+  const AR = 'Authentication-Results: mx.google.com;\r\n       dkim=pass header.i=@a.example;\r\n       dmarc=pass (p=NONE) header.from=';
+  [[AR + 'betakit.example\r\n\r\nb', 'betakit.example', true, 'Gmail header, exact domain'],
+   [AR + 'betakit.example\r\n\r\nb', 'mail.betakit.example', true, 'parent alignment'],
+   [AR + 'mail.betakit.example\r\n\r\nb', 'betakit.example', false, 'a child never vouches for its parent'],
+   [AR + 'notbetakit.example\r\n\r\nb', 'betakit.example', false, 'suffix text is not alignment'],
+   ['ARC-Authentication-Results: i=1; dmarc=pass header.from=betakit.example\r\n' + AR + 'other.example\r\n\r\nb',
+    'betakit.example', false, 'ARC lines are skipped; Gmail\'s header decides'],
+   ['Authentication-Results: mx.google.com; dmarc=pass header.from="betakit.example"\r\n\r\nb', 'betakit.example', true, 'quoted value'],
+   ['Authentication-Results: mx.google.com; dmarc=fail header.from=betakit.example\r\n\r\nb', 'betakit.example', false, 'dmarc=fail'],
+   ['Subject: x\r\n\r\nAuthentication-Results: x; dmarc=pass header.from=betakit.example', 'betakit.example', false, 'a body line is not a header'],
+   ['', 'betakit.example', false, 'no raw content']
+  ].forEach(([raw, dom, want, why]) => check('dmarcPassFor: ' + why, c.dmarcPassFor(raw, dom) === want));
+
+  [['Reading', 'label:reading'], ['Career/Old Work', 'label:career-old-work'], ['Home/423 Quilchena', 'label:home-423-quilchena'],
+   ['a_b.c-d', 'label:a_b.c-d'], ['R&D', null], ['Café', null], ['', null]
+  ].forEach(([n, want]) => check('userLabelSearchTerm ' + JSON.stringify(n) + ' -> ' + want, c.userLabelSearchTerm(n) === want));
+
+  [['mail.beehiiv.com', true], ['beehiiv.com', true], ['notbeehiiv.com', false], ['beehiiv.com.evil.example', false],
+   ['email.shopify.com', true], ['gmail.com', true], ['foolsubs.com', true], ['betakit.com', false]
+  ].forEach(([d, want]) => check('labelHistoryRefused ' + d + ' -> ' + want, c.labelHistoryRefused(d) === want));
+}
+
 // ── Rule 14 history: mail the user FILED under their own label (v6.112.0, PR #41 review) ──
 {
   console.log('\n=== label history (senderHasUserLabelHistory) ===');

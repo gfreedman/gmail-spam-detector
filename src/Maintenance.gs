@@ -749,8 +749,7 @@ function purgeShadowLeftovers()
   {
     const k = keys[i];
     if (k.indexOf('SHADOW_HIST_') === 0 ||
-        k === 'SHADOW_SELFTEST_VERSION' || k === 'SHADOW_SELFTEST_TRY' ||
-        k === 'RUN_NOW_PENDING_AT')   // the removed v6.111.0 run-now web app
+        k === 'SHADOW_SELFTEST_VERSION' || k === 'SHADOW_SELFTEST_TRY')
     {
       props.deleteProperty(k);
       n++;

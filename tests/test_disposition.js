@@ -4014,6 +4014,96 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
         manifest.webapp && manifest.webapp.executeAs === 'USER_DEPLOYING');
 }
 
+// ── Rule 14 history: mail the user FILED under their own label (v6.112.0, PR #41 review) ──
+{
+  console.log('\n=== label history (senderHasUserLabelHistory) ===');
+  const vm = require('vm');
+  const DAY = 24 * 3600 * 1000;
+  const GMAIL_AR = (dom) => 'Authentication-Results: mx.google.com;\r\n       dkim=pass header.i=@' + dom +
+                            ';\r\n       dmarc=pass (p=REJECT) header.from=' + dom + '\r\n';
+  const judged = (from, ar) => ({ getId: () => 'judged', getFrom: () => from,
+    getRawContent: () => (ar === undefined ? GMAIL_AR('betakit.example') : ar) + 'Subject: x\r\n\r\nbody' });
+  const msg = (id, from, ageDays) => ({ getId: () => id, getFrom: () => from,
+    getDate: () => new Date(Date.now() - ageDays * DAY) });
+  const label = n => ({ getName: () => n });
+  function setup(o) {
+    o = o || {};
+    const c = makeCtx();
+    const qs = [];
+    c.GmailApp.getUserLabels = () => (o.labels || ['Reading', 'Career/Old Work', 'SpamChecked', 'SuspectedSpam', 'R&D'])
+      .map(label);
+    const threads = (o.threads || []).map(t => ({ __messages: t.msgs, getLabels: () => t.labels.map(label) }));
+    c.GmailApp.search = q => { qs.push(q); return threads; };
+    c.GmailApp.getMessagesForThreads = ts => ts.map(t => t.__messages);
+    if (o.budget !== undefined) vm.runInContext('historyLookups = HISTORY_LOOKUP_BUDGET - ' + o.budget, c);
+    return { c, qs };
+  }
+  const BK = 'Alex Riehl <alex.riehl@betakit.example>';
+  const two = [{ labels: ['Reading', 'SpamChecked'], msgs: [msg('a', 'BetaKit <newsletter@betakit.example>', 10)] },
+               { labels: ['Reading'], msgs: [msg('b', 'BetaKit <newsletter@betakit.example>', 20)] }];
+  const run = (o, from, ar, dom) => { const r = setup(o); r.v = r.c.senderHasUserLabelHistory(dom || 'betakit.example', judged(from || BK, ar)); return r; };
+
+  check('the BetaKit case: a new author, two issues filed under Reading on different days -> history',
+        run({ threads: two }).v === true);
+  check('ONE filed message is not enough (a filter may have labelled the mill\'s first mail)',
+        run({ threads: two.slice(0, 1) }).v === false);
+  check('two filed messages on the SAME day are not enough',
+        run({ threads: [{ labels: ['Reading'], msgs: [msg('a', 'B <n@betakit.example>', 10), msg('b', 'B <n@betakit.example>', 10)] }] }).v === false);
+  check('mail carrying only the script\'s SpamChecked label is not filed',
+        run({ threads: two.map(t => ({ labels: ['SpamChecked'], msgs: t.msgs })) }).v === false);
+  check('a message under 2 days old does not count',
+        run({ threads: [two[0], { labels: ['Reading'], msgs: [msg('b', 'B <n@betakit.example>', 1)] }] }).v === false);
+  check('the judged message is never its own history',
+        run({ threads: [two[0], { labels: ['Reading'], msgs: [msg('judged', 'B <n@betakit.example>', 20)] }] }).v === false);
+  check('a filed message from ANOTHER host in the thread does not count',
+        run({ threads: [two[0], { labels: ['Reading'], msgs: [msg('b', 'B <n@notbetakit.example>', 20)] }] }).v === false);
+  // DMARC.
+  let r = run({ threads: two }, BK, '');
+  check('no Authentication-Results: no label history, and no lookup spent', r.v === false && r.qs.length === 0);
+  check('DMARC pass for a DIFFERENT domain does not count', run({ threads: two }, BK, GMAIL_AR('mill.example')).v === false);
+  check('a forged dmarc=pass BELOW Gmail\'s failing header does not count',
+        run({ threads: two }, BK, 'Authentication-Results: mx.google.com; dmarc=fail header.from=betakit.example\r\n' +
+                                  GMAIL_AR('betakit.example')).v === false);
+  check('DMARC pass on the parent domain aligns for a subdomain sender',
+        run({ threads: [{ labels: ['Reading'], msgs: [msg('a', 'B <n@mail.betakit.example>', 10)] },
+                        { labels: ['Reading'], msgs: [msg('b', 'B <n@mail.betakit.example>', 20)] }] },
+            'B <x@mail.betakit.example>', GMAIL_AR('betakit.example'), 'mail.betakit.example').v === true);
+  // Refused hosts: checked before any lookup.
+  r = run({ threads: two }, 'N <x@mail.beehiiv.com>', GMAIL_AR('mail.beehiiv.com'), 'mail.beehiiv.com');
+  check('a shared sending service (mail.beehiiv.com, suffix match) never gets label history, no lookup spent',
+        r.v === false && r.qs.length === 0);
+  check('Motley Fool and Stockhouse stay deletable (owner, 2026-11-24)',
+        ['foolsubs.com', 'fool.com', 'stockhouse.com', 'email.shopify.com', 'gmail.com'].every(d => {
+          const filed = [{ labels: ['Reading'], msgs: [msg('a', 'N <n@' + d + '>', 10)] },
+                         { labels: ['Reading'], msgs: [msg('b', 'N <n@' + d + '>', 20)] }];
+          const x = run({ threads: filed }, 'N <x@' + d + '>', GMAIL_AR(d), d);
+          return x.v === false && x.qs.length === 0;
+        }));
+  // The query.
+  r = run({ threads: two });
+  check('the query names the user\'s own labels, hyphenated, and never SpamChecked / SuspectedSpam',
+        r.qs.length === 1 && /\{label:reading label:career-old-work\}/.test(r.qs[0]) &&
+        !/label:spamchecked|label:suspectedspam/.test(r.qs[0]), r.qs[0]);
+  check('a label name with other characters (R&D) is left out, not guessed', !/r&d|label:r-d/.test(r.qs[0]));
+  check('the query is limited to 365 days, and excludes spam/trash', /newer_than:365d/.test(r.qs[0]) && /-in:spam -in:trash/.test(r.qs[0]));
+  check('the answer is cached (no second lookup)',
+        r.c.senderHasUserLabelHistory('betakit.example', judged(BK)) === true && r.qs.length === 1);
+  check('an exhausted lookup budget answers null (not convicted, retried)', run({ threads: two, budget: 0 }).v === null);
+  check('no user labels at all: no search, no history', (() => { const x = setup({ labels: ['SpamChecked'] });
+        return x.c.senderHasUserLabelHistory('betakit.example', judged(BK)) === false && x.qs.length === 0; })());
+  check('the lookup budget is 9 (three lookups per new sender)', vm.runInContext('HISTORY_LOOKUP_BUDGET', makeCtx()) === 9);
+  // Wired into the gate, last.
+  const g = setup({ threads: two });
+  g.c.props[g.c.historyCacheKey('alex.riehl@betakit.example')] = 'N:' + Date.now();
+  g.c.senderHasNamedDomainHistory = () => false;
+  const gm = Object.assign(judged(BK), { getFrom: () => BK });
+  check('senderHistoryGate returns true through label history when address and name say no',
+        g.c.senderHistoryGate(gm) === true);
+  g.c.senderHasNamedDomainHistory = () => null;
+  check('...and a null from the name lookup stays null (label history is not asked)',
+        g.c.senderHistoryGate(gm) === null);
+}
+
 console.log('\n' + '='.repeat(70));
 console.log(failures === 0
   ? '✅ DISPOSITION TESTS PASSED (' + passed + ' assertions)'

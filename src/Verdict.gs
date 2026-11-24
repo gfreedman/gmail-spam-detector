@@ -235,7 +235,155 @@ function senderHistoryGate(message)
   if (!/^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$/.test(fromAddr)) return null;
   const byAddress = senderHasHistory(fromAddr);
   if (byAddress !== false) return byAddress;
-  return senderHasNamedDomainHistory(fromAddr, headerDisplayName(from), message.getId());
+  const byName = senderHasNamedDomainHistory(fromAddr, headerDisplayName(from), message.getId());
+  if (byName !== false) return byName;
+  return senderHasUserLabelHistory(fromAddr.substring(fromAddr.lastIndexOf('@') + 1), message);
+}
+
+/**
+ * The script's OWN labels (v6.112.0): never evidence that the user filed anything. A superset of
+ * historyExcludedLabels(), which leaves out SpamChecked and SpamRestored on purpose.
+ * @return {Array<string>}
+ */
+function scriptOwnLabels()
+{
+  return [CONFIG.processedLabel, CONFIG.reviewLabel, CONFIG.purgeLabel, CONFIG.phishingLabel,
+          CONFIG.restoredLabel, 'SpamMissed'];
+}
+
+/** Is this host barred from label history: a shared service, or a publisher kept deletable? */
+function labelHistoryRefused(domain)
+{
+  const lists = [FREE_MAIL_DOMAINS, THROWAWAY_TENANT_DOMAINS, BLACKLIST_REFUSED_HOSTS,
+                 SHARED_SENDER_HOSTS, LABEL_HISTORY_REFUSED_DOMAINS];
+  for (let i = 0; i < lists.length; i++)
+  {
+    for (let j = 0; j < lists[i].length; j++)
+    {
+      const e = lists[i][j];
+      if (domain === e || domain.endsWith('.' + e)) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * The Gmail search term for a user label: lower-case, runs of spaces and '/' become '-', as the
+ * Gmail search box writes it ("Career/Old Work" -> "career-old-work"). Null for a name with any
+ * other character, which is then left out of the query (never guessed).
+ */
+function userLabelSearchTerm(name)
+{
+  if (!/^[A-Za-z0-9 _\/.\-]+$/.test(name)) return null;
+  return 'label:' + name.toLowerCase().replace(/[ \/]+/g, '-');
+}
+
+/**
+ * Did this message pass DMARC aligned with `domain`? Reads the FIRST Authentication-Results header
+ * (Gmail prepends its own above anything the sender wrote), unfolded and untruncated: true when it
+ * holds dmarc=pass with header.from equal to `domain` or a parent of it.
+ */
+function dmarcPassFor(rawContent, domain)
+{
+  const raw = String(rawContent || '').substring(0, LIMITS.maxRawScanChars).replace(/\r\n/g, '\n');
+  const end = raw.indexOf('\n\n');
+  const lines = (end === -1 ? raw : raw.substring(0, end)).replace(/\n[ \t]+/g, ' ').split('\n');
+  for (let i = 0; i < lines.length; i++)
+  {
+    const line = lines[i].toLowerCase();
+    if (line.indexOf('authentication-results:') !== 0) continue;
+    const parts = line.split(';');
+    for (let j = 0; j < parts.length; j++)
+    {
+      if (parts[j].indexOf('dmarc=pass') === -1) continue;
+      const k = parts[j].indexOf('header.from=');
+      if (k === -1) continue;
+      let v = '', p = k + 'header.from='.length;
+      while (p < parts[j].length && ' \t;()"'.indexOf(parts[j].charAt(p)) === -1) { v += parts[j].charAt(p); p++; }
+      if (v && (domain === v || domain.endsWith('.' + v))) return true;
+    }
+    return false;   // only the first (Gmail's) header counts
+  }
+  return false;
+}
+
+/**
+ * v6.112.0: has the user FILED mail from this exact sender host under one of their own labels?
+ * true / false / null (lookup budget spent).
+ *
+ * Why: on 2026-11-18 Rule 14 deleted a BetaKit issue from alex.riehl@betakit.com. The user files
+ * BetaKit under a label; the exact-address and domain+name gates both missed the new author.
+ *
+ * Every condition is from the PR #41 review, which built the failure behind each:
+ *  - Never for a shared sending service, free mail, a throwaway tenant or a publisher the owner
+ *    keeps deletable (labelHistoryRefused): one filed beehiiv newsletter must not spare a mill on
+ *    beehiiv. Checked before any lookup is spent.
+ *  - The judged message must pass DMARC aligned to the domain: otherwise a mill could write any
+ *    filed domain into From and inherit its history.
+ *  - Only labels the USER owns: SpamChecked is a user label to Gmail and sits on 2,770 threads, so
+ *    has:userlabels would match nearly everything. The query names the user's own labels instead.
+ *  - Only the last 365 days: 2018-filed Motley Fool pitches, and re-registered defunct domains,
+ *    would otherwise vouch forever.
+ *  - TWO or more filed messages on different days: a Gmail filter that labels a mill's FIRST mail
+ *    on arrival must not make that mill its own reference. Read state proves nothing here (the
+ *    account has no unread mail under any label).
+ * Known limit: 20 newest matching threads; labels whose names hold other characters are skipped.
+ *
+ * @param {string} domain - The sender's host, from an allowlisted address.
+ * @param {GmailMessage} message - The message being judged.
+ * @return {?boolean}
+ */
+function senderHasUserLabelHistory(domain, message)
+{
+  if (labelHistoryRefused(domain)) return false;
+  if (!dmarcPassFor(message.getRawContent(), domain)) return false;
+
+  const props = PropertiesService.getScriptProperties();
+  const key   = 'HIST_L_' + domain;
+  const now   = Date.now();
+  const cached = props.getProperty(key);
+  if (cached)
+  {
+    const parts = cached.split(':');
+    if (now - Number(parts[1]) < 3 * 24 * 3600 * 1000) return parts[0] === 'Y';
+  }
+  if (historyLookups >= HISTORY_LOOKUP_BUDGET) return null;
+  historyLookups++;
+
+  const own = scriptOwnLabels();
+  const mine = GmailApp.getUserLabels().map(function(l) { return l.getName(); })
+    .filter(function(n) { return own.indexOf(n) === -1; });
+  const terms = mine.map(userLabelSearchTerm).filter(function(t) { return t !== null; }).slice(0, 40);
+  let known = false;
+  if (terms.length > 0)
+  {
+    const cutoff = now - 2 * 24 * 3600 * 1000;
+    const threads = GmailApp.search('from:' + domain + ' {' + terms.join(' ') + '}' +
+                                    ' older_than:2d newer_than:365d -in:spam -in:trash' + historyLabelExclusions(), 0, 20);
+    const days = {};
+    if (threads.length > 0)
+    {
+      const all = GmailApp.getMessagesForThreads(threads);
+      for (let i = 0; i < all.length && !known; i++)
+      {
+        const filed = threads[i].getLabels().some(function(l) { return mine.indexOf(l.getName()) !== -1; });
+        if (!filed) continue;
+        for (let j = 0; j < all[i].length && !known; j++)
+        {
+          const m = all[i][j];
+          const a = extractEmailAddress(m.getFrom() || '').toLowerCase();
+          if (a.substring(a.lastIndexOf('@') + 1) !== domain) continue;
+          if (m.getId() === message.getId()) continue;
+          const t = m.getDate().getTime();
+          if (t > cutoff) continue;
+          days[new Date(t).toISOString().substring(0, 10)] = true;
+          if (Object.keys(days).length >= 2) known = true;
+        }
+      }
+    }
+  }
+  props.setProperty(key, (known ? 'Y' : 'N') + ':' + now);
+  return known;
 }
 
 /**

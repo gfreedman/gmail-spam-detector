@@ -564,3 +564,25 @@ const PRIVATE_TLDS = Object.freeze([
   'private', 'test', 'example', 'invalid', 'onion', 'alt'
 ]);
 
+
+/**
+ * Shared sending services (v6.112.0): one host carries many unrelated senders, so mail the user
+ * filed from ONE tenant must never vouch for another. Read only by labelHistoryRefused(), together
+ * with FREE_MAIL_DOMAINS, THROWAWAY_TENANT_DOMAINS and BLACKLIST_REFUSED_HOSTS, matched as host
+ * suffixes. The PR #41 review found 77 Reading threads from mail.beehiiv.com spread over several
+ * unrelated newsletters.
+ */
+const SHARED_SENDER_HOSTS = Object.freeze([
+  'beehiiv.com', 'convertkit-mail.com', 'convertkit-mail2.com', 'kit.com', 'ck.page',
+  'customeriomail.com', 'rsgsv.net', 'list-manage.com', 'cmail19.com', 'cmail20.com',
+  'createsend.com', 'mlsend.com', 'mailerlite.com', 'ghost.io', 'buttondown.email', 'aweber.com',
+  'acems1.com', 'intercom-mail.com', 'mailjet.com', 'e2ma.net', 'flodesk.com', 'getresponse.com',
+  'klaviyomail.com', 'brevosend.com', 'sendinblue.com', 'mandrillapp.com', 'sparkpostmail.com',
+  'postmarkapp.com', 'exacttarget.com', 'mktomail.com'
+]);
+
+/**
+ * Finance publishers whose pitches stay deletable by Rule 14 even if the user filed some of
+ * their mail (owner's call, 2026-11-24, like the Agora-family stance): label history never counts.
+ */
+const LABEL_HISTORY_REFUSED_DOMAINS = Object.freeze(['foolsubs.com', 'fool.com', 'stockhouse.com']);

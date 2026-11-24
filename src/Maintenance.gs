@@ -749,7 +749,8 @@ function purgeShadowLeftovers()
   {
     const k = keys[i];
     if (k.indexOf('SHADOW_HIST_') === 0 ||
-        k === 'SHADOW_SELFTEST_VERSION' || k === 'SHADOW_SELFTEST_TRY')
+        k === 'SHADOW_SELFTEST_VERSION' || k === 'SHADOW_SELFTEST_TRY' ||
+        k === 'RUN_NOW_PENDING_AT')   // the removed v6.111.0 run-now web app
     {
       props.deleteProperty(k);
       n++;
@@ -938,107 +939,4 @@ function exportHamScores()
   {
     logError('exportHamScores failed: ' + error.toString());
   }
-}
-
-/**
- * RUN NOW (v6.111.0): a web-app endpoint that starts a run within about a minute, so a deploy no
- * longer waits up to 10 minutes for the time-driven trigger. CI's verify-prod job opens it after
- * every deploy; Claude can open it by hand.
- *
- * Why a one-shot TRIGGER and not processInbox() here: a web app serves a VERSIONED deployment, a
- * frozen snapshot of the code. Updating it on every release would create a new script version each
- * time, and a project holds at most 200, deletable only by hand in the editor. Installable
- * triggers run the latest pushed code (observed: v6.110.0 ran from the 10-minute trigger with no
- * deployment step). So this frozen doGet() only schedules runNowTrigger(), which runs current code.
- * Keep doGet() small and stable: changing it means updating the web-app deployment by hand.
- * The deployment carries its OWN copy of RUN_NOW_KEY_SHA256 and of doGet(): editing the constant or
- * deleting doGet() here neither rotates the key nor disables the endpoint. To rotate or revoke,
- * update or archive the web-app deployment (security review, PR #40). NEVER rename runNowTrigger:
- * the frozen doGet() schedules it by name.
- *
- * Access is ANYONE_ANONYMOUS, executing as the owner; the gate is a 256-bit key whose SHA-256 is
- * below (public repo: the hash reveals nothing). The key lives in the RUN_NOW_URL GitHub secret and
- * in ~/.config/anti-spam/run_now_key on the owner's machine. A caller with the key can only make a
- * normal run happen early; at most one is pending (and LockService serialises runs).
- * Needs the script.scriptapp scope (appsscript.json).
- */
-const RUN_NOW_STALE_MS = 5 * 60 * 1000;
-const RUN_NOW_KEY_SHA256 = 'fd9c4d98db34956d6a9ebe5186fe8560413ca1ad5dd32b621e088f5578f5f06a';
-
-/**
- * Web-app entry point. Returns "ok" when a run is scheduled (or already pending), "no" otherwise.
- * Never says why a key was refused.
- *
- * @param {Object} e - Apps Script event; the key is e.parameter.key.
- * @return {TextOutput}
- */
-function doGet(e)
-{
-  const key = (e && e.parameter && typeof e.parameter.key === 'string') ? e.parameter.key : '';
-  if (!runNowKeyMatches(key)) return ContentService.createTextOutput('no');
-  // A user lock, not the script lock processInbox() holds: serialises concurrent requests so
-  // check-then-create cannot make duplicates, without waiting on a running scan.
-  const lock = LockService.getUserLock();
-  if (!lock.tryLock(5000)) return ContentService.createTextOutput('busy');
-  try
-  {
-    // A pending trigger older than RUN_NOW_STALE_MS never ran or failed before deleting itself
-    // (e.g. the scope not yet granted). Replace it, so "ok" always means a run is really coming.
-    const props = PropertiesService.getScriptProperties();
-    const at = Number(props.getProperty('RUN_NOW_PENDING_AT')) || 0;
-    const fresh = Date.now() - at < RUN_NOW_STALE_MS;
-    let pending = false;
-    ScriptApp.getProjectTriggers().forEach(function(t) {
-      if (t.getHandlerFunction() !== 'runNowTrigger') return;
-      if (fresh) pending = true; else ScriptApp.deleteTrigger(t);
-    });
-    if (!pending)
-    {
-      ScriptApp.newTrigger('runNowTrigger').timeBased().after(1000).create();
-      props.setProperty('RUN_NOW_PENDING_AT', String(Date.now()));
-    }
-    logInfo('Run-now requested via web app' + (pending ? ' (one already pending)' : ''));
-    return ContentService.createTextOutput('ok');
-  }
-  finally
-  {
-    lock.releaseLock();
-  }
-}
-
-/**
- * Is this the run-now key? Compares SHA-256 hex digests, so the key itself is never in source.
- *
- * @param {string} key
- * @return {boolean}
- */
-function runNowKeyMatches(key)
-{
-  if (!key || key.length > 200) return false;
-  return sha256Hex(key) === RUN_NOW_KEY_SHA256;
-}
-
-/**
- * Lower-case hex SHA-256 of a UTF-8 string. computeDigest returns SIGNED bytes (-128..127), so each
- * is masked to 0..255 before formatting.
- *
- * @param {string} text
- * @return {string}
- */
-function sha256Hex(text)
-{
-  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, text, Utilities.Charset.UTF_8);
-  return bytes.map(function(b) { return ('0' + (b & 0xff).toString(16)).slice(-2); }).join('');
-}
-
-/**
- * The one-shot trigger doGet() schedules: delete itself (every pending copy), then run normally.
- * Deleting first means a throwing run cannot leave a trigger behind to block the next request.
- */
-function runNowTrigger()
-{
-  ScriptApp.getProjectTriggers().forEach(function(t) {
-    if (t.getHandlerFunction() === 'runNowTrigger') ScriptApp.deleteTrigger(t);
-  });
-  processInbox();
 }

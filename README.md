@@ -112,8 +112,6 @@ This creates a **Spam Intelligence** folder in My Drive containing a flat EML ar
 
 The script now runs every 10 minutes, automatically detecting spam, reporting it to Gmail, and permanently deleting it.
 
-**Run now (v6.111.0).** The script is also a web app (`doGet()` in `Maintenance.gs`) that, given a secret key, schedules a run about a minute out. CI opens it after every deploy (`RUN_NOW_URL` secret), so new code runs without waiting for the trigger. Only the key's SHA-256 is in source. To set it up on a fork: generate a key, put its SHA-256 in `RUN_NOW_KEY_SHA256`, push, authorise the `script.scriptapp` scope once in the editor, create one web-app deployment (`clasp create-deployment`), and store `https://script.google.com/macros/s/<deploymentId>/exec?key=<key>` as the `RUN_NOW_URL` secret.
-
 ## 🔥 What Happens To Detected Mail
 
 Disposition depends on which rule fired, and the difference matters.

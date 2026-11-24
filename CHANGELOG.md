@@ -20,6 +20,24 @@ detail plus the diffs.
 
 ---
 
+## v6.113.0
+
+**Removes the v6.111.0 run-now web app: it ran the frozen version, not the latest code.**
+
+- What happened: after v6.112.0 deployed, the run the web app scheduled (05:05Z, 2026-11-24)
+  reported v6.111.0, while the editor-created 10-minute trigger ran v6.112.0 at 05:08Z. A trigger
+  created by a versioned web-app execution runs that deployment's version. v6.111.0's premise
+  ("installable triggers run the latest pushed code") was true only of the editor-created trigger,
+  and was inferred, not tested.
+- Harm: none. The old-code runs deleted nothing (Raw Log checked); they ran the rules that had
+  been live minutes earlier. The deployment was deleted and the `RUN_NOW_URL` secret removed the
+  same morning, before this release.
+- Removed: `doGet()`, `runNowTrigger()`, `runNowKeyMatches()`, `sha256Hex()`, their constants and
+  tests, CI's "Start a run now" step, the `webapp` manifest block and the `script.scriptapp`
+  scope (narrowing scopes needs no re-authorisation). `purgeShadowLeftovers()` deletes the
+  leftover `RUN_NOW_PENDING_AT` property.
+- A deploy again waits for the 10-minute trigger (or a manual Run in the editor).
+
 ## v6.112.0
 
 **Rule 14 counts mail you filed under your own Gmail labels as history with the sender.**

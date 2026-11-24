@@ -47,7 +47,7 @@ detail plus the diffs.
   zone; the mill sends from real `.my.id` / `.web.id` hosts and invents the From and unsubscribe
   hosts. The existing "Storage 100% Full" fixture (`plisc.ivz`) is the same mill.
 - Signal 18 `fakeTldSender` (`fakeTldSender()` in Text.gs) needs all three: the From domain's TLD
-  is in neither `IANA_TLDS` (snapshot 2026112201, 1436 TLDs, Domains.gs) nor `PRIVATE_TLDS`;
+  is in neither `IANA_TLDS` (snapshot 2026112201, 1435 TLDs, Domains.gs) nor `PRIVATE_TLDS`;
   List-Unsubscribe has at least one http(s)/mailto host and EVERY one is also on an unknown TLD;
   and no `dkim=pass` in any Authentication-Results header is aligned with the From domain. It
   abstains once the snapshot is over `TLD_SNAPSHOT_MAX_AGE_DAYS` (365) old.

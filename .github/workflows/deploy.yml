@@ -129,6 +129,12 @@ jobs:
       # Validate that README.md test result counts (e.g., "31/31", "11/11")
       # match the actual number of .eml files in the test directories.
       # This prevents the README from going stale when examples are added.
+      # Warns (never fails) when IANA has delegated a TLD the Signal 18 snapshot lacks, or the
+      # snapshot is within 35 days of expiring. See scripts/check_tld_snapshot.py.
+      - name: Check the IANA TLD snapshot
+        continue-on-error: true
+        run: python3 scripts/check_tld_snapshot.py
+
       - name: Check README stats are current
         run: |
           SPAM_COUNT=$(ls tests/spam_examples/*.eml | wc -l | tr -d ' ')

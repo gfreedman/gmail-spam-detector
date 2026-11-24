@@ -1,4 +1,4 @@
-Delivered-To: geoffcfreedman@gmail.com
+Delivered-To: recipient@example.com
 Received: by 2002:a05:7326:e508:10b0:21a:e7d:218a with SMTP id fm8-n1csp3347173rdc;
         Tue, 6 Oct 2026 07:25:08 -0700 (PDT)
 X-Forwarded-Encrypted: i=2; AKwUvBwlFWeYUt1HXKncHonqvilfYYpSvQt4Mskmcz5hn2vRoeQgi7yHENm63Cluh/QcxGA+bNtBrZaBO2C3jVWmSg==@gmail.com
@@ -31,7 +31,7 @@ ARC-Authentication-Results: i=1; mx.google.com;
 Return-Path: <return@sb023.kryptonenergy.web.id>
 Received: from docs.google.com (sampark.retail.adityabirla.com. [5.135.14.53])
         by mx.google.com with ESMTPS id ffacd0b85a97d-48b5b43e500si23856937f8f.407.2026.10.06.07.25.08
-        for <geoffcfreedman@gmail.com>
+        for <recipient@example.com>
         (version=TLS1 cipher=ECDHE-ECDSA-AES128-SHA bits=128/128);
         Tue, 06 Oct 2026 07:25:08 -0700 (PDT)
 Received-SPF: pass (google.com: domain of return@sb023.kryptonenergy.web.id designates 5.135.14.53 as permitted sender) client-ip=5.135.14.53;
@@ -39,7 +39,7 @@ Authentication-Results: mx.google.com;
        dkim=permerror (no key for signature) header.i=@oqWk.sb023.kryptonenergy.web.id header.s=mail header.b=V1KLjhAx;
        spf=pass (google.com: domain of return@sb023.kryptonenergy.web.id designates 5.135.14.53 as permitted sender) smtp.mailfrom=return@sb023.kryptonenergy.web.id
 DKIM-Signature: v=1; a=rsa-sha1; c=relaxed/relaxed; s=mail; d=oqWk.sb023.kryptonenergy.web.id;
- h=Sender:From:To:Message-ID:List-Unsubscribe:Date:Content-Type:MIME-Version:Subject; i=geoff.c.freedman@oqWk.sb023.kryptonenergy.web.id;
+ h=Sender:From:To:Message-ID:List-Unsubscribe:Date:Content-Type:MIME-Version:Subject; i=recipient@oqWk.sb023.kryptonenergy.web.id;
  bh=jFyKCWySeC3HwMWDkdYMfn3ScoQ=;
  b=V1KLjhAxW5AmTtU0y6AJs/oA22m43CFHB2M0wLJIDUMTomRtiU0C2TCMvp2yukqT8Cf3GsMuWuWo
    SXsm06l9i1Ku58yLPxecKV4dpx4Z6T0S5YfjmQL00ZI/4bHwSpMe6Ftblm1iDqa4lspg6s9EUxC3
@@ -54,15 +54,15 @@ DomainKey-Signature: a=rsa-sha1; c=nofws; q=dns; s=mail; d=oqWk.sb023.kryptonene
    xMk1WHKyFuMsSbonrGi1a3U10DkkeO0jkqSfmw==;
 Delivered-To: me@gmail.com
 Content-Length: 353
-Sender: geoff.c.freedman@oqWk.sb023.kryptonenergy.web.id
-From: geoff.c.freedman<alert-4419@plisc.ivz>
+Sender: recipient@oqWk.sb023.kryptonenergy.web.id
+From: recipient<alert-4419@plisc.ivz>
 Received: from efianalytics.com (efianalytics.com. 216.244.76.116) by mx.google.com with ESMTPS id ?act=cl&pid=14951_md&uid=2&vid=616259&ofid=335&lid=143&cid=23903 for <x>(version=TLS1 cipher=ECDHE-ECDSA-AES128-SHA bits=128/128); Tue, 06 Oct 2026 03:16:44 +0000 (PDT)
 To: me@aol.com
-Message-ID: <29474-geoff.c.freedman@wT9nseN.ivz>
+Message-ID: <29474-recipient@wT9nseN.ivz>
 Content-Length: 1245
-X-Original-Sender: <geoff.c.freedman@gmail.com>
-Envelope-To: <geoff.c.freedman@gmail.com>
-X-Google-Sender-Delegation: geoffcfreedman@gmail.com Trusted Sender
+X-Original-Sender: <recipient@example.com>
+Envelope-To: <recipient@example.com>
+X-Google-Sender-Delegation: recipient@example.com Trusted Sender
 X-Originating-IP: 217.18.210.147
 X-Google-Original-Message-ID: <-@vevida.net>
 List-Unsubscribe: <http://wT9nseN.ivz/LEAVE=To>

@@ -86,6 +86,11 @@ function stub(c) {
 // probe address that ever became whitelisted would yield ZERO keys, and the
 // Python side would then compare zero signals across all 81 fixtures and print
 // a green tick. Fail loudly instead; Python asserts the count as well.
+// Signal 18 judges the TLD snapshot's age against the clock; freeze it to the same instant as the
+// Python mirror (SIGNAL18_FROZEN_NOW_MS), or parity breaks by itself a year after the snapshot.
+const _fakeTldSender = ctx.fakeTldSender;
+ctx.fakeTldSender = (f, r) => _fakeTldSender(f, r, 1795478400000);
+
 const probeSignals = ctx.collectSignals(stub({
   file: '_probe', from: 'a@b.invalid', subject: 'x', plainBody: 'x', html: '', raw: ''
 }));

@@ -3827,8 +3827,14 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
     m.getFrom = () => 'Cloud-Storage <alert-143-23903@nsnvy.ymv>';
     m.getSubject = () => 'Your Photos & Videos Are at Risk of Permanent Deletion!';
     m.getRawContent = () => real;
-    const sig = ctx.collectSignals(m);
-    return sig !== null && sig.fakeTldSender === true;
+    // Freeze the clock (round 2): collectSignals passes Date.now(), and the signal abstains a year
+    // after the snapshot, which would turn this check red by itself.
+    const realFn = ctx.fakeTldSender;
+    ctx.fakeTldSender = (f, r) => realFn(f, r, NOW);
+    try {
+      const sig = ctx.collectSignals(m);
+      return sig !== null && sig.fakeTldSender === true;
+    } finally { ctx.fakeTldSender = realFn; }
   })());
   check('baseline: fake From + fake unsubscribe host + unrelated DKIM fires',
         fires('a@x.ymv', '<http://u.qkx/LEAVE>'));
@@ -3847,9 +3853,39 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
   check('aligned DKIM pass (new TLD, real sender) does not fire',
         !fires('news@email.brandnew', '<http://u.brandnew/x>',
                'Authentication-Results: mx.google.com; dkim=pass header.i=@email.brandnew header.s=s1\r\n'));
-  check('aligned DKIM pass via header.d on a parent domain does not fire',
+  check('aligned DKIM pass via header.d on the parent organisation does not fire',
+        !fires('news@em.mail.brandnew', '<http://u.brandnew/x>',
+               'Authentication-Results: mx.google.com; dkim=pass header.d=mail.brandnew\r\n'));
+  check('aligned DKIM pass on a SIBLING subdomain does not fire (relaxed alignment)',
+        !fires('hello@news.mail.brandnew', '<http://u.brandnew/x>',
+               'Authentication-Results: m; dkim=pass header.i=@em.mail.brandnew\r\n'));
+  check('header.i with + and _ in the local part still aligns',
         !fires('news@mail.brandnew', '<http://u.brandnew/x>',
-               'Authentication-Results: mx.google.com; dkim=pass header.d=brandnew\r\n'));
+               'Authentication-Results: m; dkim=pass header.i=first_last+tag@mail.brandnew\r\n'));
+  check('a quoted header.i still aligns',
+        !fires('news@mail.brandnew', '<http://u.brandnew/x>',
+               'Authentication-Results: m; dkim=pass header.i="@mail.brandnew"\r\n'));
+  // Round 2: self-hosted LIST mail unsubscribes at its own organisation.
+  check('self-hosted GitLab on .intern (unsubscribe at its own host) does not fire',
+        !fires('GitLab <gitlab@gitlab.corp.intern>', '<https://gitlab.corp.intern/-/sent_notifications/abc/unsubscribe>'));
+  check('internal Mailman (lists.corp.intern, http + mailto) does not fire',
+        !fires('Alice Example <alice@corp.intern>',
+               '<https://lists.corp.intern/mailman/options/all>, <mailto:all-request@lists.corp.intern?subject=unsubscribe>'));
+  check('homelab listmonk (list.family.lab) does not fire',
+        !fires('Family News <news@family.lab>', '<https://list.family.lab/subscription/x>'));
+  check('a real host in a SECOND List-Unsubscribe header does not fire',
+        !fires('a@x.ymv', '<http://u.qkx/>\r\nList-Unsubscribe: <https://real.com/u>'));
+  check('a real host past 200 characters of List-Unsubscribe does not fire',
+        !fires('a@x.ymv', '<http://u.qkx/' + '\u{1F600}'.repeat(90) + '>, <https://real.com/u>'));
+  check('a U+0085 before a host makes that entry malformed and skipped, as in Python (trimSpTab)',
+        fires('a@x.ymv', '<http://u.qkx/>, <\u0085https://real.com/u>'));
+  // Round 2: only an unambiguous From is judged.
+  check('a display name holding an address abstains',
+        !fires('no-reply@app.vendor.com (Madison <madison@clinic.ymv>)', '<http://u.qkx/>'));
+  check('several mailboxes abstain', !fires('"A" <a@corp.com>, "B" <b@x.ymv>', '<http://u.qkx/>'));
+  check('the comment form abstains', !fires('a@x.ymv (Cloud Storage)', '<http://u.qkx/>'));
+  check('a display-name From with the fake address fires',
+        fires('Cloud-Storage <alert-143-23903@nsnvy.ymv>', '<http://tW51Isf.ymv/LEAVE=To>'));
   check('aligned DKIM pass in a SECOND Authentication-Results header does not fire',
         !fires('news@email.brandnew', '<http://u.brandnew/x>',
                'Authentication-Results: a; dkim=fail header.d=x.com\r\nAuthentication-Results: b; dkim=pass header.i=news@email.brandnew\r\n'));

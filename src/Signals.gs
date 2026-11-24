@@ -601,7 +601,7 @@ function collectSignals(message)
   // See fakeTldSender() in Text.gs for the three conditions and why each is there.
   try
   {
-    if (fakeTldSender(senderAddress, rawContent, Date.now()))
+    if (fakeTldSender(fromRaw, rawContent, Date.now()))
     {
       signals.fakeTldSender = true;
       logDebug('Sender and unsubscribe host on TLDs not in the root zone: ' + sanitizeForLog(senderAddress));

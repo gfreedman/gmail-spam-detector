@@ -1108,51 +1108,86 @@ def _dkim_identity_domain(part, key):
     at = part.find(key)
     if at == -1:
         return ''
-    m = re.match(r'[a-z0-9.@\-]*', part[at + len(key):])
-    v = m.group(0)
+    i = at + len(key)
+    if part[i:i + 1] == '"':
+        i += 1
+    start = i
+    while i < len(part) and part[i] not in ' \t;("':
+        i += 1
+    v = part[start:i]
     v = v[v.rfind('@') + 1:]
     return v[:-1] if v.endswith('.') else v
 
 
-def _fake_tld_sender(sender_address, raw, now_ms):
+def _unknown_tld_org_domain(host):
+    """Mirror of unknownTldOrgDomain() in Text.gs: the last two labels."""
+    return '.'.join(str(host or '').split('.')[-2:])
+
+
+# Signal 18 judges the age of the TLD snapshot against the clock. Both suites FREEZE it for the
+# fixtures (tests/parity_signals.js wraps fakeTldSender with the same instant), or every fixture
+# check would go red by itself a year after the snapshot (PR #39 review round 2).
+SIGNAL18_FROZEN_NOW_MS = 1795478400000   # 2026-11-24T00:00:00Z
+
+
+def _fake_tld_sender(from_header, raw, now_ms):
     """Mirror of fakeTldSender() in Text.gs (Signal 18, v6.110.0)."""
     import datetime
     snap = datetime.datetime.fromisoformat(TLD_SNAPSHOT_DATE + 'T00:00:00+00:00').timestamp() * 1000
     if not (now_ms >= snap) or now_ms - snap > TLD_SNAPSHOT_MAX_AGE_DAYS * 86400000:
         return False
-    addr = str(sender_address or '')
+    f = re.sub(r'^[ \t\r\n]+|[ \t\r\n]+$', '', str(from_header or ''))
+    lts, gts = f.count('<'), f.count('>')
+    if lts == 0 and gts == 0:
+        if re.search(r'[ \t\r\n]', f):
+            return False
+        addr = f
+    elif lts == 1 and gts == 1 and f.endswith('>') and f.find('<') < len(f) - 1:
+        addr = f[f.find('<') + 1:-1].strip(' \t')
+    else:
+        return False
+    addr = addr.lower()
     at = addr.find('@')
     if at <= 0 or addr.find('@', at + 1) != -1:
         return False
     domain = addr[at + 1:]
     if not re.fullmatch(r'[a-z0-9.\-]+', domain) or not _is_unknown_tld(domain):
         return False
-    bare = domain[:-1] if domain.endswith('.') else domain
-    lu = _raw_header(raw, 'List-Unsubscribe')
-    if not lu:
-        return False
-    hosts, pos = [], 0
-    while True:
-        op = lu.find('<', pos)
-        if op == -1:
-            break
-        cl = lu.find('>', op + 1)
-        if cl == -1:
-            break
-        uri = lu[op + 1:cl].strip().lower()
-        pos = cl + 1
-        if uri.startswith('http://') or uri.startswith('https://'):
-            hosts.append(re.split(r'[/?#:]', uri[uri.find('//') + 2:])[0])
-        elif uri.startswith('mailto:'):
-            mat = uri.rfind('@')
-            if mat != -1:
-                hosts.append(re.split(r'[?#]', uri[mat + 1:])[0])
-    if not hosts or not all(_is_unknown_tld(h) for h in hosts):
-        return False
+    if domain.endswith('.'):
+        domain = domain[:-1]
+    from_org = _unknown_tld_org_domain(domain)
     r = (raw or '').encode('utf-16-le', 'surrogatepass')[:2 * MAX_RAW_SCAN_CHARS].decode('utf-16-le', 'ignore')
     r = r.replace('\r\n', '\n')
     end = r.find('\n\n')
-    for line in re.sub(r'\n[ \t]+', ' ', r if end == -1 else r[:end]).split('\n'):
+    lines = re.sub(r'\n[ \t]+', ' ', r if end == -1 else r[:end]).split('\n')
+    hosts = []
+    for line in lines:
+        if not line.lower().startswith('list-unsubscribe:'):
+            continue
+        lu, pos = line[len('list-unsubscribe:'):], 0
+        while True:
+            op = lu.find('<', pos)
+            if op == -1:
+                break
+            cl = lu.find('>', op + 1)
+            if cl == -1:
+                break
+            uri = lu[op + 1:cl].strip(' \t').lower()
+            pos = cl + 1
+            if uri.startswith('http://') or uri.startswith('https://'):
+                hosts.append(re.split(r'[/?#:]', uri[uri.find('//') + 2:])[0])
+            elif uri.startswith('mailto:'):
+                mat = uri.rfind('@')
+                if mat != -1:
+                    hosts.append(re.split(r'[?#]', uri[mat + 1:])[0])
+    if not hosts:
+        return False
+    for h in hosts:
+        if not _is_unknown_tld(h):
+            return False
+        if _unknown_tld_org_domain(h[:-1] if h.endswith('.') else h) == from_org:
+            return False
+    for line in lines:
         line = line.lower()
         if not line.startswith('authentication-results:'):
             continue
@@ -1160,7 +1195,7 @@ def _fake_tld_sender(sender_address, raw, now_ms):
             if 'dkim=pass' not in part:
                 continue
             for d in (_dkim_identity_domain(part, 'header.d='), _dkim_identity_domain(part, 'header.i=')):
-                if d and (d == bare or bare.endswith('.' + d) or d.endswith('.' + bare)):
+                if d and _unknown_tld_org_domain(d) == from_org:
                     return False
     return True
 
@@ -1539,8 +1574,7 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
 
     # ── Signal 18: Sender on a TLD that does not exist (v6.110.0) ───────────
     # Spam-folder corroboration only. Mirrors Signal 18 / fakeTldSender() in the .gs source.
-    import time as _time
-    if _fake_tld_sender(sender_address, raw, _time.time() * 1000):
+    if _fake_tld_sender(from_field, raw, SIGNAL18_FROZEN_NOW_MS):
         signals['fake_tld_sender'] = True
         signals['matched_patterns'].append('fake_tld_sender')
 
@@ -3074,7 +3108,7 @@ def run_edge_case_tests():
     # Signal 18 (v6.110.0): the Python mirror on the same cases test_disposition.js pins in JS.
     # Phase 7 parity only sees fixtures, and no fixture has an aligned DKIM pass or a mixed host list.
     import datetime as _dt
-    _now18 = _dt.datetime(2026, 11, 24, tzinfo=_dt.timezone.utc).timestamp() * 1000
+    _now18 = SIGNAL18_FROZEN_NOW_MS
     _ar18 = 'Authentication-Results: mx.google.com;\r\n dkim=pass header.i=@sb075.parlakbulut.my.id;\r\n'
     def _r18(lu, ar=_ar18):
         return ar + (f'List-Unsubscribe: {lu}\r\n' if lu else '') + 'Subject: x\r\n\r\nbody\r\n'
@@ -3087,9 +3121,27 @@ def run_edge_case_tests():
         ('a@x.ymv', '<http://q.qkx/very-long', _ar18, False, 'truncated entry'),
         ('news@email.brandnew', '<http://u.brandnew/x>',
          'Authentication-Results: m; dkim=pass header.i=@email.brandnew\r\n', False, 'aligned DKIM pass'),
+        ('news@em.mail.brandnew', '<http://u.brandnew/x>',
+         'Authentication-Results: a; dkim=fail header.d=x.com\r\nAuthentication-Results: b; dkim=pass header.d=mail.brandnew\r\n',
+         False, 'aligned pass on the parent organisation, second header'),
+        ('hello@news.mail.brandnew', '<http://u.brandnew/x>',
+         'Authentication-Results: m; dkim=pass header.i=@em.mail.brandnew\r\n', False, 'sibling subdomain aligns'),
         ('news@mail.brandnew', '<http://u.brandnew/x>',
-         'Authentication-Results: a; dkim=fail header.d=x.com\r\nAuthentication-Results: b; dkim=pass header.d=brandnew\r\n',
-         False, 'aligned pass on a parent, second header'),
+         'Authentication-Results: m; dkim=pass header.i=first_last+tag@mail.brandnew\r\n', False, '+ and _ local part'),
+        ('news@mail.brandnew', '<http://u.brandnew/x>',
+         'Authentication-Results: m; dkim=pass header.i="@mail.brandnew"\r\n', False, 'quoted header.i'),
+        ('GitLab <gitlab@gitlab.corp.intern>', '<https://gitlab.corp.intern/-/sent_notifications/abc/unsubscribe>',
+         _ar18, False, 'self-hosted GitLab unsubscribes at its own organisation'),
+        ('Alice Example <alice@corp.intern>',
+         '<https://lists.corp.intern/mailman/options/all>, <mailto:all-request@lists.corp.intern?subject=unsubscribe>',
+         _ar18, False, 'internal Mailman'),
+        ('a@x.ymv', '<http://u.qkx/>\r\nList-Unsubscribe: <https://real.com/u>', _ar18, False, 'real host in a second header'),
+        ('a@x.ymv', '<http://u.qkx/' + '\U0001F600' * 90 + '>, <https://real.com/u>', _ar18, False, 'real host past 200 chars'),
+        ('a@x.ymv', '<http://u.qkx/>, <\x85https://real.com/u>', _ar18, True, 'U+0085 is not trimmed (JS trimSpTab agrees)'),
+        ('no-reply@app.vendor.com (Madison <madison@clinic.ymv>)', '<http://u.qkx/>', _ar18, False, 'address in a comment'),
+        ('"A" <a@corp.com>, "B" <b@x.ymv>', '<http://u.qkx/>', _ar18, False, 'several mailboxes'),
+        ('a@x.ymv (Cloud Storage)', '<http://u.qkx/>', _ar18, False, 'comment form'),
+        ('Cloud-Storage <alert-143-23903@nsnvy.ymv>', '<http://tW51Isf.ymv/LEAVE=To>', _ar18, True, 'the real From and unsubscribe'),
         ('a@x.ymv', '<http://u.ymv/>', 'Authentication-Results: m; dkim=pass header.d=evilx.ymv\r\n', True, 'suffix text is not alignment'),
         ('a@x.com', '<http://u.qkx/>', _ar18, False, 'real From TLD'),
         ('a@x.local', '<http://u.local/>', _ar18, False, 'private TLD'),

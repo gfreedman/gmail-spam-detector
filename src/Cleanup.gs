@@ -126,10 +126,12 @@ function swapSpamMissedForReview(thread, missedLabel, reason)
  * still written first.
  *
  * fakeTldSender (v6.110.0) is STRONG on its own, with no inbox rule: the From address AND every
- * List-Unsubscribe host sit on TLDs that are not in the IANA root zone, and no DKIM pass is aligned
- * with the From domain. Its false positive class is mass mail from a real sender on a TLD delegated
- * after the snapshot that ALSO fails DKIM and that Gmail ALSO filed as spam; it abstains entirely
- * once the snapshot is a year old. It closed the "Photos & Videos at Risk" storage scam (FEAR only).
+ * List-Unsubscribe host sit on TLDs that are not in the IANA root zone, no DKIM pass is aligned
+ * with the From domain, and every unsubscribe host is a DIFFERENT organisation from the From. Its
+ * false positive classes, each also needing Gmail to have filed it as spam: mass mail from a real
+ * sender on a TLD delegated after the snapshot that ALSO fails DKIM; and self-hosted list mail on a
+ * private suffix not in PRIVATE_TLDS whose unsubscribe link points at ANOTHER private organisation.
+ * It abstains entirely once the snapshot is a year old. It closed the "Photos & Videos at Risk" storage scam (FEAR only).
  *
  * sponsoredAdTemplate (v6.81.0) is STRONG on its own and is Rule 11: an ad
  * disclaimer, a "Sponsored Content" block and two "Sponsored by"/"Ad by" credits. It

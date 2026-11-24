@@ -35,7 +35,7 @@ detail plus the diffs.
 - Never for free mail, throwaway tenants, `BLACKLIST_REFUSED_HOSTS`, the new
   `SHARED_SENDER_HOSTS` (beehiiv, ConvertKit, Mailchimp's list-manage, ...; 77 Reading threads
   came from mail.beehiiv.com) or `LABEL_HISTORY_REFUSED_DOMAINS` (Motley Fool, Stockhouse: the
-  owner keeps their pitches deletable). Suffix match, checked before any lookup.
+  owner keeps their pitches deletable; onlineinvestingdaily.com, a mill with one issue filed). Suffix match, checked before any lookup.
 - Review (PR #41) built each failure: has:userlabels matching everything, 2018-filed Motley Fool
   pitches, shared-ESP tenants, Gmail filters labelling a mill's first mail, spoofed From.
 - Known limits: a mill on its own domain whose mail a user FILTER labels can earn history after

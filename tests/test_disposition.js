@@ -4073,7 +4073,7 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
   check('a shared sending service (mail.beehiiv.com, suffix match) never gets label history, no lookup spent',
         r.v === false && r.qs.length === 0);
   check('Motley Fool and Stockhouse stay deletable (owner, 2026-11-24)',
-        ['foolsubs.com', 'fool.com', 'stockhouse.com', 'email.shopify.com', 'gmail.com'].every(d => {
+        ['foolsubs.com', 'fool.com', 'stockhouse.com', 'e.onlineinvestingdaily.com', 'email.shopify.com', 'gmail.com'].every(d => {
           const filed = [{ labels: ['Reading'], msgs: [msg('a', 'N <n@' + d + '>', 10)] },
                          { labels: ['Reading'], msgs: [msg('b', 'N <n@' + d + '>', 20)] }];
           const x = run({ threads: filed }, 'N <x@' + d + '>', GMAIL_AR(d), d);

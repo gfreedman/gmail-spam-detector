@@ -584,5 +584,8 @@ const SHARED_SENDER_HOSTS = Object.freeze([
 /**
  * Finance publishers whose pitches stay deletable by Rule 14 even if the user filed some of
  * their mail (owner's call, 2026-11-24, like the Agora-family stance): label history never counts.
+ * onlineinvestingdaily.com: one mill issue ("Americans Are Not Prepared for What's Coming") is
+ * filed under Misc, one filing short of earning history (PR #41 review round 3).
  */
-const LABEL_HISTORY_REFUSED_DOMAINS = Object.freeze(['foolsubs.com', 'fool.com', 'stockhouse.com']);
+const LABEL_HISTORY_REFUSED_DOMAINS = Object.freeze(['foolsubs.com', 'fool.com', 'stockhouse.com',
+  'onlineinvestingdaily.com']);

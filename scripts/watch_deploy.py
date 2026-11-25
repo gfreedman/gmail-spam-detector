@@ -38,11 +38,22 @@ HEARTBEAT_S = 120
 HISTORY_RUNS = 6
 
 
+GH_ATTEMPTS = 3                 # per call; a "connection reset by peer" blip usually clears in seconds
+
+
 def gh_json(*args):
-    out = subprocess.run(['gh', *args], capture_output=True, text=True, timeout=60)
-    if out.returncode != 0:
-        raise RuntimeError(out.stderr.strip() or 'gh failed')
-    return json.loads(out.stdout)
+    """Run `gh` and parse its JSON, retrying a failed call GH_ATTEMPTS times (2 s, then 4 s, apart).
+    On 2026-11-25 one connection reset in the startup history fetch killed the watcher twice in a row."""
+    for attempt in range(GH_ATTEMPTS):
+        try:
+            out = subprocess.run(['gh', *args], capture_output=True, text=True, timeout=60)
+            if out.returncode != 0:
+                raise RuntimeError(out.stderr.strip() or 'gh failed')
+            return json.loads(out.stdout)
+        except (RuntimeError, subprocess.TimeoutExpired, json.JSONDecodeError, OSError):
+            if attempt == GH_ATTEMPTS - 1:
+                raise
+            time.sleep(2 * (attempt + 1))
 
 
 def parse_ts(s):
@@ -100,7 +111,13 @@ def main():
         run_id = gh_json('run', 'list', '--workflow', WORKFLOW, '--limit', '1',
                          '--json', 'databaseId')[0]['databaseId']
 
-    medians = median_job_seconds(run_id)
+    # The history only feeds the ETA: without it every job falls back to a default estimate,
+    # which is better than no progress bar at all.
+    try:
+        medians = median_job_seconds(run_id)
+    except (RuntimeError, subprocess.TimeoutExpired, json.JSONDecodeError, OSError, KeyError) as e:
+        print(f'watcher: no run history for the ETA ({str(e)[:80]}); estimates are rough', flush=True)
+        medians = {}
     last_line, last_print = None, 0.0
     trigger_due, trigger_checked = None, 0.0
 

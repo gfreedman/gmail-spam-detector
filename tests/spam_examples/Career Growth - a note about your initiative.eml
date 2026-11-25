@@ -1,0 +1,183 @@
+Delivered-To: recipient@example.com
+Received: by 2002:a05:7412:6c0f:b0:23c:6595:792d with SMTP id tn15csp5478959rdb;
+        Wed, 25 Nov 2026 05:26:26 -0800 (PST)
+X-Received: by 2002:a05:6402:95e:b0:6ba:2bf4:abce with SMTP id 4fb4d7f45d1cf-6ba37c773f4mr10125659a12.1.1795613186109;
+        Wed, 25 Nov 2026 05:26:26 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1795613186; cv=none;
+        d=google.com; s=arc-20260327;
+        b=E0wwkozNbf0W0NTbwoGW+xpfs0DYabDYKfvd7TZFUkZocdG6hac04wVYRPSDBQX2Fj
+         1eiAU3D3/1myRDA5TDRlBGHr+mS++xFS4r89AIBJRNg5Ew7+GAusqifiE1zD9e1NAhAL
+         IXYjjExVd1x9SPBgAdUd9bmHcNzARNumrftvQA0xrshejOg9zwcTSjmQ9vNx0eL6L+yP
+         QY7hi79rAThJ/YzYKM66pQMoia1BbAixP3DJHnGJ3PV9OR5ZBtqyubHirZGwdbRC4n0i
+         k8gJ0Mew7UcsQIdh95zKIQYlfbdkbUPdQFBzLgYgDspX6ZK1RcAGNYnu/gjD4Gna+cTJ
+         tTQA==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=reply-to:to:from:subject:message-id:mime-version
+         :list-unsubscribe-post:list-unsubscribe:feedback-id:date
+         :dkim-signature;
+        bh=E4KtWM802aLQ6PldHGzJiZHkTY+mD7rX79rr1rv7Dac=;
+        fh=2k01ToPEHE2wH5J1qg9UqPUmvZYhl/gfw/B9b9T/5nk=;
+        b=oMzHUbRZUmGtg8ze3PP0ApbrwuF7V0Lv6WA0k7u1Ydmd7PndikLTDRrL5XzUW7xswL
+         KwSuaJXKWLL+tc6d1MagqZ4xYEGz8HrhVcFlU4WD0oAxLlCQzJQot1mKaYGokdDI5Cys
+         +13er84YdHsQJMNcDfWLC+1I05GOzeo4TxzZAv1Mk1CxW6DPpTcV2IffCTsQSeqP6njs
+         kCWMctaNxz+e5BGmfyaA86Y3d13irBSsmQ/BG7i1u1/MXcuipht2eN6OfgKcfmlFPtuU
+         h9+4i0YolImbSR5J2A+79qSot/YWMRSZDk3oB3e2eiB+CkGj2AoPgKKIgtNUPnVgGsas
+         gMTw==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@careergrowthprogress.com header.s=sender header.b=scrubbed;
+       spf=pass (google.com: domain of scrubbed@sendersrv.com designates 185.3.229.139 as permitted sender) smtp.mailfrom=scrubbed@sendersrv.com;
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=careergrowthprogress.com
+Return-Path: <scrubbed@sendersrv.com>
+Received: from mail5.sendersrv2.com (mail5.sendersrv2.com. [185.3.229.139])
+        by mx.google.com with ESMTPS id 4fb4d7f45d1cf-6ba371570a5si15012234a12.75.2026.11.25.05.26.25
+        for <recipient@example.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Wed, 25 Nov 2026 05:26:26 -0800 (PST)
+Received-SPF: pass (google.com: domain of scrubbed@sendersrv.com designates 185.3.229.139 as permitted sender) client-ip=185.3.229.139;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@careergrowthprogress.com header.s=sender header.b=scrubbed;
+       spf=pass (google.com: domain of scrubbed@sendersrv.com designates 185.3.229.139 as permitted sender) smtp.mailfrom=scrubbed@sendersrv.com;
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=careergrowthprogress.com
+DKIM-Signature: v=1; a=rsa-sha256; d=careergrowthprogress.com; s=sender; c=relaxed/relaxed;
+	bh=E4KtWM802aLQ6PldHGzJiZHkTY+mD7rX79rr1rv7Dac=;
+	h=content-type:content-type:date:date:from:from:list-unsubscribe:
+		list-unsubscribe:list-unsubscribe-post:list-unsubscribe-post:mime-version:
+		mime-version:sender:subject:subject:to:to; t=1795613185;
+	b=Ezr+1VkjL/V79io2956sHAcWx160GYfqUoBryYxC3OI8cNDt5ezL4+j+MOHjO+LWpfRnPMKTt
+	oQKUbQ+6x0STvomdlujtQkQ4CaUpHsE5sYgpq3OLu6ov+TJTpISVc+Ztc3vzCUSS1mWk/SZVHZi
+	yOP5eJgkOuUwDQXw27wW0N8=;
+Date: Wed, 25 Nov 2026 13:26:25 +0000
+Feedback-ID: a121364:tx-d169291:campaign:SenderNET
+List-Unsubscribe:
+ <https://stats.sender.net/trx_unsubscribe/scrubbed>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+MIME-Version: 1.0
+Message-ID: <scrubbed@sendersrv.com>
+Subject: Alex, a note about your initiative
+X-Auto-Response-Suppress: All
+X-Sender-ID: scrubbed
+X-Sender-Variables: 2w
+From: "Sam Oke" <samoke@careergrowthprogress.com>
+To: "Alex" <recipient@example.com>
+Reply-To: "Sam Oke" <sam@career-growth.co>
+Content-Type: multipart/alternative;
+ boundary=95286e2d8c80e86b0ee8f827fece3879425a21396c608e120d57bd549322
+
+--95286e2d8c80e86b0ee8f827fece3879425a21396c608e120d57bd549322
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=UTF-8
+
+Good Morning Alex,
+
+There is nothing being sold here and nothing being asked for. I simply want=
+ed one thing put on the record: the standard you have held to, year after y=
+ear, is the kind of thing most people never manage, and it reads clearly fr=
+om the outside.
+
+You make the people around you better without ever announcing that you are =
+doing it. That is the hardest version of it, and the version that lasts. Sk=
+ill and plain decency arriving in the same person is not something I come a=
+cross often.
+
+Things going well and wanting more from them have never been opposites, wha=
+tever anyone says. A strong position is the easiest place in the world to m=
+ove from, because you are moving by choice. We are here whenever you want t=
+hat next part.
+
+A harder problem to chew on, some of your own time handed back, or simply a=
+ clear view of the alternatives - whichever of those matters to you, that i=
+s the part we handle.
+
+Remarkable is the honest word for what you are doing, and I do not use it l=
+oosely. If advice, an outside read, or plain conversation would be useful a=
+t any point, write back - I answer these myself. Nothing you ask will be to=
+o small.
+
+You are not on your own here. Whatever the next stretch turns out to look l=
+ike, I am around for it.
+
+To what comes next,
+
+Sam Oke
+Founder &amp; Recruiter, Career-Growth.co
+12+ years - I have placed 6,000+ people
+O: 650-396-3563
+
+If you would rather not hear from me again, unsubscribe here: https://pay.c=
+areer-growth.co/u?b=3Dscrubbed&amp;e=3Drecipient%40example.com
+
+--95286e2d8c80e86b0ee8f827fece3879425a21396c608e120d57bd549322
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/html; charset=UTF-8
+
+<html><head></head><body><a href=3D"https://campaign-statistics.com/scrubbe=
+d"><img src=3D"https://campaign-statistics.com/scrubbed" width=3D"1" height=
+=3D"1" border=3D"0" alt=3D"" style=3D"height:1px !important;width:1px !impo=
+rtant;border-width:0 !important;margin-top:0 !important;margin-bottom:0 !im=
+portant;margin-right:0 !important;margin-left:0 !important;padding-top:0 !i=
+mportant;padding-bottom:0 !important;padding-right:0 !important;padding-lef=
+t:0 !important;outline-style:none;text-decoration:none;display:block;"/></a=
+><table style=3D"background-color:#ffffff;">
+<tbody><tr>
+<td align=3D"center" style=3D"padding:12px;">
+<table style=3D"max-width:600px;">
+<tbody><tr>
+<td style=3D"font-family:Arial, Helvetica, sans-serif; font-size:13px; line=
+-height:1.5; color:#222222;">
+<p style=3D"margin:0 0 14px 0;">Good Morning Alex,</p>
+<p style=3D"margin:0 0 14px 0;">There is <strong>nothing being sold here</s=
+trong> and nothing being asked for. I simply wanted <strong>one thing put o=
+n the record</strong>: the standard you have held to, year after year, is <=
+strong>the kind of thing most people never manage</strong>, and it reads cl=
+early from the outside.</p>
+<p style=3D"margin:0 0 14px 0;">You make the people around you better <stro=
+ng>without ever announcing that you are doing it</strong>. That is the hard=
+est version of it, and the version that lasts. <strong>Skill and plain dece=
+ncy arriving in the same person</strong> is not something I come across oft=
+en.</p>
+<p style=3D"margin:0 0 14px 0;">Things going well and <strong>wanting more =
+from them</strong> have never been opposites, whatever anyone says. A stron=
+g position is the easiest place in the world to move from, because you are =
+moving by choice. <strong>We are here whenever you want that next part.</st=
+rong></p>
+<p style=3D"margin:0 0 14px 0;"><strong>A harder problem to chew on</strong=
+>, <strong>some of your own time handed back</strong>, or simply <strong>a =
+clear view of the alternatives</strong> =E2=80=94 whichever of those matter=
+s to you, that is the part we handle.</p>
+<p style=3D"margin:0 0 14px 0;"><strong>Remarkable</strong> is the honest w=
+ord for what you are doing, and I do not use it loosely. If <strong>advice,=
+ an outside read, or plain conversation</strong> would be useful at any poi=
+nt, write back =E2=80=94 I answer these myself. <strong>Nothing you ask wil=
+l be too small.</strong></p>
+<p style=3D"margin:0 0 20px 0;"><strong>You are not on your own here.</stro=
+ng> Whatever the next stretch turns out to look like, I am around for it.</=
+p>
+<p style=3D"margin:0 0 12px 0;">To what comes next,</p>
+<table style=3D"margin:0;">
+<tbody><tr>
+<td valign=3D"top" style=3D"padding:0 14px 0 0;">
+<img src=3D"https://career-growth.co/wp-content/uploads/2015/08/Sam-Oke.jpg=
+" width=3D"60" height=3D"60" alt=3D"Sam Oke"/>
+</td>
+<td valign=3D"top" style=3D"font-family:Arial, Helvetica, sans-serif; font-=
+size:13px; line-height:1.5; color:#222222;">
+<strong>Sam Oke</strong><br/>
+Founder &amp; Recruiter, Career-Growth.co<br/>
+12+ years =C2=B7 I have placed 6,000+ people<br/>
+<span style=3D"color:#222222; text-decoration:none;">O: <span>650</span>=E2=
+=80=91<span>396</span>=E2=80=91<span>3563</span></span>
+</td>
+</tr>
+</tbody></table>
+<p style=3D"margin:16px 0 0 0; font-size:12px; color:#777777;">If you would=
+ rather not hear from me again, <a href=3D"https://campaign-statistics.com/=
+scrubbed" style=3D"color:#1155cc;">unsubscribe here</a>.</p>
+</td>
+</tr>
+</tbody></table>
+</td>
+</tr>
+</tbody></table></body></html>
+
+--95286e2d8c80e86b0ee8f827fece3879425a21396c608e120d57bd549322--

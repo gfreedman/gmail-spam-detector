@@ -410,12 +410,15 @@ function collectSignals(message)
   // sending host). The shape is the stand-in for "bulk": a human writing from a
   // Gmail address cannot satisfy it, so a colleague, a mailing list or a friend
   // forwarding a mill email (each reproduced in review with Reply-To alone) does
-  // not fire. A third party cannot use it to get someone else's mail deleted:
+  // not fire. v6.118.0 adds a second shape (BURNER, see the loop): List-Unsubscribe mail
+  // from a non-shared domain whose registrable root differs from the Reply-To's, for the
+  // cold-outreach mill that rotates throwaway sending domains and keeps replies on its brand.
+  // A third party cannot use it to get someone else's mail deleted:
   // the legitimate sender must have authored both headers. Convicts alone (Rule
   // 12, DELETES like Rule 1, behind the Drive-archive gate) and is STRONG in
-  // hasCorroboratingSignal(). The post-deploy recheck only HOLDS it: the
-  // blacklist is user-editable at runtime, so an entry added tomorrow must not
-  // retroactively delete mail already read (RECHECK_DELETE_RULES).
+  // hasCorroboratingSignal(). The post-deploy recheck DELETES it too (Rule 12 is in
+  // RECHECK_DELETE_RULES since v6.86.0): single-message threads the script stamped in
+  // the last 2 days, archive first. That is why BURNER reads only source entries.
   //
   // Reads EVERY Reply-To address, so a decoy listed first is not enough, and
   // strips a trailing dot and zero-width characters. Only FULL-DOMAIN blacklist
@@ -425,7 +428,8 @@ function collectSignals(message)
   // Delivered-To/To/Cc, and Signal 13 fires only when Delivered-To is ABSENT, so
   // loosening it could flip that signal toward a false positive - not touched
   // here); a display name past getRawHeader()'s 200-char cap; a From mailbox
-  // that stops embedding the brand host (one ESP template change); a Reply-To on a
+  // that stops embedding the brand host while sending from a SHARED host or without
+  // List-Unsubscribe (on its own domain with List-Unsubscribe, BURNER covers it); a Reply-To on a
   // subdomain while the mailbox embeds the parent. A fresh brand domain also escapes
   // until one data line is added; that is the point: the answer to a new brand is
   // data, not code or a deploy. False positive class: a legitimate tenant of a
@@ -439,6 +443,11 @@ function collectSignals(message)
       const relayHost   = relaySender.substring(atIdx + 1).replace(/\.+$/, '');
       const replyTos    = headerAddresses(getRawHeader(rawContent, 'Reply-To'));
       const blacklistForRelay = getCachedBlacklist();
+      const hasListUnsub = !!getRawHeader(rawContent, 'List-Unsubscribe');
+      const fromShared   = isSharedSenderHost(relayHost);
+      const replyToRaw   = getRawHeader(rawContent, 'Reply-To');
+      const personaKey   = personaNameKey(from);
+      const replyPersona = personaNameKey(replyToRaw);
       // No cap on the address count: getRawHeader() already bounds the header at 200
       // chars, so the loop is bounded; a count cap only handed the mill a free
       // evasion (11 decoys, reproduced in review).
@@ -449,8 +458,32 @@ function collectSignals(message)
         const replyTo   = replyTos[r].replace(/[\u200b-\u200d\u2060\ufeff]/g, '').replace(/\.+$/, '');
         const replyHost = replyTo.substring(replyTo.lastIndexOf('@') + 1);
         if (replyHost.indexOf('.') <= 0 || replyHost === relayHost) continue;
-        if (relayLocal !== replyHost && !relayLocal.endsWith('.' + replyHost)) continue;
-        for (let i = 0; i < blacklistForRelay.length; i++)
+        // Two sender shapes, either is enough: the ESP relay mailbox above, or (v6.118.0)
+        // BURNER: a cold-outreach mill sends from a throwaway domain (careergrowthprogress.com)
+        // and keeps replies on its brand (career-growth.co); the burner rotates, the brand does
+        // not. BURNER needs ALL of: List-Unsubscribe; a From host that is not free mail, a
+        // throwaway tenant or a shared sending service; a different registrable root from the
+        // Reply-To; the SAME persona on both addresses ("Sam Oke <a@burner>" replying to
+        // "Sam Oke <b@brand>", compared as letters only, 4 or more); and a Reply-To on a
+        // full-domain entry SHIPPED IN SOURCE (DEFAULT_DOMAINS.suspicious), never a runtime
+        // one. Review round 1 (2026-11-25) built 23 legitimate brand/sub-brand pairs
+        // (disneyplus/disney, dropboxmail/dropbox) and 21 matched a name-based burner test,
+        // so there is none: the blacklist entry proves who owns the brand. Round 2 then built
+        // mail ABOUT a listed mill from platforms (a Stripe or Paddle receipt or refund, a
+        // help-desk reply, a Calendly or form notice, a Mailman list on its own domain, a
+        // co-send listing a mill address) - each names the platform or a different person,
+        // not the brand's persona, so the persona test stops all of them. Runtime entries are
+        // excluded so an entry the user adds never silently widens to "any mail replying to
+        // it" and, through RECHECK_DELETE_RULES, to mail already read. Known gaps, cheap for
+        // the mill: a different name on the Reply-To, no Reply-To name, a non-Latin name, a
+        // dotless entry (most finance mills), dropping List-Unsubscribe.
+        const relayShaped  = relayLocal === replyHost || relayLocal.endsWith('.' + replyHost);
+        const burnerShaped = !relayShaped && hasListUnsub && !fromShared && personaKey.length >= 4 &&
+                             personaKey === replyPersona &&
+                             registrableRoot(replyHost) !== registrableRoot(relayHost);
+        if (!relayShaped && !burnerShaped) continue;
+        const entries = relayShaped ? blacklistForRelay : DEFAULT_DOMAINS.suspicious;
+        for (let i = 0; i < entries.length; i++)
         {
           // FULL DOMAINS ONLY. A dotless entry ("financebuzz", "investorplace") has
           // host-SUBSTRING semantics in addressMatchesDomain(), which is tolerable for
@@ -458,11 +491,11 @@ function collectSignals(message)
           // tenant whose host merely contains the fragment (financebuzzfans.org,
           // realinvestorplace.co.uk - both reproduced in review). So skip entries
           // without a dot, and address-fragment entries ('@'), including user-added ones.
-          if (blacklistForRelay[i].indexOf('.') === -1 || blacklistForRelay[i].indexOf('@') !== -1) continue;
-          if (addressMatchesDomain(replyTo, blacklistForRelay[i]))
+          if (entries[i].indexOf('.') === -1 || entries[i].indexOf('@') !== -1) continue;
+          if (addressMatchesDomain(replyTo, entries[i]))
           {
             signals.blacklistedRelayIdentity = true;
-            logDebug('Blacklisted brand behind an ESP relay: ' + blacklistForRelay[i]);
+            logDebug('Blacklisted brand behind an ESP relay or burner domain: ' + entries[i]);
             break;
           }
         }

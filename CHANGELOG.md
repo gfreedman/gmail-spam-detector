@@ -20,6 +20,31 @@ detail plus the diffs.
 
 ---
 
+## v6.118.0
+
+**Career-Growth cold-outreach mill blacklisted; Rule 12 also catches a listed brand behind a burner sending domain.**
+
+- Miss (2026-11-24/25): two "Sam Oke, Founder & Recruiter, Career-Growth.co" emails, AI-written flattery and
+  placement pitches, scored ZERO on every signal and sat in Gmail Spam waiting out the 7-day grace. They
+  send from a throwaway domain (`careergrowthprogress.com`, Sender.net, not a bulk fingerprint) and point
+  Reply-To at the brand (`career-growth.co`). Both domains are now full-domain blacklist entries (Rule 1).
+- Signal 15 (Rule 12) gains a second sender shape, BURNER: List-Unsubscribe mail from a host that is not
+  free mail, a throwaway tenant or a shared sending service, on a registrable root different from the
+  Reply-To's, with the SAME persona name on From and Reply-To ("Sam Oke" on both), where the Reply-To is a
+  full-domain blacklist entry shipped in source. The burner rotates; the brand and persona it replies
+  from do not, so the next `careergrowthhq.com` is deleted without a release.
+- Review round 1 declined a general "brand + filler" burner-domain signal: 23 constructed legitimate pairs
+  (disneyplus/disney, dropboxmail/dropbox, redcrossblood/redcross, roberthalftalent/roberthalf), 21 fired.
+- Review round 2 built nine kinds of legitimate mail the first build deleted: mail ABOUT a listed mill from a
+  platform (Stripe/Paddle receipt or refund, help-desk reply, Calendly or form notice, a Mailman list on its
+  own domain, a co-send). The persona test stops all nine; each is pinned in both suites. Runtime blacklist
+  entries are not read by BURNER, so an entry added in the editor never widens to "any mail replying to it",
+  nor (Rule 12 is in `RECHECK_DELETE_RULES`) to mail already read. Fixed a stale comment that said the
+  recheck only holds Rule 12.
+- Known gaps, pinned: no Reply-To name, a different Reply-To name, a non-Latin name, dotless entries.
+- `isSharedSenderHost()` and `hostOnList()` split out of `labelHistoryRefused()`; direct tables for
+  them and `registrableRoot()` in both languages.
+
 ## v6.117.0
 
 **`dmarcPassFor()` reads a quoted `header.from="…"`; direct tests for the v6.110/v6.112 helpers.**

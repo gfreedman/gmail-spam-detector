@@ -352,6 +352,24 @@ function headerAddresses(headerValue)
 }
 
 /**
+ * The display-name text of an address header as one letters-only key (v6.118.0, Signal 15
+ * BURNER): "Sam Oke <sam@x.co>" -> "samoke". Angle-bracketed parts and any token holding '@'
+ * are dropped, so a bare address yields ''. ASCII letters only: a non-Latin name yields '' and
+ * never matches (fails toward NOT firing). Linear: one replace, one split.
+ *
+ * Mirrored by _persona_name_key() in tests/test_spam_detector.py.
+ *
+ * @param {string|null} headerValue
+ * @return {string}
+ */
+function personaNameKey(headerValue)
+{
+  return String(headerValue || '').replace(/<[^>]*>/g, ' ').split(/[\t\n\v\f\r ,;"()]+/)
+    .filter(function(t) { return t.indexOf('@') === -1; })
+    .join('').toLowerCase().replace(/[^a-z]+/g, '');
+}
+
+/**
  * The letter-only words of each address's local part: "geoff.c.freedman@x,
  * gcf77@y" -> ['geoff', 'c', 'freedman', 'gcf']. Raw, not canonical — the
  * canonical Gmail form drops the dots that separate the words.

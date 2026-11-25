@@ -491,6 +491,8 @@ def _load_gs_constants(source):
         'RFC5322_DATE_PATTERN':         _load_single_regex(source, 'RFC5322_DATE_PATTERN'),
         'FREE_MAIL_DOMAINS':            _load_string_array(source, 'FREE_MAIL_DOMAINS'),
         'THROWAWAY_TENANT_DOMAINS':     _load_string_array(source, 'THROWAWAY_TENANT_DOMAINS'),
+        'BLACKLIST_REFUSED_HOSTS':      _load_string_array(source, 'BLACKLIST_REFUSED_HOSTS'),
+        'SHARED_SENDER_HOSTS':          _load_string_array(source, 'SHARED_SENDER_HOSTS'),
         'TOLL_FREE_DIGIT_RUN':          _load_single_regex(source, 'TOLL_FREE_DIGIT_RUN'),
         'CALLBACK_PHONE_PATTERN':       _load_single_regex(source, 'CALLBACK_PHONE_PATTERN'),
         'CALENDAR_LURE_PATTERNS':       _load_regex_array(source, 'CALENDAR_LURE_PATTERNS'),
@@ -560,6 +562,8 @@ CTA_VERB_PATTERN                = _gs['CTA_VERB_PATTERN']
 RFC5322_DATE_PATTERN            = _gs['RFC5322_DATE_PATTERN']
 FREE_MAIL_DOMAINS               = _gs['FREE_MAIL_DOMAINS']
 THROWAWAY_TENANT_DOMAINS        = _gs['THROWAWAY_TENANT_DOMAINS']
+BLACKLIST_REFUSED_HOSTS         = _gs['BLACKLIST_REFUSED_HOSTS']
+SHARED_SENDER_HOSTS             = _gs['SHARED_SENDER_HOSTS']
 TOLL_FREE_DIGIT_RUN             = _gs['TOLL_FREE_DIGIT_RUN']
 RANDOM_LOCAL_PART_PATTERNS      = _gs['RANDOM_LOCAL_PART_PATTERNS']
 IMPERSONATED_SUPPORT_BRANDS     = _gs['IMPERSONATED_SUPPORT_BRANDS']
@@ -777,6 +781,36 @@ def _host_matches_domain(host, domain):
     if not host or not domain:
         return False
     return host == domain or host.endswith('.' + domain)
+
+
+def _registrable_root(host):
+    """Mirror of registrableRoot() (LinkGraph.gs): last two labels, three under a generic
+    second level in a two-letter ccTLD (example.co.uk)."""
+    if not host:
+        return ''
+    labels = host.split('.')
+    if len(labels) <= 2:
+        return host
+    generic = labels[-2] in ('co', 'com', 'org', 'net', 'gov', 'ac', 'edu')
+    take = 3 if (len(labels[-1]) == 2 and generic) else 2
+    return '.'.join(labels[-take:])
+
+
+def _persona_name_key(header_value):
+    """Mirror of personaNameKey() (Text.gs): display-name text as ASCII letters only."""
+    v = re.sub(r'<[^>]*>', ' ', header_value or '')
+    toks = [t for t in re.split(r'[\t\n\v\f\r ,;"()]+', v) if '@' not in t]
+    return re.sub(r'[^a-z]+', '', ''.join(toks).lower())
+
+
+def _is_shared_sender_host(domain):
+    """Mirror of isSharedSenderHost() (Verdict.gs): host-suffix match on the shared lists."""
+    for lst in (FREE_MAIL_DOMAINS, THROWAWAY_TENANT_DOMAINS, BLACKLIST_REFUSED_HOSTS,
+                SHARED_SENDER_HOSTS):
+        for e in lst:
+            if domain == e or domain.endswith('.' + e):
+                return True
+    return False
 
 
 def _address_matches_domain(address, domain):
@@ -1540,13 +1574,25 @@ def analyze_email(subject, from_field, has_amazon_ses, body='', has_attachment=F
     if _rat > 0:
         _rlocal = sender_address[:_rat]
         _rhost = sender_address[_rat + 1:].rstrip('.')
+        _rlu = bool(_raw_header(raw, 'List-Unsubscribe'))
+        _rshared = _is_shared_sender_host(_rhost)
+        _rpersona = _persona_name_key(from_field)
+        _rreply_persona = _persona_name_key(_raw_header(raw, 'Reply-To'))
         for _rt in _header_addresses(_raw_header(raw, 'Reply-To')):
             _rt = re.sub('[\u200b-\u200d\u2060\ufeff]', '', _rt).rstrip('.')
             _rh = _rt[_rt.rfind('@') + 1:]
             if _rh.find('.') <= 0 or _rh == _rhost:
                 continue
-            if _rlocal != _rh and not _rlocal.endswith('.' + _rh):
+            # relay mailbox shape, or (v6.118.0) BURNER: List-Unsubscribe mail from a
+            # non-shared host on a different registrable root, the same persona name on
+            # From and Reply-To, and a SOURCE blacklist entry (see Signals.gs).
+            _relay = _rlocal == _rh or _rlocal.endswith('.' + _rh)
+            _burner = (not _relay and _rlu and not _rshared and len(_rpersona) >= 4 and
+                       _rpersona == _rreply_persona and
+                       _registrable_root(_rh) != _registrable_root(_rhost))
+            if not _relay and not _burner:
                 continue
+            # The Python blacklist IS the source defaults, so both shapes read the same list.
             if any(_address_matches_domain(_rt, d) for d in BLACKLISTED_DOMAINS
                    if '.' in d and '@' not in d):   # full domains only (see Signals.gs)
                 signals['blacklisted_relay_identity'] = True
@@ -3387,6 +3433,55 @@ def run_edge_case_tests():
         check(f'15 {frm[:34]!r} / {(reply or "-")[:34]!r} -> {expect}', _s15(frm, reply) == expect, why)
     check('15 trendwatcherslab.com is on the shipped blacklist (source defaults)',
           'trendwatcherslab.com' in BLACKLISTED_DOMAINS)
+
+    # Signal 15 BURNER shape (v6.118.0): mirrors the JS table in test_disposition.js.
+    _LU = 'List-Unsubscribe: <https://stats.sender.net/trx_unsubscribe/x>'
+    def _b15(frm, reply, lu=True):
+        raw = (f'{reply}\r\n' if reply else '') + (f'{_LU}\r\n' if lu else '') + '\r\nhi'
+        sig, _, _ = analyze_email('Alex, a note about your initiative', frm, False, body='hello', raw=raw)
+        return sig['blacklisted_relay_identity']
+    _SAM, _BRT = 'Sam Oke <samoke@careergrowthprogress.com>', 'Reply-To: Sam Oke <sam@career-growth.co>'
+    _BARE = 'Reply-To: sam@career-growth.co'
+    _SO = 'Sam Oke <sam@careergrowthhq.com>'
+    for frm, reply, lu, expect, why in [
+        (_SAM, _BRT, True, True, 'the miss (burner also blacklisted)'),
+        (_SO, _BRT, True, True, 'a rotated burner that is NOT listed'),
+        ('Sam Oke <sam@growthpathmentor.com>', _BRT, True, True, 'a burner that does not extend the brand'),
+        ('Sam Oke <sam@careergrowth.net>', _BRT, True, True, 'TLD-only rotation'),
+        ('"Sam  Oke" <sam@careergrowthhq.com>', 'Reply-To: "sam oke" <SAM@CAREER-GROWTH.CO>', True, True, 'persona as letters, case-folded'),
+        (_SO, 'Reply-To: a@decoy.com, Sam Oke <sam@career-growth.co>', True, True, 'a bare decoy first'),
+        (_SO, _BRT, False, False, 'no List-Unsubscribe'),
+        (_SO, _BARE, True, False, 'KNOWN GAP: no Reply-To name'),
+        ('Jo Lee <jo@careergrowthhq.com>', _BRT, True, False, 'KNOWN GAP: a different Reply-To name'),
+        ('Sam <sam@careergrowthhq.com>', 'Reply-To: Sam <sam@career-growth.co>', True, False, 'persona under 4 letters'),
+        ('Sam Oke <pat@gmail.com>', _BRT, True, False, 'free mail From'),
+        ('Sam Oke <list@mail.beehiiv.com>', _BRT, True, False, 'shared sending host'),
+        ('Sam Oke <sam@news.career-growth.co>', _BRT, True, False, 'same registrable root'),
+        (_SO, 'Reply-To: Sam Oke <sam@career-growth.com>', True, False, 'Reply-To brand not listed'),
+        ('Disney+ <news@disneyplus.com>', 'Reply-To: Disney+ <help@disney.com>', True, False, 'legitimate sub-brand pair'),
+        (_SO, 'Reply-To: Sam Oke <sam@x.investorplace.com>', True, False, 'dotless entry never counts'),
+        ('Stripe <receipts+acct_1Abc@stripe.com>', 'Reply-To: support@monevex.com', True, False, 'R2: Stripe receipt'),
+        ('Paddle <help@paddle.com>', 'Reply-To: Sharp Edge Lab <billing@sharpedgelab.com>', True, False, 'R2: Paddle refund'),
+        ('Monevex Support <support@monevex.zohodesk.com>', 'Reply-To: support@monevex.com', True, False, 'R2: help-desk reply'),
+        ('Calendly <notifications@calendly.com>', _BRT, True, False, 'R2: Calendly booking'),
+        ('Wix Forms <no-reply@crm.wix.com>', _BRT, True, False, 'R2: contact-form notice'),
+        ('Sam Oke via Jobs-L <jobs-l@lists.university.edu>', _BRT, True, False, 'R2: Mailman list on its own domain'),
+        ('FinCon <hello@fincon.com>', 'Reply-To: events@fincon.com, partners@monevex.com', True, False, 'R2: co-send'),
+    ]:
+        check(f'15 burner: {why} -> {expect}', _b15(frm, reply, lu) == expect)
+    for h, want in [('a.b.example.com', 'example.com'), ('example.co.uk', 'example.co.uk'),
+                    ('mail.example.co.uk', 'example.co.uk'), ('x.career-growth.co', 'career-growth.co'),
+                    ('example', 'example'), ('', '')]:
+        check(f'_registrable_root {h!r} -> {want!r} (mirrors the JS table)', _registrable_root(h) == want)
+    for v, want in [('Sam Oke <sam@x.co>', 'samoke'), ('"Oke, Sam" <sam@x.co>', 'okesam'), ('sam@x.co', ''),
+                    ('<sam@x.co>', ''), ('Sam Oke <sam@x.co>, a@b.c', 'samoke'),
+                    ('Zo\u00eb \u00c5ngstr\u00f6m <z@x.se>', 'zongstrm'), ('\u5c71\u7530 <y@x.jp>', ''),
+                    ('', ''), (None, '')]:
+        check(f'_persona_name_key {v!r} -> {want!r} (mirrors the JS table)', _persona_name_key(v) == want)
+    for d, want in [('mail.beehiiv.com', True), ('gmail.com', True), ('x.onmicrosoft.com', True),
+                    ('email.cyberimpact.com', True), ('foolsubs.com', False), ('notbeehiiv.com', False),
+                    ('careergrowthprogress.com', False), ('', False)]:
+        check(f'_is_shared_sender_host {d!r} -> {want} (mirrors the JS table)', _is_shared_sender_host(d) == want)
 
     # Signal 13 thresholds: the JS side pins these in test_disposition.js; the
     # mirror needs its own, or a constant changed in one language only passes

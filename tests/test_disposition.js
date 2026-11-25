@@ -3975,6 +3975,72 @@ console.log('\n=== Signal 13: Bcc\'d ALL-CAPS free-mail note with an attachment 
   [['mail.beehiiv.com', true], ['beehiiv.com', true], ['notbeehiiv.com', false], ['beehiiv.com.evil.example', false],
    ['email.shopify.com', true], ['gmail.com', true], ['foolsubs.com', true], ['betakit.com', false]
   ].forEach(([d, want]) => check('labelHistoryRefused ' + d + ' -> ' + want, c.labelHistoryRefused(d) === want));
+
+  // v6.118.0: isSharedSenderHost is labelHistoryRefused WITHOUT the publisher list.
+  [['mail.beehiiv.com', true], ['gmail.com', true], ['x.onmicrosoft.com', true], ['email.cyberimpact.com', true],
+   ['foolsubs.com', false], ['notbeehiiv.com', false], ['careergrowthprogress.com', false], ['', false]
+  ].forEach(([d, want]) => check('isSharedSenderHost ' + JSON.stringify(d) + ' -> ' + want, c.isSharedSenderHost(d) === want));
+  [['a.b.example.com', 'example.com'], ['example.co.uk', 'example.co.uk'], ['mail.example.co.uk', 'example.co.uk'],
+   ['career-growth.co', 'career-growth.co'], ['x.career-growth.co', 'career-growth.co'], ['example', 'example'], ['', '']
+  ].forEach(([h, want]) => check('registrableRoot ' + JSON.stringify(h) + ' -> ' + want, c.registrableRoot(h) === want));
+}
+
+// ── Signal 15 BURNER shape (v6.118.0): a blacklisted Reply-To brand behind a throwaway sending domain ──
+{
+  console.log('\n=== Signal 15 / Rule 12 burner shape (v6.118.0) ===');
+  const ctx = makeCtx();
+  const LU = 'List-Unsubscribe: <https://stats.sender.net/trx_unsubscribe/x>';
+  const bmsg = (o) => {
+    const m = phishMessage('mB15');
+    m.getFrom = () => o.from;
+    m.getSubject = () => 'Alex, a note about your initiative';
+    m.getRawContent = () => (o.reply ? o.reply + '\r\n' : '') + (o.lu === false ? '' : LU + '\r\n') + '\r\nhi';
+    m.getPlainBody = () => 'hello';
+    m.getBody = () => '<p>hello</p>';
+    return m;
+  };
+  const bfires = (o) => ctx.collectSignals(bmsg(o)).blacklistedRelayIdentity === true;
+  const SAM = 'Sam Oke <samoke@careergrowthprogress.com>', RT = 'Reply-To: Sam Oke <sam@career-growth.co>';
+  const BARE = 'Reply-To: sam@career-growth.co';
+  [[{ from: SAM, reply: RT }, true, 'the miss (burner also blacklisted)'],
+   [{ from: 'Sam Oke <sam@careergrowthhq.com>', reply: RT }, true, 'a rotated burner that is NOT listed'],
+   [{ from: 'Sam Oke <sam@growthpathmentor.com>', reply: RT }, true, 'a burner that does not extend the brand'],
+   [{ from: 'Sam Oke <sam@careergrowth.net>', reply: RT }, true, 'TLD-only rotation'],
+   [{ from: '"Sam  Oke" <sam@careergrowthhq.com>', reply: 'Reply-To: "sam oke" <SAM@CAREER-GROWTH.CO>' }, true, 'persona compared as letters, case-folded'],
+   [{ from: 'Sam Oke <sam@careergrowthhq.com>', reply: 'Reply-To: a@decoy.com, Sam Oke <sam@career-growth.co>' }, true, 'a bare decoy first'],
+   [{ from: 'Sam Oke <sam@careergrowthhq.com>', reply: RT, lu: false }, false, 'no List-Unsubscribe: person-to-person shape'],
+   [{ from: 'Sam Oke <sam@careergrowthhq.com>', reply: BARE }, false, 'KNOWN GAP: no Reply-To name'],
+   [{ from: 'Jo Lee <jo@careergrowthhq.com>', reply: RT }, false, 'KNOWN GAP: a different name on the Reply-To'],
+   [{ from: 'Sam <sam@careergrowthhq.com>', reply: 'Reply-To: Sam <sam@career-growth.co>' }, false, 'persona under 4 letters'],
+   [{ from: 'Sam Oke <pat@gmail.com>', reply: RT }, false, 'free mail From (a forward or a list)'],
+   [{ from: 'Sam Oke <list@mail.beehiiv.com>', reply: RT }, false, 'shared sending host'],
+   [{ from: 'Sam Oke <sam@news.career-growth.co>', reply: RT }, false, 'same registrable root'],
+   [{ from: 'Sam Oke <sam@careergrowthhq.com>', reply: 'Reply-To: Sam Oke <sam@career-growth.com>' }, false, 'Reply-To brand not listed'],
+   [{ from: 'Disney+ <news@disneyplus.com>', reply: 'Reply-To: Disney+ <help@disney.com>' }, false, 'legitimate sub-brand pair (unlisted)'],
+   [{ from: 'Sam Oke <sam@careergrowthhq.com>', reply: 'Reply-To: Sam Oke <sam@x.investorplace.com>' }, false, 'dotless entry (investorplace) never counts'],
+   // Review round 2: mail ABOUT a listed mill, from a platform. None carries the brand's persona.
+   [{ from: 'Stripe <receipts+acct_1Abc@stripe.com>', reply: 'Reply-To: support@monevex.com' }, false, 'R2: Stripe receipt'],
+   [{ from: 'Paddle <help@paddle.com>', reply: 'Reply-To: Sharp Edge Lab <billing@sharpedgelab.com>' }, false, 'R2: Paddle refund'],
+   [{ from: 'Monevex Support <support@monevex.zohodesk.com>', reply: 'Reply-To: support@monevex.com' }, false, 'R2: help-desk reply'],
+   [{ from: 'Calendly <notifications@calendly.com>', reply: 'Reply-To: Sam Oke <sam@career-growth.co>' }, false, 'R2: Calendly booking'],
+   [{ from: 'Wix Forms <no-reply@crm.wix.com>', reply: 'Reply-To: Sam Oke <sam@career-growth.co>' }, false, 'R2: contact-form notice'],
+   [{ from: 'Sam Oke via Jobs-L <jobs-l@lists.university.edu>', reply: RT }, false, 'R2: Mailman list on its own domain'],
+   [{ from: 'FinCon <hello@fincon.com>', reply: 'Reply-To: events@fincon.com, partners@monevex.com' }, false, 'R2: co-send'],
+  ].forEach(([o, want, why]) => check('burner: ' + why + ' -> ' + want, bfires(o) === want));
+  {
+    // Review round 2: a RUNTIME entry must never widen to "any mail replying to it".
+    const c = makeCtx({ props: { SUSPICIOUS_DOMAINS: JSON.stringify(['acme-burner-test.com']) } });
+    const m = bmsg({ from: 'Dana Lee <news@devsummit.io>', reply: 'Reply-To: Dana Lee <speakers@acme-burner-test.com>' });
+    check('burner: a runtime blacklist entry is NOT read (source entries only)',
+          c.getCachedBlacklist().indexOf('acme-burner-test.com') !== -1 && c.collectSignals(m).blacklistedRelayIdentity === false,
+          JSON.stringify(c.getCachedBlacklist().slice(-2)));
+  }
+  [['Sam Oke <sam@x.co>', 'samoke'], ['"Oke, Sam" <sam@x.co>', 'okesam'], ['sam@x.co', ''], ['<sam@x.co>', ''],
+   ['Sam Oke <sam@x.co>, a@b.c', 'samoke'], ['Zoë Ångström <z@x.se>', 'zongstrm'], ['山田 <y@x.jp>', ''], ['', ''], [null, '']
+  ].forEach(([v, want]) => check('personaNameKey ' + JSON.stringify(v) + ' -> ' + want, ctx.personaNameKey(v) === want));
+  const v = ctx.analyzeMessage(bmsg({ from: 'Sam Oke <sam@careergrowthhq.com>', reply: RT }));
+  check('a rotated burner is convicted as Rule 12', v.isSpam === true && ctx.getRuleFromSignals(v.signals).rule === 'Rule 12',
+        JSON.stringify({ s: v.isSpam, r: ctx.getRuleFromSignals(v.signals).rule }));
 }
 
 // ── Rule 14 history: mail the user FILED under their own label (v6.112.0, PR #41 review) ──

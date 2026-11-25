@@ -238,7 +238,7 @@ function getRuleFromSignals(signals)
 
   if (signals.blacklistedRelayIdentity)
   {
-    return { rule: 'Rule 12', description: 'Blacklisted brand domain behind an ESP relay (Reply-To on a listed mill, mailbox embeds it)' };
+    return { rule: 'Rule 12', description: 'Blacklisted brand domain behind an ESP relay or burner domain (Reply-To on a listed mill)' };
   }
 
   if (signals.millFooterAddress)

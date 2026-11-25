@@ -1,0 +1,211 @@
+Delivered-To: recipient@example.com
+Received: by 2002:a05:7412:6c0f:b0:23c:6595:792d with SMTP id tn15csp4026598rdb;
+        Tue, 24 Nov 2026 04:58:22 -0800 (PST)
+X-Received: by 2002:a17:907:6e89:b0:c51:59c8:a4ec with SMTP id a640c23a62f3a-c5159c8dc3bmr814886666b.1.1795525101943;
+        Tue, 24 Nov 2026 04:58:21 -0800 (PST)
+ARC-Seal: i=1; a=rsa-sha256; t=1795525101; cv=none;
+        d=google.com; s=arc-20260327;
+        b=FuLFLMBbDHHDULqdXZkEUQjhNb6v/7rHRuzt07ghqOFeYsODYIafqdNT01bOq4M+YQ
+         IBZJPSfjrgU97r/o4nC533Q+vpT8/iSQH6h0VDYchf1cOKBM8t4/BDqmRltICsbg/tdb
+         66RgcLH37jBKc2Ji/H7EpEYqNHTBi/yp4H3vfSmM6Wa77ASp2Lad/DGQoR+/yCrjEfse
+         XVu3vuqLtCle03PRk4qw/vJASVr8XrLa2z+7MW4pnhBODd+LUK+aLrX04MivazfvtSi+
+         NNe/E5imsaW8K8z72rQLSHNVzI4Vr9OtgJAj2BLnOzqhOLnAgznAnGsJKLTGra5++ZaW
+         Z8zg==
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20260327;
+        h=reply-to:to:from:subject:message-id:mime-version
+         :list-unsubscribe-post:list-unsubscribe:feedback-id:date
+         :dkim-signature;
+        bh=oh39lDAHF60za2XN/5KugJflSH+BiTegXmwEnI/4wvk=;
+        fh=2k01ToPEHE2wH5J1qg9UqPUmvZYhl/gfw/B9b9T/5nk=;
+        b=JyMakOxR8+WzN6laF4jBunyhk92LXo444KOpDsaiUnh2H/pZ71HZwxFz8/fifCIhmr
+         kVLQTs+yWWIG5g+oNZJ/ELbi7qt2FLEJUJK8Lfok6/CzXJdAFa9/sSQMwSlWJ2B7/dg5
+         DO+YBSSlcXNRkgxvUeRdIPEew0xTAV+aEXuXbHk6CtnjxLhtnbQxNBRxDkBXkrOZ6zd9
+         gz/nkaMfZGZyHuLIHJhK0N9MXhDlNybmU6/VMcE5zZ8laL6WqaU4/INV9v7/iAq38sN6
+         Ft6Aj3X1kHwPVdHXwqojmen8j6oZnvP0qpAP22qHNL+G8KjcrSfZbAbNTsymUuyZd55R
+         YdMg==;
+        dara=google.com
+ARC-Authentication-Results: i=1; mx.google.com;
+       dkim=pass header.i=@careergrowthprogress.com header.s=sender header.b=scrubbed;
+       spf=pass (google.com: domain of scrubbed@sendersrv.com designates 185.3.229.139 as permitted sender) smtp.mailfrom=scrubbed@sendersrv.com;
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=careergrowthprogress.com
+Return-Path: <scrubbed@sendersrv.com>
+Received: from mail5.sendersrv2.com (mail5.sendersrv2.com. [185.3.229.139])
+        by mx.google.com with ESMTPS id a640c23a62f3a-c513b030a3csi919561966b.167.2026.11.24.04.58.21
+        for <recipient@example.com>
+        (version=TLS1_3 cipher=TLS_AES_256_GCM_SHA384 bits=256/256);
+        Tue, 24 Nov 2026 04:58:21 -0800 (PST)
+Received-SPF: pass (google.com: domain of scrubbed@sendersrv.com designates 185.3.229.139 as permitted sender) client-ip=185.3.229.139;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@careergrowthprogress.com header.s=sender header.b=scrubbed;
+       spf=pass (google.com: domain of scrubbed@sendersrv.com designates 185.3.229.139 as permitted sender) smtp.mailfrom=scrubbed@sendersrv.com;
+       dmarc=pass (p=QUARANTINE sp=QUARANTINE dis=NONE) header.from=careergrowthprogress.com
+DKIM-Signature: v=1; a=rsa-sha256; d=careergrowthprogress.com; s=sender; c=relaxed/relaxed;
+	bh=oh39lDAHF60za2XN/5KugJflSH+BiTegXmwEnI/4wvk=;
+	h=content-type:content-type:date:date:from:from:list-unsubscribe:
+		list-unsubscribe:list-unsubscribe-post:list-unsubscribe-post:mime-version:
+		mime-version:sender:subject:subject:to:to; t=1795525101;
+	b=HBZ2RmjGoWPzHlLLKU1t0qGXPJRIYgIJsA+cSmAWwxYTBpspED39NV0CAzhIjdOOULfDyVKzq
+	jLfm4ur7oNJzQG1XENHlOirIu6R6VQe/lE9KJxutOT0ePFxER1/FOqmYPGFZEwRTn9xwUdCgnEk
+	oxbhX7OK/QanVVR1UzYZI6o=;
+Date: Tue, 24 Nov 2026 12:58:21 +0000
+Feedback-ID: a121364:tx-d169291:campaign:SenderNET
+List-Unsubscribe:
+ <https://stats.sender.net/trx_unsubscribe/scrubbed>
+List-Unsubscribe-Post: List-Unsubscribe=One-Click
+MIME-Version: 1.0
+Message-ID: <scrubbed@sendersrv.com>
+Subject: Alex, the three worth your two lines
+X-Auto-Response-Suppress: All
+X-Sender-ID: scrubbed
+X-Sender-Variables: kg
+From: "Sam Oke" <samoke@careergrowthprogress.com>
+To: "Alex" <recipient@example.com>
+Reply-To: "Sam Oke" <sam@career-growth.co>
+Content-Type: multipart/alternative;
+ boundary=ed66eb8d1c8cdcc71cb73587c5bbd8674bb845a1e03e7c6febf33fb43493
+
+--ed66eb8d1c8cdcc71cb73587c5bbd8674bb845a1e03e7c6febf33fb43493
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/plain; charset=UTF-8
+
+Alex,
+
+Ninety seconds, and no form at the end of it. Three people, and where each =
+of them ended up.
+
+Each of these three was spoken for by name, to a person with the authority =
+to act on it, before the role existed in writing. That is the whole mechani=
+sm, and the results below are what it produces.
+
+I spoke for Marco Ellis at Halliburton, and the offer followed inside the m=
+onth. They have just won a multiyear award from Kuwait Oil Company to build=
+ an upstream R&amp;D center.
+https://career-growth.co/marco-ellis-resume/
+
+I vouched for Peter Walsh at Amazon on my own judgment, and nothing else wa=
+s needed. They are at $716.9bn in net sales, up 12%, and are putting $6bn i=
+nto a third Louisiana data-center campus.
+https://career-growth.co/peter-walsh-resume/
+
+I made one call for Nora Quinn at Citi, and that call did what a year of ap=
+plying had not. They are at $85.2bn in revenue, up 6%, and have just put $4=
+0m into their Buffalo campus for 2,200 staff.
+https://career-growth.co/nora-quinn-resume/
+
+What they share is not sector, title or length of service. It is that a rea=
+l person stood between the record and the sorting, and the sorting never ha=
+ppened.
+
+I have placed 6,000+ people and never once got there by volume. It is a han=
+dful of careful introductions at a time, which is exactly why I keep the nu=
+mber low.
+
+Two lines is plenty - your function now, and the grade you are aiming for. =
+Every reply comes to me directly and gets an honest answer.
+
+Best regards,
+
+Sam Oke
+Founder &amp; Recruiter
+Career-Growth.co
+12+ years - I have placed 6,000+ people
+O: 650-396-3563
+
+Member - Project Management Institute (PMI) . National Association of Perso=
+nnel Services (NAPS) . Society for Human Resource Management (SHRM) . Ameri=
+can Management Association (AMA)
+440 N Barranca Ave #9710, Covina, CA 91723
+Sent from careergrowthprogress.com by Sam Oke, Founder &amp; Recruiter at C=
+areer-Growth.co
+
+If you would rather not hear from me again, unsubscribe here: https://pay.c=
+areer-growth.co/u?b=3Dscrubbed&amp;e=3Drecipient%40example.com
+
+--ed66eb8d1c8cdcc71cb73587c5bbd8674bb845a1e03e7c6febf33fb43493
+Content-Transfer-Encoding: quoted-printable
+Content-Type: text/html; charset=UTF-8
+
+<html><head></head><body><a href=3D"https://campaign-statistics.com/scrubbe=
+d"><img src=3D"https://campaign-statistics.com/scrubbed" width=3D"1" height=
+=3D"1" border=3D"0" alt=3D"" style=3D"height:1px !important;width:1px !impo=
+rtant;border-width:0 !important;margin-top:0 !important;margin-bottom:0 !im=
+portant;margin-right:0 !important;margin-left:0 !important;padding-top:0 !i=
+mportant;padding-bottom:0 !important;padding-right:0 !important;padding-lef=
+t:0 !important;outline-style:none;text-decoration:none;display:block;"/></a=
+><table style=3D"background-color:#ffffff;">
+<tbody><tr>
+<td align=3D"center" style=3D"padding:12px;">
+<table style=3D"max-width:600px;">
+<tbody><tr>
+<td style=3D"font-family:Arial, Helvetica, sans-serif; font-size:13px; line=
+-height:1.5; color:#222222;">
+<p style=3D"margin:0 0 14px 0;">Alex,</p>
+<p style=3D"margin:0 0 14px 0;">Ninety seconds, and no form at the end of i=
+t. <strong>Three people, and where each of them ended up.</strong></p>
+<p style=3D"margin:0 0 14px 0;">Each of these three was <strong>spoken for =
+by name</strong>, to a person with the authority to act on it, <strong>befo=
+re the role existed in writing</strong>. That is the whole mechanism, and t=
+he results below are what it produces.</p>
+<p style=3D"margin:0 0 14px 0;">I spoke for <strong>Marco Ellis</strong> at=
+ <a href=3D"https://campaign-statistics.com/scrubbed" style=3D"color:#1155c=
+c;"><strong>Halliburton</strong></a>, and the offer followed inside the mon=
+th. They have just won a <strong>multiyear award from Kuwait Oil Company</s=
+trong> to build an upstream R&amp;D center.</p>
+<p style=3D"margin:0 0 14px 0;">I vouched for <strong>Peter Walsh</strong> =
+at <a href=3D"https://campaign-statistics.com/scrubbed" style=3D"color:#115=
+5cc;"><strong>Amazon</strong></a> on my own judgment, and nothing else was =
+needed. They are at <strong>$716.9bn in net sales, up 12%</strong>, and are=
+ putting <strong>$6bn</strong> into a third Louisiana data-center campus.</=
+p>
+<p style=3D"margin:0 0 14px 0;">I made one call for <strong>Nora Quinn</str=
+ong> at <a href=3D"https://campaign-statistics.com/scrubbed" style=3D"color=
+:#1155cc;"><strong>Citi</strong></a>, and that call did what a year of appl=
+ying had not. They are at <strong>$85.2bn in revenue, up 6%</strong>, and h=
+ave just put <strong>$40m</strong> into their Buffalo campus for 2,200 staf=
+f.</p>
+<p style=3D"margin:0 0 14px 0;">What they share is <strong>not sector, titl=
+e or length of service</strong>. It is that <strong>a real person stood bet=
+ween the record and the sorting</strong>, and the sorting never happened.</=
+p>
+<p style=3D"margin:0 0 14px 0;">I have placed <strong>6,000+ people</strong=
+> and never once got there by volume. It is <strong>a handful of careful in=
+troductions at a time</strong>, which is exactly why <strong>I keep the num=
+ber low</strong>.</p>
+<p style=3D"margin:0 0 20px 0;"><strong>Two lines is plenty</strong> =E2=80=
+=94 your function now, and the grade you are aiming for. Every reply comes =
+to me directly and <strong>gets an honest answer</strong>.</p>
+<p style=3D"margin:0 0 12px 0;">Best regards,</p>
+<table style=3D"margin:0;">
+<tbody><tr>
+<td valign=3D"top" style=3D"padding:0 14px 0 0;">
+<img src=3D"https://career-growth.co/wp-content/uploads/2015/08/Sam-Oke.jpg=
+" width=3D"60" height=3D"60" alt=3D"Sam Oke"/>
+</td>
+<td valign=3D"top" style=3D"font-family:Arial, Helvetica, sans-serif; font-=
+size:13px; line-height:1.5; color:#222222;">
+<strong>Sam Oke</strong><br/>
+Founder &amp; Recruiter<br/>
+Career-Growth.co<br/>
+12+ years =C2=B7 I have placed 6,000+ people<br/>
+O: <span>650</span>=E2=80=91<span>396</span>=E2=80=91<span>3563</span>
+</td>
+</tr>
+</tbody></table>
+<p style=3D"margin:16px 0 0 0; font-size:12px; line-height:1.5; color:#7777=
+77;">Member =E2=80=94 Project Management Institute (PMI) =C2=B7 National As=
+sociation of Personnel Services (NAPS) =C2=B7 Society for Human Resource Ma=
+nagement (SHRM) =C2=B7 American Management Association (AMA)<br/>
+440 N Barranca Ave #9710, Covina, CA 91723<br/>
+Sent from careergrowthprogress.com by Sam Oke, Founder &amp; Recruiter at C=
+areer-Growth.co</p>
+<p style=3D"margin:12px 0 0 0; font-size:12px; color:#777777;">If you would=
+ rather not hear from me again, <a href=3D"https://campaign-statistics.com/=
+scrubbed" style=3D"color:#1155cc;">unsubscribe here</a>.</p>
+</td>
+</tr>
+</tbody></table>
+</td>
+</tr>
+</tbody></table></body></html>
+
+--ed66eb8d1c8cdcc71cb73587c5bbd8674bb845a1e03e7c6febf33fb43493--

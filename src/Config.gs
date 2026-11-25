@@ -1,6 +1,6 @@
 /**
  * Gmail Spam Detector - Google Apps Script
- * @version 6.117.0
+ * @version 6.118.0
  *
  * Automated spam detection and destruction for Gmail. Runs on a 10-minute
  * trigger (a scheduled task), scanning the inbox for unprocessed emails and
@@ -103,7 +103,7 @@
  *
  * @const {string}
  */
-const SCRIPT_VERSION = '6.117.0';
+const SCRIPT_VERSION = '6.118.0';
 
 const CONFIG = Object.freeze({
   /** Max emails per run — prevents Apps Script 6-minute execution timeout */
@@ -225,7 +225,12 @@ const DEFAULT_DOMAINS = Object.freeze({
     // v6.101.0: Monevex ("Elon's car factory via Monevex Team"), the Alpha One Marketers LLC
     // mill under a third brand (after sharpedgelab.com and globalaxisintel.com); SES via
     // Iterable. Only bulk + one fear hit fired, so Gmail's Spam copy sat out the grace period.
-    'monevex.com'
+    'monevex.com',
+    // v6.118.0: "Sam Oke, Founder & Recruiter, Career-Growth.co": AI-written flattery and
+    // placement pitches from a burner sending domain (careergrowthprogress.com, Sender.net),
+    // replies to the brand (career-growth.co). Zero signals fired on either email.
+    'careergrowthprogress.com',
+    'career-growth.co'
   ])
 });
 

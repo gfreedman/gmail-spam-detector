@@ -253,8 +253,23 @@ function scriptOwnLabels()
 /** Is this host barred from label history: a shared service, or a publisher kept deletable? */
 function labelHistoryRefused(domain)
 {
-  const lists = [FREE_MAIL_DOMAINS, THROWAWAY_TENANT_DOMAINS, BLACKLIST_REFUSED_HOSTS,
-                 SHARED_SENDER_HOSTS, LABEL_HISTORY_REFUSED_DOMAINS];
+  return isSharedSenderHost(domain) || hostOnList(domain, LABEL_HISTORY_REFUSED_DOMAINS);
+}
+
+/**
+ * Is this host a free-mail, throwaway-tenant or shared sending service, matched as a host suffix
+ * (v6.118.0; split out of labelHistoryRefused)? One host there carries many unrelated senders.
+ */
+function isSharedSenderHost(domain)
+{
+  return hostOnList(domain, FREE_MAIL_DOMAINS, THROWAWAY_TENANT_DOMAINS, BLACKLIST_REFUSED_HOSTS,
+                    SHARED_SENDER_HOSTS);
+}
+
+/** Is the host, or a parent of it, an entry of any list passed? */
+function hostOnList(domain)
+{
+  const lists = Array.prototype.slice.call(arguments, 1);
   for (let i = 0; i < lists.length; i++)
   {
     for (let j = 0; j < lists[i].length; j++)
